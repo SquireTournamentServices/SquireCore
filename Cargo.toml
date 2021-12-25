@@ -1,11 +1,18 @@
 [package]
-name = "SquireCore"
+name = "squire_core"
 version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-rocket = { version = "0.5.0-rc.1" }
-juniper = { version = "0.15.7" }
-juniper_rocket = { version = "0.8.0" }
-serde = { version = "1.0" }
-serde_json = { version = "1.0.68" }
+uuid = { version = "0.8", features = ["serde", "v4"] }
+#rocket = { version = "0.5.0-rc.1" }
+#juniper = { version = "0.15.7" }
+#juniper_rocket = { version = "0.8.0" }
+#serde = { version = "1.0" }
+#serde_derive = { version = "1.0" }
+#serde_json = { version = "1.0.68" }
+#actix-web = { version = "1.0.0" }
+#diesel = { version = "1.0.0", features = ["postgres"] }
+#dotenv = { version = "0.9.0" }
+#env_logger = { version = "0.6" }
+#futures = { version = "0.1" }
