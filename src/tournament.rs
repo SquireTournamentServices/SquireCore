@@ -5,7 +5,7 @@ use crate::scoring_system::ScoringSystem;
 
 use uuid::Uuid;
 
-use std::sync::Arc;
+use std::sync::{Arc,Mutex};
 
 pub struct Tournament {
     uuid: Uuid,
@@ -17,10 +17,10 @@ pub struct Tournament {
     players_per_match: u8,
     match_length: u64,
     deck_count: u8,
-    player_reg: Arc<PlayerRegistry>,
-    match_reg: Arc<MatchRegistry>,
-    pairing_sys: Arc<Box<dyn PairingSystem>>,
-    scoring_sys: Arc<Box<dyn ScoringSystem>>,
+    player_reg: Mutex<Arc<PlayerRegistry>>,
+    match_reg: Mutex<Arc<MatchRegistry>>,
+    pairing_sys: Mutex<Arc<dyn PairingSystem>>,
+    scoring_sys: Mutex<Arc<dyn ScoringSystem>>,
     /*
      * All of the following should be contained in an object in the TriceBot library.
     trice_bot_enabled: bool,
