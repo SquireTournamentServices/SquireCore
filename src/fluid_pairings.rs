@@ -2,8 +2,8 @@ pub use super::pairing_system::{Arc, MatchRegistry, Mutex, PairingSystem, Player
 
 struct FluidPairings {
     players_per_match: u8,
-    player_reg: Mutex<Arc<PlayerRegistry>>,
-    match_reg: Mutex<Arc<MatchRegistry>>,
+    player_reg: Arc<Mutex<PlayerRegistry>>,
+    match_reg: Arc<Mutex<MatchRegistry>>,
 }
 
 impl FluidPairings {}
@@ -11,8 +11,8 @@ impl FluidPairings {}
 impl PairingSystem for FluidPairings {
     fn new(
         players_per_match: u8,
-        player_reg: Mutex<Arc<PlayerRegistry>>,
-        match_reg: Mutex<Arc<MatchRegistry>>,
+        player_reg: Arc<Mutex<PlayerRegistry>>,
+        match_reg: Arc<Mutex<MatchRegistry>>,
     ) -> Self
     where
         Self: Sized,

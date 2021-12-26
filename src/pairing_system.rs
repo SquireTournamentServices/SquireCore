@@ -6,8 +6,8 @@ pub use std::sync::{Mutex,Arc};
 pub trait PairingSystem {
     fn new(
         players_per_match: u8,
-        playerReg: Mutex<Arc<PlayerRegistry>>,
-        matchReg: Mutex<Arc<MatchRegistry>>,
+        playerReg: Arc<Mutex<PlayerRegistry>>,
+        matchReg: Arc<Mutex<MatchRegistry>>,
     ) -> Self
         where Self: Sized;
 }

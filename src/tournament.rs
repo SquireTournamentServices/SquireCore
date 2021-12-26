@@ -1,3 +1,6 @@
+use crate::round::Round;
+use crate::player::Player;
+use crate::standings::Standings;
 use crate::match_registry::MatchRegistry;
 use crate::pairing_system::PairingSystem;
 use crate::player_registry::PlayerRegistry;
@@ -17,10 +20,10 @@ pub struct Tournament {
     players_per_match: u8,
     match_length: u64,
     deck_count: u8,
-    player_reg: Mutex<Arc<PlayerRegistry>>,
-    match_reg: Mutex<Arc<MatchRegistry>>,
-    pairing_sys: Mutex<Arc<dyn PairingSystem>>,
-    scoring_sys: Mutex<Arc<dyn ScoringSystem>>,
+    player_reg: Arc<Mutex<PlayerRegistry>>,
+    match_reg: Arc<Mutex<MatchRegistry>>,
+    pairing_sys: Arc<Mutex<Box<dyn PairingSystem>>>,
+    scoring_sys: Arc<Mutex<Box<dyn ScoringSystem>>>,
     /*
      * All of the following should be contained in an object in the TriceBot library.
     trice_bot_enabled: bool,
@@ -35,4 +38,35 @@ pub struct Tournament {
 }
 
 impl Tournament {
+    pub fn is_planned( &self ) -> bool {
+        !( self.tourn_started || self.tourn_ended )
+    }
+
+    pub fn is_active( &self ) -> bool {
+        self.tourn_started && !( self.tourn_ended )
+    }
+
+    pub fn is_dead( &self ) -> bool {
+        self.tourn_ended
+    }
+
+    pub fn get_player( &self, identifier: String ) -> Player {
+        self.player_reg.get_player( identifier )
+    }
+
+    pub fn get_round( &self, round_num: u8 ) -> Round {
+        return self.match_reg.get_round( round_num )
+    }
+
+    pub fn get_standings( &self ) -> Standings {
+        self.scoring_sys.get_standings()
+    }
+
+    pub fn ready_player( &self, plyr: String ) -> String {
+        "You does not have a matchmaking queue.".to_string()
+    }
+
+    pub fn unready_player( &self, plyr: String ) -> String {
+        "You does not have a matchmaking queue.".to_string()
+    }
 }

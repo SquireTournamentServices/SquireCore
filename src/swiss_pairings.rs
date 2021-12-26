@@ -2,8 +2,8 @@ pub use super::pairing_system::{Arc, Mutex, MatchRegistry, PairingSystem, Player
 
 struct SwissPairings {
     players_per_match: u8,
-    player_reg: Mutex<Arc<PlayerRegistry>>,
-    match_reg: Mutex<Arc<MatchRegistry>>,
+    player_reg: Arc<Mutex<PlayerRegistry>>,
+    match_reg: Arc<Mutex<MatchRegistry>>,
 }
 
 impl SwissPairings {}
@@ -11,8 +11,8 @@ impl SwissPairings {}
 impl PairingSystem for SwissPairings {
     fn new(
         players_per_match: u8,
-        player_reg: Mutex<Arc<PlayerRegistry>>,
-        match_reg: Mutex<Arc<MatchRegistry>>,
+        player_reg: Arc<Mutex<PlayerRegistry>>,
+        match_reg: Arc<Mutex<MatchRegistry>>,
     ) -> Self
     where
         Self: Sized,
