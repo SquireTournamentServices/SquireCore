@@ -1,9 +1,9 @@
-
 use crate::game::Game;
 
 use uuid::Uuid;
 
-use std::{collections::HashSet, io::BufRead, ops::RangeBounds};
+use std::collections::HashSet;
+use std::time::{Duration, Instant};
 
 pub enum RoundStatus {
     Open,
@@ -21,13 +21,14 @@ pub struct Round {
     games: Vec<Game>,
     status: RoundStatus,
     winner: Option<Uuid>,
-    length: u64,
-    extension: u64,
+    timer: Instant,
+    length: Duration,
+    extension: Duration,
     is_bye: bool,
 }
 
 impl Round {
-    pub fn new(match_num: u64, len: u64) -> Self {
+    pub fn new(match_num: u64, len: Duration) -> Self {
         Round {
             uuid: Uuid::new_v4(),
             match_number: match_num,
@@ -36,8 +37,9 @@ impl Round {
             games: Vec::with_capacity(3),
             status: RoundStatus::Open,
             winner: None,
+            timer: Instant::now(),
             length: len,
-            extension: 0,
+            extension: Duration::from_secs(0),
             is_bye: false,
         }
     }
@@ -74,7 +76,7 @@ impl Round {
     pub fn kill_round(&mut self) -> () {
         self.status = RoundStatus::Dead;
     }
-    pub fn record_bye(&mut self) -> Result<(),()> {
+    pub fn record_bye(&mut self) -> Result<(), ()> {
         if self.players.len() != 1 {
             Err(())
         } else {

@@ -29,7 +29,7 @@ impl Game {
         self.winner.clone()
     }
     pub fn get_result(&self) -> GameResult {
-        self.result.clone() 
+        self.result.clone()
     }
     pub fn is_draw(&self) -> bool {
         self.result == GameResult::Draw
