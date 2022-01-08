@@ -1,5 +1,7 @@
 use crate::round::Round;
 
+use uuid::Uuid;
+
 use std::time::Duration;
 
 pub struct RoundRegistry {
@@ -15,8 +17,10 @@ impl RoundRegistry {
         }
     }
 
-    pub fn create_match(&mut self) -> () {
+    pub fn create_round(&mut self) -> Uuid {
         self.rounds
             .push(Round::new(self.rounds.len() as u64, self.length));
+        // Safety check: the vector will be non-empty as we just added something to it
+        self.rounds.last().unwrap().get_uuid()
     }
 }

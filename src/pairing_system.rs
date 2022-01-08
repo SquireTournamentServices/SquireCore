@@ -1,13 +1,19 @@
 pub use crate::match_registry::MatchRegistry;
 pub use crate::player_registry::PlayerRegistry;
 
-pub use std::sync::{Mutex,Arc};
+pub use uuid::Uuid;
+
+pub use std::collections::HashMap;
 
 pub trait PairingSystem {
-    fn new(
-        players_per_match: u8,
-        playerReg: Arc<Mutex<PlayerRegistry>>,
-        matchReg: Arc<Mutex<MatchRegistry>>,
-    ) -> Self
-        where Self: Sized;
+    fn new(players_per_match: u8) -> Self
+    where
+        Self: Sized;
+    
+    // This bool communitates if pairings should be created
+    fn ready_player(&mut self) -> bool;
+
+    fn update_settings(&mut self, settings: HashMap<String, String>) -> String;
+
+    fn suggest_pairings(&self, players: PlayerRegistry, matches: MatchRegistry) -> Result<Vec<Vec<Uuid>>,()>;
 }

@@ -43,6 +43,9 @@ impl Round {
             is_bye: false,
         }
     }
+    pub fn get_uuid(&self) -> Uuid {
+        self.uuid.clone()
+    }
     pub fn add_player(&mut self, player: Uuid) -> () {
         self.players.insert(player);
     }

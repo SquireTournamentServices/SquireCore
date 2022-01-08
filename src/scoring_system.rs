@@ -1,13 +1,11 @@
-pub use crate::standings::Standings;
 pub use crate::match_registry::MatchRegistry;
 pub use crate::player_registry::PlayerRegistry;
-
-pub use std::sync::{Mutex,Arc};
+pub use crate::standings::Standings;
 
 pub trait ScoringSystem {
-    fn new(player_reg: Arc<Mutex<PlayerRegistry>>, match_reg: Arc<Mutex<MatchRegistry>>) -> Self
+    fn new() -> Self
     where
         Self: Sized;
-    
-    fn get_standings(&self) -> Standings;
+
+    fn get_standings(&self, player_reg: PlayerRegistry, match_reg: MatchRegistry) -> Standings;
 }
