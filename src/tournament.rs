@@ -10,34 +10,37 @@ use uuid::Uuid;
 
 use std::sync::{Arc,Mutex};
 
+pub enum TournamentPreset {
+    Swiss,
+    Fluid,
+}
+
+pub enum TournamentStatus {
+    Registration,
+    Started,
+    Frozen,
+    Ended,
+    Cancelled,
+}
+
 pub struct Tournament {
     uuid: Uuid,
     name: String,
     format: String,
-    reg_open: bool,
-    tourn_started: bool,
-    tourn_ended: bool,
-    players_per_match: u8,
-    match_length: u64,
+    game_size: u8,
+    round_length: u64,
     deck_count: u8,
     player_reg: Arc<Mutex<PlayerRegistry>>,
     match_reg: Arc<Mutex<MatchRegistry>>,
     pairing_sys: Arc<Mutex<Box<dyn PairingSystem>>>,
     scoring_sys: Arc<Mutex<Box<dyn ScoringSystem>>>,
-    /*
-     * All of the following should be contained in an object in the TriceBot library.
-    trice_bot_enabled: bool,
-    spectators_allowed: bool,
-    spectators_need_password: bool,
-    spectators_can_chat: bool,
-    spectators_can_see_hands: bool,
-    only_registered: bool,
-    player_deck_verification: bool,
-    create_text_channel: bool,
-    */
+    reg_open: bool,
+    status: TournamentStatus,
 }
 
 impl Tournament {
+    pub fn from_preset(name: String, preset: TournamentPreset, format: String, game_size: u8, round_length: Duration, deck_count: u8) -> Self {
+    }
     pub fn is_planned( &self ) -> bool {
         !( self.tourn_started || self.tourn_ended )
     }
