@@ -5,4 +5,8 @@ pub struct PlayerRegistry {
     players: Vec<Player>,
 }
 
-impl PlayerRegistry {}
+impl PlayerRegistry {
+    pub fn new() -> Self {
+        PlayerRegistry { players: Vec::new() }
+    }
+}

@@ -1,4 +1,4 @@
-pub use crate::match_registry::MatchRegistry;
+pub use crate::round_registry::RoundRegistry;
 pub use crate::player_registry::PlayerRegistry;
 
 pub use uuid::Uuid;
@@ -15,5 +15,5 @@ pub trait PairingSystem {
 
     fn update_settings(&mut self, settings: HashMap<String, String>) -> String;
 
-    fn suggest_pairings(&self, players: PlayerRegistry, matches: MatchRegistry) -> Result<Vec<Vec<Uuid>>,()>;
+    fn suggest_pairings(&self, players: PlayerRegistry, matches: RoundRegistry) -> Result<Vec<Vec<Uuid>>,()>;
 }

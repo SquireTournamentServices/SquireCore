@@ -1,5 +1,5 @@
 pub use crate::scoring_system::{
-    Arc, MatchRegistry, Mutex, PlayerRegistry, ScoringSystem, Standings,
+    RoundRegistry, PlayerRegistry, ScoringSystem, Standings,
 };
 
 pub struct StandardScoring {}
@@ -7,14 +7,14 @@ pub struct StandardScoring {}
 impl StandardScoring {}
 
 impl ScoringSystem for StandardScoring {
-    fn new(player_reg: Arc<Mutex<PlayerRegistry>>, match_reg: Arc<Mutex<MatchRegistry>>) -> Self
+    fn new() -> Self
     where
         Self: Sized,
     {
         StandardScoring {}
     }
 
-    fn get_standings(&self) -> Standings {
+    fn get_standings(&self, player_reg: PlayerRegistry, match_reg: RoundRegistry) -> Standings {
         Standings {}
     }
 }

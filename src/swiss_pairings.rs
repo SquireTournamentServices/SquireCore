@@ -1,26 +1,31 @@
-pub use super::pairing_system::{Arc, Mutex, MatchRegistry, PairingSystem, PlayerRegistry};
+pub use super::pairing_system::{HashMap, PairingSystem, PlayerRegistry, RoundRegistry, Uuid};
 
-struct SwissPairings {
+pub struct SwissPairings {
     players_per_match: u8,
-    player_reg: Arc<Mutex<PlayerRegistry>>,
-    match_reg: Arc<Mutex<MatchRegistry>>,
 }
 
 impl SwissPairings {}
 
 impl PairingSystem for SwissPairings {
-    fn new(
-        players_per_match: u8,
-        player_reg: Arc<Mutex<PlayerRegistry>>,
-        match_reg: Arc<Mutex<MatchRegistry>>,
-    ) -> Self
+    fn new(players_per_match: u8) -> Self
     where
         Self: Sized,
     {
-        SwissPairings {
-            players_per_match,
-            player_reg,
-            match_reg,
-        }
+        SwissPairings { players_per_match }
+    }
+    fn ready_player(&mut self) -> bool {
+        todo!()
+    }
+
+    fn update_settings(&mut self, settings: HashMap<String, String>) -> String {
+        todo!()
+    }
+
+    fn suggest_pairings(
+        &self,
+        players: PlayerRegistry,
+        matches: RoundRegistry,
+    ) -> Result<Vec<Vec<Uuid>>, ()> {
+        todo!()
     }
 }

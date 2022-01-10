@@ -1,5 +1,5 @@
 pub mod fluid_pairings;
-pub mod match_registry;
+pub mod round_registry;
 pub mod pairing_system;
 pub mod player;
 pub mod player_registry;
