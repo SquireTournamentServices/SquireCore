@@ -14,7 +14,7 @@ impl ScoringSystem for StandardScoring {
         StandardScoring {}
     }
 
-    fn get_standings(&self, player_reg: PlayerRegistry, match_reg: RoundRegistry) -> Standings {
+    fn get_standings(&self, player_reg: &PlayerRegistry, match_reg: &RoundRegistry) -> Standings {
         Standings {}
     }
 }

@@ -7,5 +7,5 @@ pub trait ScoringSystem {
     where
         Self: Sized;
 
-    fn get_standings(&self, player_reg: PlayerRegistry, match_reg: RoundRegistry) -> Standings;
+    fn get_standings(&self, player_reg: &PlayerRegistry, match_reg: &RoundRegistry) -> Standings;
 }
