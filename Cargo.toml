@@ -2,6 +2,9 @@
 name = "squire_core"
 version = "0.0.0"
 edition = "2021"
+license = "GPL-3.0"
+rust-version = "1.58.0"
+authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
 uuid = { version = "0.8", features = ["serde", "v4"] }
