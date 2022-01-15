@@ -76,12 +76,69 @@ impl Tournament {
         self.status == TournamentStatus::Planned
     }
 
+    pub fn is_frozen(&self) -> bool {
+        self.status == TournamentStatus::Frozen
+    }
+
     pub fn is_active(&self) -> bool {
         self.status == TournamentStatus::Started
     }
 
     pub fn is_dead(&self) -> bool {
         self.status == TournamentStatus::Ended || self.status == TournamentStatus::Cancelled
+    }
+
+    pub fn update_reg(&mut self, reg_status: bool) -> () {
+        self.reg_open = reg_status;
+    }
+
+    pub fn start(&mut self) -> Result<(), ()> {
+        if !self.is_planned() {
+            Err(())
+        } else {
+            self.reg_open = false;
+            self.status = TournamentStatus::Started;
+            Ok(())
+        }
+    }
+
+    pub fn freeze(&mut self) -> Result<(), ()> {
+        if !self.is_active() {
+            Err(())
+        } else {
+            self.reg_open = false;
+            self.status = TournamentStatus::Frozen;
+            Ok(())
+        }
+    }
+
+    pub fn thaw(&mut self) -> Result<(), ()> {
+        if !self.is_frozen() {
+            Err(())
+        } else {
+            self.status = TournamentStatus::Started;
+            Ok(())
+        }
+    }
+
+    pub fn end(&mut self) -> Result<(), ()> {
+        if !self.is_active() {
+            Err(())
+        } else {
+            self.reg_open = false;
+            self.status = TournamentStatus::Ended;
+            Ok(())
+        }
+    }
+
+    pub fn cancel(&mut self) -> Result<(), ()> {
+        if !self.is_active() {
+            Err(())
+        } else {
+            self.reg_open = false;
+            self.status = TournamentStatus::Cancelled;
+            Ok(())
+        }
     }
 
     pub fn get_player(&self, identifier: String) -> Player {
@@ -95,14 +152,15 @@ impl Tournament {
     }
 
     pub fn get_standings(&self) -> Standings {
-        self.scoring_sys.read().unwrap().get_standings(
+        let sys = get_read_spin_lock(&self.scoring_sys);
+        sys.get_standings(
             &self.player_reg.read().unwrap(),
             &self.round_reg.read().unwrap(),
         )
     }
 
     pub fn ready_player(&self, plyr: String) -> () {
-        let sys = get_write_spin_lock(&self.pairing_sys);
+        todo!()
     }
 
     pub fn unready_player(&self, plyr: String) -> String {
