@@ -14,8 +14,8 @@ pub enum RoundStatus {
 
 // This struct should be able to handle N many games, unlike the Python equiv.
 pub struct Round {
-    uuid: Uuid,
-    match_number: u64,
+    pub(crate) uuid: Uuid,
+    pub(crate) match_number: u64,
     players: HashSet<Uuid>,
     confirmations: HashSet<Uuid>,
     games: Vec<Game>,

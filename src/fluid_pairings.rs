@@ -1,4 +1,4 @@
-pub use super::pairing_system::{PairingSystem, HashMap, Uuid, RoundRegistry, PlayerRegistry};
+pub use super::pairing_system::{HashMap, PairingSystem, PlayerRegistry, RoundRegistry, Uuid};
 
 pub struct FluidPairings {
     players_per_match: u8,
@@ -7,15 +7,11 @@ pub struct FluidPairings {
 impl FluidPairings {}
 
 impl PairingSystem for FluidPairings {
-    fn new(
-        players_per_match: u8
-    ) -> Self
+    fn new(players_per_match: u8) -> Self
     where
         Self: Sized,
     {
-        FluidPairings {
-            players_per_match,
-        }
+        FluidPairings { players_per_match }
     }
     fn ready_player(&mut self) -> bool {
         todo!()
@@ -25,7 +21,19 @@ impl PairingSystem for FluidPairings {
         todo!()
     }
 
-    fn suggest_pairings(&self, players: PlayerRegistry, matches: RoundRegistry) -> Result<Vec<Vec<Uuid>>,()> {
+    fn suggest_pairings(
+        &self,
+        players: &PlayerRegistry,
+        matches: &RoundRegistry,
+    ) -> Result<Vec<Vec<Uuid>>, ()> {
+        todo!()
+    }
+
+    fn rollback_pairings(
+        &self,
+        players: &mut PlayerRegistry,
+        matches: &mut RoundRegistry,
+    ) -> Result<(), ()> {
         todo!()
     }
 }

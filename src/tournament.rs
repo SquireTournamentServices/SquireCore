@@ -1,9 +1,9 @@
 use crate::fluid_pairings::FluidPairings;
 use crate::pairing_system::PairingSystem;
 use crate::player::Player;
-use crate::player_registry::PlayerRegistry;
+use crate::player_registry::{PlayerRegistry, PlayerIdentifier};
 use crate::round::Round;
-use crate::round_registry::RoundRegistry;
+use crate::round_registry::{RoundRegistry, RoundIdentifier};
 use crate::scoring_system::ScoringSystem;
 use crate::standard_scoring::StandardScoring;
 use crate::standings::Standings;
@@ -107,6 +107,36 @@ impl Tournament {
 
     pub fn unready_player(&self, plyr: String) -> String {
         todo!()
+    }
+    
+    pub fn set_deck_count(&mut self, deck_count: u8) -> () {
+        self.deck_count = deck_count;
+    }
+    
+    pub fn set_game_size(&mut self, game_size: u8) -> () {
+        self.game_size = game_size;
+    }
+    
+    pub fn set_round_length(&mut self, length: Duration) -> () {
+        let mut sys = get_write_spin_lock( &self.round_reg );
+        sys.set_round_length(length);
+    }
+    
+    pub fn create_round(&mut self, players: Vec<PlayerIdentifier>) -> Result<(), ()> {
+        let player_lock = get_read_spin_lock( &self.player_reg );
+        // NOTE: If players is empty, any will return false.
+        if players.iter().any(|p| !player_lock.verify_identifier(p)) {
+            // Saftey check, we already checked that all the identifiers correspond to a player
+            let ids: Vec<Uuid> = players.iter().map(|p| player_lock.get_player_id(p).unwrap()).collect();
+            let mut round_lock = get_write_spin_lock( &self.round_reg );
+            let round = round_lock.create_round();
+            for id in ids {
+                round.add_player(id);
+            }
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 }
 

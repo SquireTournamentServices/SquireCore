@@ -22,14 +22,25 @@ impl RoundRegistry {
         }
     }
 
-    pub fn create_round(&mut self) -> Uuid {
+    pub fn create_round(&mut self) -> &mut Round {
         self.rounds
             .push(Round::new(self.rounds.len() as u64, self.length));
         // Safety check: the vector will be non-empty as we just added something to it
-        self.rounds.last().unwrap().get_uuid()
+        &mut self.rounds.last().unwrap()
     }
-    
-    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, ()> {
+
+    pub fn set_round_length(&mut self, length: Duration) -> () {
+        self.length = length;
+    }
+
+    pub fn verify_identifier(&self, ident: &RoundIdentifier) -> bool {
+        match ident {
+            RoundIdentifier::Id(id) => self.rounds.iter().any(|m| m.uuid == *id),
+            RoundIdentifier::Number(num) => self.rounds.iter().any(|m| m.match_number == *num),
+        }
+    }
+
+    pub fn get_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, ()> {
         match ident {
             RoundIdentifier::Id(id) => todo!(),
             RoundIdentifier::Number(num) => todo!(),

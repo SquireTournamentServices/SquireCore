@@ -23,9 +23,17 @@ impl PairingSystem for SwissPairings {
 
     fn suggest_pairings(
         &self,
-        players: PlayerRegistry,
-        matches: RoundRegistry,
+        players: &PlayerRegistry,
+        matches: &RoundRegistry,
     ) -> Result<Vec<Vec<Uuid>>, ()> {
+        todo!()
+    }
+
+    fn rollback_pairings(
+        &self,
+        players: &mut PlayerRegistry,
+        matches: &mut RoundRegistry,
+    ) -> Result<(), ()> {
         todo!()
     }
 }
