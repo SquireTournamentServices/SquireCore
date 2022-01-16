@@ -29,7 +29,7 @@ impl RoundRegistry {
         self.rounds
             .insert(match_num, Round::new(match_num, self.length));
         // Safety check: We just inserted a round with the key match_num. It's there
-        &mut self.rounds[&match_num]
+        self.rounds.get_mut(&match_num).unwrap()
     }
 
     pub fn set_round_length(&mut self, length: Duration) -> () {
@@ -77,5 +77,7 @@ impl RoundRegistry {
         }
     }
 
-    pub fn kill_round(&mut self, ident: RoundIdentifier) -> Result<(), ()> {}
+    pub fn kill_round(&mut self, ident: RoundIdentifier) -> Result<(), ()> {
+        todo!()
+    }
 }

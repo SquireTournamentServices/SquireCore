@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_variables, unused_imports, unused_import_braces)]
 pub mod fluid_pairings;
 pub mod game;
 pub mod pairing_system;

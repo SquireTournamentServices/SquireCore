@@ -142,7 +142,7 @@ impl Tournament {
     }
 
     pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(), ()> {
-        let player_lock = get_write_spin_lock(&self.player_reg);
+        let mut player_lock = get_write_spin_lock(&self.player_reg);
         player_lock.remove_player(ident)
     }
 
@@ -190,7 +190,9 @@ impl Tournament {
             let mut round_lock = get_write_spin_lock(&self.round_reg);
             let round = round_lock.create_round();
             round.add_player(id);
-            round.record_bye();
+            // Saftey check: This should never return an Err as we just created the round and give
+            // it a single player
+            let _ = round.record_bye();
             Ok(())
         } else {
             Err(())

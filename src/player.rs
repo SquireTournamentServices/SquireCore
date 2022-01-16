@@ -21,7 +21,7 @@ impl Hash for Player {
     where
         H: Hasher,
     {
-        &self.uuid.hash(state);
+        let _ = &self.uuid.hash(state);
     }
 }
 

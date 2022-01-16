@@ -24,7 +24,7 @@ impl PlayerRegistry {
     pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, ()> {
         match ident {
             PlayerIdentifier::Id(id) => {
-                if self.verify_identifier(PlayerIdentifier::Id(id)) {
+                if self.verify_identifier(&PlayerIdentifier::Id(id)) {
                     Ok(id)
                 } else {
                     Err(())
@@ -49,7 +49,8 @@ impl PlayerRegistry {
     pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
         match self.get_player_id(ident) {
             Ok(id) => {
-                self.players[&id].update_status(PlayerStatus::Dropped);
+                let plyr = self.players.get_mut(&id).unwrap();
+                plyr.update_status(PlayerStatus::Dropped);
                 Ok(())
             }
             Err(e) => Err(e),
@@ -59,7 +60,8 @@ impl PlayerRegistry {
     pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
         match self.get_player_id(ident) {
             Ok(id) => {
-                self.players[&id].update_status(PlayerStatus::Removed);
+                let plyr = self.players.get_mut(&id).unwrap();
+                plyr.update_status(PlayerStatus::Removed);
                 Ok(())
             }
             Err(e) => Err(e),
