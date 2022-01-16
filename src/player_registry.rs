@@ -66,10 +66,10 @@ impl PlayerRegistry {
         }
     }
 
-    pub fn verify_identifier(&self, ident: PlayerIdentifier) -> bool {
+    pub fn verify_identifier(&self, ident: &PlayerIdentifier) -> bool {
         match ident {
-            PlayerIdentifier::Id(id) => self.players.iter().any(|(_, p)| p.uuid == id),
-            PlayerIdentifier::Name(name) => self.players.iter().any(|(_, p)| p.name == name),
+            PlayerIdentifier::Id(id) => self.players.contains_key(id),
+            PlayerIdentifier::Name(name) => self.players.iter().any(|(_, p)| p.name == *name),
         }
     }
 }
