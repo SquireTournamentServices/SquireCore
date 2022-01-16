@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use std::time::Duration;
 
+#[derive(Debug,Clone)]
 pub enum RoundIdentifier {
     Id(Uuid),
     Number(u64),

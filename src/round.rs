@@ -3,8 +3,10 @@ use crate::game::Game;
 use uuid::Uuid;
 
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
 
+#[derive(Debug,Clone,Copy)]
 pub enum RoundStatus {
     Open,
     Uncertified,
@@ -25,6 +27,18 @@ pub struct Round {
     length: Duration,
     extension: Duration,
     is_bye: bool,
+}
+
+impl Hash for Round {
+    fn hash<H>(&self, state: &mut H) where H: Hasher {
+        &self.uuid.hash(state);
+    }
+}
+
+impl PartialEq for Round {
+    fn eq(&self, other: &Self) -> bool {
+        &self.uuid == &other.uuid
+    }
 }
 
 impl Round {

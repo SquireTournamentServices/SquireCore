@@ -140,15 +140,18 @@ impl Tournament {
             Ok(())
         }
     }
+    
+    pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(),()> {
+        let player_lock = get_write_spin_lock( &self.player_reg );
+        player_lock.remove_player(ident)
+    }
 
     pub fn get_player(&self, identifier: String) -> Player {
         todo!()
-        //self.player_reg.get_player( identifier )
     }
 
     pub fn get_round(&self, round_num: u8) -> Round {
         todo!()
-        //self.match_reg.get_round( round_num )
     }
 
     pub fn get_standings(&self) -> Standings {
