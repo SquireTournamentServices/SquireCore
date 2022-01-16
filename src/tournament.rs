@@ -145,7 +145,7 @@ impl Tournament {
         let player_lock = get_write_spin_lock(&self.player_reg);
         player_lock.remove_player(ident)
     }
-    
+
     pub fn get_player(&self, identifier: String) -> Player {
         todo!()
     }
@@ -182,8 +182,8 @@ impl Tournament {
         let mut sys = get_write_spin_lock(&self.round_reg);
         sys.set_round_length(length);
     }
-    
-    pub fn give_bye(&self, ident: PlayerIdentifier) -> Result<(),()> {
+
+    pub fn give_bye(&self, ident: PlayerIdentifier) -> Result<(), ()> {
         let player_lock = get_read_spin_lock(&self.player_reg);
         if player_lock.verify_identifier(&ident) {
             let id = player_lock.get_player_id(ident).unwrap();
@@ -199,7 +199,9 @@ impl Tournament {
 
     pub fn create_round(&self, idents: Vec<PlayerIdentifier>) -> Result<(), ()> {
         let player_lock = get_read_spin_lock(&self.player_reg);
-        if idents.len() == self.game_size as usize && idents.iter().all(|p| !player_lock.verify_identifier(p)) {
+        if idents.len() == self.game_size as usize
+            && idents.iter().all(|p| !player_lock.verify_identifier(p))
+        {
             // Saftey check, we already checked that all the identifiers correspond to a player
             let ids: Vec<Uuid> = idents
                 .into_iter()

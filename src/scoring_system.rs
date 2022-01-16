@@ -1,5 +1,5 @@
-pub use crate::round_registry::RoundRegistry;
 pub use crate::player_registry::PlayerRegistry;
+pub use crate::round_registry::RoundRegistry;
 pub use crate::standings::Standings;
 
 pub trait ScoringSystem {

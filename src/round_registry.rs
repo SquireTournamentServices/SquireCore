@@ -2,42 +2,71 @@ use crate::round::Round;
 
 use uuid::Uuid;
 
+use std::collections::HashMap;
 use std::time::Duration;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum RoundIdentifier {
     Id(Uuid),
     Number(u64),
 }
 
 pub struct RoundRegistry {
-    rounds: Vec<Round>,
+    rounds: HashMap<u64, Round>,
     length: Duration,
 }
 
 impl RoundRegistry {
     pub fn new(len: Duration) -> Self {
         RoundRegistry {
-            rounds: Vec::new(),
+            rounds: HashMap::new(),
             length: len,
         }
     }
 
     pub fn create_round(&mut self) -> &mut Round {
+        let match_num = self.rounds.len() as u64;
         self.rounds
-            .push(Round::new(self.rounds.len() as u64, self.length));
-        // Safety check: the vector will be non-empty as we just added something to it
-        &mut self.rounds.last().unwrap()
+            .insert(match_num, Round::new(match_num, self.length));
+        // Safety check: We just inserted a round with the key match_num. It's there
+        &mut self.rounds[&match_num]
     }
 
     pub fn set_round_length(&mut self, length: Duration) -> () {
         self.length = length;
     }
 
+    pub fn get_round_number(&self, ident: RoundIdentifier) -> Result<u64, ()> {
+        match ident {
+            RoundIdentifier::Id(id) => {
+                if self.verify_identifier(&RoundIdentifier::Id(id)) {
+                    let nums: Vec<u64> = self
+                        .rounds
+                        .iter()
+                        .filter(|(_, r)| r.uuid == id)
+                        .map(|(i, _)| i.clone())
+                        .collect();
+                    // Safety check: We verified identifiers above, so there is a round with the
+                    // given id.
+                    Ok(nums[0])
+                } else {
+                    Err(())
+                }
+            }
+            RoundIdentifier::Number(num) => {
+                if self.rounds.contains_key(&num) {
+                    Ok(num)
+                } else {
+                    Err(())
+                }
+            }
+        }
+    }
+
     pub fn verify_identifier(&self, ident: &RoundIdentifier) -> bool {
         match ident {
-            RoundIdentifier::Id(id) => self.rounds.iter().any(|m| m.uuid == *id),
-            RoundIdentifier::Number(num) => self.rounds.iter().any(|m| m.match_number == *num),
+            RoundIdentifier::Id(id) => self.rounds.iter().any(|(_, r)| r.uuid == *id),
+            RoundIdentifier::Number(num) => self.rounds.contains_key(num),
         }
     }
 
@@ -47,4 +76,6 @@ impl RoundRegistry {
             RoundIdentifier::Number(num) => todo!(),
         }
     }
+
+    pub fn kill_round(&mut self, ident: RoundIdentifier) -> Result<(), ()> {}
 }

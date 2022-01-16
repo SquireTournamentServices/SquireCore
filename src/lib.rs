@@ -1,13 +1,13 @@
 pub mod fluid_pairings;
-pub mod round_registry;
+pub mod game;
 pub mod pairing_system;
 pub mod player;
 pub mod player_registry;
 pub mod round;
-pub mod game;
+pub mod round_registry;
 pub mod scoring_system;
-pub mod swiss_pairings;
-pub mod tournament;
 pub mod standard_scoring;
 pub mod standings;
+pub mod swiss_pairings;
+pub mod tournament;
 pub mod utils;

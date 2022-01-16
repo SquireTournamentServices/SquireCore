@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum RoundStatus {
     Open,
     Uncertified,
@@ -30,7 +30,10 @@ pub struct Round {
 }
 
 impl Hash for Round {
-    fn hash<H>(&self, state: &mut H) where H: Hasher {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
         &self.uuid.hash(state);
     }
 }

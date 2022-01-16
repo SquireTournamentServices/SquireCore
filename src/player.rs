@@ -39,7 +39,7 @@ impl Player {
             status: PlayerStatus::SignedUp,
         }
     }
-    
+
     pub fn update_status(&mut self, status: PlayerStatus) -> () {
         self.status = status;
     }

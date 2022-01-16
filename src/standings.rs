@@ -1,4 +1,1 @@
-
-
-pub struct Standings {
-}
+pub struct Standings {}

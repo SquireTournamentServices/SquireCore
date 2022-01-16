@@ -1,6 +1,4 @@
-pub use crate::scoring_system::{
-    RoundRegistry, PlayerRegistry, ScoringSystem, Standings,
-};
+pub use crate::scoring_system::{PlayerRegistry, RoundRegistry, ScoringSystem, Standings};
 
 pub struct StandardScoring {}
 
