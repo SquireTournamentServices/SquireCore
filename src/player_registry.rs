@@ -20,6 +20,16 @@ impl PlayerRegistry {
             players: HashMap::new(),
         }
     }
+    
+    pub fn add_player(&mut self, name: String) -> Result<(), ()> {
+        if self.verify_identifier(&PlayerIdentifier::Name(name)) {
+            Err(())
+        } else {
+            let plyr = Player::new(name);
+            self.players.insert(plyr.uuid, plyr);
+            Ok(())
+        }
+    }
 
     pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, ()> {
         match ident {

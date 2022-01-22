@@ -13,6 +13,7 @@ pub enum PlayerStatus {
 pub struct Player {
     pub uuid: Uuid,
     pub name: String,
+    pub game_name: Option<String>,
     status: PlayerStatus,
 }
 
@@ -36,6 +37,7 @@ impl Player {
         Player {
             uuid: Uuid::new_v4(),
             name,
+            game_name: None,
             status: PlayerStatus::SignedUp,
         }
     }

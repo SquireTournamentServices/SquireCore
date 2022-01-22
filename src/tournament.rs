@@ -140,6 +140,11 @@ impl Tournament {
             Ok(())
         }
     }
+    
+    pub fn register_player(&self, name: String) -> Result<(), ()> {
+        let mut player_lock = get_write_spin_lock(&self.player_reg);
+        player_lock.add_player(name)
+    }
 
     pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(), ()> {
         let mut player_lock = get_write_spin_lock(&self.player_reg);
