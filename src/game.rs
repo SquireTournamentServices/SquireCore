@@ -8,8 +8,8 @@ pub enum GameResult {
 
 #[derive(Debug)]
 pub struct Game {
-    result: GameResult,
-    winner: Option<Uuid>,
+    pub(crate) result: GameResult,
+    pub(crate) winner: Option<Uuid>,
 }
 
 impl Game {

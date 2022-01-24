@@ -1,5 +1,6 @@
 use crate::game::Game;
 
+use anyhow::Result;
 use uuid::Uuid;
 
 use std::collections::HashSet;
@@ -66,19 +67,19 @@ impl Round {
     pub fn add_player(&mut self, player: Uuid) -> () {
         self.players.insert(player);
     }
+    fn verify_game(&self, game: &Game) -> bool {
+        match game.winner {
+            Some(p) => self.players.contains(&p),
+            None => true
+        }
+    }
     pub fn record_game(&mut self, game: Game) -> Result<(), ()> {
-        if !game.is_draw() {
-            // Safty check: A game that isn't a draw (i.e. someone won) can not be without a winner
-            if self.players.contains(&game.get_winner().unwrap()) {
-                Err(())
-            } else {
-                self.games.push(game);
-                self.confirmations.clear();
-                Ok(())
-            }
-        } else {
+        if self.verify_game(&game) {
+            self.games.push(game);
             self.confirmations.clear();
             Ok(())
+        } else {
+            Err(())
         }
     }
     pub fn confirm_round(&mut self, player: Uuid) -> Result<RoundStatus, ()> {
