@@ -58,6 +58,15 @@ impl Player {
         let deck = self.decks.get(&name)?;
         Some((*deck).clone())
     }
+    
+    pub fn remove_deck(&mut self, name: String) -> Result<(), ()> {
+        if self.decks.contains_key(&name) {
+            self.decks.remove(&name);
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
 
     pub fn update_status(&mut self, status: PlayerStatus) -> () {
         self.status = status;

@@ -187,6 +187,12 @@ impl Tournament {
         let plyr = player_lock.get_player(ident)?;
         Ok(plyr.get_decks())
     }
+    
+    pub fn remove_player_deck(&self, ident: PlayerIdentifier, name: String) -> Result<(), ()> {
+        let mut player_lock = get_write_spin_lock(&self.player_reg);
+        let plyr = player_lock.get_mut_player(ident)?;
+        plyr.remove_deck(name)
+    }
 
     pub fn get_player_deck(&self, ident: PlayerIdentifier, name: String) -> Result<Deck, ()> {
         let player_lock = get_read_spin_lock(&self.player_reg);
