@@ -13,6 +13,7 @@ use crate::utils::{get_read_spin_lock, get_write_spin_lock};
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
@@ -169,13 +170,24 @@ impl Tournament {
         player_lock.remove_player(ident)
     }
 
-    pub fn player_add_deck(&self, ident: PlayerIdentifier, name: String, deck: Deck) -> Result<(), ()> {
+    pub fn player_add_deck(
+        &self,
+        ident: PlayerIdentifier,
+        name: String,
+        deck: Deck,
+    ) -> Result<(), ()> {
         let mut player_lock = get_write_spin_lock(&self.player_reg);
         let plyr = player_lock.get_mut_player(ident)?;
         plyr.add_deck(name, deck);
         Ok(())
     }
-    
+
+    pub fn get_player_decks(&self, ident: PlayerIdentifier) -> Result<HashMap<String, Deck>, ()> {
+        let player_lock = get_read_spin_lock(&self.player_reg);
+        let plyr = player_lock.get_player(ident)?;
+        Ok(plyr.get_decks())
+    }
+
     pub fn get_player_deck(&self, ident: PlayerIdentifier, name: String) -> Result<Deck, ()> {
         let player_lock = get_read_spin_lock(&self.player_reg);
         let plyr = player_lock.get_player(ident)?;

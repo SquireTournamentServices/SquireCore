@@ -49,7 +49,11 @@ impl Player {
     pub fn add_deck(&mut self, name: String, deck: Deck) -> () {
         self.decks.insert(name, deck);
     }
-    
+
+    pub fn get_decks(&self) -> HashMap<String, Deck> {
+        self.decks.clone()
+    }
+
     pub fn get_deck(&self, name: String) -> Option<Deck> {
         let deck = self.decks.get(&name)?;
         Some((*deck).clone())
