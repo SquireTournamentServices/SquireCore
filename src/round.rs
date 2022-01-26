@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum RoundStatus {
     Open,
     Uncertified,

@@ -13,7 +13,7 @@ impl PairingSystem for SwissPairings {
     {
         SwissPairings { players_per_match }
     }
-    fn ready_player(&mut self) -> bool {
+    fn ready_player(&mut self, plyr: Uuid) -> bool {
         todo!()
     }
 
@@ -23,9 +23,10 @@ impl PairingSystem for SwissPairings {
 
     fn suggest_pairings(
         &self,
+        size: u8,
         players: &PlayerRegistry,
         matches: &RoundRegistry,
-    ) -> Result<Vec<Vec<Uuid>>, ()> {
+    ) -> Option<Vec<Vec<Uuid>>> {
         todo!()
     }
 

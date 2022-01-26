@@ -4,7 +4,7 @@ use uuid::Uuid;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PlayerStatus {
     SignedUp,
     Registered,
@@ -56,5 +56,9 @@ impl Player {
 
     pub fn set_game_name(&mut self, name: String) -> () {
         self.game_name = Some(name);
+    }
+
+    pub fn can_play(&self) -> bool {
+        self.status == PlayerStatus::Registered
     }
 }

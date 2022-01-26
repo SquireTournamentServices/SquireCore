@@ -182,8 +182,28 @@ impl Tournament {
         )
     }
 
-    pub fn ready_player(&self, plyr: String) -> () {
-        todo!()
+    pub fn ready_player(&self, ident: PlayerIdentifier) -> Result<(), ()> {
+        let mut pairing_lock = get_write_spin_lock(&self.pairing_sys);
+        let player_lock = get_read_spin_lock(&self.player_reg);
+        let plyr = player_lock.get_player(ident)?;
+        let mut should_pair = false;
+        if plyr.can_play() {
+            should_pair = pairing_lock.ready_player(plyr.uuid);
+        }
+        if should_pair {
+            let mut round_lock = get_write_spin_lock(&self.round_reg);
+            if let Some(pairings) =
+                pairing_lock.suggest_pairings(self.game_size, &player_lock, &round_lock)
+            {
+                for p in pairings {
+                    let round = round_lock.create_round();
+                    for plyr in p {
+                        round.add_player(plyr);
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn unready_player(&self, plyr: String) -> String {

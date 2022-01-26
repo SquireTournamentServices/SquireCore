@@ -11,15 +11,16 @@ pub trait PairingSystem {
         Self: Sized;
 
     // This bool communitates if pairings should be created
-    fn ready_player(&mut self) -> bool;
+    fn ready_player(&mut self, plyr: Uuid) -> bool;
 
     fn update_settings(&mut self, settings: HashMap<String, String>) -> String;
 
     fn suggest_pairings(
         &self,
+        size: u8,
         players: &PlayerRegistry,
         matches: &RoundRegistry,
-    ) -> Result<Vec<Vec<Uuid>>, ()>;
+    ) -> Option<Vec<Vec<Uuid>>>;
 
     fn rollback_pairings(
         &self,
