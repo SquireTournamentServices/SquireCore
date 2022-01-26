@@ -169,11 +169,20 @@ impl Tournament {
         player_lock.remove_player(ident)
     }
 
-    pub fn player_add_deck(&self, ident: PlayerIdentifier, deck: Deck) -> Result<(), ()> {
+    pub fn player_add_deck(&self, ident: PlayerIdentifier, name: String, deck: Deck) -> Result<(), ()> {
         let mut player_lock = get_write_spin_lock(&self.player_reg);
         let plyr = player_lock.get_mut_player(ident)?;
-        plyr.add_deck(deck);
+        plyr.add_deck(name, deck);
         Ok(())
+    }
+    
+    pub fn get_player_deck(&self, ident: PlayerIdentifier, name: String) -> Result<Deck, ()> {
+        let player_lock = get_read_spin_lock(&self.player_reg);
+        let plyr = player_lock.get_player(ident)?;
+        match plyr.get_deck(name) {
+            None => Err(()),
+            Some(d) => Ok(d),
+        }
     }
 
     pub fn player_set_game_name(&self, ident: PlayerIdentifier, name: String) -> Result<(), ()> {
