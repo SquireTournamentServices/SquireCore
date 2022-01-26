@@ -1,5 +1,7 @@
 use uuid::Uuid;
+use mtgjson::model::deck::Deck;
 
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy)]
@@ -14,6 +16,7 @@ pub struct Player {
     pub uuid: Uuid,
     pub name: String,
     pub game_name: Option<String>,
+    decks: HashSet<Deck>,
     status: PlayerStatus,
 }
 
@@ -38,8 +41,13 @@ impl Player {
             uuid: Uuid::new_v4(),
             name,
             game_name: None,
+            decks: HashSet::new(),
             status: PlayerStatus::SignedUp,
         }
+    }
+    
+    pub fn add_deck(&mut self, deck: Deck) -> () {
+        self.decks.insert(deck);
     }
 
     pub fn update_status(&mut self, status: PlayerStatus) -> () {

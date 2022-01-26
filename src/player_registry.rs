@@ -1,6 +1,7 @@
 use crate::player::{Player, PlayerStatus};
 
 use uuid::Uuid;
+use mtgjson::model::deck::Deck;
 
 use std::collections::HashMap;
 
@@ -22,13 +23,21 @@ impl PlayerRegistry {
     }
     
     pub fn add_player(&mut self, name: String) -> Result<(), ()> {
-        if self.verify_identifier(&PlayerIdentifier::Name(name)) {
+        if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
             Err(())
         } else {
             let plyr = Player::new(name);
             self.players.insert(plyr.uuid, plyr);
             Ok(())
         }
+    }
+    
+    pub fn add_deck(&mut self, ident: PlayerIdentifier, deck: Deck) -> Result<(),()> {
+        let id = self.get_player_id(ident)?;
+        // Saftey check, we just verified that the id was valid
+        let plyr = self.players.get_mut(&id).unwrap();
+        plyr.add_deck(deck);
+        Ok(())
     }
 
     pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, ()> {

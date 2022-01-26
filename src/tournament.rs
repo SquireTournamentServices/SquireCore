@@ -11,6 +11,7 @@ use crate::swiss_pairings::SwissPairings;
 use crate::utils::{get_read_spin_lock, get_write_spin_lock};
 
 use uuid::Uuid;
+use mtgjson::model::deck::Deck;
 
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -157,6 +158,11 @@ impl Tournament {
 
     pub fn get_round(&self, round_num: u8) -> Round {
         todo!()
+    }
+    
+    pub fn add_deck(&self, ident: PlayerIdentifier, deck: Deck) -> Result<(),()> {
+        let mut player_lock = get_write_spin_lock(&self.player_reg);
+        player_lock.add_deck(ident, deck)
     }
 
     pub fn get_standings(&self) -> Standings {
