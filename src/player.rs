@@ -1,5 +1,5 @@
-use uuid::Uuid;
 use mtgjson::model::deck::Deck;
+use uuid::Uuid;
 
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
@@ -45,12 +45,16 @@ impl Player {
             status: PlayerStatus::SignedUp,
         }
     }
-    
+
     pub fn add_deck(&mut self, deck: Deck) -> () {
         self.decks.insert(deck);
     }
 
     pub fn update_status(&mut self, status: PlayerStatus) -> () {
         self.status = status;
+    }
+
+    pub fn set_game_name(&mut self, name: String) -> () {
+        self.game_name = Some(name);
     }
 }

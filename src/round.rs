@@ -70,7 +70,7 @@ impl Round {
     fn verify_game(&self, game: &Game) -> bool {
         match game.winner {
             Some(p) => self.players.contains(&p),
-            None => true
+            None => true,
         }
     }
     pub fn record_game(&mut self, game: Game) -> Result<(), ()> {

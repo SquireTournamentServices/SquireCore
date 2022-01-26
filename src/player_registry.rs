@@ -1,9 +1,9 @@
 use crate::player::{Player, PlayerStatus};
 
-use uuid::Uuid;
 use mtgjson::model::deck::Deck;
+use uuid::Uuid;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, slice::SliceIndex};
 
 #[derive(Debug, Clone)]
 pub enum PlayerIdentifier {
@@ -21,7 +21,7 @@ impl PlayerRegistry {
             players: HashMap::new(),
         }
     }
-    
+
     pub fn add_player(&mut self, name: String) -> Result<(), ()> {
         if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
             Err(())
@@ -31,13 +31,29 @@ impl PlayerRegistry {
             Ok(())
         }
     }
-    
-    pub fn add_deck(&mut self, ident: PlayerIdentifier, deck: Deck) -> Result<(),()> {
+
+    pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
+        let plyr = self.get_mut_player(ident)?;
+        plyr.update_status(PlayerStatus::Dropped);
+        Ok(())
+    }
+
+    pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
+        let plyr = self.get_mut_player(ident)?;
+        plyr.update_status(PlayerStatus::Removed);
+        Ok(())
+    }
+
+    pub fn get_mut_player(&mut self, ident: PlayerIdentifier) -> Result<&mut Player, ()> {
         let id = self.get_player_id(ident)?;
         // Saftey check, we just verified that the id was valid
-        let plyr = self.players.get_mut(&id).unwrap();
-        plyr.add_deck(deck);
-        Ok(())
+        Ok(self.players.get_mut(&id).unwrap())
+    }
+
+    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, ()> {
+        let id = self.get_player_id(ident)?;
+        // Saftey check, we just verified that the id was valid
+        Ok(self.players.get(&id).unwrap())
     }
 
     pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, ()> {
@@ -62,28 +78,6 @@ impl PlayerRegistry {
                     Ok(ids[0])
                 }
             }
-        }
-    }
-
-    pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
-        match self.get_player_id(ident) {
-            Ok(id) => {
-                let plyr = self.players.get_mut(&id).unwrap();
-                plyr.update_status(PlayerStatus::Dropped);
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
-    }
-
-    pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
-        match self.get_player_id(ident) {
-            Ok(id) => {
-                let plyr = self.players.get_mut(&id).unwrap();
-                plyr.update_status(PlayerStatus::Removed);
-                Ok(())
-            }
-            Err(e) => Err(e),
         }
     }
 

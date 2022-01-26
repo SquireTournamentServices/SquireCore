@@ -10,8 +10,8 @@ use crate::standings::Standings;
 use crate::swiss_pairings::SwissPairings;
 use crate::utils::{get_read_spin_lock, get_write_spin_lock};
 
-use uuid::Uuid;
 use mtgjson::model::deck::Deck;
+use uuid::Uuid;
 
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -141,7 +141,7 @@ impl Tournament {
             Ok(())
         }
     }
-    
+
     pub fn register_player(&self, name: String) -> Result<(), ()> {
         let mut player_lock = get_write_spin_lock(&self.player_reg);
         player_lock.add_player(name)
@@ -159,10 +159,19 @@ impl Tournament {
     pub fn get_round(&self, round_num: u8) -> Round {
         todo!()
     }
-    
-    pub fn add_deck(&self, ident: PlayerIdentifier, deck: Deck) -> Result<(),()> {
+
+    pub fn player_add_deck(&self, ident: PlayerIdentifier, deck: Deck) -> Result<(), ()> {
         let mut player_lock = get_write_spin_lock(&self.player_reg);
-        player_lock.add_deck(ident, deck)
+        let plyr = player_lock.get_mut_player(ident)?;
+        plyr.add_deck(deck);
+        Ok(())
+    }
+
+    pub fn player_set_game_name(&self, ident: PlayerIdentifier, name: String) -> Result<(), ()> {
+        let mut player_lock = get_write_spin_lock(&self.player_reg);
+        let plyr = player_lock.get_mut_player(ident)?;
+        plyr.set_game_name(name);
+        Ok(())
     }
 
     pub fn get_standings(&self) -> Standings {
