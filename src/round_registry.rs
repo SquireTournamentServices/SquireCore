@@ -3,6 +3,7 @@ use crate::round::Round;
 use uuid::Uuid;
 
 use std::collections::HashMap;
+use std::ops::RangeBounds;
 use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
@@ -44,6 +45,26 @@ impl RoundRegistry {
         Ok(self.rounds.get(&num).unwrap())
     }
 
+    // This is a messy function... but the idea was ported directly from the Python version
+    // It is theoretically possible for a player to end up in more than one active match (unlikely,
+    // but we must prepare for the worst). Should this ever happen, we return the "oldest" active
+    // match of theirs. However, this is FAR from ideal as every match certification requires a
+    // pass through all matches... gross.
+    pub fn get_player_active_round(&mut self, id: Uuid) -> Result<&mut Round, ()> {
+        let mut nums: Vec<u64> = self
+            .rounds
+            .iter()
+            .filter(|(_, r)| r.players.contains(&id) && r.is_certified())
+            .map(|(_, r)| r.match_number)
+            .collect();
+        nums.sort();
+        if nums.len() == 0 {
+            Err(())
+        } else {
+            Ok(self.rounds.get_mut(&nums[0]).unwrap())
+        }
+    }
+
     pub fn set_round_length(&mut self, length: Duration) -> () {
         self.length = length;
     }
@@ -80,9 +101,5 @@ impl RoundRegistry {
             RoundIdentifier::Id(id) => self.rounds.iter().any(|(_, r)| r.uuid == *id),
             RoundIdentifier::Number(num) => self.rounds.contains_key(num),
         }
-    }
-
-    pub fn kill_round(&mut self, ident: RoundIdentifier) -> Result<(), ()> {
-        todo!()
     }
 }

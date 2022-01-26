@@ -24,7 +24,7 @@ pub enum Outcome {
 pub struct Round {
     pub(crate) uuid: Uuid,
     pub(crate) match_number: u64,
-    players: HashSet<Uuid>,
+    pub(crate) players: HashSet<Uuid>,
     confirmations: HashSet<Uuid>,
     games: Vec<Game>,
     status: RoundStatus,
@@ -72,6 +72,7 @@ impl Round {
     pub fn add_player(&mut self, player: Uuid) -> () {
         self.players.insert(player);
     }
+
     fn verify_game(&self, game: &Game) -> bool {
         match game.winner {
             Some(p) => self.players.contains(&p),
@@ -127,6 +128,9 @@ impl Round {
     }
     pub fn clear_game_record(&mut self) -> () {
         self.games.clear();
+    }
+    pub fn is_certified(&self) -> bool {
+        self.status == RoundStatus::Certified
     }
 }
 
