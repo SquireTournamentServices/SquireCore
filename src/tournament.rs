@@ -2,7 +2,7 @@ use crate::fluid_pairings::FluidPairings;
 use crate::pairing_system::PairingSystem;
 use crate::player::Player;
 use crate::player_registry::{PlayerIdentifier, PlayerRegistry};
-use crate::round::Round;
+use crate::round::{parse_to_outcome, Round};
 use crate::round_registry::{RoundIdentifier, RoundRegistry};
 use crate::scoring_system::ScoringSystem;
 use crate::standard_scoring::StandardScoring;
@@ -147,17 +147,17 @@ impl Tournament {
         player_lock.add_player(name)
     }
 
+    pub fn record_outcome(&self, ident: RoundIdentifier, input: String) -> Result<(), ()> {
+        let outcome = parse_to_outcome(input)?;
+        let mut round_lock = get_write_spin_lock(&self.round_reg);
+        let round = round_lock.get_mut_round(ident)?;
+        round.record_outcome(outcome)?;
+        Ok(())
+    }
+
     pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(), ()> {
         let mut player_lock = get_write_spin_lock(&self.player_reg);
         player_lock.remove_player(ident)
-    }
-
-    pub fn get_player(&self, identifier: String) -> Player {
-        todo!()
-    }
-
-    pub fn get_round(&self, round_num: u8) -> Round {
-        todo!()
     }
 
     pub fn player_add_deck(&self, ident: PlayerIdentifier, deck: Deck) -> Result<(), ()> {

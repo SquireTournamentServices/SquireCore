@@ -15,6 +15,11 @@ pub enum RoundStatus {
     Dead,
 }
 
+pub enum Outcome {
+    Game(Game),
+    Round(Vec<Game>),
+}
+
 // This struct should be able to handle N many games, unlike the Python equiv.
 pub struct Round {
     pub(crate) uuid: Uuid,
@@ -73,6 +78,21 @@ impl Round {
             None => true,
         }
     }
+
+    pub fn record_outcome(&mut self, outcome: Outcome) -> Result<(), ()> {
+        match outcome {
+            Outcome::Game(g) => {
+                self.record_game(g)?;
+            }
+            Outcome::Round(r) => {
+                for g in r {
+                    self.record_game(g)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn record_game(&mut self, game: Game) -> Result<(), ()> {
         if self.verify_game(&game) {
             self.games.push(game);
@@ -108,4 +128,8 @@ impl Round {
     pub fn clear_game_record(&mut self) -> () {
         self.games.clear();
     }
+}
+
+pub fn parse_to_outcome(input: String) -> Result<Outcome, ()> {
+    todo!()
 }

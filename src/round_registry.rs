@@ -32,6 +32,18 @@ impl RoundRegistry {
         self.rounds.get_mut(&match_num).unwrap()
     }
 
+    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, ()> {
+        let num = self.get_round_number(ident)?;
+        // Saftey check, we just verified that the id was valid
+        Ok(self.rounds.get_mut(&num).unwrap())
+    }
+
+    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, ()> {
+        let num = self.get_round_number(ident)?;
+        // Saftey check, we just verified that the id was valid
+        Ok(self.rounds.get(&num).unwrap())
+    }
+
     pub fn set_round_length(&mut self, length: Duration) -> () {
         self.length = length;
     }
@@ -67,13 +79,6 @@ impl RoundRegistry {
         match ident {
             RoundIdentifier::Id(id) => self.rounds.iter().any(|(_, r)| r.uuid == *id),
             RoundIdentifier::Number(num) => self.rounds.contains_key(num),
-        }
-    }
-
-    pub fn get_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, ()> {
-        match ident {
-            RoundIdentifier::Id(id) => todo!(),
-            RoundIdentifier::Number(num) => todo!(),
         }
     }
 
