@@ -5,6 +5,7 @@ pub enum TournamentError {
     PlayerLookup,
     RoundLookup,
     DeckLookup,
+    RegClosed,
     PlayerNotInRound,
     NoActiveRound,
     InvalidBye,

@@ -75,22 +75,6 @@ impl Tournament {
             status: TournamentStatus::Planned,
         }
     }
-    pub fn is_planned(&self) -> bool {
-        self.status == TournamentStatus::Planned
-    }
-
-    pub fn is_frozen(&self) -> bool {
-        self.status == TournamentStatus::Frozen
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.status == TournamentStatus::Started
-    }
-
-    pub fn is_dead(&self) -> bool {
-        self.status == TournamentStatus::Ended || self.status == TournamentStatus::Cancelled
-    }
-
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -148,6 +132,9 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
+        if !self.reg_open {
+            return Err(TournamentError::RegClosed);
+        }
         let mut player_lock = get_write_spin_lock(&self.player_reg);
         player_lock.add_player(name)
     }
@@ -165,12 +152,20 @@ impl Tournament {
     }
 
     pub fn confirm_round(&self, ident: PlayerIdentifier) -> Result<RoundStatus, TournamentError> {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
         let player_lock = get_read_spin_lock(&self.player_reg);
         let id = player_lock.get_player_id(ident)?;
         drop(player_lock);
         let mut round_lock = get_write_spin_lock(&self.round_reg);
         let round = round_lock.get_player_active_round(id)?;
         round.confirm_round(id)
+    }
+
+    pub fn drop_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+        let mut player_lock = get_write_spin_lock(&self.player_reg);
+        player_lock.remove_player(ident)
     }
 
     pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
@@ -184,6 +179,12 @@ impl Tournament {
         name: String,
         deck: Deck,
     ) -> Result<(), TournamentError> {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
+        if !self.reg_open {
+            return Err(TournamentError::RegClosed);
+        }
         let mut player_lock = get_write_spin_lock(&self.player_reg);
         let plyr = player_lock.get_mut_player(ident)?;
         plyr.add_deck(name, deck);
@@ -242,6 +243,9 @@ impl Tournament {
     }
 
     pub fn ready_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
         let mut pairing_lock = get_write_spin_lock(&self.pairing_sys);
         let player_lock = get_read_spin_lock(&self.player_reg);
         let plyr = player_lock.get_player(ident)?;
@@ -283,6 +287,9 @@ impl Tournament {
     }
 
     pub fn give_bye(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
         let player_lock = get_read_spin_lock(&self.player_reg);
         let id = player_lock.get_player_id(ident)?;
         let mut round_lock = get_write_spin_lock(&self.round_reg);
@@ -295,6 +302,9 @@ impl Tournament {
     }
 
     pub fn create_round(&self, idents: Vec<PlayerIdentifier>) -> Result<(), TournamentError> {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
         let player_lock = get_read_spin_lock(&self.player_reg);
         if idents.len() == self.game_size as usize
             && idents.iter().all(|p| !player_lock.verify_identifier(p))
@@ -313,6 +323,22 @@ impl Tournament {
         } else {
             Err(TournamentError::PlayerLookup)
         }
+    }
+
+    pub fn is_planned(&self) -> bool {
+        self.status == TournamentStatus::Planned
+    }
+
+    pub fn is_frozen(&self) -> bool {
+        self.status == TournamentStatus::Frozen
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.status == TournamentStatus::Started
+    }
+
+    pub fn is_dead(&self) -> bool {
+        self.status == TournamentStatus::Ended || self.status == TournamentStatus::Cancelled
     }
 }
 
