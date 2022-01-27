@@ -1,4 +1,5 @@
 use crate::round::Round;
+use crate::error::TournamentError;
 
 use uuid::Uuid;
 
@@ -33,13 +34,13 @@ impl RoundRegistry {
         self.rounds.get_mut(&match_num).unwrap()
     }
 
-    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, ()> {
+    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, TournamentError> {
         let num = self.get_round_number(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.rounds.get_mut(&num).unwrap())
     }
 
-    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, ()> {
+    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, TournamentError> {
         let num = self.get_round_number(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.rounds.get(&num).unwrap())
@@ -50,26 +51,26 @@ impl RoundRegistry {
     // but we must prepare for the worst). Should this ever happen, we return the "oldest" active
     // match of theirs. However, this is FAR from ideal as every match certification requires a
     // pass through all matches... gross.
-    pub fn get_player_active_round(&mut self, id: Uuid) -> Result<&mut Round, ()> {
+    pub fn get_player_active_round(&mut self, id: Uuid) -> Result<&mut Round, TournamentError> {
         let mut nums: Vec<u64> = self
             .rounds
             .iter()
             .filter(|(_, r)| r.players.contains(&id) && r.is_certified())
             .map(|(_, r)| r.match_number)
             .collect();
-        nums.sort();
-        if nums.len() == 0 {
-            Err(())
+        nums.sort_unstable();
+        if nums.is_empty() {
+            Err(TournamentError::NoActiveRound)
         } else {
             Ok(self.rounds.get_mut(&nums[0]).unwrap())
         }
     }
 
-    pub fn set_round_length(&mut self, length: Duration) -> () {
+    pub fn set_round_length(&mut self, length: Duration) {
         self.length = length;
     }
 
-    pub fn get_round_number(&self, ident: RoundIdentifier) -> Result<u64, ()> {
+    pub fn get_round_number(&self, ident: RoundIdentifier) -> Result<u64, TournamentError> {
         match ident {
             RoundIdentifier::Id(id) => {
                 if self.verify_identifier(&RoundIdentifier::Id(id)) {
@@ -77,20 +78,20 @@ impl RoundRegistry {
                         .rounds
                         .iter()
                         .filter(|(_, r)| r.uuid == id)
-                        .map(|(i, _)| i.clone())
+                        .map(|(i, _)| *i)
                         .collect();
                     // Safety check: We verified identifiers above, so there is a round with the
                     // given id.
                     Ok(nums[0])
                 } else {
-                    Err(())
+                    Err(TournamentError::RoundLookup)
                 }
             }
             RoundIdentifier::Number(num) => {
                 if self.rounds.contains_key(&num) {
                     Ok(num)
                 } else {
-                    Err(())
+                    Err(TournamentError::RoundLookup)
                 }
             }
         }

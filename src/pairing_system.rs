@@ -1,5 +1,6 @@
 pub use crate::player_registry::PlayerRegistry;
 pub use crate::round_registry::RoundRegistry;
+pub use crate::error::TournamentError;
 
 pub use uuid::Uuid;
 
@@ -26,5 +27,5 @@ pub trait PairingSystem {
         &self,
         players: &mut PlayerRegistry,
         matches: &mut RoundRegistry,
-    ) -> Result<(), ()>;
+    ) -> Result<(), TournamentError>;
 }

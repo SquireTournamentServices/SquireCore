@@ -1,4 +1,4 @@
-pub use super::pairing_system::{HashMap, PairingSystem, PlayerRegistry, RoundRegistry, Uuid};
+pub use super::pairing_system::{HashMap, TournamentError, PairingSystem, PlayerRegistry, RoundRegistry, Uuid};
 
 pub struct FluidPairings {
     players_per_match: u8,
@@ -34,7 +34,7 @@ impl PairingSystem for FluidPairings {
         &self,
         players: &mut PlayerRegistry,
         matches: &mut RoundRegistry,
-    ) -> Result<(), ()> {
+    ) -> Result<(), TournamentError> {
         todo!()
     }
 }

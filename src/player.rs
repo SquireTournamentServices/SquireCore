@@ -1,3 +1,5 @@
+use crate::error::TournamentError;
+
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
@@ -31,7 +33,7 @@ impl Hash for Player {
 
 impl PartialEq for Player {
     fn eq(&self, other: &Self) -> bool {
-        &self.uuid == &other.uuid
+        self.uuid == other.uuid
     }
 }
 
@@ -46,7 +48,7 @@ impl Player {
         }
     }
 
-    pub fn add_deck(&mut self, name: String, deck: Deck) -> () {
+    pub fn add_deck(&mut self, name: String, deck: Deck) {
         self.decks.insert(name, deck);
     }
 
@@ -59,20 +61,20 @@ impl Player {
         Some((*deck).clone())
     }
     
-    pub fn remove_deck(&mut self, name: String) -> Result<(), ()> {
+    pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
         if self.decks.contains_key(&name) {
             self.decks.remove(&name);
             Ok(())
         } else {
-            Err(())
+            Err(TournamentError::DeckLookup)
         }
     }
 
-    pub fn update_status(&mut self, status: PlayerStatus) -> () {
+    pub fn update_status(&mut self, status: PlayerStatus) {
         self.status = status;
     }
 
-    pub fn set_game_name(&mut self, name: String) -> () {
+    pub fn set_game_name(&mut self, name: String) {
         self.game_name = Some(name);
     }
 

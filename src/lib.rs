@@ -11,4 +11,5 @@ pub mod standard_scoring;
 pub mod standings;
 pub mod swiss_pairings;
 pub mod tournament;
+pub mod error;
 pub mod utils;

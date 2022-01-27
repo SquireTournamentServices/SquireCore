@@ -1,4 +1,5 @@
 use crate::game::Game;
+use crate::error::TournamentError;
 
 use anyhow::Result;
 use uuid::Uuid;
@@ -46,7 +47,7 @@ impl Hash for Round {
 
 impl PartialEq for Round {
     fn eq(&self, other: &Self) -> bool {
-        &self.uuid == &other.uuid
+        self.uuid == other.uuid
     }
 }
 
@@ -66,10 +67,12 @@ impl Round {
             is_bye: false,
         }
     }
+    
     pub fn get_uuid(&self) -> Uuid {
-        self.uuid.clone()
+        self.uuid
     }
-    pub fn add_player(&mut self, player: Uuid) -> () {
+    
+    pub fn add_player(&mut self, player: Uuid) {
         self.players.insert(player);
     }
 
@@ -80,7 +83,7 @@ impl Round {
         }
     }
 
-    pub fn record_outcome(&mut self, outcome: Outcome) -> Result<(), ()> {
+    pub fn record_outcome(&mut self, outcome: Outcome) -> Result<(), TournamentError> {
         match outcome {
             Outcome::Game(g) => {
                 self.record_game(g)?;
@@ -94,18 +97,18 @@ impl Round {
         Ok(())
     }
 
-    pub fn record_game(&mut self, game: Game) -> Result<(), ()> {
+    pub fn record_game(&mut self, game: Game) -> Result<(), TournamentError> {
         if self.verify_game(&game) {
             self.games.push(game);
             self.confirmations.clear();
             Ok(())
         } else {
-            Err(())
+            Err(TournamentError::InvalidGame)
         }
     }
-    pub fn confirm_round(&mut self, player: Uuid) -> Result<RoundStatus, ()> {
+    pub fn confirm_round(&mut self, player: Uuid) -> Result<RoundStatus, TournamentError> {
         if !self.players.contains(&player) {
-            Err(())
+            Err(TournamentError::PlayerNotInRound)
         } else {
             self.confirmations.insert(player);
             if self.confirmations.len() == self.players.len() {
@@ -115,18 +118,18 @@ impl Round {
             }
         }
     }
-    pub fn kill_round(&mut self) -> () {
+    pub fn kill_round(&mut self) {
         self.status = RoundStatus::Dead;
     }
-    pub fn record_bye(&mut self) -> Result<(), ()> {
+    pub fn record_bye(&mut self) -> Result<(), TournamentError> {
         if self.players.len() != 1 {
-            Err(())
+            Err(TournamentError::InvalidBye)
         } else {
             self.is_bye = true;
             Ok(())
         }
     }
-    pub fn clear_game_record(&mut self) -> () {
+    pub fn clear_game_record(&mut self) {
         self.games.clear();
     }
     pub fn is_certified(&self) -> bool {
@@ -134,6 +137,6 @@ impl Round {
     }
 }
 
-pub fn parse_to_outcome(input: String) -> Result<Outcome, ()> {
+pub fn parse_to_outcome(input: String) -> Result<Outcome, TournamentError> {
     todo!()
 }

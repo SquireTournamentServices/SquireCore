@@ -1,3 +1,4 @@
+use crate::error::TournamentError;
 use crate::player::{Player, PlayerStatus};
 
 use mtgjson::model::deck::Deck;
@@ -15,6 +16,12 @@ pub struct PlayerRegistry {
     players: HashMap<Uuid, Player>,
 }
 
+impl Default for PlayerRegistry {
+    fn default() -> Self {
+        PlayerRegistry::new()
+    }
+}
+
 impl PlayerRegistry {
     pub fn new() -> Self {
         PlayerRegistry {
@@ -22,9 +29,9 @@ impl PlayerRegistry {
         }
     }
 
-    pub fn add_player(&mut self, name: String) -> Result<(), ()> {
+    pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {
         if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
-            Err(())
+            Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name);
             self.players.insert(plyr.uuid, plyr);
@@ -32,37 +39,40 @@ impl PlayerRegistry {
         }
     }
 
-    pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
+    pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
         let plyr = self.get_mut_player(ident)?;
         plyr.update_status(PlayerStatus::Dropped);
         Ok(())
     }
 
-    pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), ()> {
+    pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
         let plyr = self.get_mut_player(ident)?;
         plyr.update_status(PlayerStatus::Removed);
         Ok(())
     }
 
-    pub fn get_mut_player(&mut self, ident: PlayerIdentifier) -> Result<&mut Player, ()> {
+    pub fn get_mut_player(
+        &mut self,
+        ident: PlayerIdentifier,
+    ) -> Result<&mut Player, TournamentError> {
         let id = self.get_player_id(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.players.get_mut(&id).unwrap())
     }
 
-    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, ()> {
+    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, TournamentError> {
         let id = self.get_player_id(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.players.get(&id).unwrap())
     }
 
-    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, ()> {
+    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, TournamentError> {
         match ident {
             PlayerIdentifier::Id(id) => {
                 if self.verify_identifier(&PlayerIdentifier::Id(id)) {
                     Ok(id)
                 } else {
-                    Err(())
+                    Err(TournamentError::PlayerLookup)
                 }
             }
             PlayerIdentifier::Name(name) => {
@@ -70,10 +80,10 @@ impl PlayerRegistry {
                     .players
                     .iter()
                     .filter(|(_, p)| p.name == name)
-                    .map(|(i, _)| i.clone())
+                    .map(|(i, _)| *i)
                     .collect();
                 if ids.len() != 1 {
-                    Err(())
+                    Err(TournamentError::PlayerLookup)
                 } else {
                     Ok(ids[0])
                 }
