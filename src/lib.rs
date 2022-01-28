@@ -8,7 +8,6 @@ pub mod round;
 pub mod round_registry;
 pub mod scoring_system;
 pub mod standard_scoring;
-pub mod standings;
 pub mod swiss_pairings;
 pub mod tournament;
 pub mod error;
