@@ -1,5 +1,5 @@
-use crate::game::Game;
 use crate::error::TournamentError;
+use crate::game::Game;
 
 use anyhow::Result;
 use uuid::Uuid;
@@ -29,11 +29,11 @@ pub struct Round {
     confirmations: HashSet<Uuid>,
     games: Vec<Game>,
     status: RoundStatus,
-    winner: Option<Uuid>,
+    pub(crate) winner: Option<Uuid>,
     timer: Instant,
     length: Duration,
     extension: Duration,
-    is_bye: bool,
+    pub(crate) is_bye: bool,
 }
 
 impl Hash for Round {
@@ -67,11 +67,11 @@ impl Round {
             is_bye: false,
         }
     }
-    
+
     pub fn get_uuid(&self) -> Uuid {
         self.uuid
     }
-    
+
     pub fn add_player(&mut self, player: Uuid) {
         self.players.insert(player);
     }
@@ -126,6 +126,8 @@ impl Round {
             Err(TournamentError::InvalidBye)
         } else {
             self.is_bye = true;
+            self.winner = Some(self.players.iter().next().unwrap().clone());
+            self.status = RoundStatus::Certified;
             Ok(())
         }
     }

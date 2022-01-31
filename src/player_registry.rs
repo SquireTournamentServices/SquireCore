@@ -4,7 +4,10 @@ use crate::player::{Player, PlayerStatus};
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
-use std::{collections::HashMap, slice::SliceIndex};
+use std::{
+    collections::{hash_map::Iter, HashMap},
+    slice::SliceIndex,
+};
 
 #[derive(Debug, Clone)]
 pub enum PlayerIdentifier {
@@ -27,6 +30,14 @@ impl PlayerRegistry {
         PlayerRegistry {
             players: HashMap::new(),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.players.len()
+    }
+    
+    pub fn iter(&self) -> Iter<Uuid, Player> {
+        self.players.iter()
     }
 
     pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {

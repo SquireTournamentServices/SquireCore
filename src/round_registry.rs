@@ -1,9 +1,10 @@
-use crate::round::Round;
 use crate::error::TournamentError;
+use crate::round::Round;
 
 use uuid::Uuid;
 
 use std::collections::HashMap;
+use std::collections::hash_map::Iter;
 use std::ops::RangeBounds;
 use std::time::Duration;
 
@@ -24,6 +25,10 @@ impl RoundRegistry {
             rounds: HashMap::new(),
             length: len,
         }
+    }
+    
+    pub fn iter(&self) -> Iter<u64, Round> {
+        self.rounds.iter()
     }
 
     pub fn create_round(&mut self) -> &mut Round {

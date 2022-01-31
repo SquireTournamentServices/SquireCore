@@ -14,6 +14,7 @@ pub enum PlayerStatus {
     Removed,
 }
 
+#[derive(Clone)]
 pub struct Player {
     pub uuid: Uuid,
     pub name: String,
