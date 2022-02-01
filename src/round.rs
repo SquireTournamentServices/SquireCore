@@ -27,7 +27,7 @@ pub struct Round {
     pub(crate) match_number: u64,
     pub(crate) players: HashSet<Uuid>,
     confirmations: HashSet<Uuid>,
-    games: Vec<Game>,
+    pub(crate) games: Vec<Game>,
     status: RoundStatus,
     pub(crate) winner: Option<Uuid>,
     timer: Instant,

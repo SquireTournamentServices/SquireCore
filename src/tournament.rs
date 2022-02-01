@@ -5,7 +5,7 @@ use crate::player::Player;
 use crate::player_registry::{PlayerIdentifier, PlayerRegistry};
 use crate::round::{parse_to_outcome, Round, RoundStatus};
 use crate::round_registry::{RoundIdentifier, RoundRegistry};
-use crate::scoring_system::ScoringSystem;
+use crate::scoring_system::{Standings, ScoringSystem};
 use crate::standard_scoring::StandardScoring;
 use crate::swiss_pairings::SwissPairings;
 use crate::utils::{get_read_spin_lock, get_write_spin_lock};

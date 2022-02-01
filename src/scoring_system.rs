@@ -35,15 +35,15 @@ impl Standings {
 // Below is a bunch of trait object up/down casting to allow Score to be both PartialOrd and able
 // to be a trait object.
 
-trait UpcastAny {
+pub trait UpcastAny {
     fn upcast_any_ref(&self) -> &dyn Any;
 }
 
-trait DynScorePartialEq {
+pub trait DynScorePartialEq {
     fn dyn_eq(&self, other: &dyn Score) -> bool;
 }
 
-trait DynScorePartialOrd {
+pub trait DynScorePartialOrd {
     fn dyn_partial_cmp(&self, other: &dyn Score) -> Option<Ordering>;
 }
 

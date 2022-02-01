@@ -3,6 +3,7 @@ use crate::error::TournamentError;
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
+use std::string::ToString;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -29,6 +30,12 @@ impl Hash for Player {
         H: Hasher,
     {
         let _ = &self.uuid.hash(state);
+    }
+}
+
+impl ToString for Player {
+    fn to_string(&self) -> String {
+        self.name.clone()
     }
 }
 
