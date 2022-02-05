@@ -1,6 +1,6 @@
+pub use crate::error::TournamentError;
 pub use crate::player_registry::PlayerRegistry;
 pub use crate::round_registry::RoundRegistry;
-pub use crate::error::TournamentError;
 
 pub use uuid::Uuid;
 

@@ -35,7 +35,7 @@ impl PlayerRegistry {
     pub fn len(&self) -> usize {
         self.players.len()
     }
-    
+
     pub fn iter(&self) -> Iter<Uuid, Player> {
         self.players.iter()
     }

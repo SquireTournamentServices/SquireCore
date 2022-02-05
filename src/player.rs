@@ -3,9 +3,9 @@ use crate::error::TournamentError;
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
-use std::string::ToString;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::string::ToString;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PlayerStatus {
@@ -68,7 +68,7 @@ impl Player {
         let deck = self.decks.get(&name)?;
         Some((*deck).clone())
     }
-    
+
     pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
         if self.decks.contains_key(&name) {
             self.decks.remove(&name);

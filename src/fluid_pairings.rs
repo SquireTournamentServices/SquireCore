@@ -1,4 +1,6 @@
-pub use super::pairing_system::{HashMap, TournamentError, PairingSystem, PlayerRegistry, RoundRegistry, Uuid};
+pub use super::pairing_system::{
+    HashMap, PairingSystem, PlayerRegistry, RoundRegistry, TournamentError, Uuid,
+};
 
 pub struct FluidPairings {
     players_per_match: u8,

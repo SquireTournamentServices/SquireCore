@@ -3,8 +3,8 @@ use crate::round::Round;
 
 use uuid::Uuid;
 
-use std::collections::HashMap;
 use std::collections::hash_map::Iter;
+use std::collections::HashMap;
 use std::ops::RangeBounds;
 use std::time::Duration;
 
@@ -26,7 +26,7 @@ impl RoundRegistry {
             length: len,
         }
     }
-    
+
     pub fn iter(&self) -> Iter<u64, Round> {
         self.rounds.iter()
     }

@@ -1,3 +1,4 @@
+use crate::player_registry::PlayerIdentifier;
 pub use crate::scoring_system::{
     HashMap, PlayerRegistry, RoundRegistry, Score, ScoringSystem, Standings,
 };
@@ -9,7 +10,7 @@ use uuid::Uuid;
 use std::collections::HashSet;
 use std::string::ToString;
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct StandardScore {
     pub(crate) match_points: f64,
     pub(crate) game_points: f64,
@@ -67,6 +68,25 @@ impl StandardScoring {
             self.include_opp_gwp,
         )
     }
+
+    fn calculate_match_points_with_byes(&self, counter: &ScoreCounter) -> f64 {
+        self.match_win_points * (counter.wins as f64)
+            + self.match_draw_points * (counter.draws as f64)
+            + self.match_loss_points * (counter.losses as f64)
+            + self.bye_points * (counter.byes as f64)
+    }
+
+    fn calculate_match_points_without_byes(&self, counter: &ScoreCounter) -> f64 {
+        self.match_win_points * (counter.wins as f64)
+            + self.match_draw_points * (counter.draws as f64)
+            + self.match_loss_points * (counter.losses as f64)
+    }
+
+    fn calculate_game_points(&self, counter: &ScoreCounter) -> f64 {
+        self.game_win_points * (counter.game_wins as f64)
+            + self.game_draw_points * (counter.game_draws as f64)
+            + self.game_loss_points * (counter.game_losses as f64)
+    }
 }
 
 impl ScoringSystem for StandardScoring {
@@ -115,7 +135,7 @@ impl ScoringSystem for StandardScoring {
             }
         }
         // We have tallied everyone's round results. Time to calculate everyone's scores
-        let mut digest: Vec<(String, StandardScore)> = Vec::with_capacity(counters.len());
+        let mut digest: HashMap<Uuid, StandardScore> = HashMap::with_capacity(counters.len());
         /*
         mwp: f64,
         gwp: f64,
@@ -128,19 +148,52 @@ impl ScoringSystem for StandardScoring {
         rounds: u64,
         opponents: HashSet<Uuid>,
         */
-        for (_, counter) in counters {
+        for (id, counter) in &counters {
             let mut score = self.new_score();
-            score.match_points = self.match_win_points * (counter.wins as f64)
-                + self.match_draw_points * (counter.draws as f64)
-                + self.match_loss_points * (counter.losses as f64)
-                + self.bye_points * (counter.byes as f64);
-            score.game_points = self.game_win_points * (counter.game_wins as f64)
-                + self.game_draw_points * (counter.game_draws as f64)
-                + self.game_loss_points * (counter.game_losses as f64);
+            score.match_points = self.calculate_match_points_with_byes(&counter);
+            score.game_points = self.calculate_game_points(&counter);
+            // If your only round was a bye, your percentages stay at 0
+            // This also filters out folks that haven't played a match yet
+            if counter.rounds != counter.byes {
+                score.mwp = score.match_points / (self.match_win_points * (counter.rounds as f64));
+                score.gwp = score.game_points / (self.game_win_points * (counter.games as f64));
+            }
+            digest.insert(id.clone(), score);
         }
-        digest.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
+        for (id, counter) in &counters {
+            // If your only round was a bye, your percentages stay at 0
+            // This also filters out folks that haven't played a match yet
+            if counter.rounds == counter.byes {
+                continue;
+            }
+            let mut opp_mp: f64 = 0.0;
+            let mut opp_matches: u64 = 0;
+            let mut opp_gp: f64 = 0.0;
+            let mut opp_games: u64 = 0;
+            for plyr in counter.opponents.iter().filter(|i| *i != id) {
+                opp_mp += self.calculate_match_points_without_byes(&counters[plyr]);
+                opp_matches += counters[plyr].rounds - counters[plyr].byes;
+                opp_gp += self.calculate_game_points(&counters[plyr]);
+                opp_games += counters[plyr].games;
+            }
+            digest.get_mut(id).unwrap().opp_mwp = opp_mp / (opp_matches as f64);
+            digest.get_mut(id).unwrap().opp_gwp = opp_gp / (opp_games as f64);
+        }
+        let mut results: Vec<(String, StandardScore)> = digest
+            .iter()
+            .map(|(id, s)| {
+                (
+                    player_reg
+                        .get_player(PlayerIdentifier::Id(*id))
+                        .unwrap()
+                        .to_string(),
+                    (*s).clone(),
+                )
+            })
+            .collect();
+        results.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
         Standings::new(
-            digest
+            results
                 .into_iter()
                 .map(|(name, score)| (name, Box::new(score) as Box<dyn Score>))
                 .collect::<Vec<(String, Box<dyn Score>)>>(),
@@ -281,6 +334,5 @@ impl ScoreCounter {
 
     fn add_bye(&mut self) {
         self.byes += 1;
-        self.games += 1;
     }
 }
