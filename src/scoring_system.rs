@@ -16,7 +16,10 @@ pub struct Standings {
     scores: Vec<(String, Box<dyn Score>)>,
 }
 
-pub trait ScoringSystem {
+pub trait ScoringSystem
+where
+    Self: Send + Sync,
+{
     fn new() -> Self
     where
         Self: Sized;

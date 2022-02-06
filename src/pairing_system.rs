@@ -6,7 +6,10 @@ pub use uuid::Uuid;
 
 pub use std::collections::HashMap;
 
-pub trait PairingSystem {
+pub trait PairingSystem
+where
+    Self: Send + Sync
+{
     fn new(players_per_match: u8) -> Self
     where
         Self: Sized;
