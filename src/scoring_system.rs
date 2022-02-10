@@ -1,4 +1,4 @@
-pub use crate::player::Player;
+pub use crate::player::{Player, PlayerId};
 pub use crate::player_registry::PlayerRegistry;
 pub use crate::round_registry::RoundRegistry;
 

@@ -1,0 +1,535 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+ACC_GROUP_LENS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^const ACC_GROUP_LENS: [usize; 5] = [8, 12, 16, 20, 32];$/;"	c
+Adhoc	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub struct Adhoc;$/;"	s
+AdhocKind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub trait AdhocKind: Sized {$/;"	t
+AtomicCard	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/card.rs	/^pub struct AtomicCard {$/;"	s
+AtomicCardFace	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/card.rs	/^pub struct AtomicCardFace {$/;"	s
+Atomics	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/atomics.rs	/^pub struct Atomics {$/;"	s
+BYTES_LEN	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^        const BYTES_LEN: usize = 16;$/;"	c
+BYTE_POSITIONS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^const BYTE_POSITIONS: [usize; 6] = [0, 4, 6, 8, 10, 16];$/;"	c
+BacktraceFrame	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    struct BacktraceFrame {$/;"	s
+BacktraceSymbol	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    struct BacktraceSymbol {$/;"	s
+BothDebug	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^pub trait BothDebug {$/;"	t
+Boxed	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub struct Boxed;$/;"	s
+BoxedError	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/wrapper.rs	/^pub struct BoxedError(pub Box<dyn StdError + Send + Sync>);$/;"	s
+BoxedKind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub trait BoxedKind: Sized {$/;"	t
+Buf	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^struct Buf {$/;"	s
+Builder	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^pub type Builder = crate::Builder;$/;"	T
+Builder	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^pub struct Builder(Bytes);$/;"	s
+Bytes	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^pub type Bytes = [u8; 16];$/;"	T
+BytesOrWide	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    enum BytesOrWide {$/;"	g
+Capture	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    struct Capture {$/;"	s
+Card	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/model/card.rs	/^pub struct Card {$/;"	s
+CardAttribute	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/model/card_attribute.rs	/^pub trait CardAttribute {$/;"	t
+CastTo	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^pub trait CastTo {$/;"	t
+Chain	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^pub struct Chain<'a> {$/;"	s
+ClockSequence	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^pub trait ClockSequence {$/;"	t
+Context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^pub trait Context<T, E>: context::private::Sealed {$/;"	t
+Context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^pub struct Context {$/;"	s
+D4_LEN	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^        const D4_LEN: usize = 8;$/;"	c
+Deck	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/model/deck.rs	/^pub struct Deck {$/;"	s
+DisplayError	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/wrapper.rs	/^pub struct DisplayError<M>(pub M);$/;"	s
+DynScorePartialEq	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^pub trait DynScorePartialEq {$/;"	t
+DynScorePartialOrd	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^pub trait DynScorePartialOrd {$/;"	t
+ENABLED	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^            static ENABLED: AtomicUsize = AtomicUsize::new(0);$/;"	c
+EXPECTED_CHARS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^        const EXPECTED_CHARS: &'static str = "0123456789abcdefABCDEF-";$/;"	c
+EXPECTED_GROUP_COUNTS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^        const EXPECTED_GROUP_COUNTS: error::ExpectedLength =$/;"	c
+EXPECTED_UUID_LENGTHS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^        const EXPECTED_UUID_LENGTHS: error::ExpectedLength =$/;"	c
+Err	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/legalities.rs	/^    type Err = ();$/;"	T
+Err	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    type Err = Error;$/;"	T
+Error	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^pub struct Error {$/;"	s
+Error	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^pub struct Error(Inner);$/;"	s
+ErrorVTable	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^struct ErrorVTable {$/;"	s
+FIXTURE	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v3.rs	/^    static FIXTURE: &'static [(&'static Uuid, &'static str, &'static str)] = &[$/;"	c
+FIXTURE	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v5.rs	/^    static FIXTURE: &'static [(&'static Uuid, &'static str, &'static str)] = &[$/;"	c
+FluidPairings	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^pub struct FluidPairings {$/;"	s
+ForeignData	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/foreign_data.rs	/^pub struct ForeignData {$/;"	s
+GROUP_LENS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^const GROUP_LENS: [usize; 5] = [8, 4, 4, 4, 12];$/;"	c
+Game	/home/tyler/Code/SquireCore/src/game.rs	/^pub struct Game {$/;"	s
+GameResult	/home/tyler/Code/SquireCore/src/game.rs	/^pub enum GameResult {$/;"	g
+HALF_SECOND	/home/tyler/Code/SquireCore/src/utils.rs	/^const HALF_SECOND: Duration = Duration::from_millis(500);$/;"	c
+HYPHEN_POSITIONS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^const HYPHEN_POSITIONS: [usize; 4] = [8, 13, 18, 23];$/;"	c
+Hyphenated	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^pub struct Hyphenated(Uuid);$/;"	s
+HyphenatedRef	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^pub struct HyphenatedRef<'a>(&'a Uuid);$/;"	s
+Identifiers	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/identifiers.rs	/^pub struct Identifiers {$/;"	s
+Indented	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/fmt.rs	/^struct Indented<'a, D> {$/;"	s
+Inner	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    enum Inner {$/;"	g
+Inner	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^enum Inner {$/;"	g
+Item	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    type Item = &'a (dyn StdError + 'static);$/;"	T
+LENGTH	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const LENGTH: usize = 32;$/;"	c
+LENGTH	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const LENGTH: usize = 36;$/;"	c
+LENGTH	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const LENGTH: usize = 45;$/;"	c
+LOWER	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^const LOWER: [u8; 16] = [$/;"	c
+LazilyResolvedCapture	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    struct LazilyResolvedCapture {$/;"	s
+LeadershipSkills	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/leadership_skills.rs	/^pub struct LeadershipSkills {$/;"	s
+Legalities	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/legalities.rs	/^pub struct Legalities {$/;"	s
+Legality	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/legalities.rs	/^pub enum Legality {$/;"	g
+MessageError	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/wrapper.rs	/^pub struct MessageError<M>(pub M);$/;"	s
+Meta	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/meta.rs	/^pub struct Meta {$/;"	s
+MinimalCard	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/model/minimal_card.rs	/^ pub trait MinimalCard {$/;"	t
+Mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^pub struct Mut<'a, T>$/;"	s
+NAMESPACE_DNS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const NAMESPACE_DNS: Self = Uuid([$/;"	c
+NAMESPACE_OID	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const NAMESPACE_OID: Self = Uuid([$/;"	c
+NAMESPACE_URL	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const NAMESPACE_URL: Self = Uuid([$/;"	c
+NAMESPACE_X500	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const NAMESPACE_X500: Self = Uuid([$/;"	c
+NODE_ID_LEN	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^        const NODE_ID_LEN: usize = 6;$/;"	c
+NotBothDebug	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^pub trait NotBothDebug {$/;"	t
+Ok	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^pub fn Ok<T>(t: T) -> Result<T> {$/;"	f
+Outcome	/home/tyler/Code/SquireCore/src/round.rs	/^pub enum Outcome {$/;"	g
+Own	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^pub struct Own<T>$/;"	s
+PairingSystem	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^pub trait PairingSystem$/;"	t
+Player	/home/tyler/Code/SquireCore/src/player.rs	/^pub struct Player {$/;"	s
+PlayerId	/home/tyler/Code/SquireCore/src/player.rs	/^pub struct PlayerId(Uuid);$/;"	s
+PlayerIdentifier	/home/tyler/Code/SquireCore/src/player_registry.rs	/^pub enum PlayerIdentifier {$/;"	g
+PlayerRegistry	/home/tyler/Code/SquireCore/src/player_registry.rs	/^pub struct PlayerRegistry {$/;"	s
+PlayerStatus	/home/tyler/Code/SquireCore/src/player.rs	/^pub enum PlayerStatus {$/;"	g
+PurchaseURLs	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/purchase_urls.rs	/^pub struct PurchaseURLs {$/;"	s
+Quoted	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^struct Quoted<C>(C);$/;"	s
+Ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^pub struct Ref<'a, T>$/;"	s
+Result	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^pub type Result<T, E = Error> = core::result::Result<T, E>;$/;"	T
+Round	/home/tyler/Code/SquireCore/src/round.rs	/^pub struct Round {$/;"	s
+RoundId	/home/tyler/Code/SquireCore/src/round.rs	/^pub struct RoundId(Uuid);$/;"	s
+RoundIdentifier	/home/tyler/Code/SquireCore/src/round_registry.rs	/^pub enum RoundIdentifier {$/;"	g
+RoundRegistry	/home/tyler/Code/SquireCore/src/round_registry.rs	/^pub struct RoundRegistry {$/;"	s
+RoundStatus	/home/tyler/Code/SquireCore/src/round.rs	/^pub enum RoundStatus {$/;"	g
+Ruling	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/ruling.rs	/^pub struct Ruling {$/;"	s
+Score	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^pub trait Score$/;"	t
+ScoreCounter	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^struct ScoreCounter {$/;"	s
+ScoringSystem	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^pub trait ScoringSystem$/;"	t
+Sealed	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    pub trait Sealed {}$/;"	t
+Simple	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^pub struct Simple(Uuid);$/;"	s
+SimpleRef	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^pub struct SimpleRef<'a>(&'a Uuid);$/;"	s
+StandardScore	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^pub struct StandardScore {$/;"	s
+StandardScoring	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^pub struct StandardScoring {$/;"	s
+Standings	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^pub struct Standings {$/;"	s
+StdError	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    pub trait StdError {$/;"	t
+StdError	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^trait StdError: Debug + Display {$/;"	t
+SwissPairings	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^pub struct SwissPairings {$/;"	s
+Target	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    type Target = dyn StdError + Send + Sync + 'static;$/;"	T
+Target	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    type Target = T;$/;"	T
+Target	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    type Target;$/;"	T
+Timestamp	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^pub struct Timestamp {$/;"	s
+Tournament	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub struct Tournament {$/;"	s
+TournamentError	/home/tyler/Code/SquireCore/src/error.rs	/^pub enum TournamentError {$/;"	g
+TournamentId	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub struct TournamentId(Uuid);$/;"	s
+TournamentPreset	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub enum TournamentPreset {$/;"	g
+TournamentStatus	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub enum TournamentStatus {$/;"	g
+Trait	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub struct Trait;$/;"	s
+TraitKind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub trait TraitKind: Sized {$/;"	t
+UPPER	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^const UPPER: [u8; 16] = [$/;"	c
+UUID_TICKS_BETWEEN_EPOCHS	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^const UUID_TICKS_BETWEEN_EPOCHS: u64 = 0x01B2_1DD2_1381_4000;$/;"	c
+UpcastAny	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^pub trait UpcastAny {$/;"	t
+Urn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^pub struct Urn(Uuid);$/;"	s
+UrnRef	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^pub struct UrnRef<'a>(&'a Uuid);$/;"	s
+Uuid	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^pub struct Uuid(Bytes);$/;"	s
+UuidBytesVisitor	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^            struct UuidBytesVisitor;$/;"	s
+UuidContainer	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/compact.rs	/^        struct UuidContainer {$/;"	s
+UuidStringVisitor	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^            struct UuidStringVisitor;$/;"	s
+Value	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^                type Value = Uuid;$/;"	T
+Variant	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^pub enum Variant {$/;"	g
+Version	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^pub enum Version {$/;"	g
+__dispatch_ensure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^    fn __dispatch_ensure(self, msg: &'static str) -> Error {$/;"	f
+__dispatch_ensure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^    fn __dispatch_ensure(self, msg: &'static str) -> Error;$/;"	f
+__fallback_ensure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^macro_rules! __fallback_ensure {$/;"	d
+__fancy_ensure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^macro_rules! __fancy_ensure {$/;"	d
+__parse_ensure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^macro_rules! __parse_ensure {$/;"	d
+_assert	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    fn _assert<T: Send + Sync>() {}$/;"	f
+_assert_send_sync	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^fn _assert_send_sync() {$/;"	f
+_description	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/error.rs	/^    fn _description(&self) -> &str {$/;"	f
+add_bye	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn add_bye(&mut self) {$/;"	f
+add_deck	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn add_deck(&mut self, name: String, deck: Deck) {$/;"	f
+add_draw	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn add_draw(&mut self, players: &HashSet<PlayerId>) {$/;"	f
+add_loss	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn add_loss(&mut self, players: &HashSet<PlayerId>) {$/;"	f
+add_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {$/;"	f
+add_player	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn add_player(&mut self, player: PlayerId) {$/;"	f
+add_round	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn add_round(&mut self, round: &Round) {$/;"	f
+add_win	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn add_win(&mut self, players: &HashSet<PlayerId>) {$/;"	f
+admin_drop_player	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {$/;"	f
+anyhow	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/macros.rs	/^macro_rules! anyhow {$/;"	d
+anyhow_kind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^    fn anyhow_kind(&self) -> Adhoc {$/;"	f
+anyhow_kind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^    fn anyhow_kind(&self) -> Boxed {$/;"	f
+anyhow_kind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^    fn anyhow_kind(&self) -> Trait {$/;"	f
+as_fields	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn as_fields(&self) -> (u32, u16, u16, &[u8; 8]) {$/;"	f
+as_ptr	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn as_ptr(self) -> *const T {$/;"	f
+as_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn as_ref(&self) -> &(dyn StdError + 'static) {$/;"	f
+as_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn as_ref(&self) -> &(dyn StdError + Send + Sync + 'static) {$/;"	f
+as_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^    fn as_str(&self) -> &str {$/;"	f
+as_u128	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn as_u128(&self) -> u128 {$/;"	f
+backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^macro_rules! backtrace {$/;"	d
+backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn backtrace(&self) -> Option<&Backtrace> {$/;"	f
+backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn backtrace(&self) -> Option<&Backtrace> {$/;"	f
+backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn backtrace(&self) -> &impl_backtrace!() {$/;"	f
+backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/wrapper.rs	/^    fn backtrace(&self) -> Option<&crate::backtrace::Backtrace> {$/;"	f
+backtrace_if_absent	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^macro_rules! backtrace_if_absent {$/;"	d
+bail	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/macros.rs	/^macro_rules! bail {$/;"	d
+boxed	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub unsafe fn boxed(self) -> Box<T> {$/;"	f
+build	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn build(&mut self) -> Uuid {$/;"	f
+by_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn by_mut(&mut self) -> Mut<T> {$/;"	f
+by_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn by_mut(self) -> Mut<'a, T> {$/;"	f
+by_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn by_ref(&self) -> Ref<T> {$/;"	f
+by_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn by_ref(self) -> Ref<'a, T> {$/;"	f
+calculate_game_points	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn calculate_game_points(&self, counter: &ScoreCounter) -> f64 {$/;"	f
+calculate_match_points_with_byes	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn calculate_match_points_with_byes(&self, counter: &ScoreCounter) -> f64 {$/;"	f
+calculate_match_points_without_byes	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn calculate_match_points_without_byes(&self, counter: &ScoreCounter) -> f64 {$/;"	f
+can_play	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn can_play(&self) -> bool {$/;"	f
+cancel	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn cancel(&mut self) -> Result<(), TournamentError> {$/;"	f
+capture	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^mod capture {$/;"	m
+cast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn cast<U: CastTo>(self) -> Mut<'a, U::Target> {$/;"	f
+cast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn cast<U: CastTo>(self) -> Own<U::Target> {$/;"	f
+cast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn cast<U: CastTo>(self) -> Ref<'a, U::Target> {$/;"	f
+chain	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn chain(&self) -> Chain {$/;"	f
+check	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^        macro_rules! check {$/;"	d
+check	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    macro_rules! check {$/;"	d
+clear_game_record	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn clear_game_record(&mut self) {$/;"	f
+clone	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    fn clone(&self) -> Self {$/;"	f
+confirm_round	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn confirm_round(&mut self, player: PlayerId) -> Result<RoundStatus, TournamentError> {$/;"	f
+confirm_round	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn confirm_round(&self, ident: PlayerIdentifier) -> Result<RoundStatus, TournamentError> {$/;"	f
+construct	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    unsafe fn construct<E>($/;"	f
+context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn context<C>(self, context: C) -> Result<T, Error>$/;"	f
+context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn context<C>(self, context: C) -> Self$/;"	f
+context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^    fn context<C>(self, context: C) -> Result<T, Error>$/;"	f
+context_backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_backtrace<C>(e: Ref<ErrorImpl>) -> Option<&Backtrace>$/;"	f
+context_chain_downcast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_chain_downcast<C>(e: Ref<ErrorImpl>, target: TypeId) -> Option<Ref<()>>$/;"	f
+context_chain_downcast_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_chain_downcast_mut<C>(e: Mut<ErrorImpl>, target: TypeId) -> Option<Mut<()>>$/;"	f
+context_chain_drop_rest	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_chain_drop_rest<C>(e: Own<ErrorImpl>, target: TypeId)$/;"	f
+context_downcast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_downcast<C, E>(e: Ref<ErrorImpl>, target: TypeId) -> Option<Ref<()>>$/;"	f
+context_downcast_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_downcast_mut<C, E>(e: Mut<ErrorImpl>, target: TypeId) -> Option<Mut<()>>$/;"	f
+context_drop_rest	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn context_drop_rest<C, E>(e: Own<ErrorImpl>, target: TypeId)$/;"	f
+create	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^        fn create(ip: usize) -> Backtrace {$/;"	f
+create_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn create_round(&mut self) -> &mut Round {$/;"	f
+create_round	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn create_round(&self, idents: Vec<PlayerIdentifier>) -> Result<(), TournamentError> {$/;"	f
+de_error	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^        fn de_error<E: de::Error>(e: crate::Error) -> E {$/;"	f
+default	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn default() -> Self {$/;"	f
+default	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn default() -> Self {$/;"	f
+default	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    fn default() -> Self {$/;"	f
+deref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn deref(&self) -> &Self::Target {$/;"	f
+deref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub unsafe fn deref(self) -> &'a T {$/;"	f
+deref_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn deref_mut(&mut self) -> &mut Self::Target {$/;"	f
+deref_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub unsafe fn deref_mut(self) -> &'a mut T {$/;"	f
+deserialize	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/compact.rs	/^pub fn deserialize<'de, D>(deserializer: D) -> Result<crate::Uuid, D::Error>$/;"	f
+deserialize	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^    fn deserialize<D: Deserializer<'de>>($/;"	f
+downcast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn downcast<E>(mut self) -> Result<E, Self>$/;"	f
+downcast_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn downcast_mut<E>(&mut self) -> Option<&mut E>$/;"	f
+downcast_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn downcast_ref<E>(&self) -> Option<&E>$/;"	f
+drop	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn drop(&mut self) {$/;"	f
+drop_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), TournamentError> {$/;"	f
+drop_player	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn drop_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {$/;"	f
+dyn_eq	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn dyn_eq(&self, other: &dyn Score) -> bool {$/;"	f
+dyn_eq	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn dyn_eq(&self, other: &dyn Score) -> bool;$/;"	f
+dyn_partial_cmp	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn dyn_partial_cmp(&self, other: &dyn Score) -> Option<Ordering> {$/;"	f
+dyn_partial_cmp	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn dyn_partial_cmp(&self, other: &dyn Score) -> Option<Ordering>;$/;"	f
+enabled	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^        fn enabled() -> bool {$/;"	f
+encode	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^fn encode<'a>($/;"	f
+encode_lower	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub fn encode_lower<'buf>(&self, buffer: &'buf mut [u8]) -> &'buf mut str {$/;"	f
+encode_upper	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub fn encode_upper<'buf>(&self, buffer: &'buf mut [u8]) -> &'buf mut str {$/;"	f
+end	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn end(&mut self) -> Result<(), TournamentError> {$/;"	f
+ensure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/macros.rs	/^macro_rules! ensure {$/;"	d
+eq	/home/tyler/Code/SquireCore/src/player.rs	/^    fn eq(&self, other: &Self) -> bool {$/;"	f
+eq	/home/tyler/Code/SquireCore/src/round.rs	/^    fn eq(&self, other: &Self) -> bool {$/;"	f
+eq	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn eq(&self, other: &dyn Score) -> bool {$/;"	f
+erase	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn erase(&self) -> Ref<ErrorImpl> {$/;"	f
+expecting	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^                fn expecting($/;"	f
+ext	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^mod ext {$/;"	m
+ext_context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^        fn ext_context<C>(self, context: C) -> Error$/;"	f
+extend	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn extend<'b>(self) -> Mut<'b, T> {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^        fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/wrapper.rs	/^    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/error.rs	/^    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {$/;"	f
+fmt	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/error.rs	/^    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {$/;"	f
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn from_uuid(uuid: Uuid) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn from_uuid_ref(uuid: &'a Uuid) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn to_hyphenated(self) -> Hyphenated {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn to_hyphenated_ref(&self) -> HyphenatedRef<'_> {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn to_simple(self) -> Simple {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn to_simple_ref(&self) -> SimpleRef<'_> {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn to_urn(self) -> Urn {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    pub const fn to_urn_ref(&self) -> UrnRef<'_> {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/error.rs	/^    const fn expected(&self) -> usize {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/error.rs	/^    const fn found(&self) -> usize {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub const fn from_bytes(b: Bytes) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub const fn from_bytes(bytes: Bytes) -> Uuid {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub const fn from_u128(v: u128) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub const fn from_u128_le(v: u128) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub const fn nil() -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const fn as_bytes(&self) -> &Bytes {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const fn encode_buffer() -> [u8; adapter::Urn::LENGTH] {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub const fn get_version_num(&self) -> usize {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/test_util.rs	/^pub const fn new() -> Uuid {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/test_util.rs	/^pub const fn new2() -> Uuid {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub const fn from_rfc4122(ticks: u64, counter: u16) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub const fn new(count: u16) -> Self {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub const fn to_rfc4122(&self) -> (u64, u16) {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub const fn to_unix(&self) -> (u64, u32) {$/;"	c
+fn	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub const fn to_unix_nanos(&self) -> u64 {$/;"	c
+force	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^        fn force(&self) -> &Capture {$/;"	f
+format_err	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^    pub fn format_err(args: Arguments) -> Error {$/;"	f
+freeze	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn freeze(&mut self) -> Result<(), TournamentError> {$/;"	f
+from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn from(error: E) -> Self {$/;"	f
+from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn from(error: Error) -> Self {$/;"	f
+from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^            fn from(f: &$a Uuid) -> Self {$/;"	f
+from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^            fn from(f: Uuid) -> Self {$/;"	f
+from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^    fn from(err: builder::Error) -> Self {$/;"	f
+from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^    fn from(err: parser::Error) -> Self {$/;"	f
+from_fields	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn from_fields($/;"	f
+from_fields_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn from_fields_le($/;"	f
+from_guid	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/winapi_support.rs	/^    pub fn from_guid(guid: guiddef::GUID) -> Result<Uuid, crate::Error> {$/;"	f
+from_preset	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn from_preset($/;"	f
+from_raw	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn from_raw(ptr: NonNull<T>) -> Self {$/;"	f
+from_slice	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn from_slice(b: &[u8]) -> Result<Self, crate::Error> {$/;"	f
+from_slice	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn from_slice(b: &[u8]) -> Result<Uuid, crate::Error> {$/;"	f
+from_str	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/legalities.rs	/^    fn from_str(input: &str) -> Result<Legality, Self::Err> {$/;"	f
+from_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn from_str(uuid_str: &str) -> Result<Self, Self::Err> {$/;"	f
+from_u128	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn from_u128(v: u128) -> Self {$/;"	f
+from_unix	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub fn from_unix($/;"	f
+generate_sequence	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    fn generate_sequence(&self, _: u64, _: u32) -> u16 {$/;"	f
+generate_sequence	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    fn generate_sequence(&self, seconds: u64, subsec_nanos: u32) -> u16 {$/;"	f
+generate_sequence	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    fn generate_sequence(&self, seconds: u64, subsec_nanos: u32) -> u16;$/;"	f
+get	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/atomics.rs	/^    pub fn get( &self, name: &str ) -> Option<&AtomicCard> {$/;"	f
+get_deck	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn get_deck(&self, name: String) -> Option<Deck> {$/;"	f
+get_decks	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn get_decks(&self) -> HashMap<String, Deck> {$/;"	f
+get_id	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn get_id(&self) -> RoundId {$/;"	f
+get_mut_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_mut_player($/;"	f
+get_mut_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, TournamentError> {$/;"	f
+get_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, TournamentError> {$/;"	f
+get_player_active_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_player_active_round(&mut self, id: PlayerId) -> Result<&mut Round, TournamentError> {$/;"	f
+get_player_deck	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_player_deck($/;"	f
+get_player_decks	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_player_decks($/;"	f
+get_player_id	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<PlayerId, TournamentError> {$/;"	f
+get_read_spin_lock	/home/tyler/Code/SquireCore/src/utils.rs	/^pub fn get_read_spin_lock<T>(lock: &RwLock<T>) -> RwLockReadGuard<T> {$/;"	f
+get_result	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn get_result(&self) -> GameResult {$/;"	f
+get_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, TournamentError> {$/;"	f
+get_round_number	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_round_number(&self, ident: RoundIdentifier) -> Result<u64, TournamentError> {$/;"	f
+get_standings	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn get_standings(&self, player_reg: &PlayerRegistry, match_reg: &RoundRegistry) -> Standings;$/;"	f
+get_standings	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn get_standings(&self, player_reg: &PlayerRegistry, round_reg: &RoundRegistry) -> Standings {$/;"	f
+get_standings	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_standings(&self) -> Standings {$/;"	f
+get_variant	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn get_variant(&self) -> Option<Variant> {$/;"	f
+get_version	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn get_version(&self) -> Option<Version> {$/;"	f
+get_winner	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn get_winner(&self) -> Option<PlayerId> {$/;"	f
+get_write_spin_lock	/home/tyler/Code/SquireCore/src/utils.rs	/^pub fn get_write_spin_lock<T>(lock: &RwLock<T>) -> RwLockWriteGuard<T> {$/;"	f
+give_bye	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn give_bye(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {$/;"	f
+hash	/home/tyler/Code/SquireCore/src/player.rs	/^    fn hash<H>(&self, state: &mut H)$/;"	f
+hash	/home/tyler/Code/SquireCore/src/round.rs	/^    fn hash<H>(&self, state: &mut H)$/;"	f
+hash	/home/tyler/Code/SquireCore/src/tournament.rs	/^    fn hash<H>(&self, state: &mut H)$/;"	f
+hyphenated_ref_too_small	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn hyphenated_ref_too_small() {$/;"	f
+hyphenated_ref_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn hyphenated_ref_trailing() {$/;"	f
+hyphenated_too_small	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn hyphenated_too_small() {$/;"	f
+hyphenated_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn hyphenated_trailing() {$/;"	f
+impl_adapter_from	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^macro_rules! impl_adapter_from {$/;"	d
+impl_adapter_traits	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^macro_rules! impl_adapter_traits {$/;"	d
+impl_backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^macro_rules! impl_backtrace {$/;"	d
+is	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn is<E>(&self) -> bool$/;"	f
+is_active	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn is_active(&self) -> bool {$/;"	f
+is_certified	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn is_certified(&self) -> bool {$/;"	f
+is_dead	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn is_dead(&self) -> bool {$/;"	f
+is_draw	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn is_draw(&self) -> bool {$/;"	f
+is_frozen	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn is_frozen(&self) -> bool {$/;"	f
+is_nil	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn is_nil(&self) -> bool {$/;"	f
+is_planned	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn is_planned(&self) -> bool {$/;"	f
+iter	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn iter(&self) -> Iter<PlayerId, Player> {$/;"	f
+iter	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn iter(&self) -> Iter<u64, Round> {$/;"	f
+kill_round	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn kill_round(&mut self) {$/;"	f
+kind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^    pub mod kind {$/;"	m
+len	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn len(&self) -> usize {$/;"	f
+len	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn len(&self) -> usize {$/;"	f
+len_matches_any	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^fn len_matches_any(len: usize, crits: &[usize]) -> bool {$/;"	f
+len_matches_range	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^fn len_matches_range(len: usize, min: usize, max: usize) -> bool {$/;"	f
+msg	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn msg<M>(message: M) -> Self$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^        fn new(capture: Capture) -> Self {$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    pub fn new(head: &'a (dyn StdError + 'static)) -> Self {$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^    fn new() -> Self {$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn new<E>(error: E) -> Self$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^    pub fn new(self, error: Box<dyn StdError + Send + Sync>) -> Error {$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^    pub fn new<E>(self, error: E) -> Error$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^    pub fn new<M>(self, message: M) -> Error$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn new(ptr: &'a T) -> Self {$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn new(ptr: &'a mut T) -> Self {$/;"	f
+new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub fn new(ptr: Box<T>) -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^    fn new(players_per_match: u8) -> Self$/;"	f
+new	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^    fn new(players_per_match: u8) -> Self$/;"	f
+new	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn new(name: String) -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn new() -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn new(match_num: u64, len: Duration) -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn new(len: Duration) -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn new() -> Self$/;"	f
+new	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    pub fn new(scores: Vec<(String, Box<dyn Score>)>) -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new($/;"	f
+new	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new() -> Self$/;"	f
+new	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new(player: PlayerId) -> Self {$/;"	f
+new	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^    fn new(players_per_match: u8) -> Self$/;"	f
+new_draw	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn new_draw(player: PlayerId) -> Self {$/;"	f
+new_score	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new_score(&self) -> StandardScore {$/;"	f
+new_v1	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub fn new_v1(ts: Timestamp, node_id: &[u8]) -> Result<Self, crate::Error> {$/;"	f
+new_v3	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v3.rs	/^    pub fn new_v3(namespace: &Uuid, name: &[u8]) -> Uuid {$/;"	f
+new_v4	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v4.rs	/^    pub fn new_v4() -> Uuid {$/;"	f
+new_v5	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v5.rs	/^    pub fn new_v5(namespace: &Uuid, name: &[u8]) -> Uuid {$/;"	f
+new_win	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn new_win(player: PlayerId) -> Self {$/;"	f
+next	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn next(&mut self) -> Option<Self::Item> {$/;"	f
+next_back	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn next_back(&mut self) -> Option<Self::Item> {$/;"	f
+no_backtrace	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^fn no_backtrace(e: Ref<ErrorImpl>) -> Option<&Backtrace> {$/;"	f
+no_digits	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/fmt.rs	/^    fn no_digits() {$/;"	f
+object_boxed	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_boxed<E>(e: Own<ErrorImpl>) -> Box<dyn StdError + Send + Sync + 'static>$/;"	f
+object_downcast	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_downcast<E>(e: Ref<ErrorImpl>, target: TypeId) -> Option<Ref<()>>$/;"	f
+object_downcast_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_downcast_mut<E>(e: Mut<ErrorImpl>, target: TypeId) -> Option<Mut<()>>$/;"	f
+object_drop	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_drop<E>(e: Own<ErrorImpl>) {$/;"	f
+object_drop_front	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_drop_front<E>(e: Own<ErrorImpl>, target: TypeId) {$/;"	f
+object_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_mut<E>(e: Mut<ErrorImpl>) -> &mut (dyn StdError + Send + Sync + 'static)$/;"	f
+object_ref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn object_ref<E>(e: Ref<ErrorImpl>) -> Ref<dyn StdError + Send + Sync + 'static>$/;"	f
+one_digit	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/fmt.rs	/^    fn one_digit() {$/;"	f
+output_filename	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^    fn output_filename($/;"	f
+pairing_system_factory	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub fn pairing_system_factory(preset: &TournamentPreset, game_size: u8) -> Box<dyn PairingSystem> {$/;"	f
+parse_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^    pub fn parse_str(mut input: &str) -> Result<Uuid, crate::Error> {$/;"	f
+parse_to_outcome	/home/tyler/Code/SquireCore/src/round.rs	/^pub fn parse_to_outcome(input: String) -> Result<Outcome, TournamentError> {$/;"	f
+partial_cmp	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn partial_cmp(&self, other: &dyn Score) -> Option<Ordering> {$/;"	f
+player_add_deck	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn player_add_deck($/;"	f
+player_set_game_name	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn player_set_game_name($/;"	f
+private	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^pub mod private {$/;"	m
+read	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub unsafe fn read(self) -> T {$/;"	f
+ready_player	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^    fn ready_player(&mut self, plyr: PlayerId) -> bool {$/;"	f
+ready_player	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^    fn ready_player(&mut self, plyr: PlayerId) -> bool;$/;"	f
+ready_player	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^    fn ready_player(&mut self, plyr: PlayerId) -> bool {$/;"	f
+ready_player	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn ready_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {$/;"	f
+record_bye	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn record_bye(&mut self) -> Result<(), TournamentError> {$/;"	f
+record_game	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn record_game(&mut self, game: Game) -> Result<(), TournamentError> {$/;"	f
+record_outcome	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn record_outcome(&mut self, outcome: Outcome) -> Result<(), TournamentError> {$/;"	f
+record_outcome	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn record_outcome($/;"	f
+register_player	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn register_player(&self, name: String) -> Result<(), TournamentError> {$/;"	f
+remove_deck	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {$/;"	f
+remove_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), TournamentError> {$/;"	f
+remove_player_deck	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn remove_player_deck($/;"	f
+render	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^fn render(msg: &'static str, lhs: &dyn Debug, rhs: &dyn Debug) -> Error {$/;"	f
+resolve	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/backtrace.rs	/^        fn resolve(&mut self) {$/;"	f
+rollback_pairings	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^    fn rollback_pairings($/;"	f
+rollback_pairings	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^    fn rollback_pairings($/;"	f
+rollback_pairings	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^    fn rollback_pairings($/;"	f
+root_cause	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn root_cause(&self) -> &(dyn StdError + 'static) {$/;"	f
+scoring_system_factory	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub fn scoring_system_factory(preset: &TournamentPreset) -> Box<dyn ScoringSystem> {$/;"	f
+serde_tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^mod serde_tests {$/;"	m
+serialize	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/compact.rs	/^pub fn serialize<S>(u: &crate::Uuid, serializer: S) -> Result<S::Ok, S::Error>$/;"	f
+serialize	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^    fn serialize<S: Serializer>($/;"	f
+serialize	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/slog_support.rs	/^    fn serialize($/;"	f
+set_deck_count	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn set_deck_count(&mut self, deck_count: u8) {$/;"	f
+set_game_name	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn set_game_name(&mut self, name: String) {$/;"	f
+set_game_size	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn set_game_size(&mut self, game_size: u8) {$/;"	f
+set_round_length	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn set_round_length(&mut self, length: Duration) {$/;"	f
+set_round_length	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn set_round_length(&self, length: Duration) {$/;"	f
+set_variant	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn set_variant(&mut self, v: crate::Variant) -> &mut Self {$/;"	f
+set_version	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/mod.rs	/^    pub fn set_version(&mut self, v: crate::Version) -> &mut Self {$/;"	f
+simple_ref_too_small	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn simple_ref_too_small() {$/;"	f
+simple_ref_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn simple_ref_trailing() {$/;"	f
+simple_too_small	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn simple_too_small() {$/;"	f
+simple_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn simple_trailing() {$/;"	f
+size_hint	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn size_hint(&self) -> (usize, Option<usize>) {$/;"	f
+source	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn source(&self) -> Option<&(dyn StdError + 'static)> {$/;"	f
+source	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn source(&self) -> Option<&(dyn StdError + 'static)> {$/;"	f
+source	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^    fn source(&self) -> Option<&(dyn StdError + 'static)> {$/;"	f
+source	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/wrapper.rs	/^    fn source(&self) -> Option<&(dyn StdError + 'static)> {$/;"	f
+source	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^        fn source(&self) -> Option<&(dyn error::Error + 'static)> {$/;"	f
+start	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn start(&mut self) -> Result<(), TournamentError> {$/;"	f
+std_support	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/builder/error.rs	/^mod std_support {$/;"	m
+std_support	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^mod std_support {$/;"	m
+std_support	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/error.rs	/^mod std_support {$/;"	m
+suggest_pairings	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^    fn suggest_pairings($/;"	f
+suggest_pairings	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^    fn suggest_pairings($/;"	f
+suggest_pairings	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^    fn suggest_pairings($/;"	f
+test_as_bytes	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_as_bytes() {$/;"	f
+test_as_fields	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_as_fields() {$/;"	f
+test_bytes_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_bytes_roundtrip() {$/;"	f
+test_de_failure	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^    fn test_de_failure() {$/;"	f
+test_fields_le_are_actually_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_fields_le_are_actually_le() {$/;"	f
+test_fields_le_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_fields_le_roundtrip() {$/;"	f
+test_fields_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_fields_roundtrip() {$/;"	f
+test_from_bytes	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_from_bytes() {$/;"	f
+test_from_fields	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_from_fields() {$/;"	f
+test_from_fields_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_from_fields_le() {$/;"	f
+test_from_guid	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/winapi_support.rs	/^    fn test_from_guid() {$/;"	f
+test_from_slice	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_from_slice() {$/;"	f
+test_from_u128	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_from_u128() {$/;"	f
+test_from_u128_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_from_u128_le() {$/;"	f
+test_get_variant	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_get_variant() {$/;"	f
+test_get_version	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v4.rs	/^    fn test_get_version() {$/;"	f
+test_get_version	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v5.rs	/^    fn test_get_version() {$/;"	f
+test_get_version_v3	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_get_version_v3() {$/;"	f
+test_guid_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/winapi_support.rs	/^    fn test_guid_roundtrip() {$/;"	f
+test_hyphenated	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v5.rs	/^    fn test_hyphenated() {$/;"	f
+test_iterbytes_impl_for_uuid	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_iterbytes_impl_for_uuid() {$/;"	f
+test_new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v3.rs	/^    fn test_new() {$/;"	f
+test_new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v4.rs	/^    fn test_new() {$/;"	f
+test_new	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v5.rs	/^    fn test_new() {$/;"	f
+test_new_v1	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    fn test_new_v1() {$/;"	f
+test_nil	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_nil() {$/;"	f
+test_parse_uuid_v4	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^    fn test_parse_uuid_v4() {$/;"	f
+test_predefined_namespaces	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_predefined_namespaces() {$/;"	f
+test_serialize_compact	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/compact.rs	/^    fn test_serialize_compact() {$/;"	f
+test_serialize_compact	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^    fn test_serialize_compact() {$/;"	f
+test_serialize_readable	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^    fn test_serialize_readable() {$/;"	f
+test_slog_kv	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/slog_support.rs	/^    fn test_slog_kv() {$/;"	f
+test_string_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_string_roundtrip() {$/;"	f
+test_to_hyphenated_string	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_to_hyphenated_string() {$/;"	f
+test_to_hyphenated_string	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v3.rs	/^    fn test_to_hyphenated_string() {$/;"	f
+test_to_simple_string	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_to_simple_string() {$/;"	f
+test_to_simple_string_matching	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_to_simple_string_matching() {$/;"	f
+test_to_urn_string	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_to_urn_string() {$/;"	f
+test_u128_le_is_actually_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_u128_le_is_actually_le() {$/;"	f
+test_u128_le_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_u128_le_roundtrip() {$/;"	f
+test_u128_roundtrip	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_u128_roundtrip() {$/;"	f
+test_upper_lower_hex	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_upper_lower_hex() {$/;"	f
+test_util	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/error.rs	/^mod test_util {$/;"	m
+test_uuid_compare	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_compare() {$/;"	f
+test_uuid_default	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_default() {$/;"	f
+test_uuid_display	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_display() {$/;"	f
+test_uuid_lowerhex	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_lowerhex() {$/;"	f
+test_uuid_operator_eq	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_operator_eq() {$/;"	f
+test_uuid_to_string	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_to_string() {$/;"	f
+test_uuid_upperhex	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn test_uuid_upperhex() {$/;"	f
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/fmt.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/compact.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/slog_support.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v3.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v4.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v5.rs	/^mod tests {$/;"	m
+tests	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/winapi_support.rs	/^mod tests {$/;"	m
+thaw	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn thaw(&mut self) -> Result<(), TournamentError> {$/;"	f
+to_fields_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn to_fields_le(&self) -> (u32, u16, u16, &[u8; 8]) {$/;"	f
+to_guid	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/winapi_support.rs	/^    pub fn to_guid(&self) -> guiddef::GUID {$/;"	f
+to_string	/home/tyler/.cargo/git/checkouts/mtgjson-rust-sdk-5901d5bff54efc5e/65c8cb7/src/mtgjson/card.rs	/^    fn to_string( &self ) -> String {$/;"	f
+to_string	/home/tyler/Code/SquireCore/src/player.rs	/^    fn to_string(&self) -> String {$/;"	f
+to_string	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn to_string(&self) -> String {$/;"	f
+to_timestamp	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub fn to_timestamp(&self) -> Option<Timestamp> {$/;"	f
+to_u128_le	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    pub fn to_u128_le(&self) -> u128 {$/;"	f
+two_digits	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/fmt.rs	/^    fn two_digits() {$/;"	f
+unready_player	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn unready_player(&self, plyr: String) -> String {$/;"	f
+upcast_any_ref	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn upcast_any_ref(&self) -> &dyn Any {$/;"	f
+upcast_any_ref	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn upcast_any_ref(&self) -> &dyn Any;$/;"	f
+update_reg	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn update_reg(&mut self, reg_status: bool) {$/;"	f
+update_settings	/home/tyler/Code/SquireCore/src/fluid_pairings.rs	/^    fn update_settings(&mut self, settings: HashMap<String, String>) -> String {$/;"	f
+update_settings	/home/tyler/Code/SquireCore/src/pairing_system.rs	/^    fn update_settings(&mut self, settings: HashMap<String, String>) -> String;$/;"	f
+update_settings	/home/tyler/Code/SquireCore/src/scoring_system.rs	/^    fn update_settings(&mut self, settings: HashMap<String, String>) -> Result<(), ()>;$/;"	f
+update_settings	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn update_settings(&mut self, settings: HashMap<String, String>) -> Result<(), ()> {$/;"	f
+update_settings	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^    fn update_settings(&mut self, settings: HashMap<String, String>) -> String {$/;"	f
+update_status	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn update_status(&mut self, status: PlayerStatus) {$/;"	f
+urn_ref_too_small	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn urn_ref_too_small() {$/;"	f
+urn_ref_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn urn_ref_trailing() {$/;"	f
+urn_too_small	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn urn_too_small() {$/;"	f
+urn_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/adapter/mod.rs	/^    fn urn_trailing() {$/;"	f
+verify_game	/home/tyler/Code/SquireCore/src/round.rs	/^    fn verify_game(&self, game: &Game) -> bool {$/;"	f
+verify_identifier	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn verify_identifier(&self, ident: &PlayerIdentifier) -> bool {$/;"	f
+verify_identifier	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn verify_identifier(&self, ident: &RoundIdentifier) -> bool {$/;"	f
+visit_bytes	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^                fn visit_bytes<E: de::Error>($/;"	f
+visit_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^                fn visit_str<E: de::Error>($/;"	f
+vtable	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn vtable(p: NonNull<ErrorImpl>) -> &'static ErrorVTable {$/;"	f
+with_context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn with_context<C, F>(self, context: F) -> Result<T, Error>$/;"	f
+with_context	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^    fn with_context<C, F>(self, f: F) -> Result<T, Error>$/;"	f
+write_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/context.rs	/^    fn write_str(&mut self, s: &str) -> fmt::Result {$/;"	f
+write_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ensure.rs	/^    fn write_str(&mut self, s: &str) -> fmt::Result {$/;"	f
+write_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/fmt.rs	/^    fn write_str(&mut self, s: &str) -> fmt::Result {$/;"	f

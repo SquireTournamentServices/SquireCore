@@ -15,9 +15,12 @@ pub enum PlayerStatus {
     Removed,
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct PlayerId(Uuid);
+
 #[derive(Clone)]
 pub struct Player {
-    pub uuid: Uuid,
+    pub id: PlayerId,
     pub name: String,
     pub game_name: Option<String>,
     decks: HashMap<String, Deck>,
@@ -29,7 +32,7 @@ impl Hash for Player {
     where
         H: Hasher,
     {
-        let _ = &self.uuid.hash(state);
+        let _ = &self.id.hash(state);
     }
 }
 
@@ -41,14 +44,14 @@ impl ToString for Player {
 
 impl PartialEq for Player {
     fn eq(&self, other: &Self) -> bool {
-        self.uuid == other.uuid
+        self.id == other.id
     }
 }
 
 impl Player {
     pub fn new(name: String) -> Self {
         Player {
-            uuid: Uuid::new_v4(),
+            id: PlayerId(Uuid::new_v4()),
             name,
             game_name: None,
             decks: HashMap::new(),

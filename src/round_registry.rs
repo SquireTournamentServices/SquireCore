@@ -1,7 +1,6 @@
 use crate::error::TournamentError;
-use crate::round::Round;
-
-use uuid::Uuid;
+use crate::round::{Round, RoundId};
+use crate::player::PlayerId;
 
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -10,7 +9,7 @@ use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
 pub enum RoundIdentifier {
-    Id(Uuid),
+    Id(RoundId),
     Number(u64),
 }
 
@@ -56,7 +55,7 @@ impl RoundRegistry {
     // but we must prepare for the worst). Should this ever happen, we return the "oldest" active
     // match of theirs. However, this is FAR from ideal as every match certification requires a
     // pass through all matches... gross.
-    pub fn get_player_active_round(&mut self, id: Uuid) -> Result<&mut Round, TournamentError> {
+    pub fn get_player_active_round(&mut self, id: PlayerId) -> Result<&mut Round, TournamentError> {
         let mut nums: Vec<u64> = self
             .rounds
             .iter()
@@ -82,7 +81,7 @@ impl RoundRegistry {
                     let nums: Vec<u64> = self
                         .rounds
                         .iter()
-                        .filter(|(_, r)| r.uuid == id)
+                        .filter(|(_, r)| r.id == id)
                         .map(|(i, _)| *i)
                         .collect();
                     // Safety check: We verified identifiers above, so there is a round with the
@@ -104,7 +103,7 @@ impl RoundRegistry {
 
     pub fn verify_identifier(&self, ident: &RoundIdentifier) -> bool {
         match ident {
-            RoundIdentifier::Id(id) => self.rounds.iter().any(|(_, r)| r.uuid == *id),
+            RoundIdentifier::Id(id) => self.rounds.iter().any(|(_, r)| r.id == *id),
             RoundIdentifier::Number(num) => self.rounds.contains_key(num),
         }
     }

@@ -1,11 +1,9 @@
 use crate::player_registry::PlayerIdentifier;
 pub use crate::scoring_system::{
-    HashMap, PlayerRegistry, RoundRegistry, Score, ScoringSystem, Standings,
+    HashMap, PlayerRegistry, PlayerId, RoundRegistry, Score, ScoringSystem, Standings,
 };
 
 pub use crate::round::Round;
-
-use uuid::Uuid;
 
 use std::collections::HashSet;
 use std::string::ToString;
@@ -27,7 +25,7 @@ pub struct StandardScore {
 }
 
 struct ScoreCounter {
-    pub player: Uuid,
+    pub player: PlayerId,
     pub games: u64,
     pub game_wins: u64,
     pub game_losses: u64,
@@ -37,7 +35,7 @@ struct ScoreCounter {
     pub losses: u64,
     pub draws: u64,
     pub byes: u64,
-    pub opponents: HashSet<Uuid>,
+    pub opponents: HashSet<PlayerId>,
 }
 
 pub struct StandardScoring {
@@ -117,7 +115,7 @@ impl ScoringSystem for StandardScoring {
     }
 
     fn get_standings(&self, player_reg: &PlayerRegistry, round_reg: &RoundRegistry) -> Standings {
-        let mut counters: HashMap<Uuid, ScoreCounter> = player_reg
+        let mut counters: HashMap<PlayerId, ScoreCounter> = player_reg
             .iter()
             .filter(|(_, p)| p.can_play())
             .map(|(id, _)| (id.clone(), ScoreCounter::new(id.clone())))
@@ -135,7 +133,7 @@ impl ScoringSystem for StandardScoring {
             }
         }
         // We have tallied everyone's round results. Time to calculate everyone's scores
-        let mut digest: HashMap<Uuid, StandardScore> = HashMap::with_capacity(counters.len());
+        let mut digest: HashMap<PlayerId, StandardScore> = HashMap::with_capacity(counters.len());
         /*
         mwp: f64,
         gwp: f64,
@@ -143,10 +141,10 @@ impl ScoringSystem for StandardScoring {
         opp_gwp: f64,
         */
         /*
-        player: Uuid,
+        player: PlayerId,
         games: u64,
         rounds: u64,
-        opponents: HashSet<Uuid>,
+        opponents: HashSet<PlayerId>,
         */
         for (id, counter) in &counters {
             let mut score = self.new_score();
@@ -268,7 +266,7 @@ impl ToString for StandardScore {
 }
 
 impl ScoreCounter {
-    fn new(player: Uuid) -> Self {
+    fn new(player: PlayerId) -> Self {
         ScoreCounter {
             player,
             games: 0,
@@ -314,19 +312,19 @@ impl ScoreCounter {
         }
     }
 
-    fn add_win(&mut self, players: &HashSet<Uuid>) {
+    fn add_win(&mut self, players: &HashSet<PlayerId>) {
         self.wins += 1;
         self.games += 1;
         self.opponents.extend(players);
     }
 
-    fn add_loss(&mut self, players: &HashSet<Uuid>) {
+    fn add_loss(&mut self, players: &HashSet<PlayerId>) {
         self.losses += 1;
         self.games += 1;
         self.opponents.extend(players);
     }
 
-    fn add_draw(&mut self, players: &HashSet<Uuid>) {
+    fn add_draw(&mut self, players: &HashSet<PlayerId>) {
         self.draws += 1;
         self.games += 1;
         self.opponents.extend(players);

@@ -1,5 +1,6 @@
 use crate::error::TournamentError;
 use crate::game::Game;
+use crate::player::PlayerId;
 
 use anyhow::Result;
 use uuid::Uuid;
@@ -21,15 +22,18 @@ pub enum Outcome {
     Round(Vec<Game>),
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct RoundId(Uuid);
+
 // This struct should be able to handle N many games, unlike the Python equiv.
 pub struct Round {
-    pub(crate) uuid: Uuid,
+    pub(crate) id: RoundId,
     pub(crate) match_number: u64,
-    pub(crate) players: HashSet<Uuid>,
-    confirmations: HashSet<Uuid>,
+    pub(crate) players: HashSet<PlayerId>,
+    confirmations: HashSet<PlayerId>,
     pub(crate) games: Vec<Game>,
     status: RoundStatus,
-    pub(crate) winner: Option<Uuid>,
+    pub(crate) winner: Option<PlayerId>,
     timer: Instant,
     length: Duration,
     extension: Duration,
@@ -41,20 +45,20 @@ impl Hash for Round {
     where
         H: Hasher,
     {
-        let _ = &self.uuid.hash(state);
+        let _ = &self.id.hash(state);
     }
 }
 
 impl PartialEq for Round {
     fn eq(&self, other: &Self) -> bool {
-        self.uuid == other.uuid
+        self.id == other.id
     }
 }
 
 impl Round {
     pub fn new(match_num: u64, len: Duration) -> Self {
         Round {
-            uuid: Uuid::new_v4(),
+            id: RoundId(Uuid::new_v4()),
             match_number: match_num,
             players: HashSet::with_capacity(4),
             confirmations: HashSet::with_capacity(4),
@@ -68,11 +72,11 @@ impl Round {
         }
     }
 
-    pub fn get_uuid(&self) -> Uuid {
-        self.uuid
+    pub fn get_id(&self) -> RoundId {
+        self.id
     }
 
-    pub fn add_player(&mut self, player: Uuid) {
+    pub fn add_player(&mut self, player: PlayerId) {
         self.players.insert(player);
     }
 
@@ -106,7 +110,7 @@ impl Round {
             Err(TournamentError::InvalidGame)
         }
     }
-    pub fn confirm_round(&mut self, player: Uuid) -> Result<RoundStatus, TournamentError> {
+    pub fn confirm_round(&mut self, player: PlayerId) -> Result<RoundStatus, TournamentError> {
         if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
         } else {

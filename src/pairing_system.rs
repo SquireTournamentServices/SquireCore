@@ -1,8 +1,7 @@
 pub use crate::error::TournamentError;
 pub use crate::player_registry::PlayerRegistry;
 pub use crate::round_registry::RoundRegistry;
-
-pub use uuid::Uuid;
+pub use crate::player::PlayerId;
 
 pub use std::collections::HashMap;
 
@@ -15,7 +14,7 @@ where
         Self: Sized;
 
     // This bool communitates if pairings should be created
-    fn ready_player(&mut self, plyr: Uuid) -> bool;
+    fn ready_player(&mut self, plyr: PlayerId) -> bool;
 
     fn update_settings(&mut self, settings: HashMap<String, String>) -> String;
 
@@ -24,7 +23,7 @@ where
         size: u8,
         players: &PlayerRegistry,
         matches: &RoundRegistry,
-    ) -> Option<Vec<Vec<Uuid>>>;
+    ) -> Option<Vec<Vec<PlayerId>>>;
 
     fn rollback_pairings(
         &self,

@@ -1,8 +1,7 @@
 use crate::error::TournamentError;
-use crate::player::{Player, PlayerStatus};
+use crate::player::{Player, PlayerId, PlayerStatus};
 
 use mtgjson::model::deck::Deck;
-use uuid::Uuid;
 
 use std::{
     collections::{hash_map::Iter, HashMap},
@@ -11,12 +10,12 @@ use std::{
 
 #[derive(Debug, Clone)]
 pub enum PlayerIdentifier {
-    Id(Uuid),
+    Id(PlayerId),
     Name(String),
 }
 
 pub struct PlayerRegistry {
-    players: HashMap<Uuid, Player>,
+    players: HashMap<PlayerId, Player>,
 }
 
 impl Default for PlayerRegistry {
@@ -36,7 +35,7 @@ impl PlayerRegistry {
         self.players.len()
     }
 
-    pub fn iter(&self) -> Iter<Uuid, Player> {
+    pub fn iter(&self) -> Iter<PlayerId, Player> {
         self.players.iter()
     }
 
@@ -45,7 +44,7 @@ impl PlayerRegistry {
             Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name);
-            self.players.insert(plyr.uuid, plyr);
+            self.players.insert(plyr.id, plyr);
             Ok(())
         }
     }
@@ -77,7 +76,7 @@ impl PlayerRegistry {
         Ok(self.players.get(&id).unwrap())
     }
 
-    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<Uuid, TournamentError> {
+    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<PlayerId, TournamentError> {
         match ident {
             PlayerIdentifier::Id(id) => {
                 if self.verify_identifier(&PlayerIdentifier::Id(id)) {
@@ -87,7 +86,7 @@ impl PlayerRegistry {
                 }
             }
             PlayerIdentifier::Name(name) => {
-                let ids: Vec<Uuid> = self
+                let ids: Vec<PlayerId> = self
                     .players
                     .iter()
                     .filter(|(_, p)| p.name == name)

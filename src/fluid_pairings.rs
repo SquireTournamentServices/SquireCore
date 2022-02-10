@@ -1,5 +1,5 @@
 pub use super::pairing_system::{
-    HashMap, PairingSystem, PlayerRegistry, RoundRegistry, TournamentError, Uuid,
+    HashMap, PairingSystem, PlayerRegistry, RoundRegistry, TournamentError, PlayerId,
 };
 
 pub struct FluidPairings {
@@ -15,7 +15,7 @@ impl PairingSystem for FluidPairings {
     {
         FluidPairings { players_per_match }
     }
-    fn ready_player(&mut self, plyr: Uuid) -> bool {
+    fn ready_player(&mut self, plyr: PlayerId) -> bool {
         todo!()
     }
 
@@ -28,7 +28,7 @@ impl PairingSystem for FluidPairings {
         size: u8,
         players: &PlayerRegistry,
         matches: &RoundRegistry,
-    ) -> Option<Vec<Vec<Uuid>>> {
+    ) -> Option<Vec<Vec<PlayerId>>> {
         todo!()
     }
 

@@ -1,4 +1,4 @@
-use uuid::Uuid;
+use crate::player::PlayerId;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GameResult {
@@ -9,25 +9,25 @@ pub enum GameResult {
 #[derive(Debug)]
 pub struct Game {
     pub(crate) result: GameResult,
-    pub(crate) winner: Option<Uuid>,
+    pub(crate) winner: Option<PlayerId>,
 }
 
 impl Game {
-    pub fn new_win(player: Uuid) -> Self {
+    pub fn new_win(player: PlayerId) -> Self {
         Game {
             result: GameResult::Win,
             winner: Some(player),
         }
     }
 
-    pub fn new_draw(player: Uuid) -> Self {
+    pub fn new_draw(player: PlayerId) -> Self {
         Game {
             result: GameResult::Draw,
             winner: None,
         }
     }
 
-    pub fn get_winner(&self) -> Option<Uuid> {
+    pub fn get_winner(&self) -> Option<PlayerId> {
         self.winner
     }
 

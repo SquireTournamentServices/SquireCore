@@ -1,9 +1,9 @@
 use crate::error::TournamentError;
 use crate::fluid_pairings::FluidPairings;
 use crate::pairing_system::PairingSystem;
-use crate::player::Player;
+use crate::player::{Player, PlayerId};
 use crate::player_registry::{PlayerIdentifier, PlayerRegistry};
-use crate::round::{parse_to_outcome, Round, RoundStatus};
+use crate::round::{parse_to_outcome, Round, RoundId, RoundStatus};
 use crate::round_registry::{RoundIdentifier, RoundRegistry};
 use crate::scoring_system::{ScoringSystem, Standings};
 use crate::standard_scoring::StandardScoring;
@@ -14,6 +14,7 @@ use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
@@ -31,10 +32,13 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct TournamentId(Uuid);
+
 // TODO: Consider putting the pairing and scoring systems in left-rights rather.
 // Writes to those should be rare.
 pub struct Tournament {
-    uuid: Uuid,
+    id: TournamentId,
     name: String,
     format: String,
     game_size: u8,
@@ -61,7 +65,7 @@ impl Tournament {
         let pairing_sys = Arc::new(RwLock::new(pairing_system_factory(&preset, game_size)));
         let scoring_sys = Arc::new(RwLock::new(scoring_system_factory(&preset)));
         Tournament {
-            uuid: Uuid::new_v4(),
+            id: TournamentId(Uuid::new_v4()),
             name,
             format,
             game_size,
@@ -250,7 +254,7 @@ impl Tournament {
         let plyr = player_lock.get_player(ident)?;
         let mut should_pair = false;
         if plyr.can_play() {
-            should_pair = pairing_lock.ready_player(plyr.uuid);
+            should_pair = pairing_lock.ready_player(plyr.id);
         }
         if should_pair {
             let mut round_lock = get_write_spin_lock(&self.round_reg);
@@ -309,7 +313,7 @@ impl Tournament {
             && idents.iter().all(|p| !player_lock.verify_identifier(p))
         {
             // Saftey check, we already checked that all the identifiers correspond to a player
-            let ids: Vec<Uuid> = idents
+            let ids: Vec<PlayerId> = idents
                 .into_iter()
                 .map(|p| player_lock.get_player_id(p).unwrap())
                 .collect();
@@ -352,5 +356,14 @@ pub fn scoring_system_factory(preset: &TournamentPreset) -> Box<dyn ScoringSyste
     match preset {
         TournamentPreset::Swiss => Box::new(StandardScoring::new()),
         TournamentPreset::Fluid => Box::new(StandardScoring::new()),
+    }
+}
+
+impl Hash for Tournament {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        let _ = &self.id.hash(state);
     }
 }
