@@ -110,10 +110,12 @@ Target	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53
 Target	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    type Target = T;$/;"	T
 Target	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    type Target;$/;"	T
 Timestamp	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^pub struct Timestamp {$/;"	s
+TournIdentifier	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^pub enum TournIdentifier {$/;"	g
 Tournament	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub struct Tournament {$/;"	s
 TournamentError	/home/tyler/Code/SquireCore/src/error.rs	/^pub enum TournamentError {$/;"	g
 TournamentId	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub struct TournamentId(Uuid);$/;"	s
 TournamentPreset	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub enum TournamentPreset {$/;"	g
+TournamentRegistry	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^pub struct TournamentRegistry {$/;"	s
 TournamentStatus	/home/tyler/Code/SquireCore/src/tournament.rs	/^pub enum TournamentStatus {$/;"	g
 Trait	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub struct Trait;$/;"	s
 TraitKind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/kind.rs	/^pub trait TraitKind: Sized {$/;"	t
@@ -203,6 +205,7 @@ de_error	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/
 default	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn default() -> Self {$/;"	f
 default	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/lib.rs	/^    fn default() -> Self {$/;"	f
 default	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    fn default() -> Self {$/;"	f
+default	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    fn default() -> Self {$/;"	f
 deref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn deref(&self) -> &Self::Target {$/;"	f
 deref	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/ptr.rs	/^    pub unsafe fn deref(self) -> &'a T {$/;"	f
 deref_mut	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    fn deref_mut(&mut self) -> &mut Self::Target {$/;"	f
@@ -297,11 +300,14 @@ get_decks	/home/tyler/Code/SquireCore/src/player.rs	/^    pub fn get_decks(&self
 get_id	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn get_id(&self) -> RoundId {$/;"	f
 get_mut_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_mut_player($/;"	f
 get_mut_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, TournamentError> {$/;"	f
+get_mut_tourn	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn get_mut_tourn($/;"	f
 get_player	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, TournamentError> {$/;"	f
+get_player	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn get_player(&self, ident: TournIdentifier) -> Result<&Tournament, TournamentError> {$/;"	f
 get_player_active_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_player_active_round(&mut self, id: PlayerId) -> Result<&mut Round, TournamentError> {$/;"	f
 get_player_deck	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_player_deck($/;"	f
 get_player_decks	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn get_player_decks($/;"	f
 get_player_id	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<PlayerId, TournamentError> {$/;"	f
+get_player_id	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn get_player_id(&self, ident: TournIdentifier) -> Result<TournamentId, TournamentError> {$/;"	f
 get_read_spin_lock	/home/tyler/Code/SquireCore/src/utils.rs	/^pub fn get_read_spin_lock<T>(lock: &RwLock<T>) -> RwLockReadGuard<T> {$/;"	f
 get_result	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn get_result(&self) -> GameResult {$/;"	f
 get_round	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, TournamentError> {$/;"	f
@@ -334,10 +340,12 @@ is_nil	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/sr
 is_planned	/home/tyler/Code/SquireCore/src/tournament.rs	/^    pub fn is_planned(&self) -> bool {$/;"	f
 iter	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn iter(&self) -> Iter<PlayerId, Player> {$/;"	f
 iter	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn iter(&self) -> Iter<u64, Round> {$/;"	f
+iter	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn iter(&self) -> Iter<TournamentId, Tournament> {$/;"	f
 kill_round	/home/tyler/Code/SquireCore/src/round.rs	/^    pub fn kill_round(&mut self) {$/;"	f
 kind	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/lib.rs	/^    pub mod kind {$/;"	m
 len	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/chain.rs	/^    fn len(&self) -> usize {$/;"	f
 len	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn len(&self) -> usize {$/;"	f
+len	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn len(&self) -> usize {$/;"	f
 len_matches_any	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^fn len_matches_any(len: usize, crits: &[usize]) -> bool {$/;"	f
 len_matches_range	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/parser/mod.rs	/^fn len_matches_range(len: usize, min: usize, max: usize) -> bool {$/;"	f
 msg	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^    pub fn msg<M>(message: M) -> Self$/;"	f
@@ -363,6 +371,7 @@ new	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new($/;"	f
 new	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new() -> Self$/;"	f
 new	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new(player: PlayerId) -> Self {$/;"	f
 new	/home/tyler/Code/SquireCore/src/swiss_pairings.rs	/^    fn new(players_per_match: u8) -> Self$/;"	f
+new	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn new() -> Self {$/;"	f
 new_draw	/home/tyler/Code/SquireCore/src/game.rs	/^    pub fn new_draw(player: PlayerId) -> Self {$/;"	f
 new_score	/home/tyler/Code/SquireCore/src/standard_scoring.rs	/^    fn new_score(&self) -> StandardScore {$/;"	f
 new_v1	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/v1.rs	/^    pub fn new_v1(ts: Timestamp, node_id: &[u8]) -> Result<Self, crate::Error> {$/;"	f
@@ -525,6 +534,7 @@ urn_trailing	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.
 verify_game	/home/tyler/Code/SquireCore/src/round.rs	/^    fn verify_game(&self, game: &Game) -> bool {$/;"	f
 verify_identifier	/home/tyler/Code/SquireCore/src/player_registry.rs	/^    pub fn verify_identifier(&self, ident: &PlayerIdentifier) -> bool {$/;"	f
 verify_identifier	/home/tyler/Code/SquireCore/src/round_registry.rs	/^    pub fn verify_identifier(&self, ident: &RoundIdentifier) -> bool {$/;"	f
+verify_identifier	/home/tyler/Code/SquireCore/src/tournament_registry.rs	/^    pub fn verify_identifier(&self, ident: &TournIdentifier) -> bool {$/;"	f
 visit_bytes	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^                fn visit_bytes<E: de::Error>($/;"	f
 visit_str	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/uuid-0.8.2/src/serde_support.rs	/^                fn visit_str<E: de::Error>($/;"	f
 vtable	/home/tyler/.cargo/registry/src/github.com-1ecc6299db9ec823/anyhow-1.0.53/src/error.rs	/^unsafe fn vtable(p: NonNull<ErrorImpl>) -> &'static ErrorVTable {$/;"	f

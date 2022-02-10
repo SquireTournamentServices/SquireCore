@@ -39,7 +39,7 @@ pub struct TournamentId(Uuid);
 // Writes to those should be rare.
 pub struct Tournament {
     id: TournamentId,
-    name: String,
+    pub name: String,
     format: String,
     game_size: u8,
     deck_count: u8,
