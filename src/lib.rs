@@ -11,5 +11,6 @@ pub mod scoring_system;
 pub mod standard_scoring;
 pub mod swiss_pairings;
 pub mod tournament;
+pub mod tournament_settings;
 pub mod tournament_registry;
 pub mod utils;

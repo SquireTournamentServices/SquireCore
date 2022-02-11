@@ -8,6 +8,7 @@ use crate::round_registry::{RoundIdentifier, RoundRegistry};
 use crate::scoring_system::{ScoringSystem, Standings};
 use crate::standard_scoring::StandardScoring;
 use crate::swiss_pairings::SwissPairings;
+use crate::tournament_settings::TournamentSettings;
 use crate::utils::{get_read_spin_lock, get_write_spin_lock};
 
 use mtgjson::model::deck::Deck;
