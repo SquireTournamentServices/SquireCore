@@ -9,14 +9,14 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [dependencies]
 #tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+serde = { version = "1.0", features = ["derive"] }
 anyhow = { version = "1.0" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
+#serde_json = { version = "1.0.68" }
 #rocket = { version = "0.5.0-rc.1" }
 #juniper = { version = "0.15.7" }
 #juniper_rocket = { version = "0.8.0" }
-#serde = { version = "1.0" }
 #serde_derive = { version = "1.0" }
-#serde_json = { version = "1.0.68" }
 #actix-web = { version = "1.0.0" }
 #diesel = { version = "1.0.0", features = ["postgres"] }
 #dotenv = { version = "0.9.0" }
