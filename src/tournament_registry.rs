@@ -3,6 +3,11 @@ use crate::tournament::{Tournament, TournamentId};
 
 use mtgjson::model::deck::Deck;
 
+use dashmap::{
+    mapref::one::{Ref, RefMut},
+    DashMap,
+};
+
 use std::{
     collections::{hash_map::Iter, HashMap},
     slice::SliceIndex,
@@ -15,7 +20,7 @@ pub enum TournIdentifier {
 }
 
 pub struct TournamentRegistry {
-    tourns: HashMap<TournamentId, Tournament>,
+    tourns: DashMap<TournamentId, Tournament>,
 }
 
 impl Default for TournamentRegistry {
@@ -27,7 +32,7 @@ impl Default for TournamentRegistry {
 impl TournamentRegistry {
     pub fn new() -> Self {
         TournamentRegistry {
-            tourns: HashMap::new(),
+            tourns: DashMap::new(),
         }
     }
 
@@ -35,26 +40,22 @@ impl TournamentRegistry {
         self.tourns.len()
     }
 
-    pub fn iter(&self) -> Iter<TournamentId, Tournament> {
-        self.tourns.iter()
-    }
-
     pub fn get_mut_tourn(
         &mut self,
         ident: TournIdentifier,
-    ) -> Result<&mut Tournament, TournamentError> {
-        let id = self.get_player_id(ident)?;
+    ) -> Result<RefMut<TournamentId, Tournament>, TournamentError> {
+        let id = self.get_tourn_id(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.tourns.get_mut(&id).unwrap())
     }
 
-    pub fn get_player(&self, ident: TournIdentifier) -> Result<&Tournament, TournamentError> {
-        let id = self.get_player_id(ident)?;
+    pub fn get_tourn(&self, ident: TournIdentifier) -> Result<Ref<TournamentId, Tournament>, TournamentError> {
+        let id = self.get_tourn_id(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.tourns.get(&id).unwrap())
     }
 
-    pub fn get_player_id(&self, ident: TournIdentifier) -> Result<TournamentId, TournamentError> {
+    pub fn get_tourn_id(&self, ident: TournIdentifier) -> Result<TournamentId, TournamentError> {
         match ident {
             TournIdentifier::Id(id) => {
                 if self.verify_identifier(&TournIdentifier::Id(id)) {
@@ -67,8 +68,8 @@ impl TournamentRegistry {
                 let ids: Vec<TournamentId> = self
                     .tourns
                     .iter()
-                    .filter(|(_, t)| t.name == name)
-                    .map(|(i, _)| *i)
+                    .filter(|i| i.value().name == name)
+                    .map(|i| i.key().clone())
                     .collect();
                 if ids.len() != 1 {
                     Err(TournamentError::PlayerLookup)
@@ -82,7 +83,7 @@ impl TournamentRegistry {
     pub fn verify_identifier(&self, ident: &TournIdentifier) -> bool {
         match ident {
             TournIdentifier::Id(id) => self.tourns.contains_key(id),
-            TournIdentifier::Name(name) => self.tourns.iter().any(|(_, p)| p.name == *name),
+            TournIdentifier::Name(name) => self.tourns.iter().any(|i| i.value().name == *name),
         }
     }
 }

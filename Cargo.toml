@@ -3,7 +3,6 @@ name = "squire_core"
 version = "0.0.0"
 edition = "2021"
 license = "GPL-3.0"
-#rust-version = "1.58.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
@@ -12,6 +11,7 @@ mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "ma
 serde = { version = "1.0", features = ["derive"] }
 anyhow = { version = "1.0" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
+dashmap = { version = "5.0", features = ["serde"] }
 #serde_json = { version = "1.0.68" }
 #rocket = { version = "0.5.0-rc.1" }
 #juniper = { version = "0.15.7" }
