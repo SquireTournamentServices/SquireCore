@@ -6,7 +6,7 @@ pub enum GameResult {
     Draw,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Game {
     pub(crate) result: GameResult,
     pub(crate) winner: Option<PlayerId>,
