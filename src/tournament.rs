@@ -227,6 +227,26 @@ impl Tournament {
         }
     }
 
+    pub fn get_player_round(
+        &self,
+        ident: PlayerIdentifier,
+    ) -> Result<RoundId, TournamentError> {
+        let player_lock = get_read_spin_lock(&self.player_reg);
+        let p_id = player_lock.get_player_id(ident)?;
+        let round_lock = get_read_spin_lock(&self.round_reg);
+        let rounds: Vec<RoundId> = round_lock
+            .rounds
+            .iter()
+            .filter(|(_, r)| r.players.contains(&p_id))
+            .map(|(_, r)| r.id.clone())
+            .collect();
+        if rounds.len() == 1 {
+            Ok(rounds[0])
+        } else {
+            Err(TournamentError::RoundLookup)
+        }
+    }
+
     pub fn player_set_game_name(
         &self,
         ident: PlayerIdentifier,

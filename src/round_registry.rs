@@ -14,7 +14,7 @@ pub enum RoundIdentifier {
 }
 
 pub struct RoundRegistry {
-    rounds: HashMap<u64, Round>,
+    pub(crate) rounds: HashMap<u64, Round>,
     length: Duration,
 }
 
