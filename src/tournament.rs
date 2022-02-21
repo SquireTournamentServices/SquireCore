@@ -79,6 +79,7 @@ impl Tournament {
             status: TournamentStatus::Planned,
         }
     }
+    
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -130,6 +131,18 @@ impl Tournament {
             self.status = TournamentStatus::Cancelled;
             Ok(())
         }
+    }
+    
+    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<Player, TournamentError> {
+        let player_lock = get_read_spin_lock(&self.player_reg);
+        let plyr = player_lock.get_player(ident)?;
+        Ok(plyr.clone())
+    }
+    
+    pub fn get_round(&self, ident: RoundIdentifier) -> Result<Round, TournamentError> {
+        let round_lock = get_read_spin_lock(&self.round_reg);
+        let round = round_lock.get_round(ident)?;
+        Ok(round.clone())
     }
 
     pub fn register_player(&self, name: String) -> Result<(), TournamentError> {
