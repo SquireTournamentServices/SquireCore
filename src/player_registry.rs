@@ -39,13 +39,14 @@ impl PlayerRegistry {
         self.players.iter()
     }
 
-    pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {
+    pub fn add_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
         if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
             Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name);
+            let id = plyr.id.clone();
             self.players.insert(plyr.id, plyr);
-            Ok(())
+            Ok(id)
         }
     }
 

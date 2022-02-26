@@ -41,7 +41,7 @@ impl TournamentRegistry {
     }
 
     pub fn get_mut_tourn(
-        &mut self,
+        &self,
         ident: TournIdentifier,
     ) -> Result<RefMut<TournamentId, Tournament>, TournamentError> {
         let id = self.get_tourn_id(ident)?;

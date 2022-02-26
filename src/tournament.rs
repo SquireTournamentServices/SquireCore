@@ -145,7 +145,7 @@ impl Tournament {
         Ok(round.clone())
     }
 
-    pub fn register_player(&self, name: String) -> Result<(), TournamentError> {
+    pub fn register_player(&self, name: String) -> Result<PlayerId, TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
