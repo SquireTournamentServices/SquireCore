@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
+  windows_build_and_test:
     name: SquireCore - Tests - Windows
     runs-on: windows-latest
     strategy:
@@ -25,7 +25,7 @@ jobs:
       - run: cargo build --verbose
       - run: cargo test --verbose
       - run: cargo doc --verbose
-  build_and_test:
+  linux_build_and_test:
     name: SquireCore - Tests - Linux
     runs-on: ubuntu-latest
     strategy:
