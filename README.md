@@ -1,3 +1,9 @@
+[![Crates.io](https://img.shields.io/crates/v/squire_core.svg)](https://crates.io/crates/squire_core)
+[![Documentation](https://docs.rs/squire_core/badge.svg)](https://docs.rs/squire_core/)
+![GitHub Workflows](https://github.com/MonarchDevelopment/SquireCore/actions/workflows/ci.yml/badge.svg)
+[![Coverage Status](https://codecov.io/gh/MonarchDevelopment/SquireCore/branch/rust-port/graph/badge.svg)](https://codecov.io/gh/MonarchDevelopment/SquireCore)
+![Maintenance](https://img.shields.io/badge/Maintenance-Actively%20Developed-brightgreen.svg)
+
 ## Overview
 This library contains the backend library for tournament management used by [SquireBot](https://github.com/MonarchDevelopment/SquireBot).
 The goal is to allow for a series of pairing and scoring systems to be
