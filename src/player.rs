@@ -48,6 +48,8 @@ impl PartialEq for Player {
     }
 }
 
+impl Eq for Player {}
+
 impl Player {
     pub fn new(name: String) -> Self {
         Player {

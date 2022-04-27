@@ -16,6 +16,7 @@ pub struct Standings {
     scores: Vec<(String, Box<dyn Score>)>,
 }
 
+/*
 pub trait ScoringSystem
 where
     Self: Send + Sync,
@@ -28,6 +29,7 @@ where
 
     fn get_standings(&self, player_reg: &PlayerRegistry, match_reg: &RoundRegistry) -> Standings;
 }
+*/
 
 impl Standings {
     pub fn new(scores: Vec<(String, Box<dyn Score>)>) -> Self {

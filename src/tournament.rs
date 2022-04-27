@@ -1,15 +1,15 @@
-use crate::error::TournamentError;
-use crate::fluid_pairings::FluidPairings;
-use crate::pairing_system::PairingSystem;
-use crate::player::{Player, PlayerId};
-use crate::player_registry::{PlayerIdentifier, PlayerRegistry};
-use crate::round::{parse_to_outcome, Round, RoundId, RoundStatus};
-use crate::round_registry::{RoundIdentifier, RoundRegistry};
-use crate::scoring_system::{ScoringSystem, Standings};
-use crate::standard_scoring::StandardScoring;
-use crate::swiss_pairings::SwissPairings;
-use crate::tournament_settings::TournamentSettings;
-use crate::utils::{get_read_spin_lock, get_write_spin_lock};
+use crate::{
+    error::TournamentError,
+    fluid_pairings::FluidPairings,
+    player::{Player, PlayerId},
+    player_registry::{PlayerIdentifier, PlayerRegistry},
+    round::{parse_to_outcome, Round, RoundId, RoundStatus},
+    round_registry::{RoundIdentifier, RoundRegistry},
+    standard_scoring::StandardScoring,
+    swiss_pairings::SwissPairings,
+    tournament_settings::TournamentSettings,
+    utils::{get_read_spin_lock, get_write_spin_lock},
+};
 
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
@@ -24,6 +24,15 @@ pub enum TournamentPreset {
     Fluid,
 }
 
+pub enum ScoringSystem {
+    Standard(StandardScoring),
+}
+
+pub enum PairingSystem {
+    Swiss(SwissPairings),
+    Fluid(FluidPairings),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TournamentStatus {
     Planned,
@@ -36,18 +45,16 @@ pub enum TournamentStatus {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct TournamentId(Uuid);
 
-// TODO: Consider putting the pairing and scoring systems in left-rights rather.
-// Writes to those should be rare.
 pub struct Tournament {
     id: TournamentId,
     pub name: String,
     format: String,
     game_size: u8,
     deck_count: u8,
-    player_reg: Arc<RwLock<PlayerRegistry>>,
-    round_reg: Arc<RwLock<RoundRegistry>>,
-    pairing_sys: Arc<RwLock<Box<dyn PairingSystem>>>,
-    scoring_sys: Arc<RwLock<Box<dyn ScoringSystem>>>,
+    player_reg: PlayerRegistry,
+    round_reg: RoundRegistry,
+    pairing_sys: PairingSystem,
+    scoring_sys: ScoringSystem,
     reg_open: bool,
     status: TournamentStatus,
 }
@@ -349,7 +356,7 @@ impl Tournament {
             // Saftey check, we already checked that all the identifiers correspond to a player
             let ids: Vec<PlayerId> = idents
                 .into_iter()
-                .map(|p| player_lock.get_player_id(p).unwrap())
+                .map(|p| player_lock.get_player(&p).unwrap())
                 .collect();
             let mut round_lock = get_write_spin_lock(&self.round_reg);
             let round = round_lock.create_round();
@@ -379,17 +386,17 @@ impl Tournament {
     }
 }
 
-pub fn pairing_system_factory(preset: &TournamentPreset, game_size: u8) -> Box<dyn PairingSystem> {
+pub fn pairing_system_factory(preset: &TournamentPreset, game_size: u8) -> PairingSystem {
     match preset {
-        TournamentPreset::Swiss => Box::new(SwissPairings::new(game_size)),
-        TournamentPreset::Fluid => Box::new(FluidPairings::new(game_size)),
+        TournamentPreset::Swiss => PairingSystem::Swiss(SwissPairings::new(game_size)),
+        TournamentPreset::Fluid => PairingSystem::Fluid(FluidPairings::new(game_size)),
     }
 }
 
-pub fn scoring_system_factory(preset: &TournamentPreset) -> Box<dyn ScoringSystem> {
+pub fn scoring_system_factory(preset: &TournamentPreset) -> ScoringSystem {
     match preset {
-        TournamentPreset::Swiss => Box::new(StandardScoring::new()),
-        TournamentPreset::Fluid => Box::new(StandardScoring::new()),
+        TournamentPreset::Swiss => ScoringSystem::Standard(StandardScoring::new()),
+        TournamentPreset::Fluid => ScoringSystem::Standard(StandardScoring::new()),
     }
 }
 

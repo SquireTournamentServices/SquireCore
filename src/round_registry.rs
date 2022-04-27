@@ -1,6 +1,8 @@
 use crate::error::TournamentError;
-use crate::round::{Round, RoundId};
 use crate::player::PlayerId;
+use crate::round::{Round, RoundId};
+
+use cycle_map::CycleMap;
 
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -14,6 +16,7 @@ pub enum RoundIdentifier {
 }
 
 pub struct RoundRegistry {
+    pub(crate) num_and_id: CycleMap<RoundId, u64>,
     pub(crate) rounds: HashMap<u64, Round>,
     length: Duration,
 }
@@ -21,13 +24,10 @@ pub struct RoundRegistry {
 impl RoundRegistry {
     pub fn new(len: Duration) -> Self {
         RoundRegistry {
+            num_and_id: CycleMap::new(),
             rounds: HashMap::new(),
             length: len,
         }
-    }
-
-    pub fn iter(&self) -> Iter<u64, Round> {
-        self.rounds.iter()
     }
 
     pub fn create_round(&mut self) -> &mut Round {
@@ -38,16 +38,24 @@ impl RoundRegistry {
         self.rounds.get_mut(&match_num).unwrap()
     }
 
-    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Result<&mut Round, TournamentError> {
-        let num = self.get_round_number(ident)?;
-        // Saftey check, we just verified that the id was valid
-        Ok(self.rounds.get_mut(&num).unwrap())
+    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Option<&mut Round> {
+        match ident {
+            RoundIdentifier::Id(id) => {
+                let num = self.num_and_id.get_right(&id)?;
+                self.rounds.get_mut(num)
+            }
+            RoundIdentifier::Number(num) => self.rounds.get_mut(&num),
+        }
     }
 
-    pub fn get_round(&self, ident: RoundIdentifier) -> Result<&Round, TournamentError> {
-        let num = self.get_round_number(ident)?;
-        // Saftey check, we just verified that the id was valid
-        Ok(self.rounds.get(&num).unwrap())
+    pub fn get_round(&self, ident: RoundIdentifier) -> Option<&Round> {
+        match ident {
+            RoundIdentifier::Id(id) => {
+                let num = self.num_and_id.get_right(&id)?;
+                self.rounds.get(num)
+            }
+            RoundIdentifier::Number(num) => self.rounds.get(&num),
+        }
     }
 
     // This is a messy function... but the idea was ported directly from the Python version
@@ -55,6 +63,9 @@ impl RoundRegistry {
     // but we must prepare for the worst). Should this ever happen, we return the "oldest" active
     // match of theirs. However, this is FAR from ideal as every match certification requires a
     // pass through all matches... gross.
+    //
+    // Potentail clean up: We can likely avoid this be maintaining that a player can be in at most
+    // one match at a time. We can then use a GroupMap to look up match ids via player ids.
     pub fn get_player_active_round(&mut self, id: PlayerId) -> Result<&mut Round, TournamentError> {
         let mut nums: Vec<u64> = self
             .rounds
@@ -72,39 +83,5 @@ impl RoundRegistry {
 
     pub fn set_round_length(&mut self, length: Duration) {
         self.length = length;
-    }
-
-    pub fn get_round_number(&self, ident: RoundIdentifier) -> Result<u64, TournamentError> {
-        match ident {
-            RoundIdentifier::Id(id) => {
-                if self.verify_identifier(&RoundIdentifier::Id(id)) {
-                    let nums: Vec<u64> = self
-                        .rounds
-                        .iter()
-                        .filter(|(_, r)| r.id == id)
-                        .map(|(i, _)| *i)
-                        .collect();
-                    // Safety check: We verified identifiers above, so there is a round with the
-                    // given id.
-                    Ok(nums[0])
-                } else {
-                    Err(TournamentError::RoundLookup)
-                }
-            }
-            RoundIdentifier::Number(num) => {
-                if self.rounds.contains_key(&num) {
-                    Ok(num)
-                } else {
-                    Err(TournamentError::RoundLookup)
-                }
-            }
-        }
-    }
-
-    pub fn verify_identifier(&self, ident: &RoundIdentifier) -> bool {
-        match ident {
-            RoundIdentifier::Id(id) => self.rounds.iter().any(|(_, r)| r.id == *id),
-            RoundIdentifier::Number(num) => self.rounds.contains_key(num),
-        }
     }
 }

@@ -1,21 +1,20 @@
 use crate::error::TournamentError;
 use crate::player::{Player, PlayerId, PlayerStatus};
 
+use cycle_map::CycleMap;
 use mtgjson::model::deck::Deck;
 
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    slice::SliceIndex,
-};
+use std::{collections::HashMap, slice::SliceIndex};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum PlayerIdentifier {
     Id(PlayerId),
     Name(String),
 }
 
 pub struct PlayerRegistry {
-    players: HashMap<PlayerId, Player>,
+    pub(crate) name_and_id: CycleMap<String, PlayerId>,
+    pub(crate) players: HashMap<PlayerId, Player>,
 }
 
 impl Default for PlayerRegistry {
@@ -27,6 +26,7 @@ impl Default for PlayerRegistry {
 impl PlayerRegistry {
     pub fn new() -> Self {
         PlayerRegistry {
+            name_and_id: CycleMap::new(),
             players: HashMap::new(),
         }
     }
@@ -35,77 +35,60 @@ impl PlayerRegistry {
         self.players.len()
     }
 
-    pub fn iter(&self) -> Iter<PlayerId, Player> {
-        self.players.iter()
-    }
-
-    pub fn add_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
+    pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {
         if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
             Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name);
-            let id = plyr.id.clone();
-            self.players.insert(plyr.id, plyr);
-            Ok(id)
+            self.name_and_id.insert(name, plyr.id);
+            self.players.insert(plyr.id, plyr.clone());
+            Ok(())
         }
     }
 
-    pub fn drop_player(&mut self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+    pub fn drop_player(&mut self, ident: &PlayerIdentifier) -> Option<()> {
         let plyr = self.get_mut_player(ident)?;
         plyr.update_status(PlayerStatus::Dropped);
-        Ok(())
+        Some(())
     }
 
-    pub fn remove_player(&mut self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+    pub fn remove_player(&mut self, ident: &PlayerIdentifier) -> Option<()> {
         let plyr = self.get_mut_player(ident)?;
         plyr.update_status(PlayerStatus::Removed);
-        Ok(())
+        Some(())
     }
 
     pub fn get_mut_player(
         &mut self,
-        ident: PlayerIdentifier,
-    ) -> Result<&mut Player, TournamentError> {
-        let id = self.get_player_id(ident)?;
-        // Saftey check, we just verified that the id was valid
-        Ok(self.players.get_mut(&id).unwrap())
-    }
-
-    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<&Player, TournamentError> {
-        let id = self.get_player_id(ident)?;
-        // Saftey check, we just verified that the id was valid
-        Ok(self.players.get(&id).unwrap())
-    }
-
-    pub fn get_player_id(&self, ident: PlayerIdentifier) -> Result<PlayerId, TournamentError> {
+        ident: &PlayerIdentifier,
+    ) -> Option<&mut Player> {
         match ident {
             PlayerIdentifier::Id(id) => {
-                if self.verify_identifier(&PlayerIdentifier::Id(id)) {
-                    Ok(id)
-                } else {
-                    Err(TournamentError::PlayerLookup)
-                }
-            }
+                self.players.get_mut(id)
+            },
             PlayerIdentifier::Name(name) => {
-                let ids: Vec<PlayerId> = self
-                    .players
-                    .iter()
-                    .filter(|(_, p)| p.name == name)
-                    .map(|(i, _)| *i)
-                    .collect();
-                if ids.len() != 1 {
-                    Err(TournamentError::PlayerLookup)
-                } else {
-                    Ok(ids[0])
-                }
+                let id = self.name_and_id.get_right(name)?;
+                self.players.get_mut(id)
+            }
+        }
+    }
+
+    pub fn get_player(&self, ident: &PlayerIdentifier) -> Option<&Player> {
+        match ident {
+            PlayerIdentifier::Id(id) => {
+                self.players.get(id)
+            },
+            PlayerIdentifier::Name(name) => {
+                let id = self.name_and_id.get_right(name)?;
+                self.players.get(id)
             }
         }
     }
 
     pub fn verify_identifier(&self, ident: &PlayerIdentifier) -> bool {
         match ident {
-            PlayerIdentifier::Id(id) => self.players.contains_key(id),
-            PlayerIdentifier::Name(name) => self.players.iter().any(|(_, p)| p.name == *name),
+            PlayerIdentifier::Id(id) => self.name_and_id.contains_right(id),
+            PlayerIdentifier::Name(name) => self.name_and_id.contains_left(name),
         }
     }
 }

@@ -1,18 +1,13 @@
 pub use super::pairing_system::{
-    HashMap, PairingSystem, PlayerRegistry, RoundRegistry, TournamentError, PlayerId,
+    HashMap, PairingSystem, PlayerId, PlayerRegistry, RoundRegistry, TournamentError,
 };
 
 pub struct SwissPairings {
     players_per_match: u8,
 }
 
-impl SwissPairings {}
-
-impl PairingSystem for SwissPairings {
-    fn new(players_per_match: u8) -> Self
-    where
-        Self: Sized,
-    {
+impl SwissPairings {
+    pub fn new(players_per_match: u8) -> Self {
         SwissPairings { players_per_match }
     }
     fn ready_player(&mut self, plyr: PlayerId) -> bool {
