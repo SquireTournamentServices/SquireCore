@@ -48,13 +48,13 @@ impl RoundRegistry {
         }
     }
 
-    pub fn get_round(&self, ident: RoundIdentifier) -> Option<&Round> {
+    pub fn get_round(&self, ident: &RoundIdentifier) -> Option<&Round> {
         match ident {
             RoundIdentifier::Id(id) => {
-                let num = self.num_and_id.get_right(&id)?;
+                let num = self.num_and_id.get_right(id)?;
                 self.rounds.get(num)
             }
-            RoundIdentifier::Number(num) => self.rounds.get(&num),
+            RoundIdentifier::Number(num) => self.rounds.get(num),
         }
     }
 

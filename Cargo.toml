@@ -1,6 +1,6 @@
 [package]
 name = "squire_core"
-version = "0.0.0"
+version = "0.1.0-pre-alpha.1"
 edition = "2021"
 license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]

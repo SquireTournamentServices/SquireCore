@@ -35,14 +35,15 @@ impl PlayerRegistry {
         self.players.len()
     }
 
-    pub fn add_player(&mut self, name: String) -> Result<(), TournamentError> {
+    pub fn add_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
         if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
             Err(TournamentError::PlayerLookup)
         } else {
-            let plyr = Player::new(name);
+            let plyr = Player::new(name.clone());
+            let digest = Ok(plyr.id);
             self.name_and_id.insert(name, plyr.id);
             self.players.insert(plyr.id, plyr.clone());
-            Ok(())
+            digest
         }
     }
 
@@ -82,6 +83,13 @@ impl PlayerRegistry {
                 let id = self.name_and_id.get_right(name)?;
                 self.players.get(id)
             }
+        }
+    }
+    
+    pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Option<PlayerId> {
+        match ident {
+            PlayerIdentifier::Id(id) => Some(*id),
+            PlayerIdentifier::Name(name) => self.name_and_id.get_right(name).cloned(),
         }
     }
 

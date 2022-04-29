@@ -5,10 +5,10 @@ use crate::{
     player_registry::{PlayerIdentifier, PlayerRegistry},
     round::{parse_to_outcome, Round, RoundId, RoundStatus},
     round_registry::{RoundIdentifier, RoundRegistry},
-    standard_scoring::StandardScoring,
+    scoring::{Score, Standings},
+    standard_scoring::{StandardScore, StandardScoring},
     swiss_pairings::SwissPairings,
     tournament_settings::TournamentSettings,
-    utils::{get_read_spin_lock, get_write_spin_lock},
 };
 
 use mtgjson::model::deck::Deck;
@@ -78,15 +78,15 @@ impl Tournament {
             format,
             game_size,
             deck_count,
-            player_reg,
-            round_reg,
-            pairing_sys,
-            scoring_sys,
+            player_reg: PlayerRegistry::new(),
+            round_reg: RoundRegistry::new(round_length),
+            pairing_sys: pairing_system_factory(&preset, game_size),
+            scoring_sys: scoring_system_factory(&preset),
             reg_open: true,
             status: TournamentStatus::Planned,
         }
     }
-    
+
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -139,67 +139,75 @@ impl Tournament {
             Ok(())
         }
     }
-    
-    pub fn get_player(&self, ident: PlayerIdentifier) -> Result<Player, TournamentError> {
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_player(ident)?;
-        Ok(plyr.clone())
-    }
-    
-    pub fn get_round(&self, ident: RoundIdentifier) -> Result<Round, TournamentError> {
-        let round_lock = get_read_spin_lock(&self.round_reg);
-        let round = round_lock.get_round(ident)?;
-        Ok(round.clone())
+
+    pub fn get_player(&self, ident: &PlayerIdentifier) -> Result<Player, TournamentError> {
+        match self.player_reg.get_player(ident) {
+            Some(plyr) => Ok(plyr.clone()),
+            None => Err(TournamentError::PlayerLookup),
+        }
     }
 
-    pub fn register_player(&self, name: String) -> Result<PlayerId, TournamentError> {
+    pub fn get_round(&self, ident: &RoundIdentifier) -> Result<Round, TournamentError> {
+        match self.round_reg.get_round(ident) {
+            Some(rnd) => Ok(rnd.clone()),
+            None => Err(TournamentError::RoundLookup),
+        }
+    }
+
+    pub fn register_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        let mut player_lock = get_write_spin_lock(&self.player_reg);
-        player_lock.add_player(name)
+        self.player_reg.add_player(name)
     }
 
     pub fn record_outcome(
-        &self,
+        &mut self,
         ident: RoundIdentifier,
         input: String,
     ) -> Result<(), TournamentError> {
         let outcome = parse_to_outcome(input)?;
-        let mut round_lock = get_write_spin_lock(&self.round_reg);
-        let round = round_lock.get_mut_round(ident)?;
+        let round = self
+            .round_reg
+            .get_mut_round(ident)
+            .ok_or(TournamentError::RoundLookup)?;
         round.record_outcome(outcome)?;
         Ok(())
     }
 
-    pub fn confirm_round(&self, ident: PlayerIdentifier) -> Result<RoundStatus, TournamentError> {
+    pub fn confirm_round(
+        &mut self,
+        ident: &PlayerIdentifier,
+    ) -> Result<RoundStatus, TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let id = player_lock.get_player_id(ident)?;
-        drop(player_lock);
-        let mut round_lock = get_write_spin_lock(&self.round_reg);
-        let round = round_lock.get_player_active_round(id)?;
+        let id = self
+            .player_reg
+            .get_player_id(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
+        let round = self.round_reg.get_player_active_round(id)?;
         round.confirm_round(id)
     }
 
-    pub fn drop_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
-        let mut player_lock = get_write_spin_lock(&self.player_reg);
-        player_lock.remove_player(ident)
+    pub fn drop_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
+        self.player_reg
+            .remove_player(ident)
+            .ok_or(TournamentError::PlayerLookup)
     }
 
-    pub fn admin_drop_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
-        let mut player_lock = get_write_spin_lock(&self.player_reg);
-        player_lock.remove_player(ident)
+    pub fn admin_drop_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
+        self.player_reg
+            .remove_player(ident)
+            .ok_or(TournamentError::PlayerLookup)
     }
 
     pub fn player_add_deck(
-        &self,
-        ident: PlayerIdentifier,
+        &mut self,
+        ident: &PlayerIdentifier,
         name: String,
         deck: Deck,
     ) -> Result<(), TournamentError> {
@@ -209,52 +217,59 @@ impl Tournament {
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        let mut player_lock = get_write_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_mut_player(ident)?;
+        let plyr = self
+            .player_reg
+            .get_mut_player(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         plyr.add_deck(name, deck);
         Ok(())
     }
 
     pub fn get_player_decks(
         &self,
-        ident: PlayerIdentifier,
+        ident: &PlayerIdentifier,
     ) -> Result<HashMap<String, Deck>, TournamentError> {
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_player(ident)?;
+        let plyr = self
+            .player_reg
+            .get_player(&ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         Ok(plyr.get_decks())
     }
 
     pub fn remove_player_deck(
-        &self,
-        ident: PlayerIdentifier,
+        &mut self,
+        ident: &PlayerIdentifier,
         name: String,
     ) -> Result<(), TournamentError> {
-        let mut player_lock = get_write_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_mut_player(ident)?;
+        let plyr = self
+            .player_reg
+            .get_mut_player(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         plyr.remove_deck(name)
     }
 
     pub fn get_player_deck(
-        &self,
-        ident: PlayerIdentifier,
+        &mut self,
+        ident: &PlayerIdentifier,
         name: String,
     ) -> Result<Deck, TournamentError> {
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_player(ident)?;
+        let plyr = self
+            .player_reg
+            .get_player(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         match plyr.get_deck(name) {
             None => Err(TournamentError::DeckLookup),
             Some(d) => Ok(d),
         }
     }
 
-    pub fn get_player_round(
-        &self,
-        ident: PlayerIdentifier,
-    ) -> Result<RoundId, TournamentError> {
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let p_id = player_lock.get_player_id(ident)?;
-        let round_lock = get_read_spin_lock(&self.round_reg);
-        let rounds: Vec<RoundId> = round_lock
+    pub fn get_player_round(&self, ident: &PlayerIdentifier) -> Result<RoundId, TournamentError> {
+        let p_id = self
+            .player_reg
+            .get_player_id(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
+        let rounds: Vec<RoundId> = self
+            .round_reg
             .rounds
             .iter()
             .filter(|(_, r)| r.players.contains(&p_id))
@@ -268,42 +283,38 @@ impl Tournament {
     }
 
     pub fn player_set_game_name(
-        &self,
-        ident: PlayerIdentifier,
+        &mut self,
+        ident: &PlayerIdentifier,
         name: String,
     ) -> Result<(), TournamentError> {
-        let mut player_lock = get_write_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_mut_player(ident)?;
+        let plyr = self
+            .player_reg
+            .get_mut_player(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         plyr.set_game_name(name);
         Ok(())
     }
 
-    pub fn get_standings(&self) -> Standings {
-        let sys = get_read_spin_lock(&self.scoring_sys);
-        sys.get_standings(
-            &self.player_reg.read().unwrap(),
-            &self.round_reg.read().unwrap(),
-        )
+    pub fn get_standings(&self) -> Standings<StandardScore> {
+        self.scoring_sys
+            .get_standings(&self.player_reg, &self.round_reg)
     }
 
-    pub fn ready_player(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+    pub fn ready_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
-        let mut pairing_lock = get_write_spin_lock(&self.pairing_sys);
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let plyr = player_lock.get_player(ident)?;
+        let plyr = self.player_reg.get_player(ident).ok_or(TournamentError::PlayerLookup)?;
         let mut should_pair = false;
         if plyr.can_play() {
-            should_pair = pairing_lock.ready_player(plyr.id);
+            should_pair = self.pairing_sys.ready_player(plyr.id);
         }
         if should_pair {
-            let mut round_lock = get_write_spin_lock(&self.round_reg);
             if let Some(pairings) =
-                pairing_lock.suggest_pairings(self.game_size, &player_lock, &round_lock)
+                self.pairing_sys.suggest_pairings(self.game_size, &self.player_reg, &self.round_reg)
             {
                 for p in pairings {
-                    let round = round_lock.create_round();
+                    let round = self.round_reg.create_round();
                     for plyr in p {
                         round.add_player(plyr);
                     }
@@ -325,19 +336,16 @@ impl Tournament {
         self.game_size = game_size;
     }
 
-    pub fn set_round_length(&self, length: Duration) {
-        let mut sys = get_write_spin_lock(&self.round_reg);
-        sys.set_round_length(length);
+    pub fn set_round_length(&mut self, length: Duration) {
+        self.round_reg.set_round_length(length);
     }
 
-    pub fn give_bye(&self, ident: PlayerIdentifier) -> Result<(), TournamentError> {
+    pub fn give_bye(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
-        let player_lock = get_read_spin_lock(&self.player_reg);
-        let id = player_lock.get_player_id(ident)?;
-        let mut round_lock = get_write_spin_lock(&self.round_reg);
-        let round = round_lock.create_round();
+        let id = self.player_reg.get_player_id(ident).ok_or(TournamentError::PlayerLookup)?;
+        let round = self.round_reg.create_round();
         round.add_player(id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
         // single player
@@ -345,21 +353,19 @@ impl Tournament {
         Ok(())
     }
 
-    pub fn create_round(&self, idents: Vec<PlayerIdentifier>) -> Result<(), TournamentError> {
+    pub fn create_round(&mut self, idents: Vec<PlayerIdentifier>) -> Result<(), TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
-        let player_lock = get_read_spin_lock(&self.player_reg);
         if idents.len() == self.game_size as usize
-            && idents.iter().all(|p| !player_lock.verify_identifier(p))
+            && idents.iter().all(|p| !self.player_reg.verify_identifier(p))
         {
             // Saftey check, we already checked that all the identifiers correspond to a player
             let ids: Vec<PlayerId> = idents
                 .into_iter()
-                .map(|p| player_lock.get_player(&p).unwrap())
+                .map(|p| self.player_reg.get_player_id(&p).unwrap())
                 .collect();
-            let mut round_lock = get_write_spin_lock(&self.round_reg);
-            let round = round_lock.create_round();
+            let round = self.round_reg.create_round();
             for id in ids {
                 round.add_player(id);
             }
@@ -406,5 +412,41 @@ impl Hash for Tournament {
         H: Hasher,
     {
         let _ = &self.id.hash(state);
+    }
+}
+
+impl PairingSystem {
+    pub fn ready_player(&mut self, id: PlayerId) -> bool {
+        match self {
+            Self::Swiss(sys) => {
+                sys.ready_player(id)
+            },
+            Self::Fluid(sys) => {
+                sys.ready_player(id)
+            }
+        }
+    }
+    
+    pub fn suggest_pairings(&mut self, size: u8, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> Option<Vec<Vec<PlayerId>>> {
+        match self {
+            Self::Swiss(sys) => {
+                sys.suggest_pairings(size, plyr_reg, rnd_reg)
+            },
+            Self::Fluid(sys) => {
+                sys.suggest_pairings(size, plyr_reg, rnd_reg)
+            }
+        }
+    }
+}
+
+impl ScoringSystem {
+    pub fn get_standings(
+        &self,
+        player_reg: &PlayerRegistry,
+        round_reg: &RoundRegistry,
+    ) -> Standings<StandardScore> {
+        match self {
+            ScoringSystem::Standard(s) => s.get_standings(player_reg, round_reg),
+        }
     }
 }

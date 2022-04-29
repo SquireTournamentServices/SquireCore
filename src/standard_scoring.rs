@@ -1,9 +1,14 @@
-use crate::player_registry::PlayerIdentifier;
-pub use crate::scoring_system::{
-    HashMap, PlayerRegistry, PlayerId, RoundRegistry, Score, ScoringSystem, Standings,
-};
+use std::collections::HashMap;
 
-pub use crate::round::Round;
+pub use crate::{
+    error::TournamentError,
+    player::PlayerId,
+    player_registry::PlayerIdentifier,
+    player_registry::PlayerRegistry,
+    round::Round,
+    round_registry::RoundRegistry,
+    scoring::{Score, Standings},
+};
 
 use std::collections::HashSet;
 use std::string::ToString;
@@ -85,10 +90,8 @@ impl StandardScoring {
             + self.game_draw_points * (counter.game_draws as f64)
             + self.game_loss_points * (counter.game_losses as f64)
     }
-}
 
-impl ScoringSystem for StandardScoring {
-    fn new() -> Self
+    pub fn new() -> Self
     where
         Self: Sized,
     {
@@ -110,17 +113,22 @@ impl ScoringSystem for StandardScoring {
         }
     }
 
-    fn update_settings(&mut self, settings: HashMap<String, String>) -> Result<(), ()> {
+    pub fn update_settings(&mut self, settings: HashMap<String, String>) -> Result<(), ()> {
         todo!()
     }
 
-    fn get_standings(&self, player_reg: &PlayerRegistry, round_reg: &RoundRegistry) -> Standings {
+    pub fn get_standings(
+        &self,
+        player_reg: &PlayerRegistry,
+        round_reg: &RoundRegistry,
+    ) -> Standings<StandardScore> {
         let mut counters: HashMap<PlayerId, ScoreCounter> = player_reg
+            .players
             .iter()
             .filter(|(_, p)| p.can_play())
             .map(|(id, _)| (id.clone(), ScoreCounter::new(id.clone())))
             .collect();
-        for (id, round) in round_reg.iter() {
+        for (id, round) in round_reg.rounds.iter() {
             if !round.is_certified() {
                 continue;
             }
@@ -182,7 +190,7 @@ impl ScoringSystem for StandardScoring {
             .map(|(id, s)| {
                 (
                     player_reg
-                        .get_player(PlayerIdentifier::Id(*id))
+                        .get_player(&PlayerIdentifier::Id(*id))
                         .unwrap()
                         .to_string(),
                     (*s).clone(),
@@ -190,12 +198,7 @@ impl ScoringSystem for StandardScoring {
             })
             .collect();
         results.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
-        Standings::new(
-            results
-                .into_iter()
-                .map(|(name, score)| (name, Box::new(score) as Box<dyn Score>))
-                .collect::<Vec<(String, Box<dyn Score>)>>(),
-        )
+        Standings::new(results)
     }
 }
 
