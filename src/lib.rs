@@ -13,3 +13,5 @@ pub mod tournament;
 pub mod tournament_settings;
 pub mod tournament_registry;
 pub mod utils;
+pub mod settings;
+pub mod consts;

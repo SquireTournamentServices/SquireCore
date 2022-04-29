@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
+use crate::{settings::{Settings, SettingsResult}, utils::try_into_bool};
 pub use crate::{
+    consts::STANDARD_SCORING_SETTINGS,
     error::TournamentError,
     player::PlayerId,
     player_registry::PlayerIdentifier,
@@ -113,8 +115,52 @@ impl StandardScoring {
         }
     }
 
-    pub fn update_settings(&mut self, settings: HashMap<String, String>) -> Result<(), ()> {
-        todo!()
+    pub fn update_settings(&mut self, mut settings: Settings) -> SettingsResult {
+        let iter = STANDARD_SCORING_SETTINGS.clone().into_iter();
+        let mut accepted = Settings::new();
+        let mut errored = Settings::new();
+        for key in iter {
+            if let Some(val) = settings.settings.remove(key) {
+                // All settings are bools, so we can convert here.
+                let b = match try_into_bool(&val) {
+                    Some(b) => {
+                        accepted.settings.insert(key.to_string(), val);
+                        b
+                    },
+                    None => {
+                        errored.settings.insert(key.to_string(), val);
+                        continue;
+                    }
+                };
+                match key {
+                    "include-byes" => {
+                        self.include_byes = b;
+                    }
+                    "include-match-points" => {
+                        self.include_match_points = b;
+                    }
+                    "include-game-points" => {
+                        self.include_game_points = b;
+                    }
+                    "include-mwp" => {
+                        self.include_mwp = b;
+                    }
+                    "include-gwp" => {
+                        self.include_gwp = b;
+                    }
+                    "include-opp-mwp" => {
+                        self.include_opp_mwp = b;
+                    }
+                    "include-opp-gwp" => {
+                        self.include_opp_gwp = b;
+                    }
+                    _ => {
+                        unreachable!()
+                    }
+                }
+            }
+        }
+        SettingsResult::new(accepted, settings, errored)
     }
 
     pub fn get_standings(
@@ -142,18 +188,6 @@ impl StandardScoring {
         }
         // We have tallied everyone's round results. Time to calculate everyone's scores
         let mut digest: HashMap<PlayerId, StandardScore> = HashMap::with_capacity(counters.len());
-        /*
-        mwp: f64,
-        gwp: f64,
-        opp_mwp: f64,
-        opp_gwp: f64,
-        */
-        /*
-        player: PlayerId,
-        games: u64,
-        rounds: u64,
-        opponents: HashSet<PlayerId>,
-        */
         for (id, counter) in &counters {
             let mut score = self.new_score();
             score.match_points = self.calculate_match_points_with_byes(&counter);
