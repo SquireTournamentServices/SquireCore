@@ -1,4 +1,16 @@
 #![allow(dead_code, unused_variables, unused_imports, unused_import_braces)]
+#[cxx::bridge]
+mod sample {
+  #[namespace = "squire_core"]
+  extern "Rust" {
+    fn func(a: i32) -> i32;
+  }
+}
+
+fn func(a: i32) -> i32 {
+    a + 3
+}
+
 pub mod error;
 pub mod fluid_pairings;
 pub mod game;
