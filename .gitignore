@@ -1,3 +1,5 @@
 /target
 .env
 Cargo.lock
+./cbindgen.toml
+./squire_core.h
