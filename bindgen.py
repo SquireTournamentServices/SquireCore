@@ -3,14 +3,12 @@ import re
 
 is_rust_src = re.compile("(.*)\\.rs$")
 re_type = re.compile(".*pub (struct|enum) ([a-zA-Z0-9]+).*")
-re_impl = re.compile(".*impl ([a-zA-Z0-9]+).*")
-re_func = re.compile(".*pub extern fn ([a-zA-Z0-9]+).*") # kinda janky
+re_impl = re.compile(".*impl ([a-zA-Z0-9_]+).*")
+re_func = re.compile(".*pub extern fn ([a-zA-Z0-9_]+).*")
 
 dirs = os.listdir("./src/")
 types = []
 funcs = []
-
-lib_rs_eof_marker = "// PYTHON_SCRIPT_EOF_MARKER"
 
 for dir in dirs:
     mtch =  is_rust_src.match(dir)
@@ -28,10 +26,6 @@ for dir in dirs:
             t_mtch = re_type.match(line)
             if t_mtch is not None:
                 _, type_name, = t_mtch.groups()
-
-                if type_name == "Standings":
-                    continue # These are still a WIP
-
                 print(f"Found type {type_name}")
                 types.append(type_name)
 
@@ -70,6 +64,7 @@ cpp_compat = true
 braces = "NextLine"
 documentation = true
 documentation_style = "doxy"
+types = "both"
 \n"""
 out += """[export]
 prefix = "sc_"
@@ -83,10 +78,9 @@ for f in funcs:
 
 out = out[:-1]
 out += "]\n"
-out += """
-[export.mangle]
+out += """[export.mangle]
 rename_types = "CamelCase"
-remove_underscores = false
+remove_underscores = true
 
 [fn]
 rename_args = "CamelCase"
@@ -120,10 +114,12 @@ sort_by = "Name"
 [macro_expansion]
 bitflags = true
 
-
 [parse]
 parse_deps = true
 clean = true
+
+[ptr]
+non_null_attribute = "_Nonnull"
 """
 
 f = open("./cbindgen.toml", "w")

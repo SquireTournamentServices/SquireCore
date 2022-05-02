@@ -1,9 +1,10 @@
 set(TARGET_DIR "debug")
-
 if(ENABLE_LTO)
     set(RUST_FLAGS "-Clinker-plugin-lto" "-Clinker=clang-13" "-Clink-arg=-fuse-ld=lld")
+    MESSAGE(STATUS "LTO ENABLED")
 endif()
 
+MESSAGE(STATUS "Building rust with options: ${TARGET_DIR}, ${RUST_FLAGS}")
 
 set(RUST_PART_CXX "${CMAKE_CURRENT_BINARY_DIR}/squire_core.a")
 add_library(squire_core STATIC ${RUST_PART_CXX})
@@ -18,5 +19,7 @@ target_link_libraries(squire_core pthread dl ${RUST_PART_CXX})
 
 add_test(NAME squire_core_test
     COMMAND cargo test
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
+MESSAGE(STATUS "Squire Core FFI is being used")

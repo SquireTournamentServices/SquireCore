@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::iter::Iterator;
 
 /// A struct that contains generic settings info
-#[repr(C)]
 pub struct Settings {
     pub settings: HashMap<String, String>
 }

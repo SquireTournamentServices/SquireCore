@@ -4,18 +4,13 @@
 #include <ostream>
 #include <new>
 
-template<typename K = void, typename V = void, typename Hasher = void>
-struct HashMap;
+/// A struct that contains generic settings info
+struct Settings;
 
 struct String;
 
 template<typename T = void>
 struct Vec;
-
-/// A struct that contains generic settings info
-struct Settings {
-  HashMap<String, String> settings;
-};
 
 /// A struct used to communicate the application of a Settings objects
 struct SettingsResult {
