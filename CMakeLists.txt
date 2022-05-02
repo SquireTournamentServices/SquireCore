@@ -1,8 +1,4 @@
-if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "TEST")
-    set(TARGET_DIR "debug")
-else ()
-    set(TARGET_DIR "release")
-endif ()
+set(TARGET_DIR "debug")
 
 if(ENABLE_LTO)
     set(RUST_FLAGS "-Clinker-plugin-lto" "-Clinker=clang-13" "-Clink-arg=-fuse-ld=lld")
