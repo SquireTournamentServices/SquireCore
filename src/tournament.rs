@@ -16,7 +16,6 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 #[repr(C)]
@@ -74,10 +73,6 @@ impl Tournament {
         round_length: Duration,
         deck_count: u8,
     ) -> Self {
-        let player_reg = Arc::new(RwLock::new(PlayerRegistry::new()));
-        let round_reg = Arc::new(RwLock::new(RoundRegistry::new(round_length)));
-        let pairing_sys = Arc::new(RwLock::new(pairing_system_factory(&preset, game_size)));
-        let scoring_sys = Arc::new(RwLock::new(scoring_system_factory(&preset)));
         Tournament {
             id: TournamentId(Uuid::new_v4()),
             name,
@@ -408,10 +403,6 @@ impl Tournament {
         round_length: Duration,
         deck_count: u8,
     ) -> Self {
-        let player_reg = Arc::new(RwLock::new(PlayerRegistry::new()));
-        let round_reg = Arc::new(RwLock::new(RoundRegistry::new(round_length)));
-        let pairing_sys = Arc::new(RwLock::new(pairing_system_factory(&preset, game_size)));
-        let scoring_sys = Arc::new(RwLock::new(scoring_system_factory(&preset)));
         Tournament {
             id: TournamentId(Uuid::new_v4()),
             name,
