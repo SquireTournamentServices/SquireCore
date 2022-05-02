@@ -3,3 +3,7 @@
 Cargo.lock
 ./cbindgen.toml
 ./squire_core.h
+
+squire_core.h
+
+cbindgen.toml
