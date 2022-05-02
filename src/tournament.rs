@@ -19,20 +19,24 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+#[repr(C)]
 pub enum TournamentPreset {
     Swiss,
     Fluid,
 }
 
+#[repr(C)]
 pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
+#[repr(C)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TournamentStatus {
     Planned,
@@ -42,9 +46,11 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct TournamentId(Uuid);
 
+#[repr(C)]
 pub struct Tournament {
     id: TournamentId,
     pub name: String,
@@ -60,7 +66,7 @@ pub struct Tournament {
 }
 
 impl Tournament {
-    pub fn from_preset(
+    pub extern fn from_preset(
         name: String,
         preset: TournamentPreset,
         format: String,
@@ -87,11 +93,11 @@ impl Tournament {
         }
     }
 
-    pub fn update_reg(&mut self, reg_status: bool) {
+    pub extern fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
 
-    pub fn start(&mut self) -> Result<(), TournamentError> {
+    pub extern fn start(&mut self) -> Result<(), TournamentError> {
         if !self.is_planned() {
             Err(TournamentError::IncorrectStatus)
         } else {

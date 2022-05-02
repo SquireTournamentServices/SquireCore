@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::iter::Iterator;
 
-
 /// A struct that contains generic settings info
+#[repr(C)]
 pub struct Settings {
     pub settings: HashMap<String, String>
 }
@@ -15,7 +15,8 @@ impl Settings {
 
     /// Returns a new settings objects whose settings are a subset of this Settings's settings. The
     /// give iterator defines the keys for the subset of settings
-    pub fn collect(&self, iter: impl Iterator<Item=String>) -> Self {
+    #[no_mangle]
+    pub extern fn collect(&self, iter: impl Iterator<Item=String>) -> Self {
         let mut settings = HashMap::new();
         for s in iter {
             if let Some(val) = self.settings.get(&s) {
@@ -26,7 +27,8 @@ impl Settings {
     }
 
     /// Does what collect does, but removes the elements instead of cloning them
-    pub fn divide(&mut self, iter: impl Iterator<Item=String>) -> Self {
+    #[no_mangle]
+    pub extern fn divide(&mut self, iter: impl Iterator<Item=String>) -> Self {
         let mut settings = HashMap::new();
         for s in iter {
             if let Some(val) = self.settings.remove(&s) {
@@ -38,6 +40,7 @@ impl Settings {
 }
 
 /// A struct used to communicate the application of a Settings objects
+#[repr(C)]
 pub struct SettingsResult {
     pub accepted: Settings,
     pub rejected: Settings,
@@ -55,7 +58,8 @@ impl SettingsResult {
     }
 
     /// Checks if there were any "bad" settings
-    pub fn was_success(&self) -> bool {
+    #[no_mangle]
+    pub extern fn was_success(&self) -> bool {
         self.rejected.settings.len() + self.errored.settings.len() == 0
     }
 }
