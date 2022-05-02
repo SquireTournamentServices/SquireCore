@@ -46,8 +46,8 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[repr(C)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[repr(C)]
 pub struct TournamentId(Uuid);
 
 #[repr(C)]
@@ -66,7 +66,7 @@ pub struct Tournament {
 }
 
 impl Tournament {
-    pub extern fn from_preset(
+    pub fn from_preset(
         name: String,
         preset: TournamentPreset,
         format: String,
@@ -93,11 +93,11 @@ impl Tournament {
         }
     }
 
-    pub extern fn update_reg(&mut self, reg_status: bool) {
+    pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
 
-    pub extern fn start(&mut self) -> Result<(), TournamentError> {
+    pub fn start(&mut self) -> Result<(), TournamentError> {
         if !self.is_planned() {
             Err(TournamentError::IncorrectStatus)
         } else {
@@ -398,6 +398,51 @@ impl Tournament {
     }
 }
 
+#[cfg(feature = "ffi")]
+impl Tournament {
+    pub extern "C" fn from_preset_c(
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+        game_size: u8,
+        round_length: Duration,
+        deck_count: u8,
+    ) -> Self {
+        let player_reg = Arc::new(RwLock::new(PlayerRegistry::new()));
+        let round_reg = Arc::new(RwLock::new(RoundRegistry::new(round_length)));
+        let pairing_sys = Arc::new(RwLock::new(pairing_system_factory(&preset, game_size)));
+        let scoring_sys = Arc::new(RwLock::new(scoring_system_factory(&preset)));
+        Tournament {
+            id: TournamentId(Uuid::new_v4()),
+            name,
+            format,
+            game_size,
+            deck_count,
+            player_reg: PlayerRegistry::new(),
+            round_reg: RoundRegistry::new(round_length),
+            pairing_sys: pairing_system_factory(&preset, game_size),
+            scoring_sys: scoring_system_factory(&preset),
+            reg_open: true,
+            status: TournamentStatus::Planned,
+        }
+    }
+    
+    pub extern "C" fn update_reg_c(&mut self, reg_status: bool) {
+        self.reg_open = reg_status;
+    }
+
+    pub extern "C" fn start_c(&mut self) -> Result<(), TournamentError> {
+        if !self.is_planned() {
+            Err(TournamentError::IncorrectStatus)
+        } else {
+            self.reg_open = false;
+            self.status = TournamentStatus::Started;
+            Ok(())
+        }
+    }
+
+}
+
 pub fn pairing_system_factory(preset: &TournamentPreset, game_size: u8) -> PairingSystem {
     match preset {
         TournamentPreset::Swiss => PairingSystem::Swiss(SwissPairings::new(game_size)),
@@ -420,7 +465,6 @@ impl Hash for Tournament {
         let _ = &self.id.hash(state);
     }
 }
-
 impl PairingSystem {
     pub fn ready_player(&mut self, id: PlayerId) -> bool {
         match self {
