@@ -9,6 +9,7 @@ use crate::{
     standard_scoring::{StandardScore, StandardScoring},
     swiss_pairings::SwissPairings,
     tournament_settings::TournamentSettings,
+    operations::TournOp,
 };
 
 use mtgjson::model::deck::Deck;
@@ -52,16 +53,6 @@ pub enum TournamentStatus {
 #[repr(C)]
 pub struct TournamentId(Uuid);
 
-/// This enum captures all ways (methods) in which a tournament can mutate.
-#[derive(Debug, Clone, PartialEq)]
-pub enum TournOp {
-}
-
-/// An order list of all operations applied to a tournament
-pub struct OpLog {
-    pub(crate) ops: Vec<TournOp>,
-}
-
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Tournament {
@@ -79,11 +70,7 @@ pub struct Tournament {
 }
 
 impl Tournament {
-    pub fn from_preset(
-        name: String,
-        preset: TournamentPreset,
-        format: String,
-    ) -> Self {
+    pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
         Tournament {
             id: TournamentId(Uuid::new_v4()),
             name,
@@ -98,11 +85,11 @@ impl Tournament {
             status: TournamentStatus::Planned,
         }
     }
-    
+
     pub fn apply_op(&mut self, op: &TournOp) -> Result<(), TournamentError> {
         todo!()
     }
-    
+
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -265,7 +252,7 @@ impl Tournament {
     }
 
     pub fn get_player_deck(
-        &mut self,
+        &self,
         ident: &PlayerIdentifier,
         name: String,
     ) -> Result<Deck, TournamentError> {
@@ -344,7 +331,7 @@ impl Tournament {
         Ok(())
     }
 
-    pub fn unready_player(&self, plyr: String) -> String {
+    pub fn unready_player(&mut self, plyr: String) -> String {
         todo!()
     }
 
@@ -507,12 +494,5 @@ impl ScoringSystem {
         match self {
             ScoringSystem::Standard(s) => s.get_standings(player_reg, round_reg),
         }
-    }
-}
-
-impl TournOp {
-    /// Determines if the given operation affects this operation
-    pub fn blocks(&self, other: &Self) -> bool {
-        todo!()
     }
 }

@@ -16,4 +16,5 @@ pub mod tournament;
 pub mod tournament_manager;
 //pub mod tournament_registry;
 pub mod tournament_settings;
+pub mod operations;
 pub mod utils;

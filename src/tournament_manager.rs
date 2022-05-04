@@ -1,6 +1,9 @@
 use std::slice::Iter;
 
-use crate::{error::TournamentError, tournament::*};
+use crate::{
+    error::TournamentError,
+    operations::{OpLog, TournOp},
+    tournament::*};
 
 /// A state manager for the tournament struct
 ///
