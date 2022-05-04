@@ -1,4 +1,3 @@
-
 pub fn try_into_bool(s: &str) -> Option<bool> {
     let s = s.to_lowercase();
     match s.as_str() {

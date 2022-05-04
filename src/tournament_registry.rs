@@ -49,7 +49,10 @@ impl TournamentRegistry {
         Ok(self.tourns.get_mut(&id).unwrap())
     }
 
-    pub fn get_tourn(&self, ident: TournIdentifier) -> Result<Ref<TournamentId, Tournament>, TournamentError> {
+    pub fn get_tourn(
+        &self,
+        ident: TournIdentifier,
+    ) -> Result<Ref<TournamentId, Tournament>, TournamentError> {
         let id = self.get_tourn_id(ident)?;
         // Saftey check, we just verified that the id was valid
         Ok(self.tourns.get(&id).unwrap())

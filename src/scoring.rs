@@ -1,6 +1,6 @@
 pub trait Score
 where
-    Self: ToString
+    Self: ToString,
 {
 }
 
@@ -9,10 +9,10 @@ pub struct Standings<S> {
 }
 
 impl<S> Standings<S>
-where S: Score
+where
+    S: Score,
 {
     pub fn new(scores: Vec<(String, S)>) -> Self {
         Standings { scores }
     }
 }
-

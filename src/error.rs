@@ -30,4 +30,4 @@ impl fmt::Display for TournamentError {
     }
 }
 
-impl std::error::Error for TournamentError { }
+impl std::error::Error for TournamentError {}

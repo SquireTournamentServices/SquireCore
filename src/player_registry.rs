@@ -59,14 +59,9 @@ impl PlayerRegistry {
         Some(())
     }
 
-    pub fn get_mut_player(
-        &mut self,
-        ident: &PlayerIdentifier,
-    ) -> Option<&mut Player> {
+    pub fn get_mut_player(&mut self, ident: &PlayerIdentifier) -> Option<&mut Player> {
         match ident {
-            PlayerIdentifier::Id(id) => {
-                self.players.get_mut(id)
-            },
+            PlayerIdentifier::Id(id) => self.players.get_mut(id),
             PlayerIdentifier::Name(name) => {
                 let id = self.name_and_id.get_right(name)?;
                 self.players.get_mut(id)
@@ -76,16 +71,14 @@ impl PlayerRegistry {
 
     pub fn get_player(&self, ident: &PlayerIdentifier) -> Option<&Player> {
         match ident {
-            PlayerIdentifier::Id(id) => {
-                self.players.get(id)
-            },
+            PlayerIdentifier::Id(id) => self.players.get(id),
             PlayerIdentifier::Name(name) => {
                 let id = self.name_and_id.get_right(name)?;
                 self.players.get(id)
             }
         }
     }
-    
+
     pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Option<PlayerId> {
         match ident {
             PlayerIdentifier::Id(id) => Some(*id),

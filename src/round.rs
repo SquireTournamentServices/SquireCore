@@ -80,7 +80,7 @@ impl Round {
     pub fn add_player(&mut self, player: PlayerId) {
         self.players.insert(player);
     }
-    
+
     pub fn get_all_players(&self) -> HashSet<PlayerId> {
         self.players.clone()
     }

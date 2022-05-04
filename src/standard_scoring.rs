@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::{settings::{Settings, SettingsResult}, utils::try_into_bool};
 pub use crate::{
     consts::STANDARD_SCORING_SETTINGS,
     error::TournamentError,
@@ -10,6 +9,10 @@ pub use crate::{
     round::Round,
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
+};
+use crate::{
+    settings::{Settings, SettingsResult},
+    utils::try_into_bool,
 };
 
 use std::collections::HashSet;
@@ -126,7 +129,7 @@ impl StandardScoring {
                     Some(b) => {
                         accepted.settings.insert(key.to_string(), val);
                         b
-                    },
+                    }
                     None => {
                         errored.settings.insert(key.to_string(), val);
                         continue;

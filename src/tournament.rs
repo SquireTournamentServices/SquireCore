@@ -305,14 +305,18 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
-        let plyr = self.player_reg.get_player(ident).ok_or(TournamentError::PlayerLookup)?;
+        let plyr = self
+            .player_reg
+            .get_player(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         let mut should_pair = false;
         if plyr.can_play() {
             should_pair = self.pairing_sys.ready_player(plyr.id);
         }
         if should_pair {
             if let Some(pairings) =
-                self.pairing_sys.suggest_pairings(self.game_size, &self.player_reg, &self.round_reg)
+                self.pairing_sys
+                    .suggest_pairings(self.game_size, &self.player_reg, &self.round_reg)
             {
                 for p in pairings {
                     let round = self.round_reg.create_round();
@@ -345,7 +349,10 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
-        let id = self.player_reg.get_player_id(ident).ok_or(TournamentError::PlayerLookup)?;
+        let id = self
+            .player_reg
+            .get_player_id(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
         let round = self.round_reg.create_round();
         round.add_player(id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
@@ -417,7 +424,7 @@ impl Tournament {
             status: TournamentStatus::Planned,
         }
     }
-    
+
     pub extern "C" fn update_reg_c(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -431,7 +438,6 @@ impl Tournament {
             Ok(())
         }
     }
-
 }
 
 pub fn pairing_system_factory(preset: &TournamentPreset, game_size: u8) -> PairingSystem {
@@ -459,23 +465,20 @@ impl Hash for Tournament {
 impl PairingSystem {
     pub fn ready_player(&mut self, id: PlayerId) -> bool {
         match self {
-            Self::Swiss(sys) => {
-                sys.ready_player(id)
-            },
-            Self::Fluid(sys) => {
-                sys.ready_player(id)
-            }
+            Self::Swiss(sys) => sys.ready_player(id),
+            Self::Fluid(sys) => sys.ready_player(id),
         }
     }
-    
-    pub fn suggest_pairings(&mut self, size: u8, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> Option<Vec<Vec<PlayerId>>> {
+
+    pub fn suggest_pairings(
+        &mut self,
+        size: u8,
+        plyr_reg: &PlayerRegistry,
+        rnd_reg: &RoundRegistry,
+    ) -> Option<Vec<Vec<PlayerId>>> {
         match self {
-            Self::Swiss(sys) => {
-                sys.suggest_pairings(size, plyr_reg, rnd_reg)
-            },
-            Self::Fluid(sys) => {
-                sys.suggest_pairings(size, plyr_reg, rnd_reg)
-            }
+            Self::Swiss(sys) => sys.suggest_pairings(size, plyr_reg, rnd_reg),
+            Self::Fluid(sys) => sys.suggest_pairings(size, plyr_reg, rnd_reg),
         }
     }
 }
