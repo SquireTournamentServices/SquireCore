@@ -5,6 +5,7 @@ pub use super::{
     round_registry::RoundRegistry,
 };
 
+#[derive(Debug, Clone)]
 pub struct SwissPairings {
     players_per_match: u8,
 }

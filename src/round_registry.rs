@@ -15,6 +15,7 @@ pub enum RoundIdentifier {
     Number(u64),
 }
 
+#[derive(Debug, Clone)]
 pub struct RoundRegistry {
     pub(crate) num_and_id: CycleMap<RoundId, u64>,
     pub(crate) rounds: HashMap<u64, Round>,

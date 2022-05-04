@@ -8,12 +8,12 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [dependencies]
 cycle_map = { version = "0.1.0" }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
-serde = { version = "1.0", features = ["derive"] }
-anyhow = { version = "1.0" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
-dashmap = { version = "5.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
 
 # For future use
+#anyhow = { version = "1.0" }
+#dashmap = { version = "5.0", features = ["serde"] }
 #serde_json = { version = "1.0.68" }
 #rocket = { version = "0.5.0-rc.1" }
 #juniper = { version = "0.15.7" }

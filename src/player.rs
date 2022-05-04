@@ -18,7 +18,7 @@ pub enum PlayerStatus {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct PlayerId(Uuid);
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Player {
     pub id: PlayerId,
     pub name: String,

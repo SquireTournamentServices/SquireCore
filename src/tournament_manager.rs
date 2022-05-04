@@ -1,3 +1,5 @@
+use std::slice::Iter;
+
 use crate::{error::TournamentError, tournament::*};
 
 /// A state manager for the tournament struct
@@ -8,15 +10,9 @@ use crate::{error::TournamentError, tournament::*};
 pub struct TournamentManager {
     tourn: Tournament,
     seed: TournamentPreset,
-    ops: OpLog,
-}
-
-/// This enum captures all ways (methods) in which a tournament can mutate.
-pub enum TournOp {}
-
-/// An order list of all operations applied to a tournament
-pub struct OpLog {
-    ops: Vec<TournOp>,
+    name: String,
+    format: String,
+    log: OpLog,
 }
 
 impl TournamentManager {
@@ -28,43 +24,49 @@ impl TournamentManager {
 
     /// Takes an op log and merges as much of it as possible with this op log.
     /// `Err` is returned if the logs can't be fully merged.
-    pub fn merge(&mut self, log: Vec<TournOp>) -> Result<(), TournOp> {
+    pub fn merge_logs(&mut self, log: OpLog) -> Result<OpLog, OpLog> {
         todo!()
     }
 
     /// Takes an operation stores it, applies it to the tournament, and returns the result.
     /// NOTE: Even operations that result in a tournament error are stored.
     pub fn apply(&mut self, op: TournOp) -> Result<(), TournamentError> {
-        todo!()
+        let digest = self.tourn.apply_op(&op);
+        self.log.ops.push(op);
+        digest
     }
 
     /// Returns an iterator over all the states of a tournament
     pub fn states(&self) -> StateIter {
-        todo!()
-    }
-}
-
-impl TournOp {
-    /// Determines if the given operation affects this operation
-    pub fn blocks(&self, other: &Self) -> bool {
-        todo!()
-    }
-}
-
-impl PartialEq for TournOp {
-    // Needed for determining if two operations are identical
-    fn eq(&self, rhs: &Self) -> bool {
-        todo!()
+        StateIter {
+            state: Tournament::from_preset(
+                self.name.clone(),
+                self.seed.clone(),
+                self.format.clone(),
+            ),
+            ops: self.log.ops.iter(),
+            shown_init: false,
+        }
     }
 }
 
 /// An iterator over all the states of a tournament
-pub struct StateIter {}
+pub struct StateIter<'a> {
+    state: Tournament,
+    ops: Iter<'a, TournOp>,
+    shown_init: bool,
+}
 
-impl Iterator for StateIter {
+impl Iterator for StateIter<'_> {
     type Item = Tournament;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if self.shown_init {
+            let op = self.ops.next()?;
+            let _ = self.state.apply_op(op);
+        } else {
+            self.shown_init = true;
+        }
+        Some(self.state.clone())
     }
 }

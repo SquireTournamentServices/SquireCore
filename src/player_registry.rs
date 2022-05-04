@@ -12,6 +12,7 @@ pub enum PlayerIdentifier {
     Name(String),
 }
 
+#[derive(Debug, Clone)]
 pub struct PlayerRegistry {
     pub(crate) name_and_id: CycleMap<String, PlayerId>,
     pub(crate) players: HashMap<PlayerId, Player>,

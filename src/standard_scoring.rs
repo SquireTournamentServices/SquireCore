@@ -18,7 +18,7 @@ use crate::{
 use std::collections::HashSet;
 use std::string::ToString;
 
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct StandardScore {
     pub(crate) match_points: f64,
     pub(crate) game_points: f64,
@@ -34,6 +34,7 @@ pub struct StandardScore {
     pub(crate) include_opp_gwp: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ScoreCounter {
     pub player: PlayerId,
     pub games: u64,
@@ -48,6 +49,7 @@ struct ScoreCounter {
     pub opponents: HashSet<PlayerId>,
 }
 
+#[derive(Debug, Clone)]
 pub struct StandardScoring {
     match_win_points: f64,
     match_draw_points: f64,

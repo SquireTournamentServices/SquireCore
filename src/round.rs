@@ -2,7 +2,7 @@ use crate::error::TournamentError;
 use crate::game::Game;
 use crate::player::PlayerId;
 
-use anyhow::Result;
+//use anyhow::Result;
 use uuid::Uuid;
 
 use std::collections::HashSet;
@@ -17,6 +17,7 @@ pub enum RoundStatus {
     Dead,
 }
 
+#[derive(Debug, Clone)]
 pub enum Outcome {
     Game(Game),
     Round(Vec<Game>),
@@ -26,7 +27,7 @@ pub enum Outcome {
 pub struct RoundId(Uuid);
 
 // This struct should be able to handle N many games, unlike the Python equiv.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Round {
     pub(crate) id: RoundId,
     pub(crate) match_number: u64,

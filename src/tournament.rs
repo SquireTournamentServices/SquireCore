@@ -18,25 +18,28 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub enum TournamentPreset {
     Swiss,
     Fluid,
 }
 
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
 }
 
-#[repr(C)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(C)]
 pub enum TournamentStatus {
     Planned,
     Started,
@@ -49,6 +52,17 @@ pub enum TournamentStatus {
 #[repr(C)]
 pub struct TournamentId(Uuid);
 
+/// This enum captures all ways (methods) in which a tournament can mutate.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TournOp {
+}
+
+/// An order list of all operations applied to a tournament
+pub struct OpLog {
+    pub(crate) ops: Vec<TournOp>,
+}
+
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Tournament {
     id: TournamentId,
@@ -69,25 +83,26 @@ impl Tournament {
         name: String,
         preset: TournamentPreset,
         format: String,
-        game_size: u8,
-        round_length: Duration,
-        deck_count: u8,
     ) -> Self {
         Tournament {
             id: TournamentId(Uuid::new_v4()),
             name,
             format,
-            game_size,
-            deck_count,
+            game_size: 2,
+            deck_count: 2,
             player_reg: PlayerRegistry::new(),
-            round_reg: RoundRegistry::new(round_length),
-            pairing_sys: pairing_system_factory(&preset, game_size),
+            round_reg: RoundRegistry::new(Duration::from_secs(3000)),
+            pairing_sys: pairing_system_factory(&preset, 2),
             scoring_sys: scoring_system_factory(&preset),
             reg_open: true,
             status: TournamentStatus::Planned,
         }
     }
-
+    
+    pub fn apply_op(&mut self, op: &TournOp) -> Result<(), TournamentError> {
+        todo!()
+    }
+    
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -492,5 +507,12 @@ impl ScoringSystem {
         match self {
             ScoringSystem::Standard(s) => s.get_standings(player_reg, round_reg),
         }
+    }
+}
+
+impl TournOp {
+    /// Determines if the given operation affects this operation
+    pub fn blocks(&self, other: &Self) -> bool {
+        todo!()
     }
 }
