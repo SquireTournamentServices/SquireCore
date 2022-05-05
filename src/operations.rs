@@ -39,7 +39,7 @@ pub struct OpSlice {
 
 /// A struct used to communicate a rollback
 pub struct Rollback {
-    ops: OpSlice
+    ops: OpSlice,
 }
 
 /// A struct to help resolve blockages
@@ -67,8 +67,50 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn pick_resolution(self, op: TournOp) -> Result<(OpLog, OpLog), Self> {
-        todo!()
+    pub fn pick_resolution(self, op: TournOp) -> Result<(OpSlice, OpSlice), Self> {
+        if op == self.problem.0 {
+            let mut found = false;
+            let ops = self
+                .known
+                .ops
+                .into_iter()
+                .filter_map(|(i, o)| {
+                    if found {
+                        Some((OpId(i.0 - 1), o))
+                    } else {
+                        if o == op {
+                            found = true;
+                            None
+                        } else {
+                            Some((i, o))
+                        }
+                    }
+                })
+                .collect();
+            Ok((OpSlice { ops }, self.other))
+        } else if op == self.problem.1 {
+            let mut found = false;
+            let ops = self
+                .other
+                .ops
+                .into_iter()
+                .filter_map(|(i, o)| {
+                    if found {
+                        Some((OpId(i.0 - 1), o))
+                    } else {
+                        if o == op {
+                            found = true;
+                            None
+                        } else {
+                            Some((i, o))
+                        }
+                    }
+                })
+                .collect();
+            Ok((self.known, OpSlice { ops }))
+        } else {
+            Err(self)
+        }
     }
 
     /// Resolves the current problem by ordering the problematic solutions, consuming self.
@@ -77,8 +119,48 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn order_resolution(self, first: TournOp) -> Result<(OpLog, OpLog), Self> {
-        todo!()
+    pub fn order_resolution(mut self, first: TournOp) -> Result<(OpSlice, OpSlice), Self> {
+        if first == self.problem.0 || first == self.problem.1 {
+            let mut found = false;
+            let other_ops = self
+                .other
+                .ops
+                .into_iter()
+                .filter_map(|(i, o)| {
+                    if found {
+                        Some((OpId(i.0 - 1), o))
+                    } else {
+                        if o == self.problem.1 {
+                            found = true;
+                            None
+                        } else {
+                            Some((i, o))
+                        }
+                    }
+                })
+                .collect();
+            let (index, (id, _)) = self
+                .known
+                .ops
+                .iter()
+                .enumerate()
+                .find(|(i, (_, o))| o == &self.problem.0)
+                .unwrap();
+            let id = id.clone();
+            if first == self.problem.0 {
+                self.known
+                    .ops
+                    .insert(index + 1, (id.clone(), self.problem.1));
+            } else {
+                self.known.ops.insert(index, (id.clone(), self.problem.1));
+            }
+            for (i, (id, _)) in self.known.ops.iter_mut().skip(index).enumerate() {
+                *id = OpId(id.0 + 1);
+            }
+            Ok((self.known, OpSlice { ops: other_ops }))
+        } else {
+            Err(self)
+        }
     }
 }
 
@@ -92,11 +174,9 @@ impl TournOp {
 impl OpLog {
     /// Creates a new log
     pub fn new() -> Self {
-        OpLog {
-            ops: Vec::new(),
-        }
+        OpLog { ops: Vec::new() }
     }
-    
+
     pub fn add_op(&mut self, op: TournOp) {
         self.ops.push(op);
     }
@@ -116,24 +196,57 @@ impl OpLog {
             .collect();
         Some(OpSlice { ops })
     }
-    
+
     /// Removes all elements in the log starting at the first index of the given slice. All
     /// operations in the slice are then appended to the end of the log.
     pub fn overwrite(&mut self, ops: OpSlice) -> Option<()> {
-        todo!()
+        let index = ops.start_index()?;
+        if index > self.ops.len() {
+            return None;
+        }
+        self.ops.truncate(index);
+        self.ops.extend(ops.ops.into_iter().map(|(_, o)| o));
+        Some(())
     }
-    
+
     /// Creates a slice of the current log by starting at the end and moving back. All operations
     /// that cause the closure to return `true` will be dropped and `false` will be kept. An
     /// operation causes `None` to be returned will end the iteration, will not be in the slice,
     /// but kept in the log.
-    /// 
+    ///
     /// The primary use case for this is to rollback a round pairing in a Swiss tournament.
-    pub fn rollback(&self, f: impl FnMut(TournOp) -> Option<bool>) -> Rollback {
-        todo!()
+    pub fn rollback(&self, mut f: impl FnMut(&TournOp) -> Option<bool>) -> Rollback {
+        let l = self.ops.len();
+        let ops = self
+            .ops
+            .iter()
+            .rev()
+            .enumerate()
+            .map_while(|(i, o)| match f(o) {
+                Some(b) => Some((i, b, o)),
+                None => None,
+            })
+            .filter_map(|(i, b, o)| {
+                if !b {
+                    Some((OpId(l - i), o.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Rollback {
+            ops: OpSlice { ops },
+        }
+    }
+}
+
+impl OpSlice {
+    /// Returns the index of the first stored operation.
+    pub fn start_index(&self) -> Option<usize> {
+        self.ops.first().map(|(i, _)| i.0)
     }
 
-    /// Takes a (partial) op log and attempts to merge it with this log.
+    /// Takes another op slice and attempts to merge it with this log.
     ///
     /// If there are no blockages, the `Ok` varient is returned containing the rectified log and
     /// this log is updated.
@@ -160,7 +273,7 @@ impl OpLog {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(&self, other: OpSlice) -> Result<OpSlice, Blockage> {
+    pub fn merge(&self, other: OpSlice) -> Result<Self, Blockage> {
         todo!()
     }
 }
