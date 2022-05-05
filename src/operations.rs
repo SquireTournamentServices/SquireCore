@@ -1,27 +1,31 @@
+use crate::{player_registry::PlayerIdentifier, round_registry::RoundIdentifier};
+
+use mtgjson::model::deck::Deck;
+
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TournOp {
-    UpdateReg,
-    Freeze,
-    Thaw,
-    Start,
-    End,
-    Cancel,
-    CheckIn,
-    RegisterPlayer,
-    RecordResult,
-    ConfirmResult,
-    DropPlayer,
-    AdminDropPlayer,
-    AddDeck,
-    RemoveDeck,
-    SetGamerTag,
-    ReadyPlayer,
-    UnReadyPlayer,
-    UpdateTournSettings,
-    GiveBye,
-    CreateRound,
-    PairRound,
+    UpdateReg(bool),
+    Start(),
+    Freeze(),
+    Thaw(),
+    End(),
+    Cancel(),
+    CheckIn(PlayerIdentifier),
+    RegisterPlayer(String),
+    RecordResult(RoundIdentifier, String),
+    ConfirmResult(PlayerIdentifier),
+    DropPlayer(PlayerIdentifier),
+    AdminDropPlayer(PlayerIdentifier),
+    AddDeck(PlayerIdentifier, String, Deck),
+    RemoveDeck(PlayerIdentifier, String),
+    SetGamerTag(PlayerIdentifier, String),
+    ReadyPlayer(PlayerIdentifier),
+    UnReadyPlayer(PlayerIdentifier),
+    UpdateTournSettings(), // TODO: Added this
+    GiveBye(PlayerIdentifier),
+    CreateRound(Vec<PlayerIdentifier>),
+    PairRound(),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +49,7 @@ pub struct Rollback {
 /// A struct to help resolve blockages
 pub struct Blockage {
     known: OpSlice,
+    agreed: OpSlice,
     other: OpSlice,
     problem: (TournOp, TournOp),
 }
@@ -67,49 +72,28 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn pick_resolution(self, op: TournOp) -> Result<(OpSlice, OpSlice), Self> {
+    pub fn pick_and_continue(mut self, op: TournOp) -> Result<OpSlice, Self> {
         if op == self.problem.0 {
-            let mut found = false;
-            let ops = self
-                .known
-                .ops
-                .into_iter()
-                .filter_map(|(i, o)| {
-                    if found {
-                        Some((OpId(i.0 - 1), o))
-                    } else {
-                        if o == op {
-                            found = true;
-                            None
-                        } else {
-                            Some((i, o))
-                        }
-                    }
-                })
-                .collect();
-            Ok((OpSlice { ops }, self.other))
+            self.agreed.add_op(self.problem.0);
         } else if op == self.problem.1 {
-            let mut found = false;
-            let ops = self
-                .other
-                .ops
-                .into_iter()
-                .filter_map(|(i, o)| {
-                    if found {
-                        Some((OpId(i.0 - 1), o))
-                    } else {
-                        if o == op {
-                            found = true;
-                            None
-                        } else {
-                            Some((i, o))
-                        }
-                    }
-                })
-                .collect();
-            Ok((self.known, OpSlice { ops }))
+            self.agreed.add_op(self.problem.1);
         } else {
-            Err(self)
+            return Err(self);
+        }
+        match self.known.merge(self.other) {
+            Ok(slice) => {
+                for (_, o) in slice.ops {
+                    self.agreed.add_op(o);
+                }
+                Ok(self.agreed)
+            },
+            Err(mut block) => {
+                for (_, o) in block.agreed.ops {
+                    self.agreed.add_op(o);
+                }
+                block.agreed = self.agreed;
+                Err(block)
+            }
         }
     }
 
@@ -119,55 +103,31 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn order_resolution(mut self, first: TournOp) -> Result<(OpSlice, OpSlice), Self> {
-        if first == self.problem.0 || first == self.problem.1 {
-            let mut found = false;
-            let other_ops = self
-                .other
-                .ops
-                .into_iter()
-                .filter_map(|(i, o)| {
-                    if found {
-                        Some((OpId(i.0 - 1), o))
-                    } else {
-                        if o == self.problem.1 {
-                            found = true;
-                            None
-                        } else {
-                            Some((i, o))
-                        }
-                    }
-                })
-                .collect();
-            let (index, (id, _)) = self
-                .known
-                .ops
-                .iter()
-                .enumerate()
-                .find(|(i, (_, o))| o == &self.problem.0)
-                .unwrap();
-            let id = id.clone();
-            if first == self.problem.0 {
-                self.known
-                    .ops
-                    .insert(index + 1, (id.clone(), self.problem.1));
-            } else {
-                self.known.ops.insert(index, (id.clone(), self.problem.1));
-            }
-            for (i, (id, _)) in self.known.ops.iter_mut().skip(index).enumerate() {
-                *id = OpId(id.0 + 1);
-            }
-            Ok((self.known, OpSlice { ops: other_ops }))
+    pub fn order_and_continue(mut self, first: TournOp) -> Result<OpSlice, Self> {
+        if first == self.problem.0 {
+            self.agreed.add_op(self.problem.0);
+            self.agreed.add_op(self.problem.1);
+        } else if first == self.problem.1 {
+            self.agreed.add_op(self.problem.1);
+            self.agreed.add_op(self.problem.0);
         } else {
-            Err(self)
+            return Err(self);
         }
-    }
-}
-
-impl TournOp {
-    /// Determines if the given operation affects this operation
-    pub fn blocks(&self, other: &Self) -> bool {
-        todo!()
+        match self.known.merge(self.other) {
+            Ok(slice) => {
+                for (_, o) in slice.ops {
+                    self.agreed.add_op(o);
+                }
+                Ok(self.agreed)
+            },
+            Err(mut block) => {
+                for (_, o) in block.agreed.ops {
+                    self.agreed.add_op(o);
+                }
+                block.agreed = self.agreed;
+                Err(block)
+            }
+        }
     }
 }
 
@@ -238,9 +198,41 @@ impl OpLog {
             ops: OpSlice { ops },
         }
     }
+
+    /// Wrapper for `OpSlice::merge`
+    ///
+    /// TODO: Added a check for is the `start_index` of the give slice is greater than the length
+    /// of this log
+    pub fn merge(&mut self, other: OpSlice) -> Result<(), Blockage> {
+        let index = match other.start_index() {
+            Some(i) => i,
+            None => {
+                return Ok(());
+            }
+        };
+        let slice = self.get_slice(index).unwrap();
+        let new_slice = slice.merge(other)?;
+        self.ops.truncate(index);
+        self.ops.extend(new_slice.ops.into_iter().map(|(_, o)| o));
+        Ok(())
+    }
 }
 
 impl OpSlice {
+    /// Creates a new slice
+    pub fn new() -> Self {
+        OpSlice { ops: Vec::new() }
+    }
+
+    pub fn add_op(&mut self, op: TournOp) {
+        if let Some((index, _)) = self.ops.last() {
+            let new_index = OpId(index.0 + 1);
+            self.ops.push((new_index, op));
+        } else {
+            self.ops.push((OpId(0), op));
+        }
+    }
+
     /// Returns the index of the first stored operation.
     pub fn start_index(&self) -> Option<usize> {
         self.ops.first().map(|(i, _)| i.0)
@@ -259,8 +251,8 @@ impl OpSlice {
     /// their match result and then player B records their result for their (different) match, the
     /// order of these can be swapped without issue.
     ///
-    /// The algorithm: This log is sliced at the start of the given log. For each operation in the
-    /// given log, the sliced log is walked start to finish until one of the following happens.
+    /// The algorithm: For each operation in the given slice, this slice is walked start to finish
+    /// until one of the following happens.
     ///     1) An operation identical to the first event in the given log is found. This operation
     ///        is removed from both logs and push onto the new log. We then move to the next
     ///        operation in the given log.
@@ -273,7 +265,41 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(&self, other: OpSlice) -> Result<Self, Blockage> {
+    pub fn merge(mut self, mut other: OpSlice) -> Result<Self, Blockage> {
+        let mut merged = OpSlice::new();
+        for (i, (_, other_op)) in other.ops.clone().iter().enumerate() {
+            let mut iter = self
+                .ops
+                .iter()
+                .enumerate()
+                .take_while(|(i, (_, o))| o != other_op && !o.blocks(other_op));
+            let (_, other_op) = other.ops.remove(i);
+            if let Some((i, (_, this_op))) = iter.next() {
+                let (_, this_op) = self.ops.remove(i);
+                if this_op == other_op {
+                    merged.add_op(this_op);
+                } else {
+                    return Err(Blockage {
+                        known: self,
+                        agreed: merged,
+                        other,
+                        problem: (this_op, other_op)
+                    });
+                }
+            } else {
+                merged.add_op(other_op);
+            }
+        }
+        for (_, o) in self.ops {
+            merged.add_op(o);
+        }
+        Ok(merged)
+    }
+}
+
+impl TournOp {
+    /// Determines if the given operation affects this operation
+    pub fn blocks(&self, other: &Self) -> bool {
         todo!()
     }
 }

@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::ops::RangeBounds;
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),
