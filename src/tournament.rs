@@ -1,4 +1,16 @@
-use crate::{error::TournamentError, fluid_pairings::FluidPairings, operations::TournOp, player::{Player, PlayerId}, player_registry::{PlayerIdentifier, PlayerRegistry}, round::{Round, RoundId, RoundResult, RoundStatus}, round_registry::{RoundIdentifier, RoundRegistry}, scoring::{Score, Standings}, standard_scoring::{StandardScore, StandardScoring}, swiss_pairings::SwissPairings, tournament_settings::TournamentSettings};
+use crate::{
+    error::TournamentError,
+    fluid_pairings::FluidPairings,
+    operations::TournOp,
+    player::{Player, PlayerId},
+    player_registry::{PlayerIdentifier, PlayerRegistry},
+    round::{Round, RoundId, RoundResult, RoundStatus},
+    round_registry::{RoundIdentifier, RoundRegistry},
+    scoring::{Score, Standings},
+    standard_scoring::{StandardScore, StandardScoring},
+    swiss_pairings::SwissPairings,
+    tournament_settings::TournamentSettings,
+};
 
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
@@ -83,9 +95,7 @@ impl Tournament {
             Thaw() => self.thaw(),
             End() => self.end(),
             Cancel() => self.cancel(),
-            CheckIn(p_ident) => {
-                todo!()
-            }
+            CheckIn(p_ident) => self.check_in(&p_ident),
             RegisterPlayer(name) => self.register_player(name),
             RecordResult(r_ident, result) => self.record_result(r_ident, result),
             ConfirmResult(p_ident) => self.confirm_round(&p_ident),
@@ -101,12 +111,18 @@ impl Tournament {
             }
             GiveBye(p_ident) => self.give_bye(&p_ident),
             CreateRound(p_idents) => self.create_round(p_idents),
-            PairRound() => {
-                todo!()
-            }
+            PairRound() => self.pair()
         }
     }
-
+    
+    pub fn check_in(&mut self, plyr: &PlayerIdentifier) -> Result<(), TournamentError> {
+        todo!()
+    }
+    
+    pub fn pair(&mut self) -> Result<(), TournamentError> {
+        todo!()
+    }
+    
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -330,12 +346,8 @@ impl Tournament {
         if plyr.can_play() {
             self.pairing_sys.ready_player(plyr.id);
             should_pair = match &self.pairing_sys {
-                PairingSystem::Swiss(sys) => {
-                    sys.ready_to_pair(&self.player_reg, &self.round_reg)
-                },
-                PairingSystem::Fluid(sys) => {
-                    sys.ready_to_pair(&self.round_reg)
-                }
+                PairingSystem::Fluid(sys) => sys.ready_to_pair(&self.round_reg),
+                PairingSystem::Swiss(sys) => false,
             };
         }
         if should_pair {
@@ -355,7 +367,15 @@ impl Tournament {
     }
 
     pub fn unready_player(&mut self, plyr: &PlayerIdentifier) -> Result<(), TournamentError> {
-        todo!()
+        let plyr = self
+            .player_reg
+            .get_player_id(plyr)
+            .ok_or(TournamentError::PlayerLookup)?;
+        match &mut self.pairing_sys {
+            PairingSystem::Swiss(sys) => sys.unready_player(plyr),
+            PairingSystem::Fluid(sys) => sys.unready_player(plyr),
+        };
+        Ok(())
     }
 
     pub fn set_deck_count(&mut self, deck_count: u8) {
