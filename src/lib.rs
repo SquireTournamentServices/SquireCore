@@ -1,6 +1,5 @@
 #![allow(dead_code, irrefutable_let_patterns, unused_variables, unused_imports, unused_import_braces)]
 #![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
-pub mod consts;
 pub mod error;
 pub mod fluid_pairings;
 pub mod player;
@@ -13,7 +12,4 @@ pub mod standard_scoring;
 pub mod swiss_pairings;
 pub mod tournament;
 pub mod tournament_manager;
-//pub mod tournament_registry;
 pub mod operations;
-pub mod tournament_settings;
-pub mod utils;
