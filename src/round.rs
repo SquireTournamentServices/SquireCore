@@ -1,6 +1,7 @@
 use crate::{error::TournamentError, player::PlayerId};
 
 //use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use std::{
@@ -9,7 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum RoundStatus {
     Open,
     Uncertified,
@@ -17,17 +18,17 @@ pub enum RoundStatus {
     Dead,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum RoundResult {
     Wins(PlayerId, u8),
     Draw(),
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct RoundId(Uuid);
 
 // This struct should be able to handle N many games, unlike the Python equiv.
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Round {
     pub(crate) id: RoundId,
     pub(crate) match_number: u64,

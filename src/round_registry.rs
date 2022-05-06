@@ -1,21 +1,26 @@
-use crate::error::TournamentError;
-use crate::player::PlayerId;
-use crate::round::{Round, RoundId};
+use crate::{
+    error::TournamentError,
+    player::PlayerId,
+    round::{Round, RoundId},
+};
 
 use cycle_map::CycleMap;
 
-use std::collections::hash_map::Iter;
-use std::collections::HashMap;
-use std::ops::RangeBounds;
-use std::time::Duration;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+use std::{
+    collections::hash_map::{HashMap, Iter},
+    ops::RangeBounds,
+    time::Duration,
+};
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RoundRegistry {
     pub(crate) num_and_id: CycleMap<RoundId, u64>,
     pub(crate) rounds: HashMap<u64, Round>,

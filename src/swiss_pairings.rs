@@ -1,11 +1,13 @@
-use std::collections::HashSet;
-
 pub use crate::{
     error::TournamentError, player::PlayerId, player_registry::PlayerRegistry,
     round_registry::RoundRegistry, settings::SwissPairingsSetting,
 };
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+use std::collections::HashSet;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwissPairings {
     players_per_match: u8,
     do_check_ins: bool,

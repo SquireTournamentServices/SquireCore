@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 pub use crate::{
-    consts::STANDARD_SCORING_SETTINGS,
     error::TournamentError,
     player::PlayerId,
     player_registry::PlayerIdentifier,
@@ -12,8 +9,12 @@ pub use crate::{
     settings::StandardScoringSetting,
 };
 
-use std::collections::HashSet;
-use std::string::ToString;
+use serde::{Deserialize, Serialize};
+
+use std::{
+    collections::{HashMap, HashSet},
+    string::ToString,
+};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct StandardScore {
@@ -46,7 +47,7 @@ struct ScoreCounter {
     pub opponents: HashSet<PlayerId>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StandardScoring {
     match_win_points: f64,
     match_draw_points: f64,

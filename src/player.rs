@@ -3,11 +3,15 @@ use crate::error::TournamentError;
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use std::string::ToString;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    string::ToString,
+};
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PlayerStatus {
     SignedUp,
     Registered,
@@ -15,10 +19,10 @@ pub enum PlayerStatus {
     Removed,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct PlayerId(Uuid);
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Player {
     pub id: PlayerId,
     pub name: String,

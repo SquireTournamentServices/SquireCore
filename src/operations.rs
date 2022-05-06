@@ -5,8 +5,10 @@ use crate::{
 
 use mtgjson::model::deck::Deck;
 
+use serde::{Deserialize, Serialize};
+
 /// This enum captures all ways in which a tournament can mutate.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournOp {
     UpdateReg(bool),
     Start(),
@@ -31,25 +33,29 @@ pub enum TournOp {
     PairRound(),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OpId(usize);
 
 /// An ordered list of all operations applied to a tournament
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpLog {
     pub(crate) ops: Vec<TournOp>,
 }
 
 /// An ordered list of some of the operations applied to a tournament
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpSlice {
     pub(crate) ops: Vec<(OpId, TournOp)>,
 }
 
 /// A struct used to communicate a rollback
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Rollback {
     ops: OpSlice,
 }
 
 /// A struct to help resolve blockages
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Blockage {
     known: OpSlice,
     agreed: OpSlice,

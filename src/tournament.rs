@@ -7,8 +7,8 @@ use crate::{
     round::{Round, RoundId, RoundResult, RoundStatus},
     round_registry::{RoundIdentifier, RoundRegistry},
     scoring::{Score, Standings},
-    settings::{self,
-        FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
+    settings::{
+        self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
         SwissPairingsSetting, TournamentSetting,
     },
     standard_scoring::{StandardScore, StandardScoring},
@@ -17,6 +17,8 @@ use crate::{
 };
 
 use mtgjson::model::deck::Deck;
+
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use std::{
@@ -25,27 +27,27 @@ use std::{
     time::Duration,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub enum TournamentPreset {
     Swiss,
     Fluid,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[repr(C)]
 pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[repr(C)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum TournamentStatus {
     Planned,
@@ -55,11 +57,11 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(C)]
 pub struct TournamentId(Uuid);
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[repr(C)]
 pub struct Tournament {
     id: TournamentId,
@@ -151,8 +153,7 @@ impl Tournament {
             RequireDeckReg(b) => {
                 self.require_deck_reg = b;
             }
-            PairingSetting(setting) =>
-                match setting {
+            PairingSetting(setting) => match setting {
                 settings::PairingSetting::Swiss(s) => {
                     if let PairingSystem::Swiss(sys) = &mut self.pairing_sys {
                         sys.update_setting(s);
@@ -168,8 +169,7 @@ impl Tournament {
                     }
                 }
             },
-            ScoringSetting(setting) =>
-                match setting {
+            ScoringSetting(setting) => match setting {
                 settings::ScoringSetting::Standard(s) => {
                     if let ScoringSystem::Standard(sys) = &mut self.scoring_sys {
                         sys.update_setting(s);
@@ -177,7 +177,7 @@ impl Tournament {
                         return Err(TournamentError::IncompatibleScoringSystem);
                     }
                 }
-            }
+            },
         }
         Ok(())
     }

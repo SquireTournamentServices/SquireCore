@@ -6,7 +6,7 @@ license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
-cycle_map = { version = "0.1.0" }
+cycle_map = { version = "0.1.1", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }

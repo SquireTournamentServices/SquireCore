@@ -1,11 +1,13 @@
-use std::collections::HashSet;
-
-pub use crate::{
+use crate::{
     error::TournamentError, player::PlayerId, player_registry::PlayerRegistry,
     round_registry::RoundRegistry, settings::FluidPairingsSetting,
 };
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+use std::collections::HashSet;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FluidPairings {
     players_per_match: u8,
     check_ins: HashSet<PlayerId>,

@@ -1,16 +1,19 @@
-use std::slice::Iter;
-
 use crate::{
     error::TournamentError,
     operations::{OpLog, TournOp},
     tournament::*,
 };
 
+use serde::{Deserialize, Serialize};
+
+use std::slice::Iter;
+
 /// A state manager for the tournament struct
 ///
 /// The manager holds the current tournament and can recreate any meaningful prior state.
 ///
 /// This is the primary synchronization primative between tournaments.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TournamentManager {
     tourn: Tournament,
     seed: TournamentPreset,

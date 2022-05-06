@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournamentSetting {
     Format(String),
     MinDeckCount(u8),
@@ -9,29 +11,29 @@ pub enum TournamentSetting {
     ScoringSetting(ScoringSetting),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PairingSetting {
     Swiss(SwissPairingsSetting),
     Fluid(FluidPairingsSetting),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScoringSetting {
     Standard(StandardScoringSetting),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum SwissPairingsSetting {
     MatchSize(u8),
     DoCheckIns(bool),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum FluidPairingsSetting {
     MatchSize(u8),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum StandardScoringSetting {
     MatchWinPoints(f64),
     MatchDrawPoints(f64),
