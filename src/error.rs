@@ -12,6 +12,8 @@ pub enum TournamentError {
     InvalidBye,
     ActiveMatches,
     PlayerNotCheckedIn,
+    IncompatiblePairingSystem,
+    IncompatibleScoringSystem,
 }
 
 impl fmt::Display for TournamentError {
@@ -28,6 +30,8 @@ impl fmt::Display for TournamentError {
             InvalidBye => "InvalidBye",
             ActiveMatches => "ActiveMatches",
             PlayerNotCheckedIn => "PlayerNotCheckedIn",
+            IncompatibleScoringSystem => "IncompatibleScoringSystem",
+            IncompatiblePairingSystem => "IncompatiblePairingSystem",
         };
         write!(f, "{}", s)
     }

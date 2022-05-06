@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_variables, unused_imports, unused_import_braces)]
+#![allow(dead_code, irrefutable_let_patterns, unused_variables, unused_imports, unused_import_braces)]
 #![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 pub mod consts;
 pub mod error;

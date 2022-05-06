@@ -1,4 +1,7 @@
-use crate::{player_registry::PlayerIdentifier, round::RoundResult, round_registry::RoundIdentifier};
+use crate::{
+    player_registry::PlayerIdentifier, round::RoundResult, round_registry::RoundIdentifier,
+    settings::TournamentSetting,
+};
 
 use mtgjson::model::deck::Deck;
 
@@ -22,7 +25,7 @@ pub enum TournOp {
     SetGamerTag(PlayerIdentifier, String),
     ReadyPlayer(PlayerIdentifier),
     UnReadyPlayer(PlayerIdentifier),
-    UpdateTournSettings(), // TODO: Added this
+    UpdateTournSetting(TournamentSetting), // TODO: Added this
     GiveBye(PlayerIdentifier),
     CreateRound(Vec<PlayerIdentifier>),
     PairRound(),

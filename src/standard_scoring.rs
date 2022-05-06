@@ -6,13 +6,10 @@ pub use crate::{
     player::PlayerId,
     player_registry::PlayerIdentifier,
     player_registry::PlayerRegistry,
-    round::{RoundResult, Round},
+    round::{Round, RoundResult},
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
-};
-use crate::{
-    settings::{Settings, SettingsResult},
-    utils::try_into_bool,
+    settings::StandardScoringSetting,
 };
 
 use std::collections::HashSet;
@@ -120,52 +117,52 @@ impl StandardScoring {
         }
     }
 
-    pub fn update_settings(&mut self, mut settings: Settings) -> SettingsResult {
-        let iter = STANDARD_SCORING_SETTINGS.clone().into_iter();
-        let mut accepted = Settings::new();
-        let mut errored = Settings::new();
-        for key in iter {
-            if let Some(val) = settings.settings.remove(key) {
-                // All settings are bools, so we can convert here.
-                let b = match try_into_bool(&val) {
-                    Some(b) => {
-                        accepted.settings.insert(key.to_string(), val);
-                        b
-                    }
-                    None => {
-                        errored.settings.insert(key.to_string(), val);
-                        continue;
-                    }
-                };
-                match key {
-                    "include-byes" => {
-                        self.include_byes = b;
-                    }
-                    "include-match-points" => {
-                        self.include_match_points = b;
-                    }
-                    "include-game-points" => {
-                        self.include_game_points = b;
-                    }
-                    "include-mwp" => {
-                        self.include_mwp = b;
-                    }
-                    "include-gwp" => {
-                        self.include_gwp = b;
-                    }
-                    "include-opp-mwp" => {
-                        self.include_opp_mwp = b;
-                    }
-                    "include-opp-gwp" => {
-                        self.include_opp_gwp = b;
-                    }
-                    _ => {
-                        unreachable!()
-                    }
-                }
+    pub fn update_setting(&mut self, setting: StandardScoringSetting) {
+        use StandardScoringSetting::*;
+        match setting {
+            MatchWinPoints(p) => {
+                self.match_win_points = p;
+            }
+            MatchDrawPoints(p) => {
+                self.match_draw_points = p;
+            }
+            MatchLossPoints(p) => {
+                self.match_loss_points = p;
+            }
+            GameWinPoints(p) => {
+                self.game_win_points = p;
+            }
+            GameDrawPoints(p) => {
+                self.game_draw_points = p;
+            }
+            GameLossPoints(p) => {
+                self.game_loss_points = p;
+            }
+            ByePoints(p) => {
+                self.bye_points = p;
+            }
+            IncludeByes(b) => {
+                self.include_byes = b;
+            }
+            IncludeMatchPoints(b) => {
+                self.include_match_points = b;
+            }
+            IncludeGamePoints(b) => {
+                self.include_game_points = b;
+            }
+            IncludeMwp(b) => {
+                self.include_mwp = b;
+            }
+            IncludeGwp(b) => {
+                self.include_gwp = b;
+            }
+            IncludeOppMwp(b) => {
+                self.include_opp_mwp = b;
+            }
+            IncludeOppGwp(b) => {
+                self.include_opp_gwp = b;
             }
         }
-        SettingsResult::new(accepted, settings, errored)
     }
 
     pub fn get_standings(
@@ -345,7 +342,7 @@ impl ScoreCounter {
             match result {
                 RoundResult::Draw() => {
                     self.game_draws += 1;
-                },
+                }
                 RoundResult::Wins(p_id, count) => {
                     if p_id == &self.player {
                         self.game_wins += 1;

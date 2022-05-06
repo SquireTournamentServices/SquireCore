@@ -35,9 +35,9 @@ impl PlayerRegistry {
     pub fn len(&self) -> usize {
         self.players.len()
     }
-    
+
     pub fn active_player_count(&self) -> usize {
-        self.players.iter().filter(|(_,p)| p.can_play()).count()
+        self.players.iter().filter(|(_, p)| p.can_play()).count()
     }
 
     pub fn add_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {

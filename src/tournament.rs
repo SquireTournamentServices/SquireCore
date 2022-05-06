@@ -7,6 +7,10 @@ use crate::{
     round::{Round, RoundId, RoundResult, RoundStatus},
     round_registry::{RoundIdentifier, RoundRegistry},
     scoring::{Score, Standings},
+    settings::{self,
+        FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
+        SwissPairingsSetting, TournamentSetting,
+    },
     standard_scoring::{StandardScore, StandardScoring},
     swiss_pairings::SwissPairings,
     tournament_settings::TournamentSettings,
@@ -15,9 +19,11 @@ use crate::{
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
 
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use std::time::Duration;
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    time::Duration,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
@@ -60,12 +66,15 @@ pub struct Tournament {
     pub name: String,
     format: String,
     game_size: u8,
-    deck_count: u8,
+    min_deck_count: u8,
+    max_deck_count: u8,
     player_reg: PlayerRegistry,
     round_reg: RoundRegistry,
     pairing_sys: PairingSystem,
     scoring_sys: ScoringSystem,
     reg_open: bool,
+    require_check_in: bool,
+    require_deck_reg: bool,
     status: TournamentStatus,
 }
 
@@ -76,12 +85,15 @@ impl Tournament {
             name,
             format,
             game_size: 2,
-            deck_count: 2,
+            min_deck_count: 1,
+            max_deck_count: 2,
             player_reg: PlayerRegistry::new(),
             round_reg: RoundRegistry::new(Duration::from_secs(3000)),
             pairing_sys: pairing_system_factory(&preset, 2),
             scoring_sys: scoring_system_factory(&preset),
             reg_open: true,
+            require_check_in: false,
+            require_deck_reg: false,
             status: TournamentStatus::Planned,
         }
     }
@@ -106,23 +118,70 @@ impl Tournament {
             SetGamerTag(p_ident, tag) => self.player_set_game_name(&p_ident, tag),
             ReadyPlayer(p_ident) => self.ready_player(&p_ident),
             UnReadyPlayer(p_ident) => self.unready_player(&p_ident),
-            UpdateTournSettings() => {
-                todo!()
-            }
+            UpdateTournSetting(setting) => self.update_setting(setting),
             GiveBye(p_ident) => self.give_bye(&p_ident),
             CreateRound(p_idents) => self.create_round(p_idents),
-            PairRound() => self.pair()
+            PairRound() => self.pair(),
         }
     }
-    
+
     pub fn check_in(&mut self, plyr: &PlayerIdentifier) -> Result<(), TournamentError> {
         todo!()
     }
-    
+
     pub fn pair(&mut self) -> Result<(), TournamentError> {
         todo!()
     }
-    
+
+    pub fn update_setting(&mut self, setting: TournamentSetting) -> Result<(), TournamentError> {
+        use TournamentSetting::*;
+        match setting {
+            Format(f) => {
+                self.format = f;
+            }
+            MinDeckCount(c) => {
+                self.min_deck_count = c;
+            }
+            MaxDeckCount(c) => {
+                self.max_deck_count = c;
+            }
+            RequireCheckIn(b) => {
+                self.require_check_in = b;
+            }
+            RequireDeckReg(b) => {
+                self.require_deck_reg = b;
+            }
+            PairingSetting(setting) =>
+                match setting {
+                settings::PairingSetting::Swiss(s) => {
+                    if let PairingSystem::Swiss(sys) = &mut self.pairing_sys {
+                        sys.update_setting(s);
+                    } else {
+                        return Err(TournamentError::IncompatiblePairingSystem);
+                    }
+                }
+                settings::PairingSetting::Fluid(s) => {
+                    if let PairingSystem::Fluid(sys) = &mut self.pairing_sys {
+                        sys.update_setting(s);
+                    } else {
+                        return Err(TournamentError::IncompatiblePairingSystem);
+                    }
+                }
+            },
+            ScoringSetting(setting) =>
+                match setting {
+                settings::ScoringSetting::Standard(s) => {
+                    if let ScoringSystem::Standard(sys) = &mut self.scoring_sys {
+                        sys.update_setting(s);
+                    } else {
+                        return Err(TournamentError::IncompatibleScoringSystem);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
@@ -376,18 +435,6 @@ impl Tournament {
             PairingSystem::Fluid(sys) => sys.unready_player(plyr),
         };
         Ok(())
-    }
-
-    pub fn set_deck_count(&mut self, deck_count: u8) {
-        self.deck_count = deck_count;
-    }
-
-    pub fn set_game_size(&mut self, game_size: u8) {
-        self.game_size = game_size;
-    }
-
-    pub fn set_round_length(&mut self, length: Duration) {
-        self.round_reg.set_round_length(length);
     }
 
     pub fn give_bye(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {

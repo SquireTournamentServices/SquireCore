@@ -1,15 +1,9 @@
 use std::collections::HashSet;
 
-pub use super::{
+pub use crate::{
     error::TournamentError, player::PlayerId, player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
+    round_registry::RoundRegistry, settings::SwissPairingsSetting,
 };
-
-#[derive(Debug, Clone)]
-pub enum SwissPairingsSettings {
-    MatchSize(u8),
-    DoCheckIns(bool),
-}
 
 #[derive(Debug, Clone)]
 pub struct SwissPairings {
@@ -35,8 +29,8 @@ impl SwissPairings {
         self.check_ins.remove(&plyr);
     }
 
-    pub fn update_settings(&mut self, setting: SwissPairingsSettings) {
-        use SwissPairingsSettings::*;
+    pub fn update_setting(&mut self, setting: SwissPairingsSetting) {
+        use SwissPairingsSetting::*;
         match setting {
             MatchSize(s) => {
                 self.players_per_match = s;
@@ -46,7 +40,7 @@ impl SwissPairings {
             }
         }
     }
-    
+
     pub fn ready_to_pair(&self, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> bool {
         let mut digest = true;
         if self.do_check_ins {

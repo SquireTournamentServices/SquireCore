@@ -2,13 +2,8 @@ use std::collections::HashSet;
 
 pub use crate::{
     error::TournamentError, player::PlayerId, player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
+    round_registry::RoundRegistry, settings::FluidPairingsSetting,
 };
-
-#[derive(Debug, Clone)]
-pub enum FluidPairingsSettings {
-    MatchSize(u8),
-}
 
 #[derive(Debug, Clone)]
 pub struct FluidPairings {
@@ -32,15 +27,15 @@ impl FluidPairings {
         self.check_ins.remove(&plyr);
     }
 
-    pub fn update_setting(&mut self, setting: FluidPairingsSettings) {
-        use FluidPairingsSettings::*;
+    pub fn update_setting(&mut self, setting: FluidPairingsSetting) {
+        use FluidPairingsSetting::*;
         match setting {
             MatchSize(s) => {
                 self.players_per_match = s;
             }
         }
     }
-    
+
     pub fn ready_to_pair(&self, rnd_reg: &RoundRegistry) -> bool {
         let mut digest = true;
         digest &= rnd_reg.active_round_count() == 0;
