@@ -3,7 +3,8 @@ use std::slice::Iter;
 use crate::{
     error::TournamentError,
     operations::{OpLog, TournOp},
-    tournament::*};
+    tournament::*,
+};
 
 /// A state manager for the tournament struct
 ///
@@ -34,7 +35,7 @@ impl TournamentManager {
     /// Takes an operation stores it, applies it to the tournament, and returns the result.
     /// NOTE: Even operations that result in a tournament error are stored.
     pub fn apply(&mut self, op: TournOp) -> Result<(), TournamentError> {
-        let digest = self.tourn.apply_op(&op);
+        let digest = self.tourn.apply_op(op.clone());
         self.log.ops.push(op);
         digest
     }
@@ -66,7 +67,7 @@ impl Iterator for StateIter<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.shown_init {
             let op = self.ops.next()?;
-            let _ = self.state.apply_op(op);
+            let _ = self.state.apply_op(op.clone());
         } else {
             self.shown_init = true;
         }

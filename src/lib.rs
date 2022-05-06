@@ -3,7 +3,6 @@
 pub mod consts;
 pub mod error;
 pub mod fluid_pairings;
-pub mod game;
 pub mod player;
 pub mod player_registry;
 pub mod round;
@@ -15,6 +14,6 @@ pub mod swiss_pairings;
 pub mod tournament;
 pub mod tournament_manager;
 //pub mod tournament_registry;
-pub mod tournament_settings;
 pub mod operations;
+pub mod tournament_settings;
 pub mod utils;

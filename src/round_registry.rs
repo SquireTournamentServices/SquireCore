@@ -30,6 +30,10 @@ impl RoundRegistry {
             length: len,
         }
     }
+    
+    pub fn active_round_count(&self) -> usize {
+        self.rounds.iter().filter(|(_,m)| !m.is_certified()).count()
+    }
 
     pub fn create_round(&mut self) -> &mut Round {
         let match_num = self.rounds.len() as u64;

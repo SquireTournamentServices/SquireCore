@@ -1,4 +1,4 @@
-use crate::{player_registry::PlayerIdentifier, round_registry::RoundIdentifier};
+use crate::{player_registry::PlayerIdentifier, round::RoundResult, round_registry::RoundIdentifier};
 
 use mtgjson::model::deck::Deck;
 
@@ -13,7 +13,7 @@ pub enum TournOp {
     Cancel(),
     CheckIn(PlayerIdentifier),
     RegisterPlayer(String),
-    RecordResult(RoundIdentifier, String),
+    RecordResult(RoundIdentifier, RoundResult),
     ConfirmResult(PlayerIdentifier),
     DropPlayer(PlayerIdentifier),
     AdminDropPlayer(PlayerIdentifier),
@@ -86,7 +86,7 @@ impl Blockage {
                     self.agreed.add_op(o);
                 }
                 Ok(self.agreed)
-            },
+            }
             Err(mut block) => {
                 for (_, o) in block.agreed.ops {
                     self.agreed.add_op(o);
@@ -119,7 +119,7 @@ impl Blockage {
                     self.agreed.add_op(o);
                 }
                 Ok(self.agreed)
-            },
+            }
             Err(mut block) => {
                 for (_, o) in block.agreed.ops {
                     self.agreed.add_op(o);
@@ -157,8 +157,7 @@ impl OpLog {
         Some(OpSlice { ops })
     }
 
-    /// Removes all elements in the log starting at the first index of the given slice. All
-    /// operations in the slice are then appended to the end of the log.
+    /// Removes all elements in the log starting at the first index of the given slice. All operations in the slice are then appended to the end of the log.
     pub fn overwrite(&mut self, ops: OpSlice) -> Option<()> {
         let index = ops.start_index()?;
         if index > self.ops.len() {
@@ -283,7 +282,7 @@ impl OpSlice {
                         known: self,
                         agreed: merged,
                         other,
-                        problem: (this_op, other_op)
+                        problem: (this_op, other_op),
                     });
                 }
             } else {

@@ -1,16 +1,4 @@
-use crate::{
-    error::TournamentError,
-    fluid_pairings::FluidPairings,
-    player::{Player, PlayerId},
-    player_registry::{PlayerIdentifier, PlayerRegistry},
-    round::{parse_to_outcome, Round, RoundId, RoundStatus},
-    round_registry::{RoundIdentifier, RoundRegistry},
-    scoring::{Score, Standings},
-    standard_scoring::{StandardScore, StandardScoring},
-    swiss_pairings::SwissPairings,
-    tournament_settings::TournamentSettings,
-    operations::TournOp,
-};
+use crate::{error::TournamentError, fluid_pairings::FluidPairings, operations::TournOp, player::{Player, PlayerId}, player_registry::{PlayerIdentifier, PlayerRegistry}, round::{Round, RoundId, RoundResult, RoundStatus}, round_registry::{RoundIdentifier, RoundRegistry}, scoring::{Score, Standings}, standard_scoring::{StandardScore, StandardScoring}, swiss_pairings::SwissPairings, tournament_settings::TournamentSettings};
 
 use mtgjson::model::deck::Deck;
 use uuid::Uuid;
@@ -86,8 +74,37 @@ impl Tournament {
         }
     }
 
-    pub fn apply_op(&mut self, op: &TournOp) -> Result<(), TournamentError> {
-        todo!()
+    pub fn apply_op(&mut self, op: TournOp) -> Result<(), TournamentError> {
+        use TournOp::*;
+        match op {
+            UpdateReg(b) => Ok(self.update_reg(b)),
+            Start() => self.start(),
+            Freeze() => self.freeze(),
+            Thaw() => self.thaw(),
+            End() => self.end(),
+            Cancel() => self.cancel(),
+            CheckIn(p_ident) => {
+                todo!()
+            }
+            RegisterPlayer(name) => self.register_player(name),
+            RecordResult(r_ident, result) => self.record_result(r_ident, result),
+            ConfirmResult(p_ident) => self.confirm_round(&p_ident),
+            DropPlayer(p_ident) => self.drop_player(&p_ident),
+            AdminDropPlayer(p_ident) => self.admin_drop_player(&p_ident),
+            AddDeck(p_ident, name, deck) => self.player_add_deck(&p_ident, name, deck),
+            RemoveDeck(p_ident, name) => self.remove_player_deck(&p_ident, name),
+            SetGamerTag(p_ident, tag) => self.player_set_game_name(&p_ident, tag),
+            ReadyPlayer(p_ident) => self.ready_player(&p_ident),
+            UnReadyPlayer(p_ident) => self.unready_player(&p_ident),
+            UpdateTournSettings() => {
+                todo!()
+            }
+            GiveBye(p_ident) => self.give_bye(&p_ident),
+            CreateRound(p_idents) => self.create_round(p_idents),
+            PairRound() => {
+                todo!()
+            }
+        }
     }
 
     pub fn update_reg(&mut self, reg_status: bool) {
@@ -157,34 +174,31 @@ impl Tournament {
         }
     }
 
-    pub fn register_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
+    pub fn register_player(&mut self, name: String) -> Result<(), TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        self.player_reg.add_player(name)
+        self.player_reg.add_player(name)?;
+        Ok(())
     }
 
-    pub fn record_outcome(
+    pub fn record_result(
         &mut self,
         ident: RoundIdentifier,
-        input: String,
+        result: RoundResult,
     ) -> Result<(), TournamentError> {
-        let outcome = parse_to_outcome(input)?;
         let round = self
             .round_reg
             .get_mut_round(ident)
             .ok_or(TournamentError::RoundLookup)?;
-        round.record_outcome(outcome)?;
+        round.record_result(result)?;
         Ok(())
     }
 
-    pub fn confirm_round(
-        &mut self,
-        ident: &PlayerIdentifier,
-    ) -> Result<RoundStatus, TournamentError> {
+    pub fn confirm_round(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
@@ -193,7 +207,8 @@ impl Tournament {
             .get_player_id(ident)
             .ok_or(TournamentError::PlayerLookup)?;
         let round = self.round_reg.get_player_active_round(id)?;
-        round.confirm_round(id)
+        round.confirm_round(id)?;
+        Ok(())
     }
 
     pub fn drop_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
@@ -313,12 +328,20 @@ impl Tournament {
             .ok_or(TournamentError::PlayerLookup)?;
         let mut should_pair = false;
         if plyr.can_play() {
-            should_pair = self.pairing_sys.ready_player(plyr.id);
+            self.pairing_sys.ready_player(plyr.id);
+            should_pair = match &self.pairing_sys {
+                PairingSystem::Swiss(sys) => {
+                    sys.ready_to_pair(&self.player_reg, &self.round_reg)
+                },
+                PairingSystem::Fluid(sys) => {
+                    sys.ready_to_pair(&self.round_reg)
+                }
+            };
         }
         if should_pair {
             if let Some(pairings) =
                 self.pairing_sys
-                    .suggest_pairings(self.game_size, &self.player_reg, &self.round_reg)
+                    .pair(self.game_size, &self.player_reg, &self.round_reg)
             {
                 for p in pairings {
                     let round = self.round_reg.create_round();
@@ -331,7 +354,7 @@ impl Tournament {
         Ok(())
     }
 
-    pub fn unready_player(&mut self, plyr: String) -> String {
+    pub fn unready_player(&mut self, plyr: &PlayerIdentifier) -> Result<(), TournamentError> {
         todo!()
     }
 
@@ -465,22 +488,22 @@ impl Hash for Tournament {
     }
 }
 impl PairingSystem {
-    pub fn ready_player(&mut self, id: PlayerId) -> bool {
+    pub fn ready_player(&mut self, id: PlayerId) {
         match self {
             Self::Swiss(sys) => sys.ready_player(id),
             Self::Fluid(sys) => sys.ready_player(id),
         }
     }
 
-    pub fn suggest_pairings(
+    pub fn pair(
         &mut self,
         size: u8,
         plyr_reg: &PlayerRegistry,
         rnd_reg: &RoundRegistry,
     ) -> Option<Vec<Vec<PlayerId>>> {
         match self {
-            Self::Swiss(sys) => sys.suggest_pairings(size, plyr_reg, rnd_reg),
-            Self::Fluid(sys) => sys.suggest_pairings(size, plyr_reg, rnd_reg),
+            Self::Swiss(sys) => sys.pair(plyr_reg, rnd_reg),
+            Self::Fluid(sys) => sys.pair(plyr_reg, rnd_reg),
         }
     }
 }

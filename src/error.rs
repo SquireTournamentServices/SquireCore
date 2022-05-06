@@ -10,21 +10,24 @@ pub enum TournamentError {
     PlayerNotInRound,
     NoActiveRound,
     InvalidBye,
-    InvalidGame,
+    ActiveMatches,
+    PlayerNotCheckedIn,
 }
 
 impl fmt::Display for TournamentError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use TournamentError::*;
         let s = match &self {
-            Self::IncorrectStatus => "IncorrectStatus",
-            Self::PlayerLookup => "PlayerLookup",
-            Self::RoundLookup => "RoundLookup",
-            Self::DeckLookup => "DeckLookup",
-            Self::RegClosed => "RegClosed",
-            Self::PlayerNotInRound => "PlayerNotInRound",
-            Self::NoActiveRound => "NoActiveRound",
-            Self::InvalidBye => "InvalidBye",
-            Self::InvalidGame => "InvalidGame",
+            IncorrectStatus => "IncorrectStatus",
+            PlayerLookup => "PlayerLookup",
+            RoundLookup => "RoundLookup",
+            DeckLookup => "DeckLookup",
+            RegClosed => "RegClosed",
+            PlayerNotInRound => "PlayerNotInRound",
+            NoActiveRound => "NoActiveRound",
+            InvalidBye => "InvalidBye",
+            ActiveMatches => "ActiveMatches",
+            PlayerNotCheckedIn => "PlayerNotCheckedIn",
         };
         write!(f, "{}", s)
     }

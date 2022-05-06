@@ -6,7 +6,7 @@ pub use crate::{
     player::PlayerId,
     player_registry::PlayerIdentifier,
     player_registry::PlayerRegistry,
-    round::Round,
+    round::{RoundResult, Round},
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
 };
@@ -341,14 +341,17 @@ impl ScoreCounter {
                 }
             }
         }
-        for game in &round.games {
-            if game.is_draw() {
-                self.game_draws += 1;
-            } else {
-                if game.winner.unwrap() == self.player {
-                    self.game_wins += 1;
-                } else {
-                    self.game_losses += 1;
+        for result in &round.results {
+            match result {
+                RoundResult::Draw() => {
+                    self.game_draws += 1;
+                },
+                RoundResult::Wins(p_id, count) => {
+                    if p_id == &self.player {
+                        self.game_wins += 1;
+                    } else {
+                        self.game_losses += 1;
+                    }
                 }
             }
         }
