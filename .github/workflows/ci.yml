@@ -25,6 +25,21 @@ jobs:
       - run: cargo build --verbose --features ffi
       - run: cargo test --verbose --features ffi
       - run: cargo doc --verbose --features ffi
+  mac_build_and_test:
+    name: SquireCore - Tests - Mac
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo build --verbose --features ffi
+      - run: cargo test --verbose --features ffi
+      - run: cargo doc --verbose --features ffi
   linux_build_and_test:
     name: SquireCore - Tests - Linux
     runs-on: ubuntu-latest
@@ -40,6 +55,18 @@ jobs:
       - run: cargo build --verbose
       - run: cargo test --verbose
       - run: cargo doc --verbose
+  linux_build_and_test:
+    name: SquireCore - FFI Tests - Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo build --verbose --features ffi
       - run: cargo test --verbose --features ffi
       - run: cargo doc --verbose --features ffi

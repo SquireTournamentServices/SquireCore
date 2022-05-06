@@ -25,7 +25,7 @@ pub enum TournOp {
     SetGamerTag(PlayerIdentifier, String),
     ReadyPlayer(PlayerIdentifier),
     UnReadyPlayer(PlayerIdentifier),
-    UpdateTournSetting(TournamentSetting), // TODO: Added this
+    UpdateTournSetting(TournamentSetting),
     GiveBye(PlayerIdentifier),
     CreateRound(Vec<PlayerIdentifier>),
     PairRound(),
