@@ -4,6 +4,7 @@ where
 {
 }
 
+#[repr(C)]
 pub struct Standings<S> {
     scores: Vec<(String, S)>,
 }

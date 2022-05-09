@@ -28,7 +28,9 @@ pub enum RoundResult {
 pub struct RoundId(Uuid);
 
 // This struct should be able to handle N many games, unlike the Python equiv.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+// TODO: Added back in once alternative for Duration is found
+//#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Round {
     pub(crate) id: RoundId,
     pub(crate) match_number: u64,

@@ -19,3 +19,5 @@ pub mod standard_scoring;
 pub mod swiss_pairings;
 pub mod tournament;
 pub mod tournament_manager;
+#[cfg(feature = "ffi")]
+pub mod ffi;

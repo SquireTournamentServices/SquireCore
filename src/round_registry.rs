@@ -20,7 +20,9 @@ pub enum RoundIdentifier {
     Number(u64),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+// TODO: Added back in once Round is (de)serializable
+//#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct RoundRegistry {
     pub(crate) num_and_id: CycleMap<RoundId, u64>,
     pub(crate) rounds: HashMap<u64, Round>,
