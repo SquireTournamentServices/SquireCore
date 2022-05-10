@@ -20,7 +20,13 @@ use mtgjson::model::deck::Deck;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use std::{collections::HashMap, ffi::{CStr, CString}, hash::{Hash, Hasher}, str::Utf8Error, time::Duration};
+use std::{
+    collections::HashMap,
+    ffi::{CStr, CString},
+    hash::{Hash, Hasher},
+    str::Utf8Error,
+    time::Duration,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]

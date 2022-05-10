@@ -5,7 +5,8 @@
     unused_imports,
     unused_import_braces
 )]
-#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
+//#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
+#![deny(improper_ctypes_definitions)]
 pub mod error;
 pub mod fluid_pairings;
 pub mod operations;
@@ -19,5 +20,5 @@ pub mod standard_scoring;
 pub mod swiss_pairings;
 pub mod tournament;
 pub mod tournament_manager;
-#[cfg(feature = "ffi")]
+//#[cfg(feature = "ffi")]
 pub mod ffi;

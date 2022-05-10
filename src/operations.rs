@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[repr(C)]
 pub enum TournOp {
     UpdateReg(bool),
     Start(),

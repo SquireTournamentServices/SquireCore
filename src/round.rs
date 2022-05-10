@@ -11,6 +11,7 @@ use std::{
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+#[repr(C)]
 pub enum RoundStatus {
     Open,
     Uncertified,
@@ -19,12 +20,14 @@ pub enum RoundStatus {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[repr(C)]
 pub enum RoundResult {
     Wins(PlayerId, u8),
     Draw(),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[repr(C)]
 pub struct RoundId(Uuid);
 
 // This struct should be able to handle N many games, unlike the Python equiv.

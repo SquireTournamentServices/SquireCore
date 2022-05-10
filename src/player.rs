@@ -20,6 +20,7 @@ pub enum PlayerStatus {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[repr(C)]
 pub struct PlayerId(Uuid);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
