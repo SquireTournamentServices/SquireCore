@@ -10,8 +10,8 @@ cycle_map = { version = "0.1.1", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
 uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
-libc = { version = "0.2"}
-#libc = { version = "0.2", optional = true }
+#libc = { version = "0.2"}
+libc = { version = "0.2", optional = true }
 
 # For future use
 #anyhow = { version = "1.0" }
@@ -35,5 +35,5 @@ crate-type = ["staticlib"]
 cbindgen = { version = "0.20.0", optional = true}
 
 [features]
-ffi = ["cbindgen"]
-#ffi = ["cbindgen", "libc"]
+#ffi = ["cbindgen"]
+ffi = ["cbindgen", "libc"]
