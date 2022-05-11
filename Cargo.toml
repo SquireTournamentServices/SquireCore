@@ -1,6 +1,6 @@
 [package]
 name = "squire_core"
-version = "0.1.0-pre-alpha.1"
+version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
@@ -29,7 +29,7 @@ libc = { version = "0.2", optional = true }
 #tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["lib", "staticlib"]
 
 [build-dependencies]
 cbindgen = { version = "0.20.0", optional = true}
