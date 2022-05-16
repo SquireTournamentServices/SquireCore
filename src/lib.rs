@@ -6,7 +6,7 @@
     unused_import_braces
 )]
 //#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
-#![deny(improper_ctypes_definitions)]
+//#![deny(improper_ctypes_definitions)]
 pub mod error;
 pub mod fluid_pairings;
 pub mod operations;

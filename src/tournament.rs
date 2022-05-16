@@ -67,7 +67,7 @@ pub struct TournamentId(Uuid);
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Tournament {
-    id: TournamentId,
+    pub id: TournamentId,
     pub name: String,
     format: String,
     game_size: u8,
