@@ -35,9 +35,9 @@ pub struct RoundId(Uuid);
 //#[derive(Serialize, Deserialize, Debug, Clone)]
 #[derive(Debug, Clone)]
 pub struct Round {
-    pub(crate) id: RoundId,
-    pub(crate) match_number: u64,
-    pub(crate) players: HashSet<PlayerId>,
+    pub id: RoundId,
+    pub match_number: u64,
+    pub players: HashSet<PlayerId>,
     confirmations: HashSet<PlayerId>,
     pub(crate) results: Vec<RoundResult>,
     status: RoundStatus,
