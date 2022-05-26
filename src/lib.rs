@@ -8,6 +8,8 @@
 //#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 //#![deny(improper_ctypes_definitions)]
 pub mod error;
+#[cfg(feature = "ffi")]
+pub mod ffi;
 pub mod fluid_pairings;
 pub mod operations;
 pub mod player;
@@ -20,5 +22,3 @@ pub mod standard_scoring;
 pub mod swiss_pairings;
 pub mod tournament;
 pub mod tournament_manager;
-#[cfg(feature = "ffi")]
-pub mod ffi;

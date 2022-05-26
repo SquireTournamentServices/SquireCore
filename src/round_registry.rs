@@ -14,7 +14,7 @@ use std::{
     time::Duration,
 };
 
-#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),

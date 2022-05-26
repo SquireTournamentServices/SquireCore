@@ -211,47 +211,50 @@ impl TournOp {
         let alloc = Box::new(Self::UpdateReg(status));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_start_op_c(mut expected: *const TournOp) {
         let alloc = Box::new(Self::Start());
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_freeze_op_c(mut expected: *const TournOp) {
         let alloc = Box::new(Self::Freeze());
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_thaw_op_c(mut expected: *const TournOp) {
         let alloc = Box::new(Self::Thaw());
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_end_op_c(mut expected: *const TournOp) {
         let alloc = Box::new(Self::End());
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_cancel_op_c(mut expected: *const TournOp) {
         let alloc = Box::new(Self::Cancel());
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_check_in_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::CheckIn(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     /// Returns 0 if everything is ok.
     /// Returns 1 if there is an issue with name conversion
     #[allow(unused_assignments)]
-    pub extern "C" fn new_register_player_op_c(mut expected: *const TournOp, name_buf: *mut c_char) -> usize {
+    pub extern "C" fn new_register_player_op_c(
+        mut expected: *const TournOp,
+        name_buf: *mut c_char,
+    ) -> usize {
         let name_str = unsafe { CStr::from_ptr(name_buf) };
         let name = match name_str.to_str() {
             Ok(s) => s.to_string(),
@@ -263,7 +266,7 @@ impl TournOp {
         expected = Box::into_raw(alloc);
         0
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_record_result_op_c(
         mut expected: *const TournOp,
@@ -273,25 +276,25 @@ impl TournOp {
         let alloc = Box::new(Self::RecordResult(RoundIdentifier::Id(rnd), result));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_confirm_result_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::ConfirmResult(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_drop_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::DropPlayer(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_admin_drop_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::AdminDropPlayer(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_add_deck_op_c(
         mut expected: *const TournOp,
@@ -302,7 +305,7 @@ impl TournOp {
     ) {
         todo!()
     }
-    
+
     /// Returns 0 if everything is ok.
     /// Returns 1 if there is a name conversion error
     #[allow(unused_assignments)]
@@ -322,7 +325,7 @@ impl TournOp {
         expected = Box::into_raw(alloc);
         0
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_set_gamer_tag_op_c(
         mut expected: *const TournOp,
@@ -340,19 +343,19 @@ impl TournOp {
         expected = Box::into_raw(alloc);
         0
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_ready_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::ReadyPlayer(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_un_ready_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::UnReadyPlayer(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     // TODO: Make C constructors for tournament settings
     #[allow(improper_ctypes_definitions, unused_assignments)]
     pub extern "C" fn new_update_tourn_setting_op_c(
@@ -367,18 +370,18 @@ impl TournOp {
         let alloc = Box::new(Self::UpdateTournSetting(unsafe { (*setting).clone() }));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_give_bye_op_c(mut expected: *const TournOp, plyr: PlayerId) {
         let alloc = Box::new(Self::GiveBye(PlayerIdentifier::Id(plyr)));
         expected = Box::into_raw(alloc);
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_create_round_op_c(mut expected: *const TournOp, plyrs: Vec<PlayerId>) {
         todo!()
     }
-    
+
     #[allow(unused_assignments)]
     pub extern "C" fn new_pair_round_op_c(mut expected: *const TournOp) {
         let alloc = Box::new(Self::PairRound());

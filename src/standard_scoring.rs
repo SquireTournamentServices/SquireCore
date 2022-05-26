@@ -18,18 +18,18 @@ use std::{
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct StandardScore {
-    pub(crate) match_points: f64,
-    pub(crate) game_points: f64,
-    pub(crate) mwp: f64,
-    pub(crate) gwp: f64,
-    pub(crate) opp_mwp: f64,
-    pub(crate) opp_gwp: f64,
-    pub(crate) include_match_points: bool,
-    pub(crate) include_game_points: bool,
-    pub(crate) include_mwp: bool,
-    pub(crate) include_gwp: bool,
-    pub(crate) include_opp_mwp: bool,
-    pub(crate) include_opp_gwp: bool,
+    pub match_points: f64,
+    pub game_points: f64,
+    pub mwp: f64,
+    pub gwp: f64,
+    pub opp_mwp: f64,
+    pub opp_gwp: f64,
+    pub include_match_points: bool,
+    pub include_game_points: bool,
+    pub include_mwp: bool,
+    pub include_gwp: bool,
+    pub include_opp_mwp: bool,
+    pub include_opp_gwp: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,9 +222,7 @@ impl StandardScoring {
             digest.get_mut(id).unwrap().opp_mwp = opp_mp / (opp_matches as f64);
             digest.get_mut(id).unwrap().opp_gwp = opp_gp / (opp_games as f64);
         }
-        let mut results: Vec<(PlayerId, StandardScore)> = digest
-            .drain()
-            .collect();
+        let mut results: Vec<(PlayerId, StandardScore)> = digest.drain().collect();
         results.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
         Standings::new(results)
     }
