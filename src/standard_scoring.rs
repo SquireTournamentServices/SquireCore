@@ -222,17 +222,8 @@ impl StandardScoring {
             digest.get_mut(id).unwrap().opp_mwp = opp_mp / (opp_matches as f64);
             digest.get_mut(id).unwrap().opp_gwp = opp_gp / (opp_games as f64);
         }
-        let mut results: Vec<(String, StandardScore)> = digest
-            .iter()
-            .map(|(id, s)| {
-                (
-                    player_reg
-                        .get_player(&PlayerIdentifier::Id(*id))
-                        .unwrap()
-                        .to_string(),
-                    (*s).clone(),
-                )
-            })
+        let mut results: Vec<(PlayerId, StandardScore)> = digest
+            .drain()
             .collect();
         results.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
         Standings::new(results)

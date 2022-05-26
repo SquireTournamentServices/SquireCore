@@ -1,3 +1,5 @@
+use crate::player::PlayerId;
+
 pub trait Score
 where
     Self: ToString,
@@ -6,14 +8,14 @@ where
 
 #[repr(C)]
 pub struct Standings<S> {
-    scores: Vec<(String, S)>,
+    pub scores: Vec<(PlayerId, S)>,
 }
 
 impl<S> Standings<S>
 where
     S: Score,
 {
-    pub fn new(scores: Vec<(String, S)>) -> Self {
+    pub fn new(scores: Vec<(PlayerId, S)>) -> Self {
         Standings { scores }
     }
 }
