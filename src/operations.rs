@@ -1,7 +1,4 @@
-use crate::{
-    player_registry::PlayerIdentifier, round::RoundResult, round_registry::RoundIdentifier,
-    settings::TournamentSetting,
-};
+use crate::{player::PlayerId, player_registry::PlayerIdentifier, round::{RoundId, RoundResult, RoundStatus}, round_registry::RoundIdentifier, settings::TournamentSetting, swiss_pairings::TournamentError};
 
 use mtgjson::model::deck::Deck;
 
@@ -33,6 +30,19 @@ pub enum TournOp {
     CreateRound(Vec<PlayerIdentifier>),
     PairRound(),
 }
+
+#[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
+pub enum OpData {
+    Nothing,
+    RegisterPlayer(PlayerIdentifier),
+    ConfirmResult(RoundStatus),
+    GiveBye(RoundIdentifier),
+    CreateRound(RoundIdentifier),
+    Pair(Vec<RoundIdentifier>),
+}
+
+pub type OpResult = Result<OpData, TournamentError>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OpId(usize);

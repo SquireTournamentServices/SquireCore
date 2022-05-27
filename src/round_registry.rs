@@ -26,15 +26,40 @@ pub enum RoundIdentifier {
 pub struct RoundRegistry {
     pub(crate) num_and_id: CycleMap<RoundId, u64>,
     pub(crate) rounds: HashMap<u64, Round>,
+    pub starting_table: u64,
     length: Duration,
 }
 
 impl RoundRegistry {
-    pub fn new(len: Duration) -> Self {
+    pub fn new(starting_table: u64, len: Duration) -> Self {
         RoundRegistry {
             num_and_id: CycleMap::new(),
             rounds: HashMap::new(),
+            starting_table,
             length: len,
+        }
+    }
+
+    pub(crate) fn get_table_number(&self) -> u64 {
+        let range = 0..(self.rounds.len());
+        let mut numbers: Vec<u64> = range
+            .rev()
+            .take_while(|n| !self.rounds.get(&(*n as u64)).unwrap().is_certified())
+            .map(|n| self.rounds.get(&(n as u64)).unwrap().table_number)
+            .collect();
+        if numbers.len() == 0 {
+            self.starting_table
+        } else {
+            numbers.push(self.starting_table);
+            numbers.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let mut last = numbers[0];
+            for n in numbers {
+                if n - last > 1 {
+                    return last + 1;
+                }
+                last = n;
+            }
+            last + 1
         }
     }
 
@@ -47,9 +72,9 @@ impl RoundRegistry {
 
     pub fn create_round(&mut self) -> &mut Round {
         let match_num = self.rounds.len() as u64;
+        let table_number = self.get_table_number();
         self.rounds
-            .insert(match_num, Round::new(match_num, self.length));
-        // Safety check: We just inserted a round with the key match_num. It's there
+            .insert(match_num, Round::new(table_number, match_num, self.length));
         self.rounds.get_mut(&match_num).unwrap()
     }
 

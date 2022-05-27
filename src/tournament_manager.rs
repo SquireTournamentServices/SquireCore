@@ -1,8 +1,4 @@
-use crate::{
-    error::TournamentError,
-    operations::{OpLog, TournOp},
-    tournament::*,
-};
+use crate::{error::TournamentError, operations::{OpLog, OpResult, TournOp}, tournament::*};
 
 use serde::{Deserialize, Serialize};
 
@@ -39,9 +35,9 @@ impl TournamentManager {
 
     /// Takes an operation stores it, applies it to the tournament, and returns the result.
     /// NOTE: Even operations that result in a tournament error are stored.
-    pub fn apply(&mut self, op: TournOp) -> Result<(), TournamentError> {
-        let digest = self.tourn.apply_op(op.clone());
-        self.log.ops.push(op);
+    pub fn apply(&mut self, op: TournOp) -> OpResult {
+        self.log.ops.push(op.clone());
+        let digest = self.tourn.apply_op(op);
         digest
     }
 

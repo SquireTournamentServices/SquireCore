@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[repr(C)]
 pub enum TournamentSetting {
     Format(String),
+    StartingTableNumber(u64),
+    UseTableNumbers(bool),
     MinDeckCount(u8),
     MaxDeckCount(u8),
     RequireCheckIn(bool),

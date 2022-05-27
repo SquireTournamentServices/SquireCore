@@ -1,7 +1,7 @@
 use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
-    operations::TournOp,
+    operations::{OpData, OpResult, TournOp},
     player::{Player, PlayerId},
     player_registry::{PlayerIdentifier, PlayerRegistry},
     round::{Round, RoundId, RoundResult, RoundStatus},
@@ -69,6 +69,7 @@ pub struct TournamentId(Uuid);
 pub struct Tournament {
     pub id: TournamentId,
     pub name: String,
+    pub use_table_number: bool,
     format: String,
     game_size: u8,
     min_deck_count: u8,
@@ -88,12 +89,13 @@ impl Tournament {
         Tournament {
             id: TournamentId(Uuid::new_v4()),
             name,
+            use_table_number: true,
             format,
             game_size: 2,
             min_deck_count: 1,
             max_deck_count: 2,
             player_reg: PlayerRegistry::new(),
-            round_reg: RoundRegistry::new(Duration::from_secs(3000)),
+            round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
             pairing_sys: pairing_system_factory(&preset, 2),
             scoring_sys: scoring_system_factory(&preset),
             reg_open: true,
@@ -103,10 +105,13 @@ impl Tournament {
         }
     }
 
-    pub fn apply_op(&mut self, op: TournOp) -> Result<(), TournamentError> {
+    pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
-            UpdateReg(b) => Ok(self.update_reg(b)),
+            UpdateReg(b) => {
+                self.update_reg(b);
+                Ok(OpData::Nothing)
+            }
             Start() => self.start(),
             Freeze() => self.freeze(),
             Thaw() => self.thaw(),
@@ -199,22 +204,25 @@ impl Tournament {
             .get_standings(&self.player_reg, &self.round_reg)
     }
 
-    pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> Result<(), TournamentError> {
+    pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> OpResult {
         todo!()
     }
 
-    pub(crate) fn pair(&mut self) -> Result<(), TournamentError> {
+    pub(crate) fn pair(&mut self) -> OpResult {
         todo!()
     }
 
-    pub(crate) fn update_setting(
-        &mut self,
-        setting: TournamentSetting,
-    ) -> Result<(), TournamentError> {
+    pub(crate) fn update_setting(&mut self, setting: TournamentSetting) -> OpResult {
         use TournamentSetting::*;
         match setting {
             Format(f) => {
                 self.format = f;
+            }
+            StartingTableNumber(n) => {
+                self.round_reg.starting_table = n;
+            }
+            UseTableNumbers(b) => {
+                self.use_table_number = b;
             }
             MinDeckCount(c) => {
                 self.min_deck_count = c;
@@ -254,90 +262,87 @@ impl Tournament {
                 }
             },
         }
-        Ok(())
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn update_reg(&mut self, reg_status: bool) {
         self.reg_open = reg_status;
     }
 
-    pub(crate) fn start(&mut self) -> Result<(), TournamentError> {
+    pub(crate) fn start(&mut self) -> OpResult {
         if !self.is_planned() {
             Err(TournamentError::IncorrectStatus)
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Started;
-            Ok(())
+            Ok(OpData::Nothing)
         }
     }
 
-    pub(crate) fn freeze(&mut self) -> Result<(), TournamentError> {
+    pub(crate) fn freeze(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus)
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Frozen;
-            Ok(())
+            Ok(OpData::Nothing)
         }
     }
 
-    pub(crate) fn thaw(&mut self) -> Result<(), TournamentError> {
+    pub(crate) fn thaw(&mut self) -> OpResult {
         if !self.is_frozen() {
             Err(TournamentError::IncorrectStatus)
         } else {
             self.status = TournamentStatus::Started;
-            Ok(())
+            Ok(OpData::Nothing)
         }
     }
 
-    pub(crate) fn end(&mut self) -> Result<(), TournamentError> {
+    pub(crate) fn end(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus)
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Ended;
-            Ok(())
+            Ok(OpData::Nothing)
         }
     }
 
-    pub(crate) fn cancel(&mut self) -> Result<(), TournamentError> {
+    pub(crate) fn cancel(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus)
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Cancelled;
-            Ok(())
+            Ok(OpData::Nothing)
         }
     }
 
-    fn register_player(&mut self, name: String) -> Result<(), TournamentError> {
+    fn register_player(&mut self, name: String) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        self.player_reg.add_player(name)?;
-        Ok(())
+        let id = self.player_reg.add_player(name)?;
+        Ok(OpData::RegisterPlayer(PlayerIdentifier::Id(id)))
     }
 
     pub(crate) fn record_result(
         &mut self,
         ident: RoundIdentifier,
         result: RoundResult,
-    ) -> Result<(), TournamentError> {
+    ) -> OpResult {
         let round = self
             .round_reg
             .get_mut_round(ident)
             .ok_or(TournamentError::RoundLookup)?;
         round.record_result(result)?;
-        Ok(())
+        Ok(OpData::Nothing)
     }
 
-    pub(crate) fn confirm_round(
-        &mut self,
-        ident: &PlayerIdentifier,
-    ) -> Result<(), TournamentError> {
+    pub(crate) fn confirm_round(&mut self, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
@@ -346,23 +351,22 @@ impl Tournament {
             .get_player_id(ident)
             .ok_or(TournamentError::PlayerLookup)?;
         let round = self.round_reg.get_player_active_round(id)?;
-        round.confirm_round(id)?;
-        Ok(())
+        let status = round.confirm_round(id)?;
+        Ok(OpData::ConfirmResult(status))
     }
 
-    pub(crate) fn drop_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
+    pub(crate) fn drop_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
         self.player_reg
             .remove_player(ident)
-            .ok_or(TournamentError::PlayerLookup)
+            .ok_or(TournamentError::PlayerLookup)?;
+        Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_drop_player(
-        &mut self,
-        ident: &PlayerIdentifier,
-    ) -> Result<(), TournamentError> {
+    pub(crate) fn admin_drop_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
         self.player_reg
             .remove_player(ident)
-            .ok_or(TournamentError::PlayerLookup)
+            .ok_or(TournamentError::PlayerLookup)?;
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn player_add_deck(
@@ -370,7 +374,7 @@ impl Tournament {
         ident: &PlayerIdentifier,
         name: String,
         deck: Deck,
-    ) -> Result<(), TournamentError> {
+    ) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
@@ -382,7 +386,7 @@ impl Tournament {
             .get_mut_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
         plyr.add_deck(name, deck);
-        Ok(())
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn get_player_decks(
@@ -400,28 +404,29 @@ impl Tournament {
         &mut self,
         ident: &PlayerIdentifier,
         name: String,
-    ) -> Result<(), TournamentError> {
+    ) -> OpResult {
         let plyr = self
             .player_reg
             .get_mut_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
-        plyr.remove_deck(name)
+        plyr.remove_deck(name)?;
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn player_set_game_name(
         &mut self,
         ident: &PlayerIdentifier,
         name: String,
-    ) -> Result<(), TournamentError> {
+    ) -> OpResult {
         let plyr = self
             .player_reg
             .get_mut_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
         plyr.set_game_name(name);
-        Ok(())
+        Ok(OpData::Nothing)
     }
 
-    pub(crate) fn ready_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
+    pub(crate) fn ready_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
@@ -440,7 +445,7 @@ impl Tournament {
         if should_pair {
             if let Some(pairings) =
                 self.pairing_sys
-                    .pair(self.game_size, &self.player_reg, &self.round_reg)
+                    .pair(&self.player_reg, &self.round_reg)
             {
                 for p in pairings {
                     let round = self.round_reg.create_round();
@@ -450,13 +455,10 @@ impl Tournament {
                 }
             }
         }
-        Ok(())
+        Ok(OpData::Nothing)
     }
 
-    pub(crate) fn unready_player(
-        &mut self,
-        plyr: &PlayerIdentifier,
-    ) -> Result<(), TournamentError> {
+    pub(crate) fn unready_player(&mut self, plyr: &PlayerIdentifier) -> OpResult {
         let plyr = self
             .player_reg
             .get_player_id(plyr)
@@ -465,10 +467,10 @@ impl Tournament {
             PairingSystem::Swiss(sys) => sys.unready_player(plyr),
             PairingSystem::Fluid(sys) => sys.unready_player(plyr),
         };
-        Ok(())
+        Ok(OpData::Nothing)
     }
 
-    pub(crate) fn give_bye(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
+    pub(crate) fn give_bye(&mut self, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
@@ -480,14 +482,11 @@ impl Tournament {
         round.add_player(id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
         // single player
-        let _ = round.record_bye();
-        Ok(())
+        let id = round.record_bye()?;
+        Ok(OpData::GiveBye(RoundIdentifier::Id(id)))
     }
 
-    pub(crate) fn create_round(
-        &mut self,
-        idents: Vec<PlayerIdentifier>,
-    ) -> Result<(), TournamentError> {
+    pub(crate) fn create_round(&mut self, idents: Vec<PlayerIdentifier>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus);
         }
@@ -503,7 +502,7 @@ impl Tournament {
             for id in ids {
                 round.add_player(id);
             }
-            Ok(())
+            Ok(OpData::CreateRound(RoundIdentifier::Id(round.id.clone())))
         } else {
             Err(TournamentError::PlayerLookup)
         }
@@ -518,6 +517,7 @@ impl Hash for Tournament {
         let _ = &self.id.hash(state);
     }
 }
+
 impl PairingSystem {
     pub fn ready_player(&mut self, id: PlayerId) {
         match self {
@@ -528,7 +528,6 @@ impl PairingSystem {
 
     pub fn pair(
         &mut self,
-        size: u8,
         plyr_reg: &PlayerRegistry,
         rnd_reg: &RoundRegistry,
     ) -> Option<Vec<Vec<PlayerId>>> {

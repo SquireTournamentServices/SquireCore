@@ -30,13 +30,13 @@ pub enum RoundResult {
 #[repr(C)]
 pub struct RoundId(Uuid);
 
-// This struct should be able to handle N many games, unlike the Python equiv.
 // TODO: Added back in once alternative for Duration is found
 //#[derive(Serialize, Deserialize, Debug, Clone)]
 #[derive(Debug, Clone)]
 pub struct Round {
     pub id: RoundId,
     pub match_number: u64,
+    pub table_number: u64,
     pub players: HashSet<PlayerId>,
     confirmations: HashSet<PlayerId>,
     pub(crate) results: Vec<RoundResult>,
@@ -64,10 +64,11 @@ impl PartialEq for Round {
 }
 
 impl Round {
-    pub fn new(match_num: u64, len: Duration) -> Self {
+    pub fn new(match_num: u64, table_number: u64, len: Duration) -> Self {
         Round {
             id: RoundId(Uuid::new_v4()),
             match_number: match_num,
+            table_number,
             players: HashSet::with_capacity(4),
             confirmations: HashSet::with_capacity(4),
             results: Vec::with_capacity(3),
@@ -125,14 +126,14 @@ impl Round {
         self.status = RoundStatus::Dead;
     }
 
-    pub fn record_bye(&mut self) -> Result<(), TournamentError> {
+    pub fn record_bye(&mut self) -> Result<RoundId, TournamentError> {
         if self.players.len() != 1 {
             Err(TournamentError::InvalidBye)
         } else {
             self.is_bye = true;
             self.winner = Some(self.players.iter().next().unwrap().clone());
             self.status = RoundStatus::Certified;
-            Ok(())
+            Ok(self.id.clone())
         }
     }
 
