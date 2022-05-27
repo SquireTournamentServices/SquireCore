@@ -1,14 +1,15 @@
-use crate::{error::TournamentError, player::PlayerId};
+use std::{
+    fmt,
+    collections::HashSet,
+    hash::{Hash, Hasher},
+    time::{Duration, Instant},
+};
 
 //use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use std::{
-    collections::HashSet,
-    hash::{Hash, Hasher},
-    time::{Duration, Instant},
-};
+use crate::{error::TournamentError, player::PlayerId};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 #[repr(C)]
@@ -40,8 +41,8 @@ pub struct Round {
     pub players: HashSet<PlayerId>,
     confirmations: HashSet<PlayerId>,
     pub(crate) results: Vec<RoundResult>,
-    status: RoundStatus,
-    pub(crate) winner: Option<PlayerId>,
+    pub status: RoundStatus,
+    pub winner: Option<PlayerId>,
     timer: Instant,
     length: Duration,
     extension: Duration,
@@ -152,5 +153,16 @@ impl Round {
 
     pub fn is_certified(&self) -> bool {
         self.status == RoundStatus::Certified
+    }
+}
+
+impl fmt::Display for RoundStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            Self::Open => "Open",
+            Self::Uncertified => "Uncertified",
+            Self::Certified => "Certified",
+            Self::Dead => "Dead",
+        })
     }
 }
