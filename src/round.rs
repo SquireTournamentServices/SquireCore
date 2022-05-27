@@ -80,6 +80,15 @@ impl Round {
             is_bye: false,
         }
     }
+    
+    pub fn time_left(&self) -> Duration {
+        let elapsed = self.timer.elapsed();
+        if elapsed > self.length {
+            Duration::from_secs(0)
+        } else {
+            self.length - self.timer.elapsed()
+        }
+    }
 
     pub fn get_id(&self) -> RoundId {
         self.id
