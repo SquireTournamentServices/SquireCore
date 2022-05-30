@@ -1,13 +1,9 @@
-use std::{
-    fmt,
-    collections::HashSet,
-    hash::{Hash, Hasher},
-    time::{Duration, Instant},
-};
+use std::{collections::HashSet, fmt, hash::{Hash, Hasher}, time::{Duration, Instant, SystemTime}};
 
-//use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use serde::{Deserialize, Serialize, 
+    ser::{Serializer, SerializeStruct},
+};
 
 use crate::{error::TournamentError, player::PlayerId};
 
@@ -31,9 +27,7 @@ pub enum RoundResult {
 #[repr(C)]
 pub struct RoundId(Uuid);
 
-// TODO: Added back in once alternative for Duration is found
-//#[derive(Serialize, Deserialize, Debug, Clone)]
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Round {
     pub id: RoundId,
     pub match_number: u64,
@@ -43,25 +37,10 @@ pub struct Round {
     pub(crate) results: Vec<RoundResult>,
     pub status: RoundStatus,
     pub winner: Option<PlayerId>,
-    pub(crate) timer: Instant,
+    pub(crate) timer: SystemTime,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
     pub(crate) is_bye: bool,
-}
-
-impl Hash for Round {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        let _ = &self.id.hash(state);
-    }
-}
-
-impl PartialEq for Round {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
 }
 
 impl Round {
@@ -75,20 +54,26 @@ impl Round {
             results: Vec::with_capacity(3),
             status: RoundStatus::Open,
             winner: None,
-            timer: Instant::now(),
+            timer: SystemTime::now(),
             length: len,
             extension: Duration::from_secs(0),
             is_bye: false,
         }
     }
     
+    // TODO: Find a better way to sync clocks if SystemTime::elapsed errors
     pub fn time_left(&self) -> Duration {
         let length = self.length + self.extension;
-        let elapsed = self.timer.elapsed();
+        let elapsed = match self.timer.elapsed() {
+            Ok(e) => e,
+            Err(_) => {
+                return Duration::from_secs(0);
+            }
+        };
         if elapsed > length {
             Duration::from_secs(0)
         } else {
-            length - self.timer.elapsed()
+            length - elapsed
         }
     }
 
@@ -156,6 +141,33 @@ impl Round {
         self.status == RoundStatus::Certified
     }
 }
+/*
+pub struct Round {
+}
+
+impl Serialize for Round {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // 3 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("Round", 12)?;
+        state.serialize_field("id", &self.id)?;
+        state.serialize_field("match_number", &self.match_number)?;
+        state.serialize_field("table_number", &self.table_number)?;
+        state.serialize_field("players", &self.players)?;
+        state.serialize_field("confirmations", &self.confirmations)?;
+        state.serialize_field("results", &self.results)?;
+        state.serialize_field("status", &self.status)?;
+        state.serialize_field("winner", &self.winner)?;
+        state.serialize_field("timer", &self.timer)?;
+        state.serialize_field("length", &self.length)?;
+        state.serialize_field("extension", &self.extension)?;
+        state.serialize_field("is_bye", &self.is_bye)?;
+        state.end()
+    }
+}
+*/
 
 impl fmt::Display for RoundStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -165,5 +177,20 @@ impl fmt::Display for RoundStatus {
             Self::Certified => "Certified",
             Self::Dead => "Dead",
         })
+    }
+}
+
+impl Hash for Round {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        let _ = &self.id.hash(state);
+    }
+}
+
+impl PartialEq for Round {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }

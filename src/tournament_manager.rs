@@ -9,9 +9,7 @@ use std::slice::Iter;
 /// The manager holds the current tournament and can recreate any meaningful prior state.
 ///
 /// This is the primary synchronization primative between tournaments.
-// TODO: Add back in once Tournament is (de)serializable
-//#[derive(Debug, Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TournamentManager {
     tourn: Tournament,
     seed: TournamentPreset,

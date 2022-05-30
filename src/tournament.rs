@@ -62,9 +62,7 @@ pub enum TournamentStatus {
 #[repr(C)]
 pub struct TournamentId(Uuid);
 
-// TODO: Added back in once Round is (de)serializable
-//#[derive(Serialize, Deserialize, Debug, Clone)]
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[repr(C)]
 pub struct Tournament {
     pub id: TournamentId,
