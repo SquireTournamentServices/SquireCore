@@ -13,10 +13,8 @@ use std::{
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PlayerStatus {
-    SignedUp,
     Registered,
     Dropped,
-    Removed,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -28,8 +26,8 @@ pub struct Player {
     pub id: PlayerId,
     pub name: String,
     pub game_name: Option<String>,
-    decks: HashMap<String, Deck>,
-    status: PlayerStatus,
+    pub decks: HashMap<String, Deck>,
+    pub status: PlayerStatus,
 }
 
 impl Hash for Player {
@@ -62,7 +60,7 @@ impl Player {
             name,
             game_name: None,
             decks: HashMap::new(),
-            status: PlayerStatus::SignedUp,
+            status: PlayerStatus::Registered,
         }
     }
 
