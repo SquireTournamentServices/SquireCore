@@ -24,10 +24,10 @@ pub enum RoundIdentifier {
 //#[derive(Serialize, Deserialize, Debug, Clone)]
 #[derive(Debug, Clone)]
 pub struct RoundRegistry {
-    pub(crate) num_and_id: CycleMap<RoundId, u64>,
-    pub(crate) rounds: HashMap<u64, Round>,
+    pub num_and_id: CycleMap<RoundId, u64>,
+    pub rounds: HashMap<u64, Round>,
     pub starting_table: u64,
-    length: Duration,
+    pub length: Duration,
 }
 
 impl RoundRegistry {
@@ -64,9 +64,10 @@ impl RoundRegistry {
     }
 
     pub fn active_round_count(&self) -> usize {
-        self.rounds
-            .iter()
-            .filter(|(_, m)| !m.is_certified())
+        let range = 0..(self.rounds.len());
+        range
+            .rev()
+            .take_while(|n| !self.rounds.get(&(*n as u64)).unwrap().is_certified())
             .count()
     }
 
