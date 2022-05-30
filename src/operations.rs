@@ -24,6 +24,7 @@ pub enum TournOp {
     AdminDropPlayer(PlayerIdentifier),
     AddDeck(PlayerIdentifier, String, Deck),
     RemoveDeck(PlayerIdentifier, String),
+    RemoveRound(RoundIdentifier),
     SetGamerTag(PlayerIdentifier, String),
     ReadyPlayer(PlayerIdentifier),
     UnReadyPlayer(PlayerIdentifier),

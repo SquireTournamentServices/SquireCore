@@ -125,6 +125,7 @@ impl Tournament {
             AdminDropPlayer(p_ident) => self.admin_drop_player(&p_ident),
             AddDeck(p_ident, name, deck) => self.player_add_deck(&p_ident, name, deck),
             RemoveDeck(p_ident, name) => self.remove_player_deck(&p_ident, name),
+            RemoveRound(r_ident) => self.remove_round(&r_ident),
             SetGamerTag(p_ident, tag) => self.player_set_game_name(&p_ident, tag),
             ReadyPlayer(p_ident) => self.ready_player(&p_ident),
             UnReadyPlayer(p_ident) => self.unready_player(&p_ident),
@@ -217,6 +218,11 @@ impl Tournament {
 
     pub(crate) fn pair(&mut self) -> OpResult {
         todo!()
+    }
+    
+    pub(crate) fn remove_round(&mut self, ident: &RoundIdentifier) -> OpResult {
+        self.round_reg.kill_round(ident)?;
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn update_setting(&mut self, setting: TournamentSetting) -> OpResult {

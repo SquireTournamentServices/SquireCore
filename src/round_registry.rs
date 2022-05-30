@@ -1,18 +1,14 @@
-use crate::{
-    error::TournamentError,
-    player::PlayerId,
-    round::{Round, RoundId},
-};
-
-use cycle_map::CycleMap;
-
-use serde::{Deserialize, Serialize};
-
 use std::{
     collections::hash_map::{HashMap, Iter},
     ops::RangeBounds,
     time::Duration,
 };
+
+use serde::{Deserialize, Serialize};
+
+use cycle_map::CycleMap;
+
+use crate::{error::TournamentError, player::PlayerId, round::{Round, RoundId, RoundStatus}};
 
 #[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum RoundIdentifier {
@@ -61,6 +57,12 @@ impl RoundRegistry {
             }
             last + 1
         }
+    }
+    
+    pub fn kill_round(&mut self, ident: &RoundIdentifier) -> Result<(), TournamentError> {
+        let rnd = self.get_mut_round(ident).ok_or(TournamentError::RoundLookup)?;
+        rnd.kill_round();
+        Ok(())
     }
 
     pub fn active_round_count(&self) -> usize {
