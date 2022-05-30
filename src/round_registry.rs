@@ -79,7 +79,7 @@ impl RoundRegistry {
         self.rounds.get_mut(&match_num).unwrap()
     }
 
-    pub fn get_mut_round(&mut self, ident: RoundIdentifier) -> Option<&mut Round> {
+    pub fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
         match ident {
             RoundIdentifier::Id(id) => {
                 let num = self.num_and_id.get_right(&id)?;

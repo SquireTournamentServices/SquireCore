@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{player::PlayerId, player_registry::PlayerIdentifier, round::{RoundId, RoundResult, RoundStatus}, round_registry::RoundIdentifier, settings::TournamentSetting, swiss_pairings::TournamentError};
 
 use mtgjson::model::deck::Deck;
@@ -29,6 +31,7 @@ pub enum TournOp {
     GiveBye(PlayerIdentifier),
     CreateRound(Vec<PlayerIdentifier>),
     PairRound(),
+    TimeExtension(RoundIdentifier, Duration),
 }
 
 #[derive(Debug, Clone, PartialEq)]

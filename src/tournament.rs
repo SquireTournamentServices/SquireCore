@@ -119,7 +119,7 @@ impl Tournament {
             Cancel() => self.cancel(),
             CheckIn(p_ident) => self.check_in(&p_ident),
             RegisterPlayer(name) => self.register_player(name),
-            RecordResult(r_ident, result) => self.record_result(r_ident, result),
+            RecordResult(r_ident, result) => self.record_result(&r_ident, result),
             ConfirmResult(p_ident) => self.confirm_round(&p_ident),
             DropPlayer(p_ident) => self.drop_player(&p_ident),
             AdminDropPlayer(p_ident) => self.admin_drop_player(&p_ident),
@@ -132,7 +132,14 @@ impl Tournament {
             GiveBye(p_ident) => self.give_bye(&p_ident),
             CreateRound(p_idents) => self.create_round(p_idents),
             PairRound() => self.pair(),
+            TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
         }
+    }
+    
+    pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
+        let round = self.round_reg.get_mut_round(&rnd).ok_or(TournamentError::RoundLookup)?;
+        round.extension += ext;
+        Ok(OpData::Nothing)
     }
 
     pub fn is_planned(&self) -> bool {
@@ -331,12 +338,12 @@ impl Tournament {
 
     pub(crate) fn record_result(
         &mut self,
-        ident: RoundIdentifier,
+        ident: &RoundIdentifier,
         result: RoundResult,
     ) -> OpResult {
         let round = self
             .round_reg
-            .get_mut_round(ident)
+            .get_mut_round(&ident)
             .ok_or(TournamentError::RoundLookup)?;
         round.record_result(result)?;
         Ok(OpData::Nothing)

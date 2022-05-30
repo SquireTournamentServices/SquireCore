@@ -39,13 +39,13 @@ pub struct Round {
     pub match_number: u64,
     pub table_number: u64,
     pub players: HashSet<PlayerId>,
-    confirmations: HashSet<PlayerId>,
+    pub(crate) confirmations: HashSet<PlayerId>,
     pub(crate) results: Vec<RoundResult>,
     pub status: RoundStatus,
     pub winner: Option<PlayerId>,
-    timer: Instant,
-    length: Duration,
-    extension: Duration,
+    pub(crate) timer: Instant,
+    pub(crate) length: Duration,
+    pub(crate) extension: Duration,
     pub(crate) is_bye: bool,
 }
 
@@ -83,11 +83,12 @@ impl Round {
     }
     
     pub fn time_left(&self) -> Duration {
+        let length = self.length + self.extension;
         let elapsed = self.timer.elapsed();
-        if elapsed > self.length {
+        if elapsed > length {
             Duration::from_secs(0)
         } else {
-            self.length - self.timer.elapsed()
+            length - self.timer.elapsed()
         }
     }
 
