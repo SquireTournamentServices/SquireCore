@@ -16,14 +16,14 @@ pub enum RoundStatus {
     Dead,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 #[repr(C)]
 pub enum RoundResult {
     Wins(PlayerId, u8),
     Draw(),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 #[repr(C)]
 pub struct RoundId(Uuid);
 
@@ -78,7 +78,7 @@ impl Round {
     }
 
     pub fn get_id(&self) -> RoundId {
-        self.id
+        self.id.clone()
     }
 
     pub fn add_player(&mut self, player: PlayerId) {
@@ -122,14 +122,14 @@ impl Round {
         self.status = RoundStatus::Dead;
     }
 
-    pub fn record_bye(&mut self) -> Result<RoundId, TournamentError> {
+    pub fn record_bye(&mut self) -> Result<(), TournamentError> {
         if self.players.len() != 1 {
             Err(TournamentError::InvalidBye)
         } else {
             self.is_bye = true;
             self.winner = Some(self.players.iter().next().unwrap().clone());
             self.status = RoundStatus::Certified;
-            Ok(self.id.clone())
+            Ok(())
         }
     }
 

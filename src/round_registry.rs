@@ -1,5 +1,8 @@
 use std::{
-    collections::hash_map::{HashMap, Iter},
+    collections::{
+        hash_map::{HashMap, Iter},
+        HashSet,
+    },
     ops::RangeBounds,
     time::Duration,
 };
@@ -8,9 +11,13 @@ use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
 
-use crate::{error::TournamentError, player::PlayerId, round::{Round, RoundId, RoundStatus}};
+use crate::{
+    error::TournamentError,
+    player::PlayerId,
+    round::{Round, RoundId, RoundStatus},
+};
 
-#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),
@@ -20,6 +27,7 @@ pub enum RoundIdentifier {
 pub struct RoundRegistry {
     pub num_and_id: CycleMap<RoundId, u64>,
     pub rounds: HashMap<u64, Round>,
+    pub opponents: HashMap<PlayerId, HashSet<PlayerId>>,
     pub starting_table: u64,
     pub length: Duration,
 }
@@ -29,6 +37,7 @@ impl RoundRegistry {
         RoundRegistry {
             num_and_id: CycleMap::new(),
             rounds: HashMap::new(),
+            opponents: HashMap::new(),
             starting_table,
             length: len,
         }
@@ -56,30 +65,49 @@ impl RoundRegistry {
             last + 1
         }
     }
-    
+
     pub fn kill_round(&mut self, ident: &RoundIdentifier) -> Result<(), TournamentError> {
-        let rnd = self.get_mut_round(ident).ok_or(TournamentError::RoundLookup)?;
+        let rnd = self
+            .get_mut_round(ident)
+            .ok_or(TournamentError::RoundLookup)?;
+        let players = rnd.get_all_players();
         rnd.kill_round();
+        for plyr in &players {
+            for p in &players {
+                self.opponents.get_mut(plyr).expect("Player should be in opponents.").remove(p);
+            }
+        }
         Ok(())
     }
 
     pub fn active_round_count(&self) -> usize {
-        let range = 0..(self.rounds.len());
-        range
-            .rev()
-            .take_while(|n| !self.rounds.get(&(*n as u64)).unwrap().is_certified())
-            .count()
+        self.rounds.iter().filter(|(_,r)| !r.is_certified()).count()
     }
 
-    pub fn create_round(&mut self) -> &mut Round {
+    pub fn create_round(&mut self) -> RoundIdentifier {
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
-        self.rounds
-            .insert(match_num, Round::new(table_number, match_num, self.length));
-        self.rounds.get_mut(&match_num).unwrap()
+        let round = Round::new(match_num, table_number, self.length);
+        let digest = RoundIdentifier::Id(round.id.clone());
+        self.rounds.insert(match_num, round);
+        digest
+    }
+    
+    pub fn add_player_to_round(&mut self, ident: &RoundIdentifier, plyr: PlayerId) -> Result<(),  TournamentError> {
+        let round = self.get_mut_round(ident).ok_or(TournamentError::RoundLookup)?;
+        let players = round.get_all_players();
+        round.add_player(plyr.clone());
+        if !self.opponents.contains_key(&plyr) {
+            self.opponents.insert(plyr.clone(), HashSet::new());
+        }
+        for p in players {
+            self.opponents.get_mut(&p).expect("Player should already be in the opponents map.").insert(plyr.clone());
+            self.opponents.get_mut(&plyr).expect("Player should already be in the opponents map.").insert(p);
+        }
+        Ok(())
     }
 
-    pub fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
+    pub(crate) fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
         match ident {
             RoundIdentifier::Id(id) => {
                 let num = self.num_and_id.get_right(&id)?;
@@ -107,11 +135,11 @@ impl RoundRegistry {
     //
     // Potentail clean up: We can likely avoid this be maintaining that a player can be in at most
     // one match at a time. We can then use a GroupMap to look up match ids via player ids.
-    pub fn get_player_active_round(&mut self, id: PlayerId) -> Result<&mut Round, TournamentError> {
+    pub fn get_player_active_round(&mut self, id: &PlayerId) -> Result<&mut Round, TournamentError> {
         let mut nums: Vec<u64> = self
             .rounds
             .iter()
-            .filter(|(_, r)| r.players.contains(&id) && r.is_certified())
+            .filter(|(_, r)| r.players.contains(id) && r.is_certified())
             .map(|(_, r)| r.match_number)
             .collect();
         nums.sort_unstable();

@@ -1,3 +1,16 @@
+use std::{
+    collections::HashMap,
+    ffi::{CStr, CString},
+    hash::{Hash, Hasher},
+    str::Utf8Error,
+    time::Duration,
+};
+
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use mtgjson::model::deck::Deck;
+
 use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
@@ -13,19 +26,6 @@ use crate::{
     },
     standard_scoring::{StandardScore, StandardScoring},
     swiss_pairings::SwissPairings,
-};
-
-use mtgjson::model::deck::Deck;
-
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
-use std::{
-    collections::HashMap,
-    ffi::{CStr, CString},
-    hash::{Hash, Hasher},
-    str::Utf8Error,
-    time::Duration,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -58,7 +58,7 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 #[repr(C)]
 pub struct TournamentId(Uuid);
 
@@ -183,25 +183,6 @@ impl Tournament {
         match plyr.get_deck(name) {
             None => Err(TournamentError::DeckLookup),
             Some(d) => Ok(d),
-        }
-    }
-
-    pub fn get_player_round(&self, ident: &PlayerIdentifier) -> Result<RoundId, TournamentError> {
-        let p_id = self
-            .player_reg
-            .get_player_id(ident)
-            .ok_or(TournamentError::PlayerLookup)?;
-        let rounds: Vec<RoundId> = self
-            .round_reg
-            .rounds
-            .iter()
-            .filter(|(_, r)| r.players.contains(&p_id))
-            .map(|(_, r)| r.id.clone())
-            .collect();
-        if rounds.len() == 1 {
-            Ok(rounds[0])
-        } else {
-            Err(TournamentError::RoundLookup)
         }
     }
 
@@ -361,7 +342,7 @@ impl Tournament {
             .player_reg
             .get_player_id(ident)
             .ok_or(TournamentError::PlayerLookup)?;
-        let round = self.round_reg.get_player_active_round(id)?;
+        let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
         Ok(OpData::ConfirmResult(status))
     }
@@ -447,7 +428,7 @@ impl Tournament {
             .ok_or(TournamentError::PlayerLookup)?;
         let mut should_pair = false;
         if plyr.can_play() {
-            self.pairing_sys.ready_player(plyr.id);
+            self.pairing_sys.ready_player(plyr.id.clone());
             should_pair = match &self.pairing_sys {
                 PairingSystem::Fluid(sys) => sys.ready_to_pair(&self.round_reg),
                 PairingSystem::Swiss(sys) => false,
@@ -459,9 +440,9 @@ impl Tournament {
                     .pair(&self.player_reg, &self.round_reg)
             {
                 for p in pairings {
-                    let round = self.round_reg.create_round();
+                    let r_id = self.round_reg.create_round();
                     for plyr in p {
-                        round.add_player(plyr);
+                        let _ = self.round_reg.add_player_to_round(&r_id, plyr);
                     }
                 }
             }
@@ -489,12 +470,13 @@ impl Tournament {
             .player_reg
             .get_player_id(ident)
             .ok_or(TournamentError::PlayerLookup)?;
-        let round = self.round_reg.create_round();
-        round.add_player(id);
+        let r_id = self.round_reg.create_round();
+        let _ = self.round_reg.add_player_to_round(&r_id, id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
         // single player
-        let id = round.record_bye()?;
-        Ok(OpData::GiveBye(RoundIdentifier::Id(id)))
+        let round = self.round_reg.get_mut_round(&r_id).unwrap();
+        round.record_bye()?;
+        Ok(OpData::GiveBye(r_id))
     }
 
     pub(crate) fn create_round(&mut self, idents: Vec<PlayerIdentifier>) -> OpResult {
@@ -509,11 +491,11 @@ impl Tournament {
                 .into_iter()
                 .map(|p| self.player_reg.get_player_id(&p).unwrap())
                 .collect();
-            let round = self.round_reg.create_round();
+            let r_id = self.round_reg.create_round();
             for id in ids {
-                round.add_player(id);
+                let _ = self.round_reg.add_player_to_round(&r_id, id);
             }
-            Ok(OpData::CreateRound(RoundIdentifier::Id(round.id.clone())))
+            Ok(OpData::CreateRound(r_id))
         } else {
             Err(TournamentError::PlayerLookup)
         }

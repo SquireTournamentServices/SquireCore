@@ -312,9 +312,9 @@ impl ScoreCounter {
     }
 
     fn add_round(&mut self, round: &Round) {
-        match round.winner {
+        match &round.winner {
             Some(winner) => {
-                if winner == self.player {
+                if winner == &self.player {
                     self.add_win(&round.players);
                 } else {
                     self.add_loss(&round.players);
@@ -347,19 +347,19 @@ impl ScoreCounter {
     fn add_win(&mut self, players: &HashSet<PlayerId>) {
         self.wins += 1;
         self.games += 1;
-        self.opponents.extend(players);
+        self.opponents.extend(players.clone());
     }
 
     fn add_loss(&mut self, players: &HashSet<PlayerId>) {
         self.losses += 1;
         self.games += 1;
-        self.opponents.extend(players);
+        self.opponents.extend(players.clone());
     }
 
     fn add_draw(&mut self, players: &HashSet<PlayerId>) {
         self.draws += 1;
         self.games += 1;
-        self.opponents.extend(players);
+        self.opponents.extend(players.clone());
     }
 
     fn add_bye(&mut self) {

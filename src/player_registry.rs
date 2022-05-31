@@ -63,9 +63,9 @@ impl PlayerRegistry {
             Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name.clone());
-            let digest = Ok(plyr.id);
-            self.name_and_id.insert(name, plyr.id);
-            self.players.insert(plyr.id, plyr.clone());
+            let digest = Ok(plyr.id.clone());
+            self.name_and_id.insert(name, plyr.id.clone());
+            self.players.insert(plyr.id.clone(), plyr.clone());
             digest
         }
     }
@@ -104,7 +104,7 @@ impl PlayerRegistry {
 
     pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Option<PlayerId> {
         match ident {
-            PlayerIdentifier::Id(id) => Some(*id),
+            PlayerIdentifier::Id(id) => Some(id.clone()),
             PlayerIdentifier::Name(name) => self.name_and_id.get_right(name).cloned(),
         }
     }

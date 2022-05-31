@@ -57,6 +57,10 @@ impl SwissPairings {
         players: &PlayerRegistry,
         matches: &RoundRegistry,
     ) -> Option<Vec<Vec<PlayerId>>> {
-        todo!()
+        if !self.ready_to_pair(players, matches) {
+            return None;
+        }
+        let digest = Vec::with_capacity(players.active_player_count()/self.players_per_match as usize + 1);
+        Some(digest)
     }
 }

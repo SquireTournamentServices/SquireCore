@@ -17,7 +17,7 @@ pub enum PlayerStatus {
     Dropped,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 #[repr(C)]
 pub struct PlayerId(Uuid);
 
