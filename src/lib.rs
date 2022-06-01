@@ -12,6 +12,7 @@ pub mod error;
 pub mod ffi;
 pub mod fluid_pairings;
 pub mod operations;
+pub mod pairings;
 pub mod player;
 pub mod player_registry;
 pub mod round;

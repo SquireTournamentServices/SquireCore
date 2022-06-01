@@ -1,6 +1,13 @@
 use std::time::Duration;
 
-use crate::{player::PlayerId, player_registry::PlayerIdentifier, round::{RoundId, RoundResult, RoundStatus}, round_registry::RoundIdentifier, settings::TournamentSetting, swiss_pairings::TournamentError};
+use crate::{
+    player::PlayerId,
+    player_registry::PlayerIdentifier,
+    round::{RoundId, RoundResult, RoundStatus},
+    round_registry::RoundIdentifier,
+    settings::TournamentSetting,
+    swiss_pairings::TournamentError,
+};
 
 use mtgjson::model::deck::Deck;
 

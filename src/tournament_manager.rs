@@ -1,4 +1,8 @@
-use crate::{error::TournamentError, operations::{OpLog, OpResult, TournOp}, tournament::*};
+use crate::{
+    error::TournamentError,
+    operations::{OpLog, OpResult, TournOp},
+    tournament::*,
+};
 
 use serde::{Deserialize, Serialize};
 

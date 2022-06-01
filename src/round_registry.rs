@@ -74,14 +74,19 @@ impl RoundRegistry {
         rnd.kill_round();
         for plyr in &players {
             for p in &players {
-                self.opponents.get_mut(plyr).expect("Player should be in opponents.").remove(p);
+                if let Some(opps) = self.opponents.get_mut(plyr) {
+                    opps.remove(p);
+                }
             }
         }
         Ok(())
     }
 
     pub fn active_round_count(&self) -> usize {
-        self.rounds.iter().filter(|(_,r)| !r.is_certified()).count()
+        self.rounds
+            .iter()
+            .filter(|(_, r)| !r.is_certified())
+            .count()
     }
 
     pub fn create_round(&mut self) -> RoundIdentifier {
@@ -92,17 +97,29 @@ impl RoundRegistry {
         self.rounds.insert(match_num, round);
         digest
     }
-    
-    pub fn add_player_to_round(&mut self, ident: &RoundIdentifier, plyr: PlayerId) -> Result<(),  TournamentError> {
-        let round = self.get_mut_round(ident).ok_or(TournamentError::RoundLookup)?;
+
+    pub fn add_player_to_round(
+        &mut self,
+        ident: &RoundIdentifier,
+        plyr: PlayerId,
+    ) -> Result<(), TournamentError> {
+        let round = self
+            .get_mut_round(ident)
+            .ok_or(TournamentError::RoundLookup)?;
         let players = round.get_all_players();
         round.add_player(plyr.clone());
         if !self.opponents.contains_key(&plyr) {
             self.opponents.insert(plyr.clone(), HashSet::new());
         }
         for p in players {
-            self.opponents.get_mut(&p).expect("Player should already be in the opponents map.").insert(plyr.clone());
-            self.opponents.get_mut(&plyr).expect("Player should already be in the opponents map.").insert(p);
+            self.opponents
+                .get_mut(&p)
+                .expect("Player should already be in the opponents map.")
+                .insert(plyr.clone());
+            self.opponents
+                .get_mut(&plyr)
+                .expect("Player should already be in the opponents map.")
+                .insert(p);
         }
         Ok(())
     }
@@ -135,7 +152,10 @@ impl RoundRegistry {
     //
     // Potentail clean up: We can likely avoid this be maintaining that a player can be in at most
     // one match at a time. We can then use a GroupMap to look up match ids via player ids.
-    pub fn get_player_active_round(&mut self, id: &PlayerId) -> Result<&mut Round, TournamentError> {
+    pub fn get_player_active_round(
+        &mut self,
+        id: &PlayerId,
+    ) -> Result<&mut Round, TournamentError> {
         let mut nums: Vec<u64> = self
             .rounds
             .iter()

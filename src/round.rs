@@ -1,9 +1,15 @@
-use std::{collections::HashSet, fmt, hash::{Hash, Hasher}, time::{Duration, Instant, SystemTime}};
-
-use uuid::Uuid;
-use serde::{Deserialize, Serialize, 
-    ser::{Serializer, SerializeStruct},
+use std::{
+    collections::HashSet,
+    fmt,
+    hash::{Hash, Hasher},
+    time::{Duration, Instant, SystemTime},
 };
+
+use serde::{
+    ser::{SerializeStruct, Serializer},
+    Deserialize, Serialize,
+};
+use uuid::Uuid;
 
 use crate::{error::TournamentError, player::PlayerId};
 
@@ -60,7 +66,7 @@ impl Round {
             is_bye: false,
         }
     }
-    
+
     // TODO: Find a better way to sync clocks if SystemTime::elapsed errors
     pub fn time_left(&self) -> Duration {
         let length = self.length + self.extension;
@@ -171,12 +177,16 @@ impl Serialize for Round {
 
 impl fmt::Display for RoundStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::Open => "Open",
-            Self::Uncertified => "Uncertified",
-            Self::Certified => "Certified",
-            Self::Dead => "Dead",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Open => "Open",
+                Self::Uncertified => "Uncertified",
+                Self::Certified => "Certified",
+                Self::Dead => "Dead",
+            }
+        )
     }
 }
 

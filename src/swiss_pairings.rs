@@ -2,10 +2,17 @@ pub use crate::{
     error::TournamentError, player::PlayerId, player_registry::PlayerRegistry,
     round_registry::RoundRegistry, settings::SwissPairingsSetting,
 };
+use crate::{
+    pairings::Pairings,
+    player::PlayerStatus,
+    player_registry::PlayerIdentifier,
+    scoring::{Score, Standings},
+    tournament::ScoringSystem,
+};
 
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::RangeBounds};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SwissPairings {
@@ -52,15 +59,74 @@ impl SwissPairings {
         digest
     }
 
-    pub fn pair(
+    fn valid_pairing(
+        &self,
+        matches: &RoundRegistry,
+        known: &Vec<&PlayerId>,
+        new: &PlayerId,
+    ) -> bool {
+        if let Some(opps) = matches.opponents.get(new) {
+            known.iter().any(|p| !opps.contains(p))
+        } else {
+            true
+        }
+    }
+
+    pub fn pair<S>(
         &mut self,
         players: &PlayerRegistry,
         matches: &RoundRegistry,
-    ) -> Option<Vec<Vec<PlayerId>>> {
+        mut standings: Standings<S>,
+    ) -> Option<Pairings>
+    where
+        S: Score,
+    {
         if !self.ready_to_pair(players, matches) {
             return None;
         }
-        let digest = Vec::with_capacity(players.active_player_count()/self.players_per_match as usize + 1);
+        let mut plyrs: Vec<PlayerId> = standings
+            .scores
+            .drain(0..)
+            .filter_map(|(p, _)| {
+                if players.get_player_status(&PlayerIdentifier::Id(p.clone()))?
+                    == PlayerStatus::Registered
+                {
+                    Some(p)
+                } else {
+                    None
+                }
+            })
+            .rev()
+            .collect();
+        let mut digest = Pairings {
+            paired: Vec::with_capacity(plyrs.len() / self.players_per_match as usize + 1),
+            rejected: Vec::new(),
+        };
+        while plyrs.len() > self.players_per_match as usize {
+            let mut index_buffer: Vec<usize> = Vec::with_capacity(self.players_per_match as usize);
+            let mut id_buffer: Vec<&PlayerId> = Vec::with_capacity(self.players_per_match as usize);
+            index_buffer.push(0);
+            id_buffer.push(&plyrs[0]);
+            for i in 1..plyrs.len() {
+                if self.valid_pairing(matches, &id_buffer, &plyrs[i]) {
+                    index_buffer.push(i);
+                    id_buffer.push(&plyrs[i]);
+                    if index_buffer.len() == self.players_per_match as usize {
+                        break;
+                    }
+                }
+            }
+            if index_buffer.len() == self.players_per_match as usize {
+                let mut pairing: Vec<PlayerId> =
+                    Vec::with_capacity(self.players_per_match as usize);
+                for i in index_buffer {
+                    pairing.push(plyrs[i].clone());
+                }
+                digest.paired.push(pairing);
+            } else {
+                digest.rejected.push(plyrs.pop().unwrap());
+            }
+        }
         Some(digest)
     }
 }

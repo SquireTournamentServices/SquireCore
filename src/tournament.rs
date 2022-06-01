@@ -15,6 +15,7 @@ use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
     operations::{OpData, OpResult, TournOp},
+    pairings::Pairings,
     player::{Player, PlayerId},
     player_registry::{PlayerIdentifier, PlayerRegistry},
     round::{Round, RoundId, RoundResult, RoundStatus},
@@ -134,9 +135,12 @@ impl Tournament {
             TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
         }
     }
-    
+
     pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
-        let round = self.round_reg.get_mut_round(&rnd).ok_or(TournamentError::RoundLookup)?;
+        let round = self
+            .round_reg
+            .get_mut_round(&rnd)
+            .ok_or(TournamentError::RoundLookup)?;
         round.extension += ext;
         Ok(OpData::Nothing)
     }
@@ -192,13 +196,52 @@ impl Tournament {
     }
 
     pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> OpResult {
-        todo!()
+        let id = self
+            .player_reg
+            .get_player_id(&plyr)
+            .ok_or(TournamentError::PlayerLookup)?;
+        if self.is_planned() {
+            self.player_reg.check_in(id);
+            Ok(OpData::Nothing)
+        } else {
+            Err(TournamentError::IncorrectStatus)
+        }
     }
 
     pub(crate) fn pair(&mut self) -> OpResult {
-        todo!()
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
+        let standings = self
+            .scoring_sys
+            .get_standings(&self.player_reg, &self.round_reg);
+        if let Some(pairings) = self
+            .pairing_sys
+            .pair(&self.player_reg, &self.round_reg, standings)
+        {
+            let mut rounds = Vec::with_capacity(pairings.paired.len());
+            for pair in pairings.paired {
+                let r_id = self.round_reg.create_round();
+                for plyr in pair {
+                    let _ = self.round_reg.add_player_to_round(&r_id, plyr);
+                }
+                rounds.push(r_id);
+            }
+            if let PairingSystem::Swiss(_) = &self.pairing_sys {
+                for plyr in pairings.rejected {
+                    let r_id = self.round_reg.create_round();
+                    let rnd = self.round_reg.get_mut_round(&r_id).unwrap();
+                    rnd.add_player(plyr);
+                    let _ = rnd.record_bye();
+                    rounds.push(r_id);
+                }
+            }
+            Ok(OpData::Pair(rounds))
+        } else {
+            Ok(OpData::Nothing)
+        }
     }
-    
+
     pub(crate) fn remove_round(&mut self, ident: &RoundIdentifier) -> OpResult {
         self.round_reg.kill_round(ident)?;
         Ok(OpData::Nothing)
@@ -430,21 +473,25 @@ impl Tournament {
         if plyr.can_play() {
             self.pairing_sys.ready_player(plyr.id.clone());
             should_pair = match &self.pairing_sys {
-                PairingSystem::Fluid(sys) => sys.ready_to_pair(&self.round_reg),
+                PairingSystem::Fluid(sys) => sys.ready_to_pair(),
                 PairingSystem::Swiss(sys) => false,
             };
         }
         if should_pair {
+            let standings = self.get_standings();
             if let Some(pairings) =
                 self.pairing_sys
-                    .pair(&self.player_reg, &self.round_reg)
+                    .pair(&self.player_reg, &self.round_reg, standings)
             {
-                for p in pairings {
+                let mut rounds = Vec::with_capacity(pairings.paired.len());
+                for p in pairings.paired {
                     let r_id = self.round_reg.create_round();
                     for plyr in p {
                         let _ = self.round_reg.add_player_to_round(&r_id, plyr);
                     }
+                    rounds.push(r_id);
                 }
+                return Ok(OpData::Pair(rounds));
             }
         }
         Ok(OpData::Nothing)
@@ -519,13 +566,24 @@ impl PairingSystem {
         }
     }
 
-    pub fn pair(
+    pub fn ready_to_pair(&self, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> bool {
+        match self {
+            Self::Swiss(sys) => sys.ready_to_pair(plyr_reg, rnd_reg),
+            Self::Fluid(sys) => sys.ready_to_pair(),
+        }
+    }
+
+    pub fn pair<S>(
         &mut self,
         plyr_reg: &PlayerRegistry,
         rnd_reg: &RoundRegistry,
-    ) -> Option<Vec<Vec<PlayerId>>> {
+        standings: Standings<S>,
+    ) -> Option<Pairings>
+    where
+        S: Score,
+    {
         match self {
-            Self::Swiss(sys) => sys.pair(plyr_reg, rnd_reg),
+            Self::Swiss(sys) => sys.pair(plyr_reg, rnd_reg, standings),
             Self::Fluid(sys) => sys.pair(plyr_reg, rnd_reg),
         }
     }

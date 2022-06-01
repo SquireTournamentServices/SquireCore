@@ -8,7 +8,10 @@ use mtgjson::model::deck::Deck;
 
 use serde::{Deserialize, Serialize};
 
-use std::{collections::{HashMap, HashSet}, slice::SliceIndex};
+use std::{
+    collections::{HashMap, HashSet},
+    slice::SliceIndex,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 pub enum PlayerIdentifier {
@@ -37,17 +40,20 @@ impl PlayerRegistry {
             check_ins: HashSet::new(),
         }
     }
-    
+
     pub fn check_in(&mut self, id: PlayerId) {
         self.check_ins.insert(id);
     }
-    
-    pub fn is_checked_in(&self, id: &PlayerId) -> bool { 
+
+    pub fn is_checked_in(&self, id: &PlayerId) -> bool {
         self.check_ins.contains(id)
     }
-    
+
     pub fn count_check_ins(&self) -> usize {
-        self.players.iter().filter(|(id,p)| self.is_checked_in(id) && p.can_play() ).count()
+        self.players
+            .iter()
+            .filter(|(id, p)| self.is_checked_in(id) && p.can_play())
+            .count()
     }
 
     pub fn len(&self) -> usize {
@@ -107,6 +113,10 @@ impl PlayerRegistry {
             PlayerIdentifier::Id(id) => Some(id.clone()),
             PlayerIdentifier::Name(name) => self.name_and_id.get_right(name).cloned(),
         }
+    }
+
+    pub fn get_player_status(&self, ident: &PlayerIdentifier) -> Option<PlayerStatus> {
+        Some(self.get_player(ident)?.status)
     }
 
     pub fn verify_identifier(&self, ident: &PlayerIdentifier) -> bool {
