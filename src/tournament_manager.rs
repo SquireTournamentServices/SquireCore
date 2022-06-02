@@ -39,8 +39,7 @@ impl TournamentManager {
     /// NOTE: Even operations that result in a tournament error are stored.
     pub fn apply(&mut self, op: TournOp) -> OpResult {
         self.log.ops.push(op.clone());
-        let digest = self.tourn.apply_op(op);
-        digest
+        self.tourn.apply_op(op)
     }
 
     /// Returns an iterator over all the states of a tournament

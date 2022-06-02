@@ -50,7 +50,7 @@ impl RoundRegistry {
             .take_while(|n| !self.rounds.get(&(*n as u64)).unwrap().is_certified())
             .map(|n| self.rounds.get(&(n as u64)).unwrap().table_number)
             .collect();
-        if numbers.len() == 0 {
+        if numbers.is_empty() {
             self.starting_table
         } else {
             numbers.push(self.starting_table);
@@ -127,10 +127,10 @@ impl RoundRegistry {
     pub(crate) fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
         match ident {
             RoundIdentifier::Id(id) => {
-                let num = self.num_and_id.get_right(&id)?;
+                let num = self.num_and_id.get_right(id)?;
                 self.rounds.get_mut(num)
             }
-            RoundIdentifier::Number(num) => self.rounds.get_mut(&num),
+            RoundIdentifier::Number(num) => self.rounds.get_mut(num),
         }
     }
 

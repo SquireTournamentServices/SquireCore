@@ -139,7 +139,7 @@ impl Tournament {
     pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
         let round = self
             .round_reg
-            .get_mut_round(&rnd)
+            .get_mut_round(rnd)
             .ok_or(TournamentError::RoundLookup)?;
         round.extension += ext;
         Ok(OpData::Nothing)
@@ -198,7 +198,7 @@ impl Tournament {
     pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> OpResult {
         let id = self
             .player_reg
-            .get_player_id(&plyr)
+            .get_player_id(plyr)
             .ok_or(TournamentError::PlayerLookup)?;
         if self.is_planned() {
             self.player_reg.check_in(id);
@@ -371,7 +371,7 @@ impl Tournament {
     ) -> OpResult {
         let round = self
             .round_reg
-            .get_mut_round(&ident)
+            .get_mut_round(ident)
             .ok_or(TournamentError::RoundLookup)?;
         round.record_result(result)?;
         Ok(OpData::Nothing)
@@ -430,7 +430,7 @@ impl Tournament {
     ) -> Result<HashMap<String, Deck>, TournamentError> {
         let plyr = self
             .player_reg
-            .get_player(&ident)
+            .get_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
         Ok(plyr.get_decks())
     }

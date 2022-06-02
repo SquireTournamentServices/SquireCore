@@ -212,10 +212,7 @@ impl OpLog {
             .iter()
             .rev()
             .enumerate()
-            .map_while(|(i, o)| match f(o) {
-                Some(b) => Some((i, b, o)),
-                None => None,
-            })
+            .map_while(|(i, o)| f(o).map(|b| (i, b, o)))
             .filter_map(|(i, b, o)| {
                 if !b {
                     Some((OpId(l - i), o.clone()))
@@ -324,6 +321,18 @@ impl OpSlice {
             merged.add_op(o);
         }
         Ok(merged)
+    }
+}
+
+impl Default for OpLog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for OpSlice {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

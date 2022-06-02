@@ -52,7 +52,7 @@ impl FluidPairings {
     fn valid_pairing(
         &self,
         matches: &RoundRegistry,
-        known: &Vec<&PlayerId>,
+        known: &[&PlayerId],
         new: &PlayerId,
     ) -> bool {
         if let Some(opps) = matches.opponents.get(new) {
@@ -77,7 +77,7 @@ impl FluidPairings {
             let mut id_buffer: Vec<&PlayerId> = Vec::with_capacity(self.players_per_match as usize);
             index_buffer.push(0);
             id_buffer.push(&plyrs[0]);
-            for i in 1..plyrs.len() {
+            for (i, _) in plyrs.iter().enumerate().skip(1) {
                 if self.valid_pairing(matches, &id_buffer, &plyrs[i]) {
                     index_buffer.push(i);
                     id_buffer.push(&plyrs[i]);

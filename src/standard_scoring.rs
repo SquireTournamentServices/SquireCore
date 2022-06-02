@@ -11,10 +11,8 @@ pub use crate::{
 
 use serde::{Deserialize, Serialize};
 
-use std::{
-    collections::{HashMap, HashSet},
-    string::ToString,
-};
+use std::fmt::Write as _;
+use std::{collections::{HashMap, HashSet}, fmt::Display, string::ToString};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct StandardScore {
@@ -96,10 +94,7 @@ impl StandardScoring {
             + self.game_loss_points * (counter.game_losses as f64)
     }
 
-    pub fn new() -> Self
-    where
-        Self: Sized,
-    {
+    pub fn new() -> Self {
         StandardScoring {
             match_win_points: 3.0,
             match_draw_points: 1.0,
@@ -184,8 +179,8 @@ impl StandardScoring {
             if round.is_bye && !self.include_byes {
                 continue;
             }
-            for p in round.players.iter().cloned() {
-                let counter = counters.get_mut(&p).unwrap();
+            for p in round.players.iter() {
+                let counter = counters.get_mut(p).unwrap();
                 counter.add_round(round)
             }
         }
@@ -193,8 +188,8 @@ impl StandardScoring {
         let mut digest: HashMap<PlayerId, StandardScore> = HashMap::with_capacity(counters.len());
         for (id, counter) in &counters {
             let mut score = self.new_score();
-            score.match_points = self.calculate_match_points_with_byes(&counter);
-            score.game_points = self.calculate_game_points(&counter);
+            score.match_points = self.calculate_match_points_with_byes(counter);
+            score.game_points = self.calculate_game_points(counter);
             // If your only round was a bye, your percentages stay at 0
             // This also filters out folks that haven't played a match yet
             if counter.rounds != counter.byes {
@@ -223,7 +218,7 @@ impl StandardScoring {
             digest.get_mut(id).unwrap().opp_gwp = opp_gp / (opp_games as f64);
         }
         let mut results: Vec<(PlayerId, StandardScore)> = digest.drain().collect();
-        results.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
+        results.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
         Standings::new(results)
     }
 }
@@ -256,8 +251,8 @@ impl StandardScore {
 
 impl Score for StandardScore {}
 
-impl ToString for StandardScore {
-    fn to_string(&self) -> String {
+impl Display for StandardScore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if !self.include_match_points
             | !self.include_game_points
             | !self.include_mwp
@@ -265,32 +260,29 @@ impl ToString for StandardScore {
             | !self.include_opp_mwp
             | !self.include_opp_gwp
         {
-            return String::new();
+            return write!(f, "StandardScore {{ }}");
         }
-        let mut digest = String::with_capacity(28);
+        let mut digest = String::from("StandardScore {{ ");
         if self.include_match_points {
-            digest += &format!("{:2}, ", self.match_points);
+            write!(digest, " match points: {:2}, ", self.match_points)?;
         }
         if self.include_game_points {
-            digest += &format!("{:2}, ", self.game_points);
+            write!(digest, " game points: {:2}, ", self.game_points)?;
         }
         if self.include_mwp {
-            digest += &format!("{:.3}, ", self.mwp);
+            write!(digest, " match win percent: {:3}, ", self.mwp)?;
         }
         if self.include_gwp {
-            digest += &format!("{:.3}, ", self.gwp);
+            write!(digest, " game win percent: {:3}, ", self.gwp)?;
         }
         if self.include_opp_mwp {
-            digest += &format!("{:.3}, ", self.opp_mwp);
+            write!(digest, " opponent match win percent: {:3}, ", self.opp_mwp)?;
         }
         if self.include_opp_gwp {
-            digest += &format!("{:.3}, ", self.opp_gwp);
+            write!(digest, " opponent game win percent: {:3}, ", self.opp_gwp)?;
         }
         let l = digest.len();
-        // Safety check: Since digest can only be empty when all condititions are false (a dumb
-        // idea), check for this at the start. Otherwise, at least condition is true and contains
-        // at least `, `.
-        digest[..l - 2].to_string()
+        write!(f, "{} }}", &digest[..l - 2])
     }
 }
 
@@ -364,5 +356,11 @@ impl ScoreCounter {
 
     fn add_bye(&mut self) {
         self.byes += 1;
+    }
+}
+
+impl Default for StandardScoring {
+    fn default() -> Self {
+        Self::new()
     }
 }

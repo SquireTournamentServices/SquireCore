@@ -55,6 +55,10 @@ impl PlayerRegistry {
             .filter(|(id, p)| self.is_checked_in(id) && p.can_play())
             .count()
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.players.is_empty()
+    }
 
     pub fn len(&self) -> usize {
         self.players.len()
@@ -71,7 +75,7 @@ impl PlayerRegistry {
             let plyr = Player::new(name.clone());
             let digest = Ok(plyr.id.clone());
             self.name_and_id.insert(name, plyr.id.clone());
-            self.players.insert(plyr.id.clone(), plyr.clone());
+            self.players.insert(plyr.id.clone(), plyr);
             digest
         }
     }
