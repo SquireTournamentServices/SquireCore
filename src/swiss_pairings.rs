@@ -59,12 +59,7 @@ impl SwissPairings {
         digest
     }
 
-    fn valid_pairing(
-        &self,
-        matches: &RoundRegistry,
-        known: &[&PlayerId],
-        new: &PlayerId,
-    ) -> bool {
+    fn valid_pairing(&self, matches: &RoundRegistry, known: &[&PlayerId], new: &PlayerId) -> bool {
         if let Some(opps) = matches.opponents.get(new) {
             known.iter().any(|p| !opps.contains(p))
         } else {

@@ -133,6 +133,7 @@ impl Tournament {
             CreateRound(p_idents) => self.create_round(p_idents),
             PairRound() => self.pair(),
             TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
+            Cut(n) => self.cut_to_top(n),
         }
     }
 
@@ -173,6 +174,22 @@ impl Tournament {
             Some(rnd) => Ok(rnd.clone()),
             None => Err(TournamentError::RoundLookup),
         }
+    }
+
+    pub fn get_player_rounds(
+        &self,
+        ident: &PlayerIdentifier,
+    ) -> Result<Vec<Round>, TournamentError> {
+        let id = self
+            .player_reg
+            .get_player_id(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
+        Ok(self
+            .round_reg
+            .rounds
+            .iter()
+            .filter_map(|(_, r)| r.players.get(&id).map(|_| r.clone()))
+            .collect())
     }
 
     pub fn get_player_deck(
@@ -546,6 +563,23 @@ impl Tournament {
         } else {
             Err(TournamentError::PlayerLookup)
         }
+    }
+
+    pub(crate) fn cut_to_top(&mut self, len: usize) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus);
+        }
+        let player_iter = self
+            .get_standings()
+            .scores
+            .into_iter()
+            .skip(len)
+            .map(|(id, _)| PlayerIdentifier::Id(id));
+        for id in player_iter {
+            // This result doesn't matter
+            let _ = self.drop_player(&id);
+        }
+        Ok(OpData::Nothing)
     }
 }
 

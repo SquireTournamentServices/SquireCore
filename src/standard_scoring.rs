@@ -12,7 +12,11 @@ pub use crate::{
 use serde::{Deserialize, Serialize};
 
 use std::fmt::Write as _;
-use std::{collections::{HashMap, HashSet}, fmt::Display, string::ToString};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    string::ToString,
+};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct StandardScore {

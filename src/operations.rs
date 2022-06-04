@@ -40,6 +40,7 @@ pub enum TournOp {
     CreateRound(Vec<PlayerIdentifier>),
     PairRound(),
     TimeExtension(RoundIdentifier, Duration),
+    Cut(usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]

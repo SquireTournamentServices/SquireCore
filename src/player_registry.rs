@@ -55,7 +55,7 @@ impl PlayerRegistry {
             .filter(|(id, p)| self.is_checked_in(id) && p.can_play())
             .count()
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.players.is_empty()
     }

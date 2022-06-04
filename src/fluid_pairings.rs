@@ -49,12 +49,7 @@ impl FluidPairings {
         self.check_ins.len() + self.queue.len() >= self.players_per_match as usize
     }
 
-    fn valid_pairing(
-        &self,
-        matches: &RoundRegistry,
-        known: &[&PlayerId],
-        new: &PlayerId,
-    ) -> bool {
+    fn valid_pairing(&self, matches: &RoundRegistry, known: &[&PlayerId], new: &PlayerId) -> bool {
         if let Some(opps) = matches.opponents.get(new) {
             known.iter().any(|p| !opps.contains(p))
         } else {
