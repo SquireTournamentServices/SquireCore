@@ -195,7 +195,7 @@ impl Tournament {
     pub fn get_player_deck(
         &self,
         ident: &PlayerIdentifier,
-        name: String,
+        name: &String,
     ) -> Result<Deck, TournamentError> {
         let plyr = self
             .player_reg

@@ -72,8 +72,8 @@ impl Player {
         self.decks.clone()
     }
 
-    pub fn get_deck(&self, name: String) -> Option<Deck> {
-        let deck = self.decks.get(&name)?;
+    pub fn get_deck(&self, name: &String) -> Option<Deck> {
+        let deck = self.decks.get(name)?;
         Some((*deck).clone())
     }
 
