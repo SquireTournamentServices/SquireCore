@@ -41,6 +41,8 @@ pub enum TournOp {
     PairRound(),
     TimeExtension(RoundIdentifier, Duration),
     Cut(usize),
+    PruneDecks(),
+    PrunePlayers(),
 }
 
 #[derive(Debug, Clone, PartialEq)]

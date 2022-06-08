@@ -26,8 +26,61 @@ pub struct Player {
     pub id: PlayerId,
     pub name: String,
     pub game_name: Option<String>,
+    pub deck_ordering: Vec<String>,
     pub decks: HashMap<String, Deck>,
     pub status: PlayerStatus,
+}
+
+impl Eq for Player {}
+
+impl Player {
+    pub fn new(name: String) -> Self {
+        Player {
+            id: PlayerId(Uuid::new_v4()),
+            name,
+            game_name: None,
+            deck_ordering: Vec::new(),
+            decks: HashMap::new(),
+            status: PlayerStatus::Registered,
+        }
+    }
+
+    pub fn add_deck(&mut self, name: String, deck: Deck) {
+        self.deck_ordering.push(name.clone());
+        self.decks.insert(name, deck);
+    }
+
+    pub fn get_decks(&self) -> HashMap<String, Deck> {
+        self.decks.clone()
+    }
+
+    pub fn get_deck(&self, name: &String) -> Option<Deck> {
+        let deck = self.decks.get(name)?;
+        Some(deck.clone())
+    }
+
+    pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
+        if self.decks.contains_key(&name) {
+            let index = self.deck_ordering.iter().position(|n| n == &name).unwrap();
+            self.deck_ordering.remove(index);
+            self.decks.remove(&name);
+            Ok(())
+        } else {
+            Err(TournamentError::DeckLookup)
+        }
+    }
+
+    pub fn update_status(&mut self, status: PlayerStatus) {
+        self.status = status;
+    }
+
+    pub fn set_game_name(&mut self, name: String) {
+        self.game_name = Some(name);
+    }
+
+    pub fn can_play(&self) -> bool {
+        self.status == PlayerStatus::Registered
+    }
 }
 
 impl Hash for Player {
@@ -48,53 +101,5 @@ impl ToString for Player {
 impl PartialEq for Player {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
-    }
-}
-
-impl Eq for Player {}
-
-impl Player {
-    pub fn new(name: String) -> Self {
-        Player {
-            id: PlayerId(Uuid::new_v4()),
-            name,
-            game_name: None,
-            decks: HashMap::new(),
-            status: PlayerStatus::Registered,
-        }
-    }
-
-    pub fn add_deck(&mut self, name: String, deck: Deck) {
-        self.decks.insert(name, deck);
-    }
-
-    pub fn get_decks(&self) -> HashMap<String, Deck> {
-        self.decks.clone()
-    }
-
-    pub fn get_deck(&self, name: &String) -> Option<Deck> {
-        let deck = self.decks.get(name)?;
-        Some((*deck).clone())
-    }
-
-    pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
-        if self.decks.contains_key(&name) {
-            self.decks.remove(&name);
-            Ok(())
-        } else {
-            Err(TournamentError::DeckLookup)
-        }
-    }
-
-    pub fn update_status(&mut self, status: PlayerStatus) {
-        self.status = status;
-    }
-
-    pub fn set_game_name(&mut self, name: String) {
-        self.game_name = Some(name);
-    }
-
-    pub fn can_play(&self) -> bool {
-        self.status == PlayerStatus::Registered
     }
 }

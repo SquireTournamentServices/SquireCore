@@ -11,23 +11,10 @@ use uuid::Uuid;
 
 use mtgjson::model::deck::Deck;
 
-use crate::{
-    error::TournamentError,
-    fluid_pairings::FluidPairings,
-    operations::{OpData, OpResult, TournOp},
-    pairings::Pairings,
-    player::{Player, PlayerId},
-    player_registry::{PlayerIdentifier, PlayerRegistry},
-    round::{Round, RoundId, RoundResult, RoundStatus},
-    round_registry::{RoundIdentifier, RoundRegistry},
-    scoring::{Score, Standings},
-    settings::{
+use crate::{error::TournamentError, fluid_pairings::FluidPairings, operations::{OpData, OpResult, TournOp}, pairings::Pairings, player::{Player, PlayerId, PlayerStatus}, player_registry::{PlayerIdentifier, PlayerRegistry}, round::{Round, RoundId, RoundResult, RoundStatus}, round_registry::{RoundIdentifier, RoundRegistry}, scoring::{Score, Standings}, settings::{
         self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
         SwissPairingsSetting, TournamentSetting,
-    },
-    standard_scoring::{StandardScore, StandardScoring},
-    swiss_pairings::SwissPairings,
-};
+    }, standard_scoring::{StandardScore, StandardScoring}, swiss_pairings::SwissPairings};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
@@ -134,16 +121,9 @@ impl Tournament {
             PairRound() => self.pair(),
             TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
             Cut(n) => self.cut_to_top(n),
+            PruneDecks() => self.prune_decks(),
+            PrunePlayers() => self.prune_players(),
         }
-    }
-
-    pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
-        let round = self
-            .round_reg
-            .get_mut_round(rnd)
-            .ok_or(TournamentError::RoundLookup)?;
-        round.extension += ext;
-        Ok(OpData::Nothing)
     }
 
     pub fn is_planned(&self) -> bool {
@@ -210,6 +190,43 @@ impl Tournament {
     pub fn get_standings(&self) -> Standings<StandardScore> {
         self.scoring_sys
             .get_standings(&self.player_reg, &self.round_reg)
+    }
+
+    pub(crate) fn prune_decks(&mut self) -> OpResult {
+        for (_, p) in self.player_reg.players.iter_mut() {
+            while p.decks.len() > self.max_deck_count as usize {
+                let name = p.deck_ordering[0].clone();
+                let _ = p.remove_deck(name);
+            }
+        }
+        Ok(OpData::Nothing)
+    }
+    
+    pub(crate) fn prune_players(&mut self) -> OpResult {
+        if self.require_deck_reg {
+            for (_, p) in self.player_reg.players.iter_mut() {
+                if p.decks.len() < self.min_deck_count as usize {
+                    p.update_status(PlayerStatus::Dropped);
+                }
+            }
+        }
+        if self.require_check_in {
+            for (id, p) in self.player_reg.players.iter_mut() {
+                if !self.player_reg.check_ins.contains(id) {
+                    p.update_status(PlayerStatus::Dropped);
+                }
+            }
+        }
+        Ok(OpData::Nothing)
+    }
+
+    pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
+        let round = self
+            .round_reg
+            .get_mut_round(rnd)
+            .ok_or(TournamentError::RoundLookup)?;
+        round.extension += ext;
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> OpResult {
