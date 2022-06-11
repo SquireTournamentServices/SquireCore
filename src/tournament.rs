@@ -11,10 +11,23 @@ use uuid::Uuid;
 
 use mtgjson::model::deck::Deck;
 
-use crate::{error::TournamentError, fluid_pairings::FluidPairings, operations::{OpData, OpResult, TournOp}, pairings::Pairings, player::{Player, PlayerId, PlayerStatus}, player_registry::{PlayerIdentifier, PlayerRegistry}, round::{Round, RoundId, RoundResult, RoundStatus}, round_registry::{RoundIdentifier, RoundRegistry}, scoring::{Score, Standings}, settings::{
+use crate::{
+    error::TournamentError,
+    fluid_pairings::FluidPairings,
+    operations::{OpData, OpResult, TournOp},
+    pairings::Pairings,
+    player::{Player, PlayerId, PlayerStatus},
+    player_registry::{PlayerIdentifier, PlayerRegistry},
+    round::{Round, RoundId, RoundResult, RoundStatus},
+    round_registry::{RoundIdentifier, RoundRegistry},
+    scoring::{Score, Standings},
+    settings::{
         self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
         SwissPairingsSetting, TournamentSetting,
-    }, standard_scoring::{StandardScore, StandardScoring}, swiss_pairings::SwissPairings};
+    },
+    standard_scoring::{StandardScore, StandardScoring},
+    swiss_pairings::SwissPairings,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
@@ -193,15 +206,17 @@ impl Tournament {
     }
 
     pub(crate) fn prune_decks(&mut self) -> OpResult {
-        for (_, p) in self.player_reg.players.iter_mut() {
-            while p.decks.len() > self.max_deck_count as usize {
-                let name = p.deck_ordering[0].clone();
-                let _ = p.remove_deck(name);
+        if self.require_deck_reg {
+            for (_, p) in self.player_reg.players.iter_mut() {
+                while p.decks.len() > self.max_deck_count as usize {
+                    let name = p.deck_ordering[0].clone();
+                    let _ = p.remove_deck(name);
+                }
             }
         }
         Ok(OpData::Nothing)
     }
-    
+
     pub(crate) fn prune_players(&mut self) -> OpResult {
         if self.require_deck_reg {
             for (_, p) in self.player_reg.players.iter_mut() {
