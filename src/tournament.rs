@@ -403,7 +403,7 @@ impl Tournament {
     }
 
     fn register_player(&mut self, name: String) -> OpResult {
-        if !self.is_active() {
+        if !(self.is_active() || self.is_planned()){
             return Err(TournamentError::IncorrectStatus);
         }
         if !self.reg_open {
