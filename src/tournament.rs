@@ -29,7 +29,7 @@ use crate::{
     swiss_pairings::SwissPairings,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub enum TournamentPreset {
     Swiss,
@@ -49,7 +49,7 @@ pub enum PairingSystem {
     Fluid(FluidPairings),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum TournamentStatus {
     Planned,
@@ -107,10 +107,7 @@ impl Tournament {
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
-            UpdateReg(b) => {
-                self.update_reg(b);
-                Ok(OpData::Nothing)
-            }
+            UpdateReg(b) => self.update_reg(b),
             Start() => self.start(),
             Freeze() => self.freeze(),
             Thaw() => self.thaw(),
@@ -206,6 +203,9 @@ impl Tournament {
     }
 
     pub(crate) fn prune_decks(&mut self) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         if self.require_deck_reg {
             for (_, p) in self.player_reg.players.iter_mut() {
                 while p.decks.len() > self.max_deck_count as usize {
@@ -218,6 +218,9 @@ impl Tournament {
     }
 
     pub(crate) fn prune_players(&mut self) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         if self.require_deck_reg {
             for (_, p) in self.player_reg.players.iter_mut() {
                 if p.decks.len() < self.min_deck_count as usize {
@@ -236,6 +239,9 @@ impl Tournament {
     }
 
     pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         let round = self
             .round_reg
             .get_mut_round(rnd)
@@ -245,6 +251,9 @@ impl Tournament {
     }
 
     pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         let id = self
             .player_reg
             .get_player_id(plyr)
@@ -253,13 +262,13 @@ impl Tournament {
             self.player_reg.check_in(id);
             Ok(OpData::Nothing)
         } else {
-            Err(TournamentError::IncorrectStatus)
+            Err(TournamentError::IncorrectStatus(self.status))
         }
     }
 
     pub(crate) fn pair(&mut self) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         let standings = self
             .scoring_sys
@@ -292,12 +301,18 @@ impl Tournament {
     }
 
     pub(crate) fn remove_round(&mut self, ident: &RoundIdentifier) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         self.round_reg.kill_round(ident)?;
         Ok(OpData::Nothing)
     }
 
     pub(crate) fn update_setting(&mut self, setting: TournamentSetting) -> OpResult {
         use TournamentSetting::*;
+        if self.is_dead() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         match setting {
             Format(f) => {
                 self.format = f;
@@ -349,13 +364,17 @@ impl Tournament {
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn update_reg(&mut self, reg_status: bool) {
+    pub(crate) fn update_reg(&mut self, reg_status: bool) -> OpResult {
+        if self.is_dead() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         self.reg_open = reg_status;
+        Ok(OpData::Nothing)
     }
 
     pub(crate) fn start(&mut self) -> OpResult {
         if !self.is_planned() {
-            Err(TournamentError::IncorrectStatus)
+            Err(TournamentError::IncorrectStatus(self.status))
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Started;
@@ -365,7 +384,7 @@ impl Tournament {
 
     pub(crate) fn freeze(&mut self) -> OpResult {
         if !self.is_active() {
-            Err(TournamentError::IncorrectStatus)
+            Err(TournamentError::IncorrectStatus(self.status))
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Frozen;
@@ -375,7 +394,7 @@ impl Tournament {
 
     pub(crate) fn thaw(&mut self) -> OpResult {
         if !self.is_frozen() {
-            Err(TournamentError::IncorrectStatus)
+            Err(TournamentError::IncorrectStatus(self.status))
         } else {
             self.status = TournamentStatus::Started;
             Ok(OpData::Nothing)
@@ -384,7 +403,7 @@ impl Tournament {
 
     pub(crate) fn end(&mut self) -> OpResult {
         if !self.is_active() {
-            Err(TournamentError::IncorrectStatus)
+            Err(TournamentError::IncorrectStatus(self.status))
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Ended;
@@ -394,7 +413,7 @@ impl Tournament {
 
     pub(crate) fn cancel(&mut self) -> OpResult {
         if !self.is_active() {
-            Err(TournamentError::IncorrectStatus)
+            Err(TournamentError::IncorrectStatus(self.status))
         } else {
             self.reg_open = false;
             self.status = TournamentStatus::Cancelled;
@@ -403,8 +422,8 @@ impl Tournament {
     }
 
     fn register_player(&mut self, name: String) -> OpResult {
-        if !(self.is_active() || self.is_planned()){
-            return Err(TournamentError::IncorrectStatus);
+        if !(self.is_active() || self.is_planned()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
@@ -418,6 +437,9 @@ impl Tournament {
         ident: &RoundIdentifier,
         result: RoundResult,
     ) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         let round = self
             .round_reg
             .get_mut_round(ident)
@@ -428,7 +450,7 @@ impl Tournament {
 
     pub(crate) fn confirm_round(&mut self, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         let id = self
             .player_reg
@@ -440,6 +462,9 @@ impl Tournament {
     }
 
     pub(crate) fn drop_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
+        if self.is_dead() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         self.player_reg
             .remove_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
@@ -447,6 +472,9 @@ impl Tournament {
     }
 
     pub(crate) fn admin_drop_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
+        if self.is_dead() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         self.player_reg
             .remove_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
@@ -459,8 +487,8 @@ impl Tournament {
         name: String,
         deck: Deck,
     ) -> OpResult {
-        if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
@@ -489,6 +517,9 @@ impl Tournament {
         ident: &PlayerIdentifier,
         name: String,
     ) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         let plyr = self
             .player_reg
             .get_mut_player(ident)
@@ -502,6 +533,9 @@ impl Tournament {
         ident: &PlayerIdentifier,
         name: String,
     ) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         let plyr = self
             .player_reg
             .get_mut_player(ident)
@@ -512,7 +546,7 @@ impl Tournament {
 
     pub(crate) fn ready_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         let plyr = self
             .player_reg
@@ -547,6 +581,9 @@ impl Tournament {
     }
 
     pub(crate) fn unready_player(&mut self, plyr: &PlayerIdentifier) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
         let plyr = self
             .player_reg
             .get_player_id(plyr)
@@ -560,7 +597,7 @@ impl Tournament {
 
     pub(crate) fn give_bye(&mut self, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         let id = self
             .player_reg
@@ -577,7 +614,7 @@ impl Tournament {
 
     pub(crate) fn create_round(&mut self, idents: Vec<PlayerIdentifier>) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         if idents.len() == self.game_size as usize
             && idents.iter().all(|p| !self.player_reg.verify_identifier(p))
@@ -599,7 +636,7 @@ impl Tournament {
 
     pub(crate) fn cut_to_top(&mut self, len: usize) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus);
+            return Err(TournamentError::IncorrectStatus(self.status));
         }
         let player_iter = self
             .get_standings()

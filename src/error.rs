@@ -1,8 +1,10 @@
 use std::fmt;
 
-#[derive(Debug)]
+use crate::tournament::TournamentStatus;
+
+#[derive(Debug, Clone, Copy)]
 pub enum TournamentError {
-    IncorrectStatus,
+    IncorrectStatus(TournamentStatus),
     PlayerLookup,
     RoundLookup,
     DeckLookup,
@@ -20,7 +22,7 @@ impl fmt::Display for TournamentError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use TournamentError::*;
         let s = match &self {
-            IncorrectStatus => "IncorrectStatus",
+            IncorrectStatus(_) => "IncorrectStatus",
             PlayerLookup => "PlayerLookup",
             RoundLookup => "RoundLookup",
             DeckLookup => "DeckLookup",
