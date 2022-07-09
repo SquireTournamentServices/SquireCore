@@ -1,0 +1,25 @@
+[package]
+name = "squire_core"
+version = "0.1.0-pre-alpha.1"
+edition = "2021"
+license = "GPL-3.0"
+authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
+
+
+[dependencies]
+squire_lib = { path = "../squire_lib" }
+
+# For future use
+#anyhow = { version = "1.0" }
+#dashmap = { version = "5.0", features = ["serde"] }
+#serde_json = { version = "1.0.68" }
+#rocket = { version = "0.5.0-rc.1" }
+#juniper = { version = "0.15.7" }
+#juniper_rocket = { version = "0.8.0" }
+#serde_derive = { version = "1.0" }
+#actix-web = { version = "1.0.0" }
+#diesel = { version = "1.0.0", features = ["postgres"] }
+#dotenv = { version = "0.9.0" }
+#env_logger = { version = "0.6" }
+#futures = { version = "0.1" }
+#tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }

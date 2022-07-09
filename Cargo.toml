@@ -1,39 +1,6 @@
-[package]
-name = "squire_core"
-version = "0.1.0"
-edition = "2021"
-license = "GPL-3.0"
-authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
+[workspace]
 
-[dependencies]
-cycle_map = { version = "0.1.1", features = ["serde"] }
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
-uuid = { version = "0.8", features = ["serde", "v4"] }
-serde = { version = "1.0", features = ["derive"] }
-libc = { version = "0.2", optional = true }
-#libc = { version = "0.2"}
-
-# For future use
-#anyhow = { version = "1.0" }
-#dashmap = { version = "5.0", features = ["serde"] }
-#serde_json = { version = "1.0.68" }
-#rocket = { version = "0.5.0-rc.1" }
-#juniper = { version = "0.15.7" }
-#juniper_rocket = { version = "0.8.0" }
-#serde_derive = { version = "1.0" }
-#actix-web = { version = "1.0.0" }
-#diesel = { version = "1.0.0", features = ["postgres"] }
-#dotenv = { version = "0.9.0" }
-#env_logger = { version = "0.6" }
-#futures = { version = "0.1" }
-#tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
-
-[lib]
-crate-type = ["lib", "staticlib"]
-
-[build-dependencies]
-cbindgen = { version = "0.20.0", optional = true}
-
-[features]
-#ffi = ["cbindgen"]
-ffi = ["cbindgen", "libc"]
+members = [
+    "squire_lib",
+    "squire_core",
+]
