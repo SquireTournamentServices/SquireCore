@@ -10,68 +10,27 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  windows_build_and_test:
-    name: SquireCore - Tests - Windows
-    runs-on: windows-latest
+  squirelib_build_tests:
+    name: SquireLib - Tests
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        toolchain:
-          - stable
-          - beta
-          - nightly
+        rust: [stable, beta, nightly]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
       - uses: actions/checkout@v2
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --verbose --features ffi
-      - run: cargo test --verbose --features ffi
-      - run: cargo doc --verbose --features ffi
-  mac_build_and_test:
-    name: SquireCore - Tests - Mac
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        toolchain:
-          - stable
-          - beta
-          - nightly
-    steps:
-      - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --verbose --features ffi
-      - run: cargo test --verbose --features ffi
-      - run: cargo doc --verbose --features ffi
-  linux_build_and_test:
-    name: SquireCore - Tests - Linux
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain:
-          - stable
-          - beta
-          - nightly
-    steps:
-      - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --verbose
-      - run: cargo test --verbose
-      - run: cargo doc --verbose
-  linux_ffi_build_and_test:
-    name: SquireCore - FFI Tests - Linux
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain:
-          - stable
-          - beta
-          - nightly
-    steps:
-      - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --verbose --features ffi
-      - run: cargo test --verbose --features ffi
-      - run: cargo doc --verbose --features ffi
+      - run: cargo build --package squire_lib --verbose
+      - run: cargo test --package squire_lib --verbose
+      - run: cargo doc --package squire_lib --verbose
+      - run: cargo build --package squire_lib --verbose --features ffi
+      - run: cargo test --package squire_lib --verbose --features ffi
+      - run: cargo doc --package squire_lib --verbose --features ffi
   coverage:
-    name: SquireCore - Coverage
+    name: SquireLib - Coverage
     runs-on: ubuntu-latest
     container:
       image: xd009642/tarpaulin:develop-nightly
@@ -86,3 +45,18 @@ jobs:
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
+  squirecore_build_tests:
+    name: SquireCore - Build Tests - Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+         - stable
+         - beta
+         - nightly
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo build --package squire_core --verbose
+      - run: cargo test --package squire_core --verbose
+      - run: cargo doc --package squire_core --verbose

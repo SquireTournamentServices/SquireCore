@@ -77,7 +77,7 @@ impl Tournament {
         match self.apply_op(op) {
             Ok(_) => 0,
             Err(e) => match e {
-                IncorrectStatus => 1,
+                IncorrectStatus(_) => 1,
                 PlayerLookup => 2,
                 RoundLookup => 3,
                 DeckLookup => 4,
@@ -147,7 +147,7 @@ impl Tournament {
                 return 1;
             }
         };
-        match self.get_player_deck(ident, rust_name) {
+        match self.get_player_deck(ident, &rust_name) {
             Ok(deck) => {
                 let expected = deck;
                 0
@@ -159,23 +159,6 @@ impl Tournament {
                     unreachable!("The get_player_deck method will only ever return Player or Deck lookup error.")
                 }
             },
-        }
-    }
-
-    /// Returns `0` if the player could be found and `1` if they could be not be found.
-    #[allow(unused_assignments)]
-    #[no_mangle]
-    pub extern "C" fn get_player_round_c(
-        &self,
-        mut expected: *const RoundId,
-        ident: &PlayerIdentifier,
-    ) -> usize {
-        match self.get_player_round(ident) {
-            Ok(r) => {
-                expected = &r;
-                0
-            }
-            Err(_) => 1,
         }
     }
 
