@@ -1,13 +1,14 @@
 use dashmap::DashMap;
 use rocket::{get, routes};
 use uuid::Uuid;
+use squire_sdk::accounts::{AccountId, UserAccount, OrgAccount};
 
 use squire_lib;
 
 mod accounts;
 mod tournament;
 
-use accounts::{USERS_MAP, ORGS_MAP, AccountId, UserAccount, OrgAccount, user, orgs};
+use accounts::{USERS_MAP, ORGS_MAP, user, orgs};
 
 #[get("/world")]
 fn world() -> &'static str {

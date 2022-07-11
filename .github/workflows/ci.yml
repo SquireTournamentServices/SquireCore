@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  squirelib_build_tests:
+  squire_lib_build_tests:
     name: SquireLib - Tests
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,7 +45,42 @@ jobs:
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
-  squirecore_build_tests:
+  squire_sdk_build_tests:
+    name: SquireSDK - Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [stable, beta, nightly]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo build --package squire_lib --verbose
+      - run: cargo test --package squire_lib --verbose
+      - run: cargo doc --package squire_lib --verbose
+      - run: cargo build --package squire_lib --verbose --no-default-features
+      - run: cargo test --package squire_lib --verbose --no-default-features
+      - run: cargo doc --package squire_lib --verbose --no-default-features
+  coverage:
+    name: SquireSDK - Coverage
+    runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate code coverage
+        run: |
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
+  squire_core_build_tests:
     name: SquireCore - Build Tests - Linux
     runs-on: ubuntu-latest
     strategy:

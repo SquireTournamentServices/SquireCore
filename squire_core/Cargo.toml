@@ -10,6 +10,7 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 # In-House deps
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
 squire_lib = { path = "../squire_lib" }
+squire_sdk = { path = "../squire_sdk" }
 
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "tls", "json"] }
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
