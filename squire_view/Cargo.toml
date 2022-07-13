@@ -1,20 +1,27 @@
 [package]
-name = "squire_sdk"
+name = "squire_view"
 version = "0.1.0-pre-alpha.1"
 edition = "2021"
 license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [features]
-default = ["rocket", "mtgjson/hyper", "mtgjson/hyper-tls", "squire_lib/deck_sites"]
-deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
+deck_sites = ["mtgjson/hyper"]
+
+[build]
+target = "wasm32-unknown-unknown"
 
 [dependencies]
 # In-House deps
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
+squire_sdk = { path = "../squire_sdk", default-features = false }
 squire_lib = { path = "../squire_lib", default-features = false }
 
-rocket = { version = "0.5.0-rc.1", optional = true }
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
-serde = { version = "1.0", features = ["derive"] }
+
+yew = "0.19.3"
 serde_json = { version = "1.0.68" }
+reqwasm = { version = "0.4" }
+serde = { version = "1.0", features = ["derive"] }
+wasm-bindgen-futures = "0.4"
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
+getrandom = { version = "0.2", features = ["js"] }

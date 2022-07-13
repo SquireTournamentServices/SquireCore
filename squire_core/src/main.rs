@@ -8,7 +8,7 @@ use squire_lib;
 mod accounts;
 mod tournament;
 
-use accounts::{USERS_MAP, ORGS_MAP, user, orgs};
+use accounts::{USERS_MAP, ORGS_MAP, users, all_users, orgs};
 
 #[get("/world")]
 fn world() -> &'static str {
@@ -29,7 +29,7 @@ async fn main() -> Result<(), rocket::Error> {
     USERS_MAP.get().unwrap().insert(id, account);
     let _rocket = rocket::build()
         .mount("/hello", routes![world])
-        .mount("/accounts", routes![user, orgs])
+        .mount("/accounts", routes![users, all_users, orgs])
         .launch()
         .await?;
 

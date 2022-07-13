@@ -8,17 +8,19 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [lib]
 crate-type = ["lib", "staticlib"]
 
+[features]
+default = ["mtgjson/hyper", "mtgjson/hyper-tls"]
+deck_sites = ["mtgjson/hyper", "mtgjson/hyper-tls"]
+ffi = ["cbindgen", "libc"]
+
 [dependencies]
 #In-house deps
 cycle_map = { version = "0.1.1", features = ["serde"] }
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
 
-uuid = { version = "0.8", features = ["serde", "v4"] }
+uuid = { version = "1.1", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 libc = { version = "0.2", optional = true }
 
 [build-dependencies]
 cbindgen = { version = "0.20.0", optional = true}
-
-[features]
-ffi = ["cbindgen", "libc"]
