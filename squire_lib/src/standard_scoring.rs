@@ -18,7 +18,7 @@ use std::{
     string::ToString,
 };
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct StandardScore {
     pub match_points: f64,
     pub game_points: f64,

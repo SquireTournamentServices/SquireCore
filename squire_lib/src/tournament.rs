@@ -63,6 +63,12 @@ pub enum TournamentStatus {
 #[repr(C)]
 pub struct TournamentId(Uuid);
 
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+pub enum TournamentIdentifier {
+    Id(TournamentId),
+    Name(String),
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[repr(C)]
 pub struct Tournament {

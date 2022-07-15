@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::player::PlayerId;
 
 pub trait Score
@@ -6,6 +8,7 @@ where
 {
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 #[repr(C)]
 pub struct Standings<S> {
     pub scores: Vec<(PlayerId, S)>,

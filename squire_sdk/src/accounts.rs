@@ -1,17 +1,9 @@
-#[cfg(feature = "rocket")]
-use std::io::Cursor;
+use std::collections::HashMap;
 
-#[cfg(feature = "rocket")]
-use rocket::{
-    http::Status,
-    response::{Responder, Result as RResult},
-    Response,
-};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[cfg(feature = "rocket")]
-pub const SERIALIZER_ERROR: Status = Status { code: 69 };
+use crate::response::SquireResponse;
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct AccountId(pub Uuid);
@@ -38,24 +30,8 @@ pub struct OrgAccount {
     pub admins: Vec<AccountId>,
 }
 
-pub struct AccountResponse<T> {
-    pub data: T,
-}
+pub type GetUserResponse = SquireResponse<Option<UserAccount>>;
 
-#[cfg(feature = "rocket")]
-impl<'r, T> Responder<'r, 'r> for AccountResponse<T>
-where
-    T: Serialize,
-{
-    fn respond_to(self, _request: &'r rocket::Request<'_>) -> RResult<'r> {
-        match serde_json::to_string(&self.data) {
-            Err(_) => RResult::Err(SERIALIZER_ERROR),
-            Ok(data) => {
-                let resp = Response::build()
-                    .sized_body(data.len(), Cursor::new(data))
-                    .finalize();
-                RResult::Ok(resp)
-            }
-        }
-    }
-}
+pub type GetAllUsersResponse = SquireResponse<HashMap<AccountId, UserAccount>>;
+
+pub type GetOrgResponse = SquireResponse<Option<OrgAccount>>;

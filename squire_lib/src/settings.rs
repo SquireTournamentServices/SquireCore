@@ -155,4 +155,3 @@ impl fmt::Display for StandardScoringSetting {
         }
     }
 }
-
