@@ -8,11 +8,9 @@ mod matches;
 mod players;
 mod tournaments;
 
-use accounts::{all_users, orgs, users, ORGS_MAP, USERS_MAP};
-use tournaments::{
-    apply_tournament_op, create_tournament, get_all_tournaments, get_standings, get_tournament,
-    TOURNS_MAP,
-};
+use accounts::*;
+use players::*;
+use tournaments::*;
 
 #[get("/world")]
 fn world() -> &'static str {
@@ -43,6 +41,21 @@ async fn main() -> Result<(), rocket::Error> {
                 get_tournament,
                 get_all_tournaments,
                 get_standings
+            ],
+        )
+        .mount(
+            "/tournaments/players",
+            routes![
+                get_player,
+                get_all_players,
+                get_active_players,
+                get_player_count,
+                get_active_player_count,
+                get_player_deck,
+                get_all_decks,
+                get_all_player_decks,
+                get_player_matches,
+                get_latest_player_match,
             ],
         )
         .launch()

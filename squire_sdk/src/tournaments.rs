@@ -2,12 +2,11 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 pub use squire_lib::{
-    error::TournamentError, operations::OpResult, scoring::Standings,
-    standard_scoring::StandardScore, tournament::Tournament, tournament::TournamentId,
-};
-use squire_lib::{
-    operations::TournOp,
-    tournament::{TournamentIdentifier, TournamentPreset},
+    error::TournamentError,
+    operations::{OpResult, TournOp},
+    scoring::Standings,
+    standard_scoring::StandardScore,
+    tournament::{Tournament, TournamentId, TournamentIdentifier, TournamentPreset},
 };
 
 use crate::response::SquireResponse;
