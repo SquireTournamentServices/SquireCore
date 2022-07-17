@@ -1,6 +1,6 @@
 use crate::{
     error::TournamentError,
-    operations::{OpLog, OpResult, TournOp},
+    operations::{FullOp, OpLog, OpResult, TournOp, OpSync, SyncStatus, OpSlice, Rollback, Synced},
     player_registry::PlayerIdentifier,
     round_registry::RoundIdentifier,
     tournament::*,
@@ -35,6 +35,30 @@ impl TournamentManager {
     /// process.
     pub fn extract(self) -> Tournament {
         self.tourn
+    }
+    
+    /// Starts the syncing processing. If syncing can occur, the op logs are merged and
+    /// SyncStatus::Completed is returned.
+    pub fn start_sync(&mut self, sy: OpSync) -> SyncStatus {
+        todo!()
+    }
+    
+    /// Imports a synced op log. Returns Ok containing the given Synced if this log hasn't changed.
+    /// Returns Err containing a SyncStatus if it the log has changed. If that SyncStatus is
+    /// Completed, the this log is updated accordingly (otherwise, the method would have to be
+    /// immediately called again).
+    pub fn import_sync(&mut self, ops: Synced) -> Result<Synced, SyncStatus> {
+        todo!()
+    }
+    
+    pub fn overwrite(&mut self, ops: OpSlice) {
+        todo!()
+    }
+    
+    pub fn propose_rollback<F>(&mut self, f: F) -> Rollback 
+        where F: FnMut(&FullOp) -> Option<bool>
+    {
+        todo!()
     }
 
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies

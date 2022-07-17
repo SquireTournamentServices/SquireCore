@@ -37,10 +37,12 @@ async fn main() -> Result<(), rocket::Error> {
             "/tournaments",
             routes![
                 create_tournament,
-                apply_tournament_op,
                 get_tournament,
                 get_all_tournaments,
-                get_standings
+                get_standings,
+                list_ops,
+                sync,
+                rollback
             ],
         )
         .mount(

@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use uuid::Uuid;
+
 use crate::{
     player::{Player, PlayerId},
     player_registry::PlayerIdentifier,
@@ -267,52 +269,71 @@ pub enum OpData {
 pub type OpResult = Result<OpData, TournamentError>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct OpId(usize);
+pub struct OpId(Uuid);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct FullOp {
+    pub(crate) op: TournOp,
+    pub(crate) id: OpId,
+    pub(crate) active: bool,
+}
 
 /// An ordered list of all operations applied to a tournament
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpLog {
-    pub(crate) ops: Vec<TournOp>,
+    pub(crate) ops: Vec<FullOp>,
 }
 
 /// An ordered list of some of the operations applied to a tournament
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpSlice {
-    pub(crate) ops: Vec<(OpId, TournOp)>,
+    pub(crate) ops: Vec<FullOp>,
 }
 
 /// A struct to help resolve syncing op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpSync {
-    known: OpSlice,
-}
-
-/// A struct that marks a completed syncing of op logs
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Synced {
-    known: OpSlice,
-}
-
-/// A struct to help resolve blockages
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Blockage {
-    known: OpSlice,
-    agreed: OpSlice,
-    other: OpSlice,
-    problem: (TournOp, TournOp),
+    pub(crate) known: OpSlice,
 }
 
 /// An enum to help track the progress of the syncing of two op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SyncStatus {
+    SyncError(OpSync), // Unknown starting operation
     InProgress(Blockage),
     Completed(Synced),
+}
+
+/// An enum to that captures the error that might occur when sync op logs.
+/// `UnknownOperation` encodes that first operation in an OpSlice is unknown
+/// `RollbackFound` encode that a rollback has occured remotely but not locally and returns an
+/// OpSlice that contains everything since that rollback. When recieved, this new log should
+/// overwrite the local log
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SyncError {
+    UnknownOperation(FullOp),
+    RollbackFound(OpSlice),
+}
+
+/// A struct that marks a completed syncing of op logs
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Synced {
+    pub(crate) known: OpSlice,
+}
+
+/// A struct to help resolve blockages
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Blockage {
+    pub(crate) known: OpSlice,
+    pub(crate) agreed: OpSlice,
+    pub(crate) other: OpSlice,
+    pub(crate) problem: (TournOp, TournOp),
 }
 
 /// A struct used to communicate a rollback
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Rollback {
-    ops: OpSlice,
+    pub(crate) ops: OpSlice,
 }
 
 impl From<Rollback> for OpSlice {
@@ -343,14 +364,14 @@ impl Blockage {
         }
         match self.known.merge(self.other) {
             Ok(slice) => {
-                for (_, o) in slice.ops {
-                    self.agreed.add_op(o);
+                for op in slice.ops {
+                    self.agreed.add_op(op.op);
                 }
                 SyncStatus::Completed(Synced { known: self.agreed })
             }
             Err(mut block) => {
-                for (_, o) in block.agreed.ops {
-                    self.agreed.add_op(o);
+                for op in block.agreed.ops {
+                    self.agreed.add_op(op.op);
                 }
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
@@ -376,14 +397,14 @@ impl Blockage {
         }
         match self.known.merge(self.other) {
             Ok(slice) => {
-                for (_, o) in slice.ops {
-                    self.agreed.add_op(o);
+                for op in slice.ops {
+                    self.agreed.add_op(op.op);
                 }
                 SyncStatus::Completed(Synced { known: self.agreed })
             }
             Err(mut block) => {
-                for (_, o) in block.agreed.ops {
-                    self.agreed.add_op(o);
+                for op in block.agreed.ops {
+                    self.agreed.add_op(op.op);
                 }
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
@@ -398,34 +419,32 @@ impl OpLog {
         OpLog { ops: Vec::new() }
     }
 
-    pub fn add_op(&mut self, op: TournOp) {
+    pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
     }
 
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
-    pub fn get_slice(&self, index: usize) -> Option<OpSlice> {
-        if index >= self.ops.len() {
-            return None;
-        }
+    pub fn get_slice(&self, id: OpId) -> Option<OpSlice> {
+        let mut pass_through = false;
         let ops = self
             .ops
             .iter()
-            .enumerate()
-            .filter(|(i, _)| *i >= index)
-            .map(|(i, o)| (OpId(i), o.clone()))
+            .filter(|o| {
+                pass_through |= o.id == id;
+                pass_through
+            })
+            .cloned()
             .collect();
         Some(OpSlice { ops })
     }
 
     /// Removes all elements in the log starting at the first index of the given slice. All operations in the slice are then appended to the end of the log.
     pub fn overwrite(&mut self, ops: OpSlice) -> Option<()> {
-        let index = ops.start_index()?;
-        if index > self.ops.len() {
-            return None;
-        }
+        let id = ops.start_id()?;
+        let index = self.ops.iter().position(|o| o.id == id)?;
         self.ops.truncate(index);
-        self.ops.extend(ops.ops.into_iter().map(|(_, o)| o));
+        self.ops.extend(ops.ops.into_iter());
         Some(())
     }
 
@@ -435,20 +454,18 @@ impl OpLog {
     /// but kept in the log.
     ///
     /// The primary use case for this is to rollback a round pairing in a Swiss tournament.
-    pub fn rollback(&self, mut f: impl FnMut(&TournOp) -> Option<bool>) -> Rollback {
+    pub fn rollback(&self, mut f: impl FnMut(&FullOp) -> Option<bool>) -> Rollback {
         let l = self.ops.len();
         let ops = self
             .ops
             .iter()
             .rev()
-            .enumerate()
-            .map_while(|(i, o)| f(o).map(|b| (i, b, o)))
-            .filter_map(|(i, b, o)| {
-                if !b {
-                    Some((OpId(l - i), o.clone()))
-                } else {
-                    None
-                }
+            .map_while(|o| {
+                f(o).map(|b| {
+                    let op = o.clone();
+                    op.active = b;
+                    op
+                })
             })
             .collect();
         Rollback {
@@ -456,21 +473,20 @@ impl OpLog {
         }
     }
 
-    /// Wrapper for `OpSlice::merge`
-    ///
-    /// TODO: Added a check for is the `start_index` of the give slice is greater than the length
-    /// of this log
-    pub fn merge(&mut self, other: OpSlice) -> Result<(), Blockage> {
-        let index = match other.start_index() {
-            Some(i) => i,
+    /// Attempts to merge two OpSlices.
+    /// Returns Err if the starting op id of the given log can't be found in this log.
+    /// Otherwise, Ok is returned and contains a SyncStatus
+    pub fn sync(&mut self, other: OpSlice) -> Result<SyncStatus, OpSlice> {
+        let id = match other.start_id() {
+            Some(id) => id,
             None => {
-                return Ok(());
+                return Err(other);
             }
         };
-        let slice = self.get_slice(index).unwrap();
+        let slice = self.get_slice(id).unwrap();
         let new_slice = slice.merge(other)?;
-        self.ops.truncate(index);
-        self.ops.extend(new_slice.ops.into_iter().map(|(_, o)| o));
+        self.ops.truncate(id);
+        self.ops.extend(new_slice.ops.into_iter());
         Ok(())
     }
 }
@@ -481,18 +497,13 @@ impl OpSlice {
         OpSlice { ops: Vec::new() }
     }
 
-    pub fn add_op(&mut self, op: TournOp) {
-        if let Some((index, _)) = self.ops.last() {
-            let new_index = OpId(index.0 + 1);
-            self.ops.push((new_index, op));
-        } else {
-            self.ops.push((OpId(0), op));
-        }
+    pub fn add_op(&mut self, op: FullOp) {
+        self.ops.push(op);
     }
 
     /// Returns the index of the first stored operation.
-    pub fn start_index(&self) -> Option<usize> {
-        self.ops.first().map(|(i, _)| i.0)
+    pub fn start_id(&self) -> Option<OpId> {
+        self.ops.first().map(|o| o.id)
     }
 
     /// Takes another op slice and attempts to merge it with this log.
@@ -523,6 +534,7 @@ impl OpSlice {
     ///
     /// Every operation "knows" what it blocks.
     pub fn merge(mut self, mut other: OpSlice) -> Result<Self, Blockage> {
+        todo!();
         let mut merged = OpSlice::new();
         for (i, (_, other_op)) in other.ops.clone().iter().enumerate() {
             let mut iter = self

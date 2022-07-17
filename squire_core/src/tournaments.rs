@@ -4,8 +4,9 @@ use rocket::{get, post, serde::json::Json};
 
 use squire_lib::tournament::{Tournament, TournamentId, TournamentIdentifier};
 use squire_sdk::tournaments::{
-    self, ApplyOpRequest, ApplyOpResponse, CreateResponse, GetAllResponse, GetResponse,
-    StandingsRequest, StandingsResponse, TournamentCreateRequest, TournamentGetRequest,
+    self, CreateResponse, GetAllResponse, GetResponse, ListOpsRequest, ListOpsResponse,
+    RollbackRequest, RollbackResponse, StandingsRequest, StandingsResponse, SyncRequest,
+    SyncResponse, TournamentCreateRequest, TournamentGetRequest,
 };
 
 pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
@@ -70,7 +71,7 @@ pub fn list_ops(data: Json<ListOpsRequest>) -> ListOpsResponse {
 }
 
 #[post("/manage/sync", format = "json", data = "<data>")]
-pub fn list_ops(data: Json<SyncRequest>) -> SyncResponse {
+pub fn sync(data: Json<SyncRequest>) -> SyncResponse {
     match data.0.ident {
         TournamentIdentifier::Id(id) => {
             todo!()
@@ -82,7 +83,7 @@ pub fn list_ops(data: Json<SyncRequest>) -> SyncResponse {
 }
 
 #[post("/manage/rollback", format = "json", data = "<data>")]
-pub fn list_ops(data: Json<RollbackRequest>) -> RollbackResponse {
+pub fn rollback(data: Json<RollbackRequest>) -> RollbackResponse {
     match data.0.ident {
         TournamentIdentifier::Id(id) => {
             todo!()

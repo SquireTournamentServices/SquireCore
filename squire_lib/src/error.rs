@@ -5,6 +5,11 @@ use serde::{Deserialize, Serialize};
 use crate::tournament::TournamentStatus;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum SyncError {
+    IdNotFound
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum TournamentError {
     IncorrectStatus(TournamentStatus),
     PlayerLookup,
