@@ -28,22 +28,6 @@ jobs:
       - run: cargo build --package squire_lib --verbose --features ffi
       - run: cargo test --package squire_lib --verbose --features ffi
       - run: cargo doc --package squire_lib --verbose --features ffi
-  coverage:
-    name: SquireLib - Coverage
-    runs-on: ubuntu-latest
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Generate code coverage
-        run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
-
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2
   squire_sdk_build_tests:
     name: SquireSDK - Tests
     runs-on: ${{ matrix.os }}
@@ -62,22 +46,6 @@ jobs:
       - run: cargo build --package squire_sdk --verbose --no-default-features
       - run: cargo test --package squire_sdk --verbose --no-default-features
       - run: cargo doc --package squire_sdk --verbose --no-default-features
-  coverage:
-    name: SquireSDK - Coverage
-    runs-on: ubuntu-latest
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Generate code coverage
-        run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
-
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2
   squire_core_build_tests:
     name: SquireCore - Build Tests - Linux
     runs-on: ubuntu-latest
@@ -93,3 +61,19 @@ jobs:
       - run: cargo build --package squire_core --verbose
       - run: cargo test --package squire_core --verbose
       - run: cargo doc --package squire_core --verbose
+  coverage:
+    name: Squire - Coverage
+    runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate code coverage
+        run: |
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2

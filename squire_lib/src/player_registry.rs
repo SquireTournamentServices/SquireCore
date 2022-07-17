@@ -68,6 +68,16 @@ impl PlayerRegistry {
         self.players.iter().filter(|(_, p)| p.can_play()).count()
     }
 
+    pub fn import_player(&mut self, plyr: Player) -> Result<(), TournamentError> {
+        if self.name_and_id.contains_left(&plyr.name) || self.name_and_id.contains_right(&plyr.id) {
+            Err(TournamentError::PlayerLookup)
+        } else {
+            self.name_and_id.insert(plyr.name.clone(), plyr.id.clone());
+            self.players.insert(plyr.id.clone(), plyr);
+            Ok(())
+        }
+    }
+
     pub fn add_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
         if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
             Err(TournamentError::PlayerLookup)

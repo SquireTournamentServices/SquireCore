@@ -1,6 +1,8 @@
 use crate::{
     error::TournamentError,
     operations::{OpLog, OpResult, TournOp},
+    player_registry::PlayerIdentifier,
+    round_registry::RoundIdentifier,
     tournament::*,
 };
 
@@ -29,15 +31,44 @@ impl TournamentManager {
         &self.tourn
     }
 
-    /// Takes an op log and merges as much of it as possible with this op log.
-    /// `Err` is returned if the logs can't be fully merged.
-    pub fn merge_logs(&mut self, log: OpLog) -> Result<OpLog, OpLog> {
-        todo!()
+    /// Takes the manager and return the underlying tournament, consuming the manager in the
+    /// process.
+    pub fn extract(self) -> Tournament {
+        self.tourn
     }
 
-    /// Takes an operation stores it, applies it to the tournament, and returns the result.
-    /// NOTE: Even operations that result in a tournament error are stored.
-    pub fn apply(&mut self, op: TournOp) -> OpResult {
+    /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
+    /// it to the tournament, and returns the result.
+    /// NOTE: That if an operation can be convert, it is always stored, regardless of the outcome
+    pub fn apply_op(&mut self, op: TournOp) -> OpResult {
+        let op = if let Some(ident) = op.get_player_ident() {
+            let id = self
+                .tourn
+                .player_reg
+                .get_player_id(&ident)
+                .ok_or(TournamentError::PlayerLookup)?;
+            op.swap_player_ident(PlayerIdentifier::Id(id))
+        } else if let Some(idents) = op.list_player_ident() {
+            let mut new_idents = Vec::with_capacity(idents.len());
+            for ident in idents {
+                new_idents.push(PlayerIdentifier::Id(
+                    self.tourn
+                        .player_reg
+                        .get_player_id(&ident)
+                        .ok_or(TournamentError::PlayerLookup)?,
+                ));
+            }
+            op.swap_all_player_idents(new_idents)
+        } else if let Some(ident) = op.get_match_ident(){
+            let id = self
+                .tourn
+                .round_reg
+                .get_round_id(&ident)
+                .ok_or(TournamentError::PlayerLookup)?;
+            op.swap_match_ident(RoundIdentifier::Id(id))
+        } else {
+            op
+        };
         self.log.ops.push(op.clone());
         self.tourn.apply_op(op)
     }

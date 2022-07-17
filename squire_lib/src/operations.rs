@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use crate::{
-    player::PlayerId,
+    player::{Player, PlayerId},
     player_registry::PlayerIdentifier,
-    round::{RoundId, RoundResult, RoundStatus},
+    round::{Round, RoundId, RoundResult, RoundStatus},
     round_registry::RoundIdentifier,
     settings::TournamentSetting,
     swiss_pairings::TournamentError,
@@ -43,6 +43,214 @@ pub enum TournOp {
     Cut(usize),
     PruneDecks(),
     PrunePlayers(),
+    ImportPlayer(Player),
+    ImportRound(Round),
+}
+
+impl TournOp {
+    pub fn swap_player_ident(self, ident: PlayerIdentifier) -> Self {
+        use TournOp::*;
+        match self {
+            UpdateReg(_)
+            | Start()
+            | Freeze()
+            | Thaw()
+            | End()
+            | Cancel()
+            | RegisterPlayer(_)
+            | UpdateTournSetting(_)
+            | PairRound()
+            | TimeExtension(_, _)
+            | Cut(_)
+            | PruneDecks()
+            | PrunePlayers()
+            | RemoveRound(_)
+            | ImportPlayer(_)
+            | ImportRound(_)
+            | RecordResult(_, _)
+            | CreateRound(_) => self,
+            CheckIn(_) => Self::CheckIn(ident),
+            ConfirmResult(_) => Self::ConfirmResult(ident),
+            DropPlayer(_) => Self::DropPlayer(ident),
+            AdminDropPlayer(_) => Self::AdminDropPlayer(ident),
+            AddDeck(_, name, deck) => Self::AddDeck(ident, name, deck),
+            RemoveDeck(_, deck) => Self::RemoveDeck(ident, deck),
+            SetGamerTag(_, name) => Self::SetGamerTag(ident, name),
+            ReadyPlayer(_) => Self::ReadyPlayer(ident),
+            UnReadyPlayer(_) => Self::UnReadyPlayer(ident),
+            GiveBye(_) => Self::GiveBye(ident),
+        }
+    }
+
+    pub fn swap_all_player_idents(self, idents: Vec<PlayerIdentifier>) -> Self {
+        use TournOp::*;
+        match self {
+            UpdateReg(_)
+            | Start()
+            | Freeze()
+            | Thaw()
+            | End()
+            | Cancel()
+            | RegisterPlayer(_)
+            | UpdateTournSetting(_)
+            | PairRound()
+            | TimeExtension(_, _)
+            | Cut(_)
+            | PruneDecks()
+            | PrunePlayers()
+            | RemoveRound(_)
+            | RecordResult(_, _)
+            | CheckIn(_)
+            | ImportPlayer(_)
+            | ImportRound(_)
+            | ConfirmResult(_)
+            | DropPlayer(_)
+            | AdminDropPlayer(_)
+            | AddDeck(_, _, _)
+            | RemoveDeck(_, _)
+            | SetGamerTag(_, _)
+            | ReadyPlayer(_)
+            | UnReadyPlayer(_)
+            | GiveBye(_) => self,
+            CreateRound(_) => Self::CreateRound(idents),
+        }
+    }
+
+    pub fn swap_match_ident(self, ident: RoundIdentifier) -> Self {
+        use TournOp::*;
+        match self {
+            UpdateReg(_)
+            | Start()
+            | Freeze()
+            | Thaw()
+            | End()
+            | Cancel()
+            | CheckIn(_)
+            | RegisterPlayer(_)
+            | ConfirmResult(_)
+            | DropPlayer(_)
+            | AdminDropPlayer(_)
+            | AddDeck(_, _, _)
+            | RemoveDeck(_, _)
+            | RemoveRound(_)
+            | SetGamerTag(_, _)
+            | ReadyPlayer(_)
+            | UnReadyPlayer(_)
+            | ImportPlayer(_)
+            | ImportRound(_)
+            | UpdateTournSetting(_)
+            | GiveBye(_)
+            | CreateRound(_)
+            | PairRound()
+            | Cut(_)
+            | PruneDecks()
+            | PrunePlayers() => self,
+            TimeExtension(_, dur) => TimeExtension(ident, dur),
+            RecordResult(_, res) => RecordResult(ident, res),
+        }
+    }
+
+    pub fn get_player_ident(&self) -> Option<PlayerIdentifier> {
+        use TournOp::*;
+        match self {
+            UpdateReg(_)
+            | Start()
+            | Freeze()
+            | Thaw()
+            | End()
+            | Cancel()
+            | RegisterPlayer(_)
+            | UpdateTournSetting(_)
+            | PairRound()
+            | TimeExtension(_, _)
+            | Cut(_)
+            | PruneDecks()
+            | ImportPlayer(_)
+            | ImportRound(_)
+            | PrunePlayers()
+            | RemoveRound(_)
+            | RecordResult(_, _)
+            | CreateRound(_) => None,
+            CheckIn(ident)
+            | ConfirmResult(ident)
+            | DropPlayer(ident)
+            | AdminDropPlayer(ident)
+            | AddDeck(ident, _, _)
+            | RemoveDeck(ident, _)
+            | SetGamerTag(ident, _)
+            | ReadyPlayer(ident)
+            | UnReadyPlayer(ident)
+            | GiveBye(ident) => Some(ident.clone()),
+        }
+    }
+
+    // Used only for CreateRound
+    pub fn list_player_ident(&self) -> Option<Vec<PlayerIdentifier>> {
+        use TournOp::*;
+        match self {
+            UpdateReg(_)
+            | Start()
+            | Freeze()
+            | Thaw()
+            | End()
+            | Cancel()
+            | RegisterPlayer(_)
+            | UpdateTournSetting(_)
+            | PairRound()
+            | TimeExtension(_, _)
+            | Cut(_)
+            | PruneDecks()
+            | ImportPlayer(_)
+            | ImportRound(_)
+            | CheckIn(_)
+            | ConfirmResult(_)
+            | DropPlayer(_)
+            | AdminDropPlayer(_)
+            | AddDeck(_, _, _)
+            | RemoveDeck(_, _)
+            | SetGamerTag(_, _)
+            | ReadyPlayer(_)
+            | UnReadyPlayer(_)
+            | GiveBye(_)
+            | PrunePlayers()
+            | RemoveRound(_)
+            | RecordResult(_, _) => None,
+            CreateRound(idents) => Some(idents.clone()),
+        }
+    }
+
+    pub fn get_match_ident(&self) -> Option<RoundIdentifier> {
+        use TournOp::*;
+        match self {
+            UpdateReg(_)
+            | Start()
+            | Freeze()
+            | Thaw()
+            | End()
+            | Cancel()
+            | CheckIn(_)
+            | RegisterPlayer(_)
+            | ConfirmResult(_)
+            | DropPlayer(_)
+            | AdminDropPlayer(_)
+            | AddDeck(_, _, _)
+            | RemoveDeck(_, _)
+            | RemoveRound(_)
+            | SetGamerTag(_, _)
+            | ImportPlayer(_)
+            | ImportRound(_)
+            | ReadyPlayer(_)
+            | UnReadyPlayer(_)
+            | UpdateTournSetting(_)
+            | GiveBye(_)
+            | CreateRound(_)
+            | PairRound()
+            | Cut(_)
+            | PruneDecks()
+            | PrunePlayers() => None,
+            TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -73,10 +281,16 @@ pub struct OpSlice {
     pub(crate) ops: Vec<(OpId, TournOp)>,
 }
 
-/// A struct used to communicate a rollback
+/// A struct to help resolve syncing op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Rollback {
-    ops: OpSlice,
+pub struct OpSync {
+    known: OpSlice,
+}
+
+/// A struct that marks a completed syncing of op logs
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Synced {
+    known: OpSlice,
 }
 
 /// A struct to help resolve blockages
@@ -86,6 +300,19 @@ pub struct Blockage {
     agreed: OpSlice,
     other: OpSlice,
     problem: (TournOp, TournOp),
+}
+
+/// An enum to help track the progress of the syncing of two op logs
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SyncStatus {
+    InProgress(Blockage),
+    Completed(Synced),
+}
+
+/// A struct used to communicate a rollback
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Rollback {
+    ops: OpSlice,
 }
 
 impl From<Rollback> for OpSlice {
@@ -106,27 +333,27 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn pick_and_continue(mut self, op: TournOp) -> Result<OpSlice, Self> {
+    pub fn pick_and_continue(mut self, op: TournOp) -> SyncStatus {
         if op == self.problem.0 {
             self.agreed.add_op(self.problem.0);
         } else if op == self.problem.1 {
             self.agreed.add_op(self.problem.1);
         } else {
-            return Err(self);
+            return SyncStatus::InProgress(self);
         }
         match self.known.merge(self.other) {
             Ok(slice) => {
                 for (_, o) in slice.ops {
                     self.agreed.add_op(o);
                 }
-                Ok(self.agreed)
+                SyncStatus::Completed(Synced { known: self.agreed })
             }
             Err(mut block) => {
                 for (_, o) in block.agreed.ops {
                     self.agreed.add_op(o);
                 }
                 block.agreed = self.agreed;
-                Err(block)
+                SyncStatus::InProgress(block)
             }
         }
     }
@@ -137,7 +364,7 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn order_and_continue(mut self, first: TournOp) -> Result<OpSlice, Self> {
+    pub fn order_and_continue(mut self, first: TournOp) -> SyncStatus {
         if first == self.problem.0 {
             self.agreed.add_op(self.problem.0);
             self.agreed.add_op(self.problem.1);
@@ -145,21 +372,21 @@ impl Blockage {
             self.agreed.add_op(self.problem.1);
             self.agreed.add_op(self.problem.0);
         } else {
-            return Err(self);
+            return SyncStatus::InProgress(self);
         }
         match self.known.merge(self.other) {
             Ok(slice) => {
                 for (_, o) in slice.ops {
                     self.agreed.add_op(o);
                 }
-                Ok(self.agreed)
+                SyncStatus::Completed(Synced { known: self.agreed })
             }
             Err(mut block) => {
                 for (_, o) in block.agreed.ops {
                     self.agreed.add_op(o);
                 }
                 block.agreed = self.agreed;
-                Err(block)
+                SyncStatus::InProgress(block)
             }
         }
     }

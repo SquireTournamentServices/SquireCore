@@ -139,6 +139,8 @@ impl Tournament {
             Cut(n) => self.cut_to_top(n),
             PruneDecks() => self.prune_decks(),
             PrunePlayers() => self.prune_players(),
+            ImportPlayer(plyr) => self.import_player(plyr),
+            ImportRound(rnd) => self.import_round(rnd),
         }
     }
 
@@ -220,6 +222,22 @@ impl Tournament {
                 }
             }
         }
+        Ok(OpData::Nothing)
+    }
+    
+    pub(crate) fn import_player(&mut self, plyr: Player) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        self.player_reg.import_player(plyr)?;
+        Ok(OpData::Nothing)
+    }
+    
+    pub(crate) fn import_round(&mut self, rnd: Round) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        self.round_reg.import_round(rnd)?;
         Ok(OpData::Nothing)
     }
 
@@ -427,7 +445,7 @@ impl Tournament {
         }
     }
 
-    fn register_player(&mut self, name: String) -> OpResult {
+    pub(crate) fn register_player(&mut self, name: String) -> OpResult {
         if !(self.is_active() || self.is_planned()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }

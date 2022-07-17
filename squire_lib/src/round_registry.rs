@@ -89,6 +89,16 @@ impl RoundRegistry {
             .count()
     }
 
+    pub fn import_round(&mut self, rnd: Round) -> Result<(), TournamentError> {
+        if self.num_and_id.contains_left(&rnd.id) || self.num_and_id.contains_right(&rnd.match_number) {
+            Err(TournamentError::RoundLookup)
+        } else {
+            self.num_and_id.insert(rnd.id.clone(), rnd.match_number);
+            self.rounds.insert(rnd.match_number, rnd);
+            Ok(())
+        }
+    }
+
     pub fn create_round(&mut self) -> RoundIdentifier {
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
@@ -122,6 +132,13 @@ impl RoundRegistry {
                 .insert(p);
         }
         Ok(())
+    }
+
+    pub fn get_round_id(&self, ident: &RoundIdentifier) -> Option<RoundId> {
+        match ident {
+            RoundIdentifier::Id(id) => Some(id.clone()),
+            RoundIdentifier::Number(num) => self.num_and_id.get_left(num).cloned(),
+        }
     }
 
     pub(crate) fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {

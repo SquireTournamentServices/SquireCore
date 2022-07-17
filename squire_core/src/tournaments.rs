@@ -41,23 +41,6 @@ pub fn get_all_tournaments() -> GetAllResponse {
     GetAllResponse::new(map)
 }
 
-#[post("/apply_op", format = "json", data = "<data>")]
-pub fn apply_tournament_op(data: Json<ApplyOpRequest>) -> ApplyOpResponse {
-    match data.0.ident {
-        TournamentIdentifier::Id(id) => {
-            let digest = if let Some(mut tourn) = TOURNS_MAP.get().unwrap().get_mut(&id) {
-                Some(tourn.apply_op(data.0.operation))
-            } else {
-                None
-            };
-            tournaments::ApplyOpResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!()
-        }
-    }
-}
-
 #[get("/standings", format = "json", data = "<data>")]
 pub fn get_standings(data: Json<StandingsRequest>) -> StandingsResponse {
     match data.0.ident {
@@ -70,6 +53,42 @@ pub fn get_standings(data: Json<StandingsRequest>) -> StandingsResponse {
         ),
         TournamentIdentifier::Name(_name) => {
             todo!("Yet to be impl-ed");
+        }
+    }
+}
+
+#[post("/manage/list_ops", format = "json", data = "<data>")]
+pub fn list_ops(data: Json<ListOpsRequest>) -> ListOpsResponse {
+    match data.0.ident {
+        TournamentIdentifier::Id(id) => {
+            todo!()
+        }
+        TournamentIdentifier::Name(_name) => {
+            todo!()
+        }
+    }
+}
+
+#[post("/manage/sync", format = "json", data = "<data>")]
+pub fn list_ops(data: Json<SyncRequest>) -> SyncResponse {
+    match data.0.ident {
+        TournamentIdentifier::Id(id) => {
+            todo!()
+        }
+        TournamentIdentifier::Name(_name) => {
+            todo!()
+        }
+    }
+}
+
+#[post("/manage/rollback", format = "json", data = "<data>")]
+pub fn list_ops(data: Json<RollbackRequest>) -> RollbackResponse {
+    match data.0.ident {
+        TournamentIdentifier::Id(id) => {
+            todo!()
+        }
+        TournamentIdentifier::Name(_name) => {
+            todo!()
         }
     }
 }
