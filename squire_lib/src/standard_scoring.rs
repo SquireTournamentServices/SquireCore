@@ -19,6 +19,7 @@ use std::{
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[repr(C)]
 pub struct StandardScore {
     pub match_points: f64,
     pub game_points: f64,
@@ -50,6 +51,7 @@ struct ScoreCounter {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[repr(C)]
 pub struct StandardScoring {
     match_win_points: f64,
     match_draw_points: f64,

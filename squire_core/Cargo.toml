@@ -8,7 +8,7 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
 # In-House deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", branch = "main" }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
 squire_lib = { path = "../squire_lib" }
 squire_sdk = { path = "../squire_sdk" }
 

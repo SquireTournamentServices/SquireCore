@@ -18,6 +18,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
+#[repr(C)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),

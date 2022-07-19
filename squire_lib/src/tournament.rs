@@ -37,13 +37,11 @@ pub enum TournamentPreset {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[repr(C)]
 pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[repr(C)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
@@ -64,13 +62,13 @@ pub enum TournamentStatus {
 pub struct TournamentId(Uuid);
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[repr(C)]
 pub enum TournamentIdentifier {
     Id(TournamentId),
     Name(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[repr(C)]
 pub struct Tournament {
     pub id: TournamentId,
     pub name: String,

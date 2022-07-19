@@ -9,7 +9,6 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[repr(C)]
 pub struct Standings<S> {
     pub scores: Vec<(PlayerId, S)>,
 }

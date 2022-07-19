@@ -3,7 +3,6 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[repr(C)]
 pub enum TournamentSetting {
     Format(String),
     StartingTableNumber(u64),
@@ -17,14 +16,12 @@ pub enum TournamentSetting {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[repr(C)]
 pub enum PairingSetting {
     Swiss(SwissPairingsSetting),
     Fluid(FluidPairingsSetting),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[repr(C)]
 pub enum ScoringSetting {
     Standard(StandardScoringSetting),
 }
