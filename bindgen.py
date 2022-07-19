@@ -90,7 +90,7 @@ item_types = ["globals", "enums", "structs", "unions", "typedefs", "opaque", "fu
 
 [export.mangle]
 rename_types = "CamelCase"
-remove_underscores = false 
+remove_underscores = false
 
 [fn]
 rename_args = "None"
