@@ -12,6 +12,7 @@ use std::{
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+#[repr(C)]
 pub enum PlayerStatus {
     Registered,
     Dropped,
