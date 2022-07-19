@@ -93,7 +93,8 @@ impl TournamentManager {
         } else {
             op
         };
-        self.log.ops.push(op.clone());
+        let f_op = FullOp::new(op.clone());
+        self.log.ops.push(f_op);
         self.tourn.apply_op(op)
     }
 
@@ -114,7 +115,7 @@ impl TournamentManager {
 /// An iterator over all the states of a tournament
 pub struct StateIter<'a> {
     state: Tournament,
-    ops: Iter<'a, TournOp>,
+    ops: Iter<'a, FullOp>,
     shown_init: bool,
 }
 
@@ -124,7 +125,7 @@ impl Iterator for StateIter<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.shown_init {
             let op = self.ops.next()?;
-            let _ = self.state.apply_op(op.clone());
+            let _ = self.state.apply_op(op.op.clone());
         } else {
             self.shown_init = true;
         }

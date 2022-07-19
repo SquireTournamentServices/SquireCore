@@ -293,7 +293,7 @@ pub struct OpSlice {
 /// A struct to help resolve syncing op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpSync {
-    pub(crate) known: OpSlice,
+    pub(crate) ops: OpSlice,
 }
 
 /// An enum to help track the progress of the syncing of two op logs
@@ -327,7 +327,7 @@ pub struct Blockage {
     pub(crate) known: OpSlice,
     pub(crate) agreed: OpSlice,
     pub(crate) other: OpSlice,
-    pub(crate) problem: (TournOp, TournOp),
+    pub(crate) problem: (FullOp, FullOp),
 }
 
 /// A struct used to communicate a rollback
@@ -344,7 +344,7 @@ impl From<Rollback> for OpSlice {
 
 impl Blockage {
     /// Returns the problematic pair of operations.
-    pub fn problem(&self) -> (TournOp, TournOp) {
+    pub fn problem(&self) -> (FullOp, FullOp) {
         self.problem.clone()
     }
 
@@ -354,7 +354,7 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn pick_and_continue(mut self, op: TournOp) -> SyncStatus {
+    pub fn pick_and_continue(mut self, op: FullOp) -> SyncStatus {
         if op == self.problem.0 {
             self.agreed.add_op(self.problem.0);
         } else if op == self.problem.1 {
@@ -365,13 +365,13 @@ impl Blockage {
         match self.known.merge(self.other) {
             Ok(slice) => {
                 for op in slice.ops {
-                    self.agreed.add_op(op.op);
+                    self.agreed.add_op(op);
                 }
                 SyncStatus::Completed(Synced { known: self.agreed })
             }
             Err(mut block) => {
                 for op in block.agreed.ops {
-                    self.agreed.add_op(op.op);
+                    self.agreed.add_op(op);
                 }
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
@@ -385,7 +385,7 @@ impl Blockage {
     /// It contains the rectified logs.
     ///
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn order_and_continue(mut self, first: TournOp) -> SyncStatus {
+    pub fn order_and_continue(mut self, first: FullOp) -> SyncStatus {
         if first == self.problem.0 {
             self.agreed.add_op(self.problem.0);
             self.agreed.add_op(self.problem.1);
@@ -398,13 +398,13 @@ impl Blockage {
         match self.known.merge(self.other) {
             Ok(slice) => {
                 for op in slice.ops {
-                    self.agreed.add_op(op.op);
+                    self.agreed.add_op(op);
                 }
                 SyncStatus::Completed(Synced { known: self.agreed })
             }
             Err(mut block) => {
                 for op in block.agreed.ops {
-                    self.agreed.add_op(op.op);
+                    self.agreed.add_op(op);
                 }
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
@@ -462,7 +462,7 @@ impl OpLog {
             .rev()
             .map_while(|o| {
                 f(o).map(|b| {
-                    let op = o.clone();
+                    let mut op = o.clone();
                     op.active = b;
                     op
                 })
@@ -473,21 +473,30 @@ impl OpLog {
         }
     }
 
-    /// Attempts to merge two OpSlices.
+    /// Attempts to sync the local log with a remote log.
     /// Returns Err if the starting op id of the given log can't be found in this log.
     /// Otherwise, Ok is returned and contains a SyncStatus
-    pub fn sync(&mut self, other: OpSlice) -> Result<SyncStatus, OpSlice> {
-        let id = match other.start_id() {
+    pub fn sync(&mut self, other: OpSync) -> SyncStatus {
+        let id = match other.ops.start_id() {
             Some(id) => id,
             None => {
-                return Err(other);
+                return SyncStatus::SyncError(other);
             }
         };
-        let slice = self.get_slice(id).unwrap();
-        let new_slice = slice.merge(other)?;
-        self.ops.truncate(id);
-        self.ops.extend(new_slice.ops.into_iter());
-        Ok(())
+        let slice = match self.get_slice(id) {
+            Some(s) => s,
+            None => { return SyncStatus::SyncError(other); }
+        };
+        let merge = slice.merge(other.ops);
+        match merge {
+            Ok(new_slice) => {
+                let index = self.ops.iter().position(|o| o.id == id).unwrap();
+                self.ops.truncate(index);
+                self.ops.extend(new_slice.ops.iter().cloned());
+                SyncStatus::Completed(Synced {known: new_slice})
+            }
+            Err(block) => SyncStatus::InProgress(block)
+        }
     }
 }
 
@@ -534,7 +543,8 @@ impl OpSlice {
     ///
     /// Every operation "knows" what it blocks.
     pub fn merge(mut self, mut other: OpSlice) -> Result<Self, Blockage> {
-        todo!();
+        todo!()
+        /*
         let mut merged = OpSlice::new();
         for (i, (_, other_op)) in other.ops.clone().iter().enumerate() {
             let mut iter = self
@@ -563,6 +573,7 @@ impl OpSlice {
             merged.add_op(o);
         }
         Ok(merged)
+            */
     }
 }
 
@@ -575,6 +586,21 @@ impl Default for OpLog {
 impl Default for OpSlice {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl FullOp {
+    pub fn new(op: TournOp) -> Self {
+        Self {
+            op,
+            id: OpId(Uuid::new_v4()),
+            active: true,
+        }
+    }
+    
+    /// Determines if the given operation affects this operation
+    pub fn blocks(&self, other: &Self) -> bool {
+        self.op.blocks(&other.op)
     }
 }
 
