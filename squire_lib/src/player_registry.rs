@@ -125,6 +125,13 @@ impl PlayerRegistry {
         }
     }
 
+    pub fn get_player_name(&self, ident: &PlayerIdentifier) -> Option<String> {
+        match ident {
+            PlayerIdentifier::Name(name) => Some(name.clone()),
+            PlayerIdentifier::Id(id) => self.name_and_id.get_left(&id).cloned(),
+        }
+    }
+
     pub fn get_player_status(&self, ident: &PlayerIdentifier) -> Option<PlayerStatus> {
         Some(self.get_player(ident)?.status)
     }

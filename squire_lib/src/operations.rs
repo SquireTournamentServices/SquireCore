@@ -369,19 +369,28 @@ impl Blockage {
             return SyncStatus::InProgress(self);
         }
         match self.known.merge(self.other) {
-            Ok(slice) => {
-                for op in slice.ops {
-                    self.agreed.add_op(op);
-                }
+            SyncStatus::Completed(sync) => {
+                self.agreed.ops.extend(sync.ops.ops.into_iter());
                 SyncStatus::Completed(OpSync { ops: self.agreed })
             }
-            Err(mut block) => {
-                for op in block.agreed.ops {
-                    self.agreed.add_op(op);
-                }
+            SyncStatus::InProgress(mut block) => {
+                self.agreed.ops.extend(block.agreed.ops.into_iter());
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
             }
+            SyncStatus::SyncError(e) => match e {
+                SyncError::RollbackFound(roll) => {
+                    SyncStatus::SyncError(SyncError::RollbackFound(roll))
+                }
+                SyncError::UnknownOperation(_) => {
+                    unreachable!("There should be no unknown starting operations during the resolution of a blockage.");
+                }
+                SyncError::EmptySync => {
+                    unreachable!(
+                        "There should be no empty syncs during the resolution of a blockage"
+                    );
+                }
+            },
         }
     }
 
@@ -402,19 +411,28 @@ impl Blockage {
             return SyncStatus::InProgress(self);
         }
         match self.known.merge(self.other) {
-            Ok(slice) => {
-                for op in slice.ops {
-                    self.agreed.add_op(op);
-                }
+            SyncStatus::Completed(sync) => {
+                self.agreed.ops.extend(sync.ops.ops.into_iter());
                 SyncStatus::Completed(OpSync { ops: self.agreed })
             }
-            Err(mut block) => {
-                for op in block.agreed.ops {
-                    self.agreed.add_op(op);
-                }
+            SyncStatus::InProgress(mut block) => {
+                self.agreed.ops.extend(block.agreed.ops.into_iter());
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
             }
+            SyncStatus::SyncError(e) => match e {
+                SyncError::RollbackFound(roll) => {
+                    SyncStatus::SyncError(SyncError::RollbackFound(roll))
+                }
+                SyncError::UnknownOperation(_) => {
+                    unreachable!("There should be no unknown starting operations during the resolution of a blockage.");
+                }
+                SyncError::EmptySync => {
+                    unreachable!(
+                        "There should be no empty syncs during the resolution of a blockage"
+                    );
+                }
+            },
         }
     }
 }
@@ -468,15 +486,7 @@ impl OpLog {
         match self.get_slice(op.id) {
             Some(slice) => {
                 if slice.start_op().unwrap() != op {
-                    let mut is_found = false;
-                    let mut id = self.ops.first().unwrap().id;
-                    for i_op in self.ops.iter().rev() {
-                        if !i_op.active && !is_found {
-                            id = i_op.id;
-                        }
-                        is_found |= *i_op == op;
-                    }
-                    return Err(SyncError::RollbackFound(self.get_slice(id).unwrap()));
+                    return Err(SyncError::RollbackFound(slice));
                 }
                 Ok(slice)
             }
@@ -552,15 +562,7 @@ impl OpLog {
             }
         };
         let op = other.ops.start_op().unwrap();
-        match slice.merge(other.ops) {
-            Ok(new_slice) => {
-                let index = self.ops.iter().position(|o| *o == op).unwrap();
-                self.ops.truncate(index);
-                self.ops.extend(new_slice.ops.iter().cloned());
-                SyncStatus::Completed(OpSync { ops: new_slice })
-            }
-            Err(block) => SyncStatus::InProgress(block),
-        }
+        slice.merge(other.ops)
     }
 }
 
@@ -584,7 +586,16 @@ impl OpSlice {
         self.ops.first().map(|o| o.id)
     }
 
-    /// Takes another op slice and attempts to merge it with this log.
+    /// Takes the slice and strips all inactive operations. This is only needed in the unlikely
+    /// scenerio where a client rollbacks without communicating with the server and then tries to
+    /// sync with the server.
+    pub fn squash(self) -> Self {
+        Self {
+            ops: self.ops.into_iter().filter(|o| o.active).collect(),
+        }
+    }
+
+    /// Takes another op slice and attempts to merge it with this slice.
     ///
     /// If there are no blockages, the `Ok` varient is returned containing the rectified log and
     /// this log is updated.
@@ -592,8 +603,8 @@ impl OpSlice {
     /// If there is a blockage, the `Err` varient is returned two partial logs, a copy of this log and the
     /// given log. The first operation of  but whose first operations are blocking.
     ///
-    /// Promised invarient: If two log can be merged with blockages, they will be meaningfully the
-    /// identical; however, identical sequences are not the same. For example, if player A record
+    /// Promised invarient: If two slices can be merged without blockages, they will be meaningfully the
+    /// identical; however, identical sequences are not the same. For example, if player A records
     /// their match result and then player B records their result for their (different) match, the
     /// order of these can be swapped without issue.
     ///
@@ -611,38 +622,50 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(mut self, mut other: OpSlice) -> Result<Self, Blockage> {
-        todo!()
-        /*
-        let mut merged = OpSlice::new();
-        for (i, (_, other_op)) in other.ops.clone().iter().enumerate() {
-            let mut iter = self
-                .ops
-                .iter()
-                .enumerate()
-                .take_while(|(i, (_, o))| o != other_op && !o.blocks(other_op));
-            let (_, other_op) = other.ops.remove(i);
-            if let Some((i, (_, this_op))) = iter.next() {
-                let (_, this_op) = self.ops.remove(i);
-                if this_op == other_op {
-                    merged.add_op(this_op);
-                } else {
-                    return Err(Blockage {
-                        known: self,
-                        agreed: merged,
-                        other,
-                        problem: (this_op, other_op),
-                    });
+    pub fn merge(mut self, mut other: OpSlice) -> SyncStatus {
+        let mut agreed: Vec<FullOp> = Vec::with_capacity(self.ops.len() + other.ops.len());
+        let mut self_iter = self.ops.iter();
+        let mut other_iter = self.ops.iter();
+        while let Some(self_op) = self_iter.next() {
+            // Our (the server's) rollbacks are ok
+            if !self_op.active {
+                agreed.push(self_op.clone());
+                continue;
+            }
+            if let Some(other_op) = other_iter.next() {
+                if !other_op.active {
+                    // Their (the client's) rollbacks are not ok. They need to squash them or use
+                    // our history.
+                    return SyncStatus::SyncError(SyncError::RollbackFound(other));
+                }
+                if self_op.op == other_op.op {
+                    agreed.push(self_op.clone());
+                }
+                for i_op in self_iter.clone() {
+                    if i_op.op == other_op.op {
+                        agreed.push(other_op.clone());
+                        break;
+                    } else if i_op.blocks(other_op) {
+                        // Blockage found!
+                        return SyncStatus::InProgress(Blockage {
+                            known: OpSlice {
+                                ops: self_iter.cloned().collect(),
+                            },
+                            agreed: OpSlice { ops: agreed },
+                            other: OpSlice {
+                                ops: other_iter.cloned().collect(),
+                            },
+                            problem: (i_op.clone(), other_op.clone()),
+                        });
+                    }
                 }
             } else {
-                merged.add_op(other_op);
+                agreed.push(self_op.clone());
             }
         }
-        for (_, o) in self.ops {
-            merged.add_op(o);
-        }
-        Ok(merged)
-            */
+        SyncStatus::Completed(OpSync {
+            ops: OpSlice { ops: agreed },
+        })
     }
 }
 

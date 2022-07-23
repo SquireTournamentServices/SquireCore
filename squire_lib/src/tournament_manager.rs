@@ -65,31 +65,33 @@ impl TournamentManager {
     /// it to the tournament, and returns the result.
     /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
+        // NOTE: We need to ensure that common data is being stored in the op log, i.e. player
+        // names and match numbers instead of IDs. IDs aren't shared between clients.
         let op = if let Some(ident) = op.get_player_ident() {
-            let id = self
+            let name = self
                 .tourn
                 .player_reg
-                .get_player_id(&ident)
+                .get_player_name(&ident)
                 .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_player_ident(PlayerIdentifier::Id(id))
+            op.swap_player_ident(PlayerIdentifier::Name(name))
         } else if let Some(idents) = op.list_player_ident() {
             let mut new_idents = Vec::with_capacity(idents.len());
             for ident in idents {
-                new_idents.push(PlayerIdentifier::Id(
+                new_idents.push(PlayerIdentifier::Name(
                     self.tourn
                         .player_reg
-                        .get_player_id(&ident)
+                        .get_player_name(&ident)
                         .ok_or(TournamentError::PlayerLookup)?,
                 ));
             }
             op.swap_all_player_idents(new_idents)
         } else if let Some(ident) = op.get_match_ident() {
-            let id = self
+            let num = self
                 .tourn
                 .round_reg
-                .get_round_id(&ident)
+                .get_round_number(&ident)
                 .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_match_ident(RoundIdentifier::Id(id))
+            op.swap_match_ident(RoundIdentifier::Number(num))
         } else {
             op
         };
