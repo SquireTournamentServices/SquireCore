@@ -11,20 +11,14 @@ use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
 
+pub use crate::identifiers::RoundIdentifier;
 use crate::{
     error::TournamentError,
-    player::PlayerId,
-    round::{Round, RoundId, RoundStatus},
+    identifiers::{PlayerId, RoundId},
+    round::{Round, RoundStatus},
 };
 
-#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
-#[repr(C)]
-pub enum RoundIdentifier {
-    Id(RoundId),
-    Number(u64),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct RoundRegistry {
     pub num_and_id: CycleMap<RoundId, u64>,
     pub rounds: HashMap<u64, Round>,
@@ -91,7 +85,9 @@ impl RoundRegistry {
     }
 
     pub fn import_round(&mut self, rnd: Round) -> Result<(), TournamentError> {
-        if self.num_and_id.contains_left(&rnd.id) || self.num_and_id.contains_right(&rnd.match_number) {
+        if self.num_and_id.contains_left(&rnd.id)
+            || self.num_and_id.contains_right(&rnd.match_number)
+        {
             Err(TournamentError::RoundLookup)
         } else {
             self.num_and_id.insert(rnd.id.clone(), rnd.match_number);

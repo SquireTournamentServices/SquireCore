@@ -1,12 +1,12 @@
-pub use crate::{
-    error::TournamentError, player::PlayerId, player_registry::PlayerRegistry,
-    round_registry::RoundRegistry, settings::SwissPairingsSetting,
-};
 use crate::{
+    error::TournamentError,
+    identifiers::{PlayerId, PlayerIdentifier},
     pairings::Pairings,
     player::PlayerStatus,
-    player_registry::PlayerIdentifier,
+    player_registry::PlayerRegistry,
+    round_registry::RoundRegistry,
     scoring::{Score, Standings},
+    settings::SwissPairingsSetting,
     tournament::ScoringSystem,
 };
 
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use std::{collections::HashSet, ops::RangeBounds};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SwissPairings {
     players_per_match: u8,
     do_check_ins: bool,

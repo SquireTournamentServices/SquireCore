@@ -14,12 +14,13 @@ use mtgjson::model::deck::Deck;
 use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
+    identifiers::{PlayerId, PlayerIdentifier, RoundId, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::Pairings,
-    player::{Player, PlayerId, PlayerStatus},
-    player_registry::{PlayerIdentifier, PlayerRegistry},
-    round::{Round, RoundId, RoundResult, RoundStatus},
-    round_registry::{RoundIdentifier, RoundRegistry},
+    player::{Player, PlayerStatus},
+    player_registry::PlayerRegistry,
+    round::{Round, RoundResult, RoundStatus},
+    round_registry::RoundRegistry,
     scoring::{Score, Standings},
     settings::{
         self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
@@ -29,6 +30,8 @@ use crate::{
     swiss_pairings::SwissPairings,
 };
 
+pub use crate::identifiers::{TournamentId, TournamentIdentifier};
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub enum TournamentPreset {
@@ -36,12 +39,12 @@ pub enum TournamentPreset {
     Fluid,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
@@ -57,18 +60,7 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-#[repr(C)]
-pub struct TournamentId(Uuid);
-
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-#[repr(C)]
-pub enum TournamentIdentifier {
-    Id(TournamentId),
-    Name(String),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Tournament {
     pub id: TournamentId,
     pub name: String,
@@ -90,7 +82,7 @@ pub struct Tournament {
 impl Tournament {
     pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
         Tournament {
-            id: TournamentId(Uuid::new_v4()),
+            id: TournamentId::new(Uuid::new_v4()),
             name,
             use_table_number: true,
             format,
@@ -223,7 +215,7 @@ impl Tournament {
         }
         Ok(OpData::Nothing)
     }
-    
+
     pub(crate) fn import_player(&mut self, plyr: Player) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -231,7 +223,7 @@ impl Tournament {
         self.player_reg.import_player(plyr)?;
         Ok(OpData::Nothing)
     }
-    
+
     pub(crate) fn import_round(&mut self, rnd: Round) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));

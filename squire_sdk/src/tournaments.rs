@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use squire_lib::operations::{OpSlice, SyncStatus, OpSync, Rollback, Synced};
+use squire_lib::operations::{OpSlice, OpSync, Rollback, SyncStatus};
 pub use squire_lib::{
     error::TournamentError,
+    identifiers::{TournamentId, TournamentIdentifier},
     operations::{OpResult, TournOp},
     scoring::Standings,
     standard_scoring::StandardScore,
-    tournament::{Tournament, TournamentId, TournamentIdentifier, TournamentPreset},
+    tournament::{Tournament, TournamentPreset},
 };
 
 use crate::response::SquireResponse;
@@ -55,10 +56,10 @@ pub type SyncResponse = SquireResponse<Option<SyncStatus>>;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SyncImportRequest {
     pub ident: TournamentIdentifier,
-    pub sync: Synced,
+    pub sync: OpSync,
 }
 
-pub type SyncImportResponse = SquireResponse<Option<Result<Synced, SyncStatus>>>;
+pub type SyncImportResponse = SquireResponse<Option<SyncStatus>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RollbackRequest {

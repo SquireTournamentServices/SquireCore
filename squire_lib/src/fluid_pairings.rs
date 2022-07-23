@@ -1,7 +1,7 @@
 use crate::{
     error::TournamentError,
+    identifiers::PlayerId,
     pairings::Pairings,
-    player::PlayerId,
     player_registry::PlayerRegistry,
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::HashSet;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FluidPairings {
     players_per_match: u8,
     check_ins: HashSet<PlayerId>,

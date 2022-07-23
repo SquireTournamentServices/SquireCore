@@ -11,6 +11,7 @@ pub mod error;
 #[cfg(feature = "ffi")]
 pub mod ffi;
 pub mod fluid_pairings;
+pub mod identifiers;
 pub mod operations;
 pub mod pairings;
 pub mod player;
