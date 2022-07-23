@@ -138,6 +138,13 @@ impl RoundRegistry {
         }
     }
 
+    pub fn get_round_number(&self, ident: &RoundIdentifier) -> Option<u64> {
+        match ident {
+            RoundIdentifier::Number(num) => Some(*num),
+            RoundIdentifier::Id(id) => self.num_and_id.get_right(&id).cloned(),
+        }
+    }
+
     pub(crate) fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
         match ident {
             RoundIdentifier::Id(id) => {
