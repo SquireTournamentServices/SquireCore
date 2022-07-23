@@ -1,6 +1,6 @@
 use crate::{
     error::TournamentError,
-    operations::{FullOp, OpLog, OpResult, TournOp, OpSync, SyncStatus, OpSlice, Rollback, Synced},
+    operations::{FullOp, OpLog, OpResult, TournOp, OpSync, SyncStatus, OpSlice, Rollback},
     player_registry::PlayerIdentifier,
     round_registry::RoundIdentifier,
     tournament::*,
@@ -47,7 +47,7 @@ impl TournamentManager {
     /// Returns Err containing a SyncStatus if it the log has changed. If that SyncStatus is
     /// Completed, the this log is updated accordingly (otherwise, the method would have to be
     /// immediately called again).
-    pub fn import_sync(&mut self, ops: Synced) -> Result<Synced, SyncStatus> {
+    pub fn import_sync(&mut self, ops: OpSync) -> Result<OpSync, SyncStatus> {
         todo!()
     }
     
@@ -63,7 +63,7 @@ impl TournamentManager {
 
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
     /// it to the tournament, and returns the result.
-    /// NOTE: That if an operation can be convert, it is always stored, regardless of the outcome
+    /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         let op = if let Some(ident) = op.get_player_ident() {
             let id = self
@@ -127,6 +127,7 @@ impl Iterator for StateIter<'_> {
             let op = self.ops.next()?;
             let _ = self.state.apply_op(op.op.clone());
         } else {
+            self.ops.next(); // The first operation already included the preset
             self.shown_init = true;
         }
         Some(self.state.clone())

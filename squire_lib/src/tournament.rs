@@ -111,6 +111,7 @@ impl Tournament {
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
+            Create(_) => OpResult::Ok(OpData::Nothing),
             UpdateReg(b) => self.update_reg(b),
             Start() => self.start(),
             Freeze() => self.freeze(),
