@@ -1,15 +1,16 @@
-use crate::error::TournamentError;
-
-use mtgjson::model::deck::Deck;
-use uuid::Uuid;
-
-use serde::{Deserialize, Serialize};
-
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
     string::ToString,
 };
+
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use mtgjson::model::deck::Deck;
+
+use crate::error::TournamentError;
+pub use crate::identifiers::PlayerId;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 #[repr(C)]
@@ -18,11 +19,7 @@ pub enum PlayerStatus {
     Dropped,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-#[repr(C)]
-pub struct PlayerId(Uuid);
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Player {
     pub id: PlayerId,
     pub name: String,
@@ -32,12 +29,10 @@ pub struct Player {
     pub status: PlayerStatus,
 }
 
-impl Eq for Player {}
-
 impl Player {
     pub fn new(name: String) -> Self {
         Player {
-            id: PlayerId(Uuid::new_v4()),
+            id: PlayerId::new(Uuid::new_v4()),
             name,
             game_name: None,
             deck_ordering: Vec::new(),
@@ -96,11 +91,5 @@ impl Hash for Player {
 impl ToString for Player {
     fn to_string(&self) -> String {
         self.name.clone()
-    }
-}
-
-impl PartialEq for Player {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
     }
 }

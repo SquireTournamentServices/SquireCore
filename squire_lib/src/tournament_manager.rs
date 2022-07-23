@@ -1,8 +1,7 @@
 use crate::{
     error::TournamentError,
-    operations::{FullOp, OpLog, OpResult, TournOp, OpSync, SyncStatus, OpSlice, Rollback},
-    player_registry::PlayerIdentifier,
-    round_registry::RoundIdentifier,
+    identifiers::{PlayerIdentifier, RoundIdentifier},
+    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, TournOp},
     tournament::*,
 };
 

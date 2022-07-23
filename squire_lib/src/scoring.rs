@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::player::PlayerId;
+use crate::identifiers::PlayerId;
 
 pub trait Score
 where

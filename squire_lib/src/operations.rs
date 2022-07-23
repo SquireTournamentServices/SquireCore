@@ -3,12 +3,11 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::{
-    player::{Player, PlayerId},
-    player_registry::PlayerIdentifier,
-    round::{Round, RoundId, RoundResult, RoundStatus},
-    round_registry::RoundIdentifier,
+    error::TournamentError,
+    identifiers::{PlayerIdentifier, RoundIdentifier},
+    player::Player,
+    round::{Round, RoundResult, RoundStatus},
     settings::TournamentSetting,
-    swiss_pairings::TournamentError,
     tournament::TournamentPreset,
 };
 
@@ -538,7 +537,8 @@ impl OpLog {
             }
         }
         // This should never return an Err
-        self.overwrite(rollback.ops).map_err(|e| RollbackError::SliceError(e))
+        self.overwrite(rollback.ops)
+            .map_err(|e| RollbackError::SliceError(e))
     }
 
     /// Attempts to sync the local log with a remote log.

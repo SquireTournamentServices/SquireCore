@@ -1,25 +1,21 @@
-use crate::{
-    error::TournamentError,
-    player::{Player, PlayerId, PlayerStatus},
-};
-
-use cycle_map::CycleMap;
-use mtgjson::model::deck::Deck;
-
-use serde::{Deserialize, Serialize};
-
 use std::{
     collections::{HashMap, HashSet},
     slice::SliceIndex,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-pub enum PlayerIdentifier {
-    Id(PlayerId),
-    Name(String),
-}
+use mtgjson::model::deck::Deck;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+use cycle_map::CycleMap;
+
+pub use crate::identifiers::PlayerIdentifier;
+use crate::{
+    error::TournamentError,
+    identifiers::PlayerId,
+    player::{Player, PlayerStatus},
+};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct PlayerRegistry {
     pub name_and_id: CycleMap<String, PlayerId>,
     pub players: HashMap<PlayerId, Player>,

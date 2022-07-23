@@ -15,7 +15,7 @@ pub enum TournamentSetting {
     ScoringSetting(ScoringSetting),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum PairingSetting {
     Swiss(SwissPairingsSetting),
     Fluid(FluidPairingsSetting),
@@ -26,14 +26,14 @@ pub enum ScoringSetting {
     Standard(StandardScoringSetting),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub enum SwissPairingsSetting {
     MatchSize(u8),
     DoCheckIns(bool),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub enum FluidPairingsSetting {
     MatchSize(u8),

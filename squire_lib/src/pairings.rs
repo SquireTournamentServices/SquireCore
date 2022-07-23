@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::swiss_pairings::PlayerId;
+use crate::identifiers::PlayerId;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Pairings {
