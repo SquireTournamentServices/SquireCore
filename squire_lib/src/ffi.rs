@@ -1,8 +1,13 @@
+use crate::tournament::pairing_system_factory;
+use crate::tournament::scoring_system_factory;
+use crate::tournament::PairingSystem::{Fluid, Swiss};
+use crate::tournament::{Tournament, TournamentId, TournamentPreset, TournamentStatus};
 use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
-    operations::TournOp,
-    player::{Player, PlayerId},
+    operations::{OpData, OpResult, TournOp},
+    pairings::Pairings,
+    player::{Player, PlayerId, PlayerStatus},
     player_registry::{PlayerIdentifier, PlayerRegistry},
     round::{Round, RoundId, RoundResult, RoundStatus},
     round_registry::{RoundIdentifier, RoundRegistry},
@@ -13,361 +18,346 @@ use crate::{
     },
     standard_scoring::{StandardScore, StandardScoring},
     swiss_pairings::SwissPairings,
-    tournament::{Tournament, TournamentPreset},
 };
+use dashmap::DashMap;
+use once_cell::sync::OnceCell;
+use serde_json;
+use std::ffi::CStr;
+use std::ffi::CString;
+use std::fs::{read_to_string, remove_file, rename, write};
+use std::option::Option;
+use std::os::raw::c_char;
+use std::ptr::null;
+use std::time::Duration;
+use std::vec::Vec;
+use uuid::Uuid;
+use std::alloc::{Allocator, System, Layout};
+use std::ptr;
 
-use mtgjson::model::deck::Deck;
+lazy_static! {
+    /// NULL UUIDs are returned on errors
+static ref NULL_UUID_BYTES:
+    [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+}
 
-use libc::c_char;
-use std::{
-    collections::HashMap,
-    ffi::{CStr, CString},
-    hash::{Hash, Hasher},
-    time::Duration,
-};
+/// A map of tournament ids to tournaments
+/// this is used for allocating ffi tournaments
+/// all ffi tournaments are always deeply copied
+/// at the lanuage barrier
+static FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
+const BACKUP_EXT: &str = ".bak";
 
-impl Tournament {
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if there is an error with the name conversion
-    /// Returns 2 if there is an error with the format conversion
-    #[allow(unused_assignments)]
+#[no_mangle]
+pub extern "C" fn init_squire_ffi() {
+    let map: DashMap<TournamentId, Tournament> = DashMap::new();
+    FFI_TOURNAMENT_REGISTRY.set(map);
+}
+
+/// Helper function for cloning strings
+unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
+    let len: usize = s.len() + 1;
+    let s_str = s.as_bytes();
+    
+    let ptr = System.allocate(Layout::from_size_align(len, 1).unwrap()).unwrap().as_mut_ptr() as *mut c_char;
+    let mut slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
+    let mut i: usize = 0;
+    while i < s.len() {
+        slice[i] = s_str[i] as i8;
+        i += 1;
+    }
+    slice[i] = 0;
+
+    return ptr;
+}
+
+/// TournamentIds can be used to get data safely from
+/// the Rust lib with these methods
+impl TournamentId {
+    /// Returns the name of a tournament
+    /// Returns NULL if an error happens
+    /// This is heap allocated, please free it
     #[no_mangle]
-    pub extern "C" fn from_preset_c(
-        mut expected: *mut Self,
-        name_buf: *mut c_char,
-        preset: TournamentPreset,
-        format_buf: *mut c_char,
-    ) -> usize {
-        let name_str = unsafe { CStr::from_ptr(name_buf) };
-        let name = match name_str.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => {
-                return 1;
+    pub extern "C" fn tid_name(self: Self) -> *const c_char {
+        let tourn: Tournament;
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => tourn = t.value().clone(),
+            None => {
+                return std::ptr::null();
             }
-        };
-        let format_str = unsafe { CStr::from_ptr(format_buf) };
-        let format = match format_str.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => {
-                return 2;
-            }
-        };
-        let tourn = Box::new(Tournament::from_preset(name, preset, format));
-        expected = Box::into_raw(tourn);
-        0
+        }
+        return unsafe { clone_string_to_c_string(tourn.name) };
     }
 
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if there is a TournamentError::IncorrectStatus,
-    /// Returns 2 if there is a TournamentError::PlayerLookup,
-    /// Returns 3 if there is a TournamentError::RoundLookup,
-    /// Returns 4 if there is a TournamentError::DeckLookup,
-    /// Returns 5 if there is a TournamentError::RegClosed,
-    /// Returns 6 if there is a TournamentError::PlayerNotInRound,
-    /// Returns 7 if there is a TournamentError::NoActiveRound,
-    /// Returns 8 if there is a TournamentError::InvalidBye,
-    /// Returns 9 if there is a TournamentError::ActiveMatches,
-    /// Returns 10 if there is a TournamentError::PlayerNotCheckedIn,
-    /// Returns 11 if there is a TournamentError::IncompatiblePairingSystem,
-    /// Returns 12 if there is a TournamentError::IncompatibleScoringSystem,
+    /// Returns the format of a tournament
+    /// Returns NULL if an error happens
+    /// This is heap allocated, please free it
     #[no_mangle]
-    #[allow(improper_ctypes_definitions)]
-    pub extern "C" fn apply_op_c(&mut self, op: TournOp) -> usize {
-        use TournamentError::*;
-        match self.apply_op(op) {
-            Ok(_) => 0,
-            Err(e) => match e {
-                IncorrectStatus(_) => 1,
-                PlayerLookup => 2,
-                RoundLookup => 3,
-                DeckLookup => 4,
-                RegClosed => 5,
-                PlayerNotInRound => 6,
-                NoActiveRound => 7,
-                InvalidBye => 8,
-                ActiveMatches => 9,
-                PlayerNotCheckedIn => 10,
-                IncompatiblePairingSystem => 11,
-                IncompatibleScoringSystem => 12,
-            },
+    pub extern "C" fn tid_format(self: Self) -> *const c_char {
+        let tourn: Tournament;
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => tourn = t.value().clone(),
+            None => {
+                return std::ptr::null();
+            }
+        }
+        return unsafe { clone_string_to_c_string(tourn.format) };
+    }
+
+    /// Returns whether table numbers are being used for this tournament
+    /// false, is the error value (kinda sketchy)
+    #[no_mangle]
+    pub extern "C" fn tid_use_table_number(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.value().use_table_number,
+            None => {
+                println!("Cannot find tournament in tourn_id.use_table_number();");
+                return false;
+            }
         }
     }
 
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if the player could not be found
-    #[allow(unused_assignments)]
+    /// Returns the game size
+    /// -1 is the error value
     #[no_mangle]
-    pub extern "C" fn get_player_c(
-        &self,
-        mut expected: *const Player,
-        ident: &PlayerIdentifier,
-    ) -> usize {
-        match self.get_player(ident) {
-            Ok(p) => {
-                expected = &p;
-                0
+    pub extern "C" fn tid_game_size(self: Self) -> i32 {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.value().game_size as i32,
+            None => {
+                println!("Cannot find tournament in tourn_id.game_size();");
+                return -1;
             }
-            Err(_) => 1,
         }
     }
 
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if the round could not be found
-    #[allow(unused_assignments)]
+    /// Returns the min deck count
+    /// -1 is the error value
     #[no_mangle]
-    pub extern "C" fn get_round_c(
-        &self,
-        mut expected: *const Round,
-        ident: &RoundIdentifier,
-    ) -> usize {
-        match self.get_round(ident) {
-            Ok(m) => {
-                expected = &m;
-                0
+    pub extern "C" fn tid_min_deck_count(self: Self) -> i32 {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.value().min_deck_count as i32,
+            None => {
+                println!("Cannot find tournament in tourn_id.min_deck_count();");
+                return -1;
             }
-            Err(_) => 1,
         }
     }
 
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if there is a string conversion error.
-    /// Returns 2 if the player could not be found.
-    /// Returns 3 if the player could be found, but a deck by the give name can't be
+    /// Returns the max deck count
+    /// -1 is the error value
     #[no_mangle]
-    pub fn get_player_deck_c(
-        &self,
-        expected: *const Deck,
-        ident: &PlayerIdentifier,
-        name: CString,
-    ) -> usize {
-        use TournamentError::*;
-        let rust_name = match name.to_str() {
-            Ok(s) => s.to_string(),
+    pub extern "C" fn tid_max_deck_count(self: Self) -> i32 {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.value().max_deck_count as i32,
+            None => {
+                println!("Cannot find tournament in tourn_id.max_deck_count();");
+                return -1;
+            }
+        }
+    }
+
+    /// Returns the pairing type
+    /// This is of type TournamentPreset, but an int to let me return error values
+    /// -1 is error value
+    #[no_mangle]
+    pub extern "C" fn tid_pairing_type(self: Self) -> i32 {
+        let tourn: Tournament;
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => tourn = t.value().clone(),
+            None => {
+                println!("Cannot find tournament in tourn_id.pairing_type();");
+                return -1;
+            }
+        }
+
+        match tourn.pairing_sys {
+            Swiss(_) => {
+                return TournamentPreset::Swiss as i32;
+            }
+            Fluid(_) => {
+                return TournamentPreset::Fluid as i32;
+            }
+        }
+    }
+
+    /// Whether reg is open
+    /// False on error
+    #[no_mangle]
+    pub extern "C" fn tid_reg_open(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.reg_open,
+            None => {
+                println!("Cannot find tournament in tourn_id.reg_open();");
+                return false;
+            }
+        }
+    }
+
+    /// Whether checkins are needed
+    /// False on error
+    #[no_mangle]
+    pub extern "C" fn tid_require_check_in(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.require_check_in,
+            None => {
+                println!("Cannot find tournament in tourn_id.require_check_in();");
+                return false;
+            }
+        }
+    }
+
+    /// Whether deck reg is needed
+    /// False on error
+    #[no_mangle]
+    pub extern "C" fn tid_require_deck_reg(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.require_deck_reg,
+            None => {
+                println!("Cannot find tournament in tourn_id.require_deck_reg();");
+                return false;
+            }
+        }
+    }
+
+    /// Returns the status
+    /// Returns cancelled on error
+    #[no_mangle]
+    pub extern "C" fn tid_status(self: Self) -> TournamentStatus {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => return t.status,
+            None => {
+                println!("Cannot find tournament in tourn_id.status();");
+                return TournamentStatus::Cancelled;
+            }
+        }
+    }
+
+    // End of getters
+
+    /// Closes a tournament removing it from the internal FFI state
+    #[no_mangle]
+    pub extern "C" fn close_tourn(self: Self) {
+        FFI_TOURNAMENT_REGISTRY.get().unwrap().remove(&self);
+    }
+
+    /// Saves a tournament to a name
+    /// Returns true if successful, false if not.
+    #[no_mangle]
+    pub extern "C" fn save_tourn(self: Self, __file: *const c_char) -> bool {
+        let file: &str = unsafe { CStr::from_ptr(__file).to_str().unwrap() };
+        let tournament: Tournament;
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(v) => tournament = v.value().clone(),
+            None => {
+                return false;
+            }
+        }
+
+        let json: String;
+        match serde_json::to_string::<Tournament>(&tournament) {
+            Ok(v) => json = v,
+            Err(_) => return false,
+        }
+
+        // Backup old data, do check for errors.
+        let file_backup: String = file.to_string() + &BACKUP_EXT.to_string();
+        std::fs::remove_file(file_backup.clone());
+        std::fs::rename(file, file_backup.clone());
+
+        match std::fs::write(file, json) {
+            Ok(_) => {
+                return true;
+            }
             Err(e) => {
-                return 1;
+                println!("ffi-error: {}", e);
+                return false;
             }
-        };
-        match self.get_player_deck(ident, &rust_name) {
-            Ok(deck) => {
-                let expected = deck;
-                0
-            }
-            Err(e) => match e {
-                PlayerLookup => 2,
-                DeckLookup => 3,
-                _ => {
-                    unreachable!("The get_player_deck method will only ever return Player or Deck lookup error.")
-                }
-            },
         }
-    }
-
-    #[no_mangle]
-    pub extern "C" fn get_standings_c(&self) -> Standings<StandardScore> {
-        self.get_standings()
-    }
-
-    #[no_mangle]
-    pub extern "C" fn is_planned_c(&self) -> bool {
-        self.is_planned()
-    }
-
-    #[no_mangle]
-    pub extern "C" fn is_frozen_c(&self) -> bool {
-        self.is_frozen()
-    }
-
-    #[no_mangle]
-    pub extern "C" fn is_active_c(&self) -> bool {
-        self.is_active()
-    }
-
-    #[no_mangle]
-    pub extern "C" fn is_dead_c(&self) -> bool {
-        self.is_dead()
     }
 }
 
-impl TournOp {
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_update_reg_op_c(mut expected: *const TournOp, status: bool) {
-        let alloc = Box::new(Self::UpdateReg(status));
-        expected = Box::into_raw(alloc);
+/// Loads a tournament from a file via serde
+/// The tournament is then registered (stored on the heap)
+/// CStr path to the tournament (alloc and, free on Cxx side)
+/// Returns a NULL UUID (all 0s) if there is an error
+#[no_mangle]
+pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> TournamentId {
+    let file: &str = unsafe { CStr::from_ptr(__file).to_str().unwrap() };
+    let json: String;
+    match read_to_string(file) {
+        Ok(v) => json = v.to_string(),
+        Err(_) => {
+            return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
+        }
+    };
+
+    let tournament: Tournament;
+    match serde_json::from_str::<Tournament>(&json) {
+        Ok(v) => tournament = v,
+        Err(_) => {
+            return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
+        }
+    };
+
+    // Cannot open the same tournament twice
+    if FFI_TOURNAMENT_REGISTRY
+        .get()
+        .unwrap()
+        .contains_key(&tournament.id)
+    {
+        return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
     }
 
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_start_op_c(mut expected: *const TournOp) {
-        let alloc = Box::new(Self::Start());
-        expected = Box::into_raw(alloc);
-    }
+    let tid: TournamentId = tournament.id.clone();
+    FFI_TOURNAMENT_REGISTRY
+        .get()
+        .unwrap()
+        .insert(tid, tournament.clone());
 
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_freeze_op_c(mut expected: *const TournOp) {
-        let alloc = Box::new(Self::Freeze());
-        expected = Box::into_raw(alloc);
-    }
+    return tournament.id;
+}
 
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_thaw_op_c(mut expected: *const TournOp) {
-        let alloc = Box::new(Self::Thaw());
-        expected = Box::into_raw(alloc);
-    }
+/// Creates a tournament from the settings provided
+/// Returns a NULL UUID (all 0s) if there is an error
+#[no_mangle]
+pub extern "C" fn new_tournament_from_settings(
+    __file: *const c_char,
+    __name: *const c_char,
+    __format: *const c_char,
+    preset: TournamentPreset,
+    use_table_number: bool,
+    game_size: u8,
+    min_deck_count: u8,
+    max_deck_count: u8,
+    reg_open: bool,
+    require_check_in: bool,
+    require_deck_reg: bool,
+) -> TournamentId {
+    let tournament: Tournament = Tournament {
+        id: TournamentId(Uuid::new_v4()),
+        name: String::from(unsafe { CStr::from_ptr(__name).to_str().unwrap().to_string() }),
+        use_table_number: use_table_number,
+        format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() }),
+        game_size: game_size,
+        min_deck_count: min_deck_count,
+        max_deck_count: max_deck_count,
+        player_reg: PlayerRegistry::new(),
+        round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
+        pairing_sys: pairing_system_factory(&preset, 2),
+        scoring_sys: scoring_system_factory(&preset),
+        reg_open: reg_open,
+        require_check_in: require_check_in,
+        require_deck_reg: require_deck_reg,
+        status: TournamentStatus::Planned,
+    };
+    let tid: TournamentId = tournament.id;
 
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_end_op_c(mut expected: *const TournOp) {
-        let alloc = Box::new(Self::End());
-        expected = Box::into_raw(alloc);
-    }
+    FFI_TOURNAMENT_REGISTRY
+        .get()
+        .unwrap()
+        .insert(tid, tournament.clone());
 
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_cancel_op_c(mut expected: *const TournOp) {
-        let alloc = Box::new(Self::Cancel());
-        expected = Box::into_raw(alloc);
+    if !tournament.id.save_tourn(__file) {
+        return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
     }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_check_in_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::CheckIn(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if there is an issue with name conversion
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_register_player_op_c(
-        mut expected: *const TournOp,
-        name_buf: *mut c_char,
-    ) -> usize {
-        let name_str = unsafe { CStr::from_ptr(name_buf) };
-        let name = match name_str.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => {
-                return 1;
-            }
-        };
-        let alloc = Box::new(Self::RegisterPlayer(name));
-        expected = Box::into_raw(alloc);
-        0
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_record_result_op_c(
-        mut expected: *const TournOp,
-        rnd: RoundId,
-        result: RoundResult,
-    ) {
-        let alloc = Box::new(Self::RecordResult(RoundIdentifier::Id(rnd), result));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_confirm_result_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::ConfirmResult(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_drop_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::DropPlayer(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_admin_drop_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::AdminDropPlayer(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_add_deck_op_c(
-        mut expected: *const TournOp,
-        plyr: PlayerId,
-        name: *mut c_char,
-        // TODO: Make a deck wrapper or make this take a string/url and create a deck
-        //deck: Deck,
-    ) {
-        todo!()
-    }
-
-    /// Returns 0 if everything is ok.
-    /// Returns 1 if there is a name conversion error
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_remove_deck_op_c(
-        mut expected: *const TournOp,
-        plyr: PlayerId,
-        name_buf: *mut c_char,
-    ) -> usize {
-        let name_str = unsafe { CStr::from_ptr(name_buf) };
-        let name = match name_str.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => {
-                return 1;
-            }
-        };
-        let alloc = Box::new(Self::RemoveDeck(PlayerIdentifier::Id(plyr), name));
-        expected = Box::into_raw(alloc);
-        0
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_set_gamer_tag_op_c(
-        mut expected: *const TournOp,
-        plyr: PlayerId,
-        name_buf: *mut c_char,
-    ) -> usize {
-        let name_str = unsafe { CStr::from_ptr(name_buf) };
-        let name = match name_str.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => {
-                return 1;
-            }
-        };
-        let alloc = Box::new(Self::SetGamerTag(PlayerIdentifier::Id(plyr), name));
-        expected = Box::into_raw(alloc);
-        0
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_ready_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::ReadyPlayer(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_un_ready_player_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::UnReadyPlayer(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    // TODO: Make C constructors for tournament settings
-    #[allow(improper_ctypes_definitions, unused_assignments)]
-    pub extern "C" fn new_update_tourn_setting_op_c(
-        mut expected: *const TournOp,
-        setting: *const TournamentSetting,
-    ) {
-        // Safty check: The C side should never construct a settings object and should get it from
-        // the Rust side. Thus, the settings are valid. We can *not* ensure that settings isn't a
-        // nullptr. We must assume that the C side is diligent.
-        // Notable, if the C side gets a pointer to setting from the Rust side and doesn't mess
-        // with it, it will always be valid.
-        let alloc = Box::new(Self::UpdateTournSetting(unsafe { (*setting).clone() }));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_give_bye_op_c(mut expected: *const TournOp, plyr: PlayerId) {
-        let alloc = Box::new(Self::GiveBye(PlayerIdentifier::Id(plyr)));
-        expected = Box::into_raw(alloc);
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_create_round_op_c(mut expected: *const TournOp, plyrs: Vec<PlayerId>) {
-        todo!()
-    }
-
-    #[allow(unused_assignments)]
-    pub extern "C" fn new_pair_round_op_c(mut expected: *const TournOp) {
-        let alloc = Box::new(Self::PairRound());
-        expected = Box::into_raw(alloc);
-    }
+    return tournament.id;
 }

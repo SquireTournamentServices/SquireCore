@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use squire_lib::operations::{OpSlice, SyncStatus, OpSync, Rollback, Synced};
+use squire_lib::operations::{OpSlice, OpSync, Rollback, SyncStatus, Synced};
 pub use squire_lib::{
     error::TournamentError,
     operations::{OpResult, TournOp},

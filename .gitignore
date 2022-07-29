@@ -7,3 +7,5 @@ Cargo.lock
 squire_core.h
 
 cbindgen.toml
+
+*.orig

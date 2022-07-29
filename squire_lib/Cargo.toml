@@ -17,9 +17,13 @@ ffi = ["cbindgen", "libc"]
 #In-house deps
 cycle_map = { version = "0.1.1", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
+lazy_static = "1.4.0"
 
 uuid = { version = "1.1", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0.68" }
+once_cell = { version = "1.8.0" }
+dashmap = { version = "5.0", features = ["serde"] }
 libc = { version = "0.2", optional = true }
 
 [build-dependencies]

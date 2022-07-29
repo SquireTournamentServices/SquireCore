@@ -1,6 +1,6 @@
 use crate::{
     error::TournamentError,
-    operations::{FullOp, OpLog, OpResult, TournOp, OpSync, SyncStatus, OpSlice, Rollback, Synced},
+    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, Synced, TournOp},
     player_registry::PlayerIdentifier,
     round_registry::RoundIdentifier,
     tournament::*,
@@ -36,13 +36,13 @@ impl TournamentManager {
     pub fn extract(self) -> Tournament {
         self.tourn
     }
-    
+
     /// Starts the syncing processing. If syncing can occur, the op logs are merged and
     /// SyncStatus::Completed is returned.
     pub fn start_sync(&mut self, sy: OpSync) -> SyncStatus {
         todo!()
     }
-    
+
     /// Imports a synced op log. Returns Ok containing the given Synced if this log hasn't changed.
     /// Returns Err containing a SyncStatus if it the log has changed. If that SyncStatus is
     /// Completed, the this log is updated accordingly (otherwise, the method would have to be
@@ -50,13 +50,14 @@ impl TournamentManager {
     pub fn import_sync(&mut self, ops: Synced) -> Result<Synced, SyncStatus> {
         todo!()
     }
-    
+
     pub fn overwrite(&mut self, ops: OpSlice) {
         todo!()
     }
-    
-    pub fn propose_rollback<F>(&mut self, f: F) -> Rollback 
-        where F: FnMut(&FullOp) -> Option<bool>
+
+    pub fn propose_rollback<F>(&mut self, f: F) -> Rollback
+    where
+        F: FnMut(&FullOp) -> Option<bool>,
     {
         todo!()
     }
@@ -83,7 +84,7 @@ impl TournamentManager {
                 ));
             }
             op.swap_all_player_idents(new_idents)
-        } else if let Some(ident) = op.get_match_ident(){
+        } else if let Some(ident) = op.get_match_ident() {
             let id = self
                 .tourn
                 .round_reg

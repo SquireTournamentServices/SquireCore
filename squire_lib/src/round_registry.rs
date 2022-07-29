@@ -18,6 +18,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
+#[repr(C)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),
@@ -90,7 +91,9 @@ impl RoundRegistry {
     }
 
     pub fn import_round(&mut self, rnd: Round) -> Result<(), TournamentError> {
-        if self.num_and_id.contains_left(&rnd.id) || self.num_and_id.contains_right(&rnd.match_number) {
+        if self.num_and_id.contains_left(&rnd.id)
+            || self.num_and_id.contains_right(&rnd.match_number)
+        {
             Err(TournamentError::RoundLookup)
         } else {
             self.num_and_id.insert(rnd.id.clone(), rnd.match_number);

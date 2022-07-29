@@ -5,6 +5,12 @@
     unused_imports,
     unused_import_braces
 )]
+// Used in ffi
+#![feature(allocator_api, slice_ptr_get)]
+
+#[macro_use]
+extern crate lazy_static;
+
 //#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 //#![deny(improper_ctypes_definitions)]
 pub mod error;
