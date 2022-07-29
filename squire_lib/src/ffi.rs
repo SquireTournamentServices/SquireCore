@@ -286,6 +286,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
     match read_to_string(file) {
         Ok(v) => json = v.to_string(),
         Err(_) => {
+            println!("[FFI]: Cannot read input file");
             return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
         }
     };
@@ -294,6 +295,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
     match serde_json::from_str::<Tournament>(&json) {
         Ok(v) => tournament = v,
         Err(_) => {
+            println!("[FFI]: Input file is invalid");
             return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
         }
     };
@@ -304,6 +306,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         .unwrap()
         .contains_key(&tournament.id)
     {
+        println!("Input file is already open");
         return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
     }
 
