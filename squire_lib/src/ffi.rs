@@ -34,11 +34,8 @@ use uuid::Uuid;
 use std::alloc::{Allocator, System, Layout};
 use std::ptr;
 
-lazy_static! {
-    /// NULL UUIDs are returned on errors
-static ref NULL_UUID_BYTES:
-    [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-}
+/// NULL UUIDs are returned on errors
+const NULL_UUID_BYTES: [u8; 16] = [0; 16];
 
 /// A map of tournament ids to tournaments
 /// this is used for allocating ffi tournaments
@@ -287,7 +284,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         Ok(v) => json = v.to_string(),
         Err(_) => {
             println!("[FFI]: Cannot read input file");
-            return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
+            return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
         }
     };
 
@@ -296,7 +293,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         Ok(v) => tournament = v,
         Err(_) => {
             println!("[FFI]: Input file is invalid");
-            return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
+            return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
         }
     };
 
@@ -307,7 +304,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         .contains_key(&tournament.id)
     {
         println!("Input file is already open");
-        return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
+        return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
     }
 
     let tid: TournamentId = tournament.id.clone();
@@ -360,7 +357,7 @@ pub extern "C" fn new_tournament_from_settings(
         .insert(tid, tournament.clone());
 
     if !tournament.id.save_tourn(__file) {
-        return TournamentId(Uuid::from_bytes(*NULL_UUID_BYTES));
+        return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
     }
     return tournament.id;
 }
