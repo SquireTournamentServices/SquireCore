@@ -339,9 +339,15 @@ impl Tournament {
                 self.use_table_number = b;
             }
             MinDeckCount(c) => {
+                if c > self.max_deck_count {
+                    return Err(TournamentError::InvalidDeckCount);
+                }
                 self.min_deck_count = c;
             }
             MaxDeckCount(c) => {
+                if c < self.min_deck_count {
+                    return Err(TournamentError::InvalidDeckCount);
+                }
                 self.max_deck_count = c;
             }
             RequireCheckIn(b) => {
@@ -380,7 +386,7 @@ impl Tournament {
     }
 
     pub(crate) fn update_reg(&mut self, reg_status: bool) -> OpResult {
-        if self.is_dead() {
+        if self.is_frozen() || self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         self.reg_open = reg_status;

@@ -18,6 +18,18 @@ use serde::{Deserialize, Serialize};
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournOp {
+    // Non-admin operations
+    CheckIn(PlayerIdentifier),
+    RegisterPlayer(String),
+    DropPlayer(PlayerIdentifier),
+    RecordResult(RoundIdentifier, RoundResult),
+    ConfirmResult(PlayerIdentifier),
+    AddDeck(PlayerIdentifier, String, Deck),
+    RemoveDeck(PlayerIdentifier, String),
+    SetGamerTag(PlayerIdentifier, String),
+    ReadyPlayer(PlayerIdentifier),
+    UnReadyPlayer(PlayerIdentifier),
+    // Admin-level operations
     Create(TournamentPreset),
     UpdateReg(bool),
     Start(),
@@ -25,18 +37,14 @@ pub enum TournOp {
     Thaw(),
     End(),
     Cancel(),
-    CheckIn(PlayerIdentifier),
-    RegisterPlayer(String),
-    RecordResult(RoundIdentifier, RoundResult),
-    ConfirmResult(PlayerIdentifier),
-    DropPlayer(PlayerIdentifier),
+    AdminRegisterPlayer(String),
+    AdminRecordResult(RoundIdentifier, RoundResult),
+    AdminConfirmResult(PlayerIdentifier),
     AdminDropPlayer(PlayerIdentifier),
-    AddDeck(PlayerIdentifier, String, Deck),
-    RemoveDeck(PlayerIdentifier, String),
+    AdminAddDeck(PlayerIdentifier, String, Deck),
+    AdminReadyPlayer(PlayerIdentifier),
+    AdminUnReadyPlayer(PlayerIdentifier),
     RemoveRound(RoundIdentifier),
-    SetGamerTag(PlayerIdentifier, String),
-    ReadyPlayer(PlayerIdentifier),
-    UnReadyPlayer(PlayerIdentifier),
     UpdateTournSetting(TournamentSetting),
     GiveBye(PlayerIdentifier),
     CreateRound(Vec<PlayerIdentifier>),
@@ -71,7 +79,9 @@ impl TournOp {
             | ImportPlayer(_)
             | ImportRound(_)
             | RecordResult(_, _)
-            | CreateRound(_) => self,
+            | CreateRound(_)
+            | AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _) => self,
             CheckIn(_) => Self::CheckIn(ident),
             ConfirmResult(_) => Self::ConfirmResult(ident),
             DropPlayer(_) => Self::DropPlayer(ident),
@@ -82,6 +92,10 @@ impl TournOp {
             ReadyPlayer(_) => Self::ReadyPlayer(ident),
             UnReadyPlayer(_) => Self::UnReadyPlayer(ident),
             GiveBye(_) => Self::GiveBye(ident),
+            AdminConfirmResult(_) => Self::AdminConfirmResult(ident),
+            AdminAddDeck(_, name, deck) => Self::AdminAddDeck(ident, name, deck),
+            AdminReadyPlayer(_) => Self::AdminReadyPlayer(ident),
+            AdminUnReadyPlayer(_) => Self::UnReadyPlayer(ident),
         }
     }
 
@@ -115,7 +129,13 @@ impl TournOp {
             | SetGamerTag(_, _)
             | ReadyPlayer(_)
             | UnReadyPlayer(_)
-            | GiveBye(_) => self,
+            | GiveBye(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
+            | AdminRegisterPlayer(_)
+            | AdminConfirmResult(_)
+            | AdminRecordResult(_, _) => self,
             CreateRound(_) => Self::CreateRound(idents),
         }
     }
@@ -149,9 +169,15 @@ impl TournOp {
             | PairRound()
             | Cut(_)
             | PruneDecks()
-            | PrunePlayers() => self,
-            TimeExtension(_, dur) => TimeExtension(ident, dur),
-            RecordResult(_, res) => RecordResult(ident, res),
+            | PrunePlayers()
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
+            | AdminRegisterPlayer(_)
+            | AdminConfirmResult(_) => self,
+            AdminRecordResult(_, res) => Self::AdminRecordResult(ident, res),
+            TimeExtension(_, dur) => Self::TimeExtension(ident, dur),
+            RecordResult(_, res) => Self::RecordResult(ident, res),
         }
     }
 
@@ -176,6 +202,8 @@ impl TournOp {
             | PrunePlayers()
             | RemoveRound(_)
             | RecordResult(_, _)
+            | AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _)
             | CreateRound(_) => None,
             CheckIn(ident)
             | ConfirmResult(ident)
@@ -186,6 +214,10 @@ impl TournOp {
             | SetGamerTag(ident, _)
             | ReadyPlayer(ident)
             | UnReadyPlayer(ident)
+            | AdminConfirmResult(ident)
+            | AdminAddDeck(ident, _, _)
+            | AdminReadyPlayer(ident)
+            | AdminUnReadyPlayer(ident)
             | GiveBye(ident) => Some(ident.clone()),
         }
     }
@@ -221,6 +253,12 @@ impl TournOp {
             | GiveBye(_)
             | PrunePlayers()
             | RemoveRound(_)
+            | AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _)
+            | AdminConfirmResult(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
             | RecordResult(_, _) => None,
             CreateRound(idents) => Some(idents.clone()),
         }
@@ -254,9 +292,15 @@ impl TournOp {
             | CreateRound(_)
             | PairRound()
             | Cut(_)
+            | AdminRegisterPlayer(_)
+            | AdminConfirmResult(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
             | PruneDecks()
             | PrunePlayers() => None,
-            TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
+            AdminRecordResult(ident, _)
+            | TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
         }
     }
 }
