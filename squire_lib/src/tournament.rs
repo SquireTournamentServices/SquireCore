@@ -130,8 +130,14 @@ impl Tournament {
             Cut(n) => self.cut_to_top(n),
             PruneDecks() => self.prune_decks(),
             PrunePlayers() => self.prune_players(),
-            ImportPlayer(plyr) => self.import_player(plyr),
-            ImportRound(rnd) => self.import_round(rnd),
+            AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _)
+            | AdminConfirmResult(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_) => todo!()
+            //ImportPlayer(plyr) => self.import_player(plyr),
+            //ImportRound(rnd) => self.import_round(rnd),
         }
     }
 

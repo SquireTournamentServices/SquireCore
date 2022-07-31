@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "rocket")]
 use crate::error::SERIALIZER_ERROR;
 
+#[derive(Deserialize)]
 pub struct SquireResponse<T>(pub T);
 
 impl<T> SquireResponse<T> {

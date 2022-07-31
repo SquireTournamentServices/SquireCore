@@ -1,7 +1,9 @@
 use dashmap::DashMap;
-use rocket::{get, routes};
+use rocket::{get, routes, Rocket, Build};
 use squire_sdk::accounts::{AccountId, UserAccount};
 use uuid::Uuid;
+
+#[cfg(test)] mod tests;
 
 mod accounts;
 mod matches;
@@ -17,20 +19,11 @@ fn world() -> &'static str {
     "Hello, world!"
 }
 
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
+pub fn init() -> Rocket<Build> {
     let _ = USERS_MAP.set(DashMap::new());
     let _ = ORGS_MAP.set(DashMap::new());
     let _ = TOURNS_MAP.set(DashMap::new());
-    let id = AccountId(Uuid::new_v4());
-    let account = UserAccount {
-        external_id: id.clone(),
-        display_name: "Tyler Bloom".to_string(),
-        account_name: "TylerBloom".to_string(),
-    };
-    println!("{account:?}");
-    USERS_MAP.get().unwrap().insert(id, account);
-    let _rocket = rocket::build()
+    rocket::build()
         .mount("/hello", routes![world])
         .mount("/accounts", routes![users, all_users, orgs])
         .mount(
@@ -60,7 +53,20 @@ async fn main() -> Result<(), rocket::Error> {
                 get_latest_player_match,
             ],
         )
-        .launch()
+}
+
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    let client = init();
+    let id = AccountId(Uuid::new_v4());
+    let account = UserAccount {
+        external_id: id.clone(),
+        display_name: "Tyler Bloom".to_string(),
+        account_name: "TylerBloom".to_string(),
+    };
+    println!("{account:?}");
+    USERS_MAP.get().unwrap().insert(id, account);
+    client.launch()
         .await?;
 
     Ok(())
