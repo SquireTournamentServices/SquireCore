@@ -53,8 +53,6 @@ pub enum TournOp {
     Cut(usize),
     PruneDecks(),
     PrunePlayers(),
-    ImportPlayer(Player),
-    ImportRound(Round),
 }
 
 impl TournOp {
@@ -76,8 +74,6 @@ impl TournOp {
             | PruneDecks()
             | PrunePlayers()
             | RemoveRound(_)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | RecordResult(_, _)
             | CreateRound(_)
             | AdminRegisterPlayer(_)
@@ -119,8 +115,6 @@ impl TournOp {
             | RemoveRound(_)
             | RecordResult(_, _)
             | CheckIn(_)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | ConfirmResult(_)
             | DropPlayer(_)
             | AdminDropPlayer(_)
@@ -161,8 +155,6 @@ impl TournOp {
             | SetGamerTag(_, _)
             | ReadyPlayer(_)
             | UnReadyPlayer(_)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | UpdateTournSetting(_)
             | GiveBye(_)
             | CreateRound(_)
@@ -197,8 +189,6 @@ impl TournOp {
             | TimeExtension(_, _)
             | Cut(_)
             | PruneDecks()
-            | ImportPlayer(_)
-            | ImportRound(_)
             | PrunePlayers()
             | RemoveRound(_)
             | RecordResult(_, _)
@@ -239,8 +229,6 @@ impl TournOp {
             | TimeExtension(_, _)
             | Cut(_)
             | PruneDecks()
-            | ImportPlayer(_)
-            | ImportRound(_)
             | CheckIn(_)
             | ConfirmResult(_)
             | DropPlayer(_)
@@ -283,8 +271,6 @@ impl TournOp {
             | RemoveDeck(_, _)
             | RemoveRound(_)
             | SetGamerTag(_, _)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | ReadyPlayer(_)
             | UnReadyPlayer(_)
             | UpdateTournSetting(_)
@@ -406,36 +392,13 @@ impl Blockage {
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
     pub fn pick_and_continue(mut self, op: FullOp) -> SyncStatus {
         if op == self.problem.0 {
-            self.agreed.add_op(self.problem.0);
+            self.agreed.add_op(self.problem.0.clone());
         } else if op == self.problem.1 {
-            self.agreed.add_op(self.problem.1);
+            self.agreed.add_op(self.problem.1.clone());
         } else {
             return SyncStatus::InProgress(self);
         }
-        match self.known.merge(self.other) {
-            SyncStatus::Completed(sync) => {
-                self.agreed.ops.extend(sync.ops.ops.into_iter());
-                SyncStatus::Completed(OpSync { ops: self.agreed })
-            }
-            SyncStatus::InProgress(mut block) => {
-                self.agreed.ops.extend(block.agreed.ops.into_iter());
-                block.agreed = self.agreed;
-                SyncStatus::InProgress(block)
-            }
-            SyncStatus::SyncError(e) => match e {
-                SyncError::RollbackFound(roll) => {
-                    SyncStatus::SyncError(SyncError::RollbackFound(roll))
-                }
-                SyncError::UnknownOperation(_) => {
-                    unreachable!("There should be no unknown starting operations during the resolution of a blockage.");
-                }
-                SyncError::EmptySync => {
-                    unreachable!(
-                        "There should be no empty syncs during the resolution of a blockage"
-                    );
-                }
-            },
-        }
+        self.attempt_resolution()
     }
 
     /// Resolves the current problem by ordering the problematic solutions, consuming self.
@@ -446,14 +409,33 @@ impl Blockage {
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
     pub fn order_and_continue(mut self, first: FullOp) -> SyncStatus {
         if first == self.problem.0 {
-            self.agreed.add_op(self.problem.0);
-            self.agreed.add_op(self.problem.1);
+            self.agreed.add_op(self.problem.0.clone());
+            self.agreed.add_op(self.problem.1.clone());
         } else if first == self.problem.1 {
-            self.agreed.add_op(self.problem.1);
-            self.agreed.add_op(self.problem.0);
+            self.agreed.add_op(self.problem.1.clone());
+            self.agreed.add_op(self.problem.0.clone());
         } else {
             return SyncStatus::InProgress(self);
         }
+        self.attempt_resolution()
+    }
+
+    /// Resolves the current problem by applying exactly one operation and putting the other back
+    /// in its slice, consuming self.
+    pub fn push_and_continue(mut self, apply: FullOp) -> SyncStatus {
+        if apply == self.problem.0 {
+            self.agreed.add_op(self.problem.0.clone());
+            self.other.ops.insert(0, self.problem.1.clone());
+        } else if apply == self.problem.1 {
+            self.agreed.add_op(self.problem.1.clone());
+            self.known.ops.insert(0, self.problem.0.clone());
+        } else {
+            return SyncStatus::InProgress(self);
+        }
+        self.attempt_resolution()
+    }
+    
+    fn attempt_resolution(mut self) -> SyncStatus {
         match self.known.merge(self.other) {
             SyncStatus::Completed(sync) => {
                 self.agreed.ops.extend(sync.ops.ops.into_iter());
@@ -689,7 +671,7 @@ impl OpSlice {
                     if i_op.op == other_op.op {
                         agreed.push(other_op.clone());
                         break;
-                    } else if i_op.blocks(other_op) {
+                    } else if i_op.blocks(other_op) || other_op.blocks(i_op) {
                         // Blockage found!
                         return SyncStatus::InProgress(Blockage {
                             known: OpSlice {
@@ -741,8 +723,68 @@ impl FullOp {
 }
 
 impl TournOp {
-    /// Determines if the given operation affects this operation
+    /// Determines if this operation only makes sense if it happens before the other.
+    pub fn implied_ordering(&self, other: &Self) -> bool {
+        todo!()
+        /*
+        use TournOp::*;
+        match self {
+            Freeze => other == &Thaw(),
+            ReadyPlayer(p1) => if let UnReadyPlayer(p2) = other {
+                p1 == p2
+            } else {
+                false
+            },
+            _ => false,
+        }
+        */
+    }
+    
+    /// Determines if this operation blocks a given operation
     pub fn blocks(&self, other: &Self) -> bool {
         todo!()
+        /*
+        use TournOp::*;
+        match self {
+            // Blocks everything
+            Freeze |
+            Thaw |
+            End |
+            Cancel => true,
+            // Blocks nothing
+            Create(_) |
+            TimeExtension(RoundIdentifier, Duration) => false,
+            // Blocks at least one thing
+            CheckIn(p1) => match other {
+                PrunePlayers => true,
+                _ => false,
+            },
+            RegisterPlayer(_) => match other {
+                PrunePlayers => true,
+                Cut(usize) => false,
+                ReadyPlayer(PlayerIdentifier) => false,
+                UnReadyPlayer(PlayerIdentifier) => false,
+            },
+            UpdateReg(bool) => false,
+            Start => false,
+            RecordResult(RoundIdentifier, RoundResult) => false,
+            ConfirmResult(PlayerIdentifier) => false,
+            DropPlayer(PlayerIdentifier) => false,
+            AdminDropPlayer(PlayerIdentifier) => false,
+            AddDeck(PlayerIdentifier, String, Deck) => false,
+            RemoveDeck(PlayerIdentifier, String) => false,
+            RemoveRound(RoundIdentifier) => false,
+            SetGamerTag(PlayerIdentifier, String) => false,
+            ReadyPlayer(PlayerIdentifier) => false,
+            UnReadyPlayer(PlayerIdentifier) => false,
+            UpdateTournSetting(TournamentSetting) => false,
+            GiveBye(PlayerIdentifier) => false,
+            CreateRound(Vec<PlayerIdentifier>) => false,
+            PairRound => false,
+            Cut(usize) => false,
+            PruneDecks => false,
+            PrunePlayers => false,
+        }
+        */
     }
 }
