@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::tournament::TournamentStatus;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SyncError {
     IdNotFound,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TournamentError {
     IncorrectStatus(TournamentStatus),
     PlayerLookup,
@@ -23,6 +23,7 @@ pub enum TournamentError {
     PlayerNotCheckedIn,
     IncompatiblePairingSystem,
     IncompatibleScoringSystem,
+    InvalidDeckCount,
 }
 
 impl fmt::Display for TournamentError {
@@ -41,6 +42,7 @@ impl fmt::Display for TournamentError {
             PlayerNotCheckedIn => "PlayerNotCheckedIn",
             IncompatibleScoringSystem => "IncompatibleScoringSystem",
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
+            InvalidDeckCount => "InvalidDeckCount"
         };
         write!(f, "{}", s)
     }
