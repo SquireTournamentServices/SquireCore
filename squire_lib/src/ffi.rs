@@ -1,16 +1,17 @@
 use crate::tournament::pairing_system_factory;
 use crate::tournament::scoring_system_factory;
 use crate::tournament::PairingSystem::{Fluid, Swiss};
-use crate::tournament::{Tournament, TournamentId, TournamentPreset, TournamentStatus};
+use crate::tournament::{Tournament, TournamentPreset, TournamentStatus};
 use crate::{
+    identifiers::{TournamentId, PlayerId, RoundId},
     error::TournamentError,
     fluid_pairings::FluidPairings,
     operations::{OpData, OpResult, TournOp},
     pairings::Pairings,
-    player::{Player, PlayerId, PlayerStatus},
-    player_registry::{PlayerIdentifier, PlayerRegistry},
-    round::{Round, RoundId, RoundResult, RoundStatus},
-    round_registry::{RoundIdentifier, RoundRegistry},
+    player::{Player, PlayerStatus},
+    player_registry::{PlayerRegistry},
+    round::{Round, RoundResult, RoundStatus},
+    round_registry::{RoundRegistry},
     scoring::{Score, Standings},
     settings::{
         self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
@@ -284,7 +285,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         Ok(v) => json = v.to_string(),
         Err(_) => {
             println!("[FFI]: Cannot read input file");
-            return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
+            return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
         }
     };
 
@@ -293,7 +294,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         Ok(v) => tournament = v,
         Err(_) => {
             println!("[FFI]: Input file is invalid");
-            return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
+            return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
         }
     };
 
@@ -304,7 +305,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         .contains_key(&tournament.id)
     {
         println!("Input file is already open");
-        return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
+        return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
     }
 
     let tid: TournamentId = tournament.id.clone();
@@ -333,7 +334,7 @@ pub extern "C" fn new_tournament_from_settings(
     require_deck_reg: bool,
 ) -> TournamentId {
     let tournament: Tournament = Tournament {
-        id: TournamentId(Uuid::new_v4()),
+        id: TournamentId::new(Uuid::new_v4()),
         name: String::from(unsafe { CStr::from_ptr(__name).to_str().unwrap().to_string() }),
         use_table_number: use_table_number,
         format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() }),
@@ -357,7 +358,7 @@ pub extern "C" fn new_tournament_from_settings(
         .insert(tid, tournament.clone());
 
     if !tournament.id.save_tourn(__file) {
-        return TournamentId(Uuid::from_bytes(NULL_UUID_BYTES));
+        return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
     }
     return tournament.id;
 }
