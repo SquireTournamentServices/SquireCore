@@ -5,13 +5,11 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
-use serde::{
-    ser::{SerializeStruct, Serializer},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{error::TournamentError, player::PlayerId};
+pub use crate::identifiers::RoundId;
+use crate::{error::TournamentError, identifiers::PlayerId};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 #[repr(C)]
@@ -29,11 +27,7 @@ pub enum RoundResult {
     Draw(),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-#[repr(C)]
-pub struct RoundId(Uuid);
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Round {
     pub id: RoundId,
     pub match_number: u64,
@@ -52,7 +46,7 @@ pub struct Round {
 impl Round {
     pub fn new(match_num: u64, table_number: u64, len: Duration) -> Self {
         Round {
-            id: RoundId(Uuid::new_v4()),
+            id: RoundId::new(Uuid::new_v4()),
             match_number: match_num,
             table_number,
             players: HashSet::with_capacity(4),
@@ -196,11 +190,5 @@ impl Hash for Round {
         H: Hasher,
     {
         let _ = &self.id.hash(state);
-    }
-}
-
-impl PartialEq for Round {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
     }
 }

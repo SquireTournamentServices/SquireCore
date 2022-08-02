@@ -1,8 +1,7 @@
 use crate::{
     error::TournamentError,
-    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, Synced, TournOp},
-    player_registry::PlayerIdentifier,
-    round_registry::RoundIdentifier,
+    identifiers::{PlayerIdentifier, RoundIdentifier},
+    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, TournOp},
     tournament::*,
 };
 
@@ -47,7 +46,7 @@ impl TournamentManager {
     /// Returns Err containing a SyncStatus if it the log has changed. If that SyncStatus is
     /// Completed, the this log is updated accordingly (otherwise, the method would have to be
     /// immediately called again).
-    pub fn import_sync(&mut self, ops: Synced) -> Result<Synced, SyncStatus> {
+    pub fn import_sync(&mut self, ops: OpSync) -> Result<OpSync, SyncStatus> {
         todo!()
     }
 
@@ -64,33 +63,35 @@ impl TournamentManager {
 
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
     /// it to the tournament, and returns the result.
-    /// NOTE: That if an operation can be convert, it is always stored, regardless of the outcome
+    /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
+        // NOTE: We need to ensure that common data is being stored in the op log, i.e. player
+        // names and match numbers instead of IDs. IDs aren't shared between clients.
         let op = if let Some(ident) = op.get_player_ident() {
-            let id = self
+            let name = self
                 .tourn
                 .player_reg
-                .get_player_id(&ident)
+                .get_player_name(&ident)
                 .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_player_ident(PlayerIdentifier::Id(id))
+            op.swap_player_ident(PlayerIdentifier::Name(name))
         } else if let Some(idents) = op.list_player_ident() {
             let mut new_idents = Vec::with_capacity(idents.len());
             for ident in idents {
-                new_idents.push(PlayerIdentifier::Id(
+                new_idents.push(PlayerIdentifier::Name(
                     self.tourn
                         .player_reg
-                        .get_player_id(&ident)
+                        .get_player_name(&ident)
                         .ok_or(TournamentError::PlayerLookup)?,
                 ));
             }
             op.swap_all_player_idents(new_idents)
         } else if let Some(ident) = op.get_match_ident() {
-            let id = self
+            let num = self
                 .tourn
                 .round_reg
-                .get_round_id(&ident)
+                .get_round_number(&ident)
                 .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_match_ident(RoundIdentifier::Id(id))
+            op.swap_match_ident(RoundIdentifier::Number(num))
         } else {
             op
         };
@@ -128,6 +129,7 @@ impl Iterator for StateIter<'_> {
             let op = self.ops.next()?;
             let _ = self.state.apply_op(op.op.clone());
         } else {
+            self.ops.next(); // The first operation already included the preset
             self.shown_init = true;
         }
         Some(self.state.clone())

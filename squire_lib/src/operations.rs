@@ -3,12 +3,12 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::{
-    player::{Player, PlayerId},
-    player_registry::PlayerIdentifier,
-    round::{Round, RoundId, RoundResult, RoundStatus},
-    round_registry::RoundIdentifier,
+    error::TournamentError,
+    identifiers::{PlayerIdentifier, RoundIdentifier},
+    player::Player,
+    round::{Round, RoundResult, RoundStatus},
     settings::TournamentSetting,
-    swiss_pairings::TournamentError,
+    tournament::TournamentPreset,
 };
 
 use mtgjson::model::deck::Deck;
@@ -18,24 +18,33 @@ use serde::{Deserialize, Serialize};
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournOp {
+    // Non-admin operations
+    CheckIn(PlayerIdentifier),
+    RegisterPlayer(String),
+    DropPlayer(PlayerIdentifier),
+    RecordResult(RoundIdentifier, RoundResult),
+    ConfirmResult(PlayerIdentifier),
+    AddDeck(PlayerIdentifier, String, Deck),
+    RemoveDeck(PlayerIdentifier, String),
+    SetGamerTag(PlayerIdentifier, String),
+    ReadyPlayer(PlayerIdentifier),
+    UnReadyPlayer(PlayerIdentifier),
+    // Admin-level operations
+    Create(TournamentPreset),
     UpdateReg(bool),
     Start(),
     Freeze(),
     Thaw(),
     End(),
     Cancel(),
-    CheckIn(PlayerIdentifier),
-    RegisterPlayer(String),
-    RecordResult(RoundIdentifier, RoundResult),
-    ConfirmResult(PlayerIdentifier),
-    DropPlayer(PlayerIdentifier),
+    AdminRegisterPlayer(String),
+    AdminRecordResult(RoundIdentifier, RoundResult),
+    AdminConfirmResult(PlayerIdentifier),
     AdminDropPlayer(PlayerIdentifier),
-    AddDeck(PlayerIdentifier, String, Deck),
-    RemoveDeck(PlayerIdentifier, String),
+    AdminAddDeck(PlayerIdentifier, String, Deck),
+    AdminReadyPlayer(PlayerIdentifier),
+    AdminUnReadyPlayer(PlayerIdentifier),
     RemoveRound(RoundIdentifier),
-    SetGamerTag(PlayerIdentifier, String),
-    ReadyPlayer(PlayerIdentifier),
-    UnReadyPlayer(PlayerIdentifier),
     UpdateTournSetting(TournamentSetting),
     GiveBye(PlayerIdentifier),
     CreateRound(Vec<PlayerIdentifier>),
@@ -44,8 +53,6 @@ pub enum TournOp {
     Cut(usize),
     PruneDecks(),
     PrunePlayers(),
-    ImportPlayer(Player),
-    ImportRound(Round),
 }
 
 impl TournOp {
@@ -53,6 +60,7 @@ impl TournOp {
         use TournOp::*;
         match self {
             UpdateReg(_)
+            | Create(_)
             | Start()
             | Freeze()
             | Thaw()
@@ -66,10 +74,10 @@ impl TournOp {
             | PruneDecks()
             | PrunePlayers()
             | RemoveRound(_)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | RecordResult(_, _)
-            | CreateRound(_) => self,
+            | CreateRound(_)
+            | AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _) => self,
             CheckIn(_) => Self::CheckIn(ident),
             ConfirmResult(_) => Self::ConfirmResult(ident),
             DropPlayer(_) => Self::DropPlayer(ident),
@@ -80,6 +88,10 @@ impl TournOp {
             ReadyPlayer(_) => Self::ReadyPlayer(ident),
             UnReadyPlayer(_) => Self::UnReadyPlayer(ident),
             GiveBye(_) => Self::GiveBye(ident),
+            AdminConfirmResult(_) => Self::AdminConfirmResult(ident),
+            AdminAddDeck(_, name, deck) => Self::AdminAddDeck(ident, name, deck),
+            AdminReadyPlayer(_) => Self::AdminReadyPlayer(ident),
+            AdminUnReadyPlayer(_) => Self::UnReadyPlayer(ident),
         }
     }
 
@@ -87,6 +99,7 @@ impl TournOp {
         use TournOp::*;
         match self {
             UpdateReg(_)
+            | Create(_)
             | Start()
             | Freeze()
             | Thaw()
@@ -102,8 +115,6 @@ impl TournOp {
             | RemoveRound(_)
             | RecordResult(_, _)
             | CheckIn(_)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | ConfirmResult(_)
             | DropPlayer(_)
             | AdminDropPlayer(_)
@@ -112,7 +123,13 @@ impl TournOp {
             | SetGamerTag(_, _)
             | ReadyPlayer(_)
             | UnReadyPlayer(_)
-            | GiveBye(_) => self,
+            | GiveBye(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
+            | AdminRegisterPlayer(_)
+            | AdminConfirmResult(_)
+            | AdminRecordResult(_, _) => self,
             CreateRound(_) => Self::CreateRound(idents),
         }
     }
@@ -121,6 +138,7 @@ impl TournOp {
         use TournOp::*;
         match self {
             UpdateReg(_)
+            | Create(_)
             | Start()
             | Freeze()
             | Thaw()
@@ -137,17 +155,21 @@ impl TournOp {
             | SetGamerTag(_, _)
             | ReadyPlayer(_)
             | UnReadyPlayer(_)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | UpdateTournSetting(_)
             | GiveBye(_)
             | CreateRound(_)
             | PairRound()
             | Cut(_)
             | PruneDecks()
-            | PrunePlayers() => self,
-            TimeExtension(_, dur) => TimeExtension(ident, dur),
-            RecordResult(_, res) => RecordResult(ident, res),
+            | PrunePlayers()
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
+            | AdminRegisterPlayer(_)
+            | AdminConfirmResult(_) => self,
+            AdminRecordResult(_, res) => Self::AdminRecordResult(ident, res),
+            TimeExtension(_, dur) => Self::TimeExtension(ident, dur),
+            RecordResult(_, res) => Self::RecordResult(ident, res),
         }
     }
 
@@ -155,6 +177,7 @@ impl TournOp {
         use TournOp::*;
         match self {
             UpdateReg(_)
+            | Create(_)
             | Start()
             | Freeze()
             | Thaw()
@@ -166,11 +189,11 @@ impl TournOp {
             | TimeExtension(_, _)
             | Cut(_)
             | PruneDecks()
-            | ImportPlayer(_)
-            | ImportRound(_)
             | PrunePlayers()
             | RemoveRound(_)
             | RecordResult(_, _)
+            | AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _)
             | CreateRound(_) => None,
             CheckIn(ident)
             | ConfirmResult(ident)
@@ -181,6 +204,10 @@ impl TournOp {
             | SetGamerTag(ident, _)
             | ReadyPlayer(ident)
             | UnReadyPlayer(ident)
+            | AdminConfirmResult(ident)
+            | AdminAddDeck(ident, _, _)
+            | AdminReadyPlayer(ident)
+            | AdminUnReadyPlayer(ident)
             | GiveBye(ident) => Some(ident.clone()),
         }
     }
@@ -190,6 +217,7 @@ impl TournOp {
         use TournOp::*;
         match self {
             UpdateReg(_)
+            | Create(_)
             | Start()
             | Freeze()
             | Thaw()
@@ -201,8 +229,6 @@ impl TournOp {
             | TimeExtension(_, _)
             | Cut(_)
             | PruneDecks()
-            | ImportPlayer(_)
-            | ImportRound(_)
             | CheckIn(_)
             | ConfirmResult(_)
             | DropPlayer(_)
@@ -215,6 +241,12 @@ impl TournOp {
             | GiveBye(_)
             | PrunePlayers()
             | RemoveRound(_)
+            | AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _)
+            | AdminConfirmResult(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
             | RecordResult(_, _) => None,
             CreateRound(idents) => Some(idents.clone()),
         }
@@ -224,6 +256,7 @@ impl TournOp {
         use TournOp::*;
         match self {
             UpdateReg(_)
+            | Create(_)
             | Start()
             | Freeze()
             | Thaw()
@@ -238,8 +271,6 @@ impl TournOp {
             | RemoveDeck(_, _)
             | RemoveRound(_)
             | SetGamerTag(_, _)
-            | ImportPlayer(_)
-            | ImportRound(_)
             | ReadyPlayer(_)
             | UnReadyPlayer(_)
             | UpdateTournSetting(_)
@@ -247,9 +278,15 @@ impl TournOp {
             | CreateRound(_)
             | PairRound()
             | Cut(_)
+            | AdminRegisterPlayer(_)
+            | AdminConfirmResult(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_)
             | PruneDecks()
             | PrunePlayers() => None,
-            TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
+            AdminRecordResult(ident, _)
+            | TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
         }
     }
 }
@@ -297,9 +334,9 @@ pub struct OpSync {
 /// An enum to help track the progress of the syncing of two op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SyncStatus {
-    SyncError(OpSync), // Unknown starting operation
+    SyncError(SyncError),
     InProgress(Blockage),
-    Completed(Synced),
+    Completed(OpSync),
 }
 
 /// An enum to that captures the error that might occur when sync op logs.
@@ -309,14 +346,15 @@ pub enum SyncStatus {
 /// overwrite the local log
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SyncError {
+    EmptySync,
     UnknownOperation(FullOp),
     RollbackFound(OpSlice),
 }
 
-/// A struct that marks a completed syncing of op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Synced {
-    pub(crate) known: OpSlice,
+pub enum RollbackError {
+    SliceError(SyncError),
+    OutOfSync(OpSync),
 }
 
 /// A struct to help resolve blockages
@@ -354,27 +392,13 @@ impl Blockage {
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
     pub fn pick_and_continue(mut self, op: FullOp) -> SyncStatus {
         if op == self.problem.0 {
-            self.agreed.add_op(self.problem.0);
+            self.agreed.add_op(self.problem.0.clone());
         } else if op == self.problem.1 {
-            self.agreed.add_op(self.problem.1);
+            self.agreed.add_op(self.problem.1.clone());
         } else {
             return SyncStatus::InProgress(self);
         }
-        match self.known.merge(self.other) {
-            Ok(slice) => {
-                for op in slice.ops {
-                    self.agreed.add_op(op);
-                }
-                SyncStatus::Completed(Synced { known: self.agreed })
-            }
-            Err(mut block) => {
-                for op in block.agreed.ops {
-                    self.agreed.add_op(op);
-                }
-                block.agreed = self.agreed;
-                SyncStatus::InProgress(block)
-            }
-        }
+        self.attempt_resolution()
     }
 
     /// Resolves the current problem by ordering the problematic solutions, consuming self.
@@ -385,28 +409,56 @@ impl Blockage {
     /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
     pub fn order_and_continue(mut self, first: FullOp) -> SyncStatus {
         if first == self.problem.0 {
-            self.agreed.add_op(self.problem.0);
-            self.agreed.add_op(self.problem.1);
+            self.agreed.add_op(self.problem.0.clone());
+            self.agreed.add_op(self.problem.1.clone());
         } else if first == self.problem.1 {
-            self.agreed.add_op(self.problem.1);
-            self.agreed.add_op(self.problem.0);
+            self.agreed.add_op(self.problem.1.clone());
+            self.agreed.add_op(self.problem.0.clone());
         } else {
             return SyncStatus::InProgress(self);
         }
+        self.attempt_resolution()
+    }
+
+    /// Resolves the current problem by applying exactly one operation and putting the other back
+    /// in its slice, consuming self.
+    pub fn push_and_continue(mut self, apply: FullOp) -> SyncStatus {
+        if apply == self.problem.0 {
+            self.agreed.add_op(self.problem.0.clone());
+            self.other.ops.insert(0, self.problem.1.clone());
+        } else if apply == self.problem.1 {
+            self.agreed.add_op(self.problem.1.clone());
+            self.known.ops.insert(0, self.problem.0.clone());
+        } else {
+            return SyncStatus::InProgress(self);
+        }
+        self.attempt_resolution()
+    }
+    
+    fn attempt_resolution(mut self) -> SyncStatus {
         match self.known.merge(self.other) {
-            Ok(slice) => {
-                for op in slice.ops {
-                    self.agreed.add_op(op);
-                }
-                SyncStatus::Completed(Synced { known: self.agreed })
+            SyncStatus::Completed(sync) => {
+                self.agreed.ops.extend(sync.ops.ops.into_iter());
+                SyncStatus::Completed(OpSync { ops: self.agreed })
             }
-            Err(mut block) => {
-                for op in block.agreed.ops {
-                    self.agreed.add_op(op);
-                }
+            SyncStatus::InProgress(mut block) => {
+                self.agreed.ops.extend(block.agreed.ops.into_iter());
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
             }
+            SyncStatus::SyncError(e) => match e {
+                SyncError::RollbackFound(roll) => {
+                    SyncStatus::SyncError(SyncError::RollbackFound(roll))
+                }
+                SyncError::UnknownOperation(_) => {
+                    unreachable!("There should be no unknown starting operations during the resolution of a blockage.");
+                }
+                SyncError::EmptySync => {
+                    unreachable!(
+                        "There should be no empty syncs during the resolution of a blockage"
+                    );
+                }
+            },
         }
     }
 }
@@ -423,80 +475,120 @@ impl OpLog {
 
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
-    pub fn get_slice(&self, id: OpId) -> Option<OpSlice> {
-        let mut pass_through = false;
-        let ops = self
-            .ops
-            .iter()
-            .filter(|o| {
-                pass_through |= o.id == id;
-                pass_through
-            })
-            .cloned()
-            .collect();
-        Some(OpSlice { ops })
+    pub(crate) fn get_slice(&self, id: OpId) -> Option<OpSlice> {
+        self.get_slice_extra(id, 0)
     }
 
-    /// Removes all elements in the log starting at the first index of the given slice. All operations in the slice are then appended to the end of the log.
-    pub fn overwrite(&mut self, ops: OpSlice) -> Option<()> {
-        let id = ops.start_id()?;
-        let index = self.ops.iter().position(|o| o.id == id)?;
+    /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
+    /// out of bounds.
+    pub(crate) fn get_slice_extra(&self, id: OpId, mut extra: usize) -> Option<OpSlice> {
+        let mut end = false;
+        let mut ops: Vec<FullOp> = Vec::new();
+        for i_op in self.ops.iter().rev().cloned() {
+            if end && extra == 0 {
+                break;
+            }
+            if end {
+                extra -= 1;
+            }
+            end |= i_op.id == id;
+            ops.push(i_op);
+        }
+        if !end && extra != 0 {
+            return None;
+        }
+        Some(OpSlice {
+            ops: ops.into_iter().rev().collect(),
+        })
+    }
+
+    pub(crate) fn slice_from_slice(&self, ops: &OpSlice) -> Result<OpSlice, SyncError> {
+        let op = match ops.start_op() {
+            Some(op) => op,
+            None => {
+                return Err(SyncError::EmptySync);
+            }
+        };
+        match self.get_slice(op.id) {
+            Some(slice) => {
+                if slice.start_op().unwrap() != op {
+                    return Err(SyncError::RollbackFound(slice));
+                }
+                Ok(slice)
+            }
+            None => Err(SyncError::UnknownOperation(op)),
+        }
+    }
+
+    /// Removes all elements in the log starting at the first index of the given slice. All
+    /// operations in the slice are then appended to the end of the log.
+    pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
+        let slice = self.slice_from_slice(&ops)?;
+        let id = slice.start_id().unwrap();
+        let index = self.ops.iter().position(|o| o.id == id).unwrap();
         self.ops.truncate(index);
         self.ops.extend(ops.ops.into_iter());
-        Some(())
+        Ok(())
     }
 
     /// Creates a slice of the current log by starting at the end and moving back. All operations
     /// that cause the closure to return `true` will be dropped and `false` will be kept. An
     /// operation causes `None` to be returned will end the iteration, will not be in the slice,
     /// but kept in the log.
-    ///
-    /// The primary use case for this is to rollback a round pairing in a Swiss tournament.
-    pub fn rollback(&self, mut f: impl FnMut(&FullOp) -> Option<bool>) -> Rollback {
-        let l = self.ops.len();
-        let ops = self
-            .ops
-            .iter()
-            .rev()
-            .map_while(|o| {
-                f(o).map(|b| {
-                    let mut op = o.clone();
-                    op.active = b;
-                    op
-                })
-            })
-            .collect();
-        Rollback {
-            ops: OpSlice { ops },
+    pub fn create_rollback(&self, op: &FullOp) -> Option<Rollback> {
+        let mut ops = self.get_slice_extra(op.id, 1)?;
+        for op in ops.ops.iter_mut().skip(1) {
+            op.active = false;
         }
+        Some(Rollback { ops })
+    }
+
+    /// Applies a rollback to this log.
+    /// Err is returned if there is a different in between the length of the given slice and the
+    /// corresponding slice of this log, and this log is not changed.
+    /// Otherwise, the rollback is simply applied.
+    ///
+    /// NOTE: An OpSync is returned as the error data because the sender needs to have an
+    /// up-to-date history before sendings a rollback.
+    pub fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), RollbackError> {
+        let slice = self
+            .slice_from_slice(&rollback.ops)
+            .map_err(|e| RollbackError::SliceError(e))?;
+        if slice.ops.len() > rollback.ops.ops.len() {
+            return Err(RollbackError::OutOfSync(OpSync { ops: slice }));
+        }
+        let mut r_op = rollback.ops.ops.iter();
+        for i_op in slice.ops.iter() {
+            let mut broke = false;
+            while let Some(r) = r_op.next() {
+                // If the id is unknown, the operation is unknow... so we continue.
+                // Unknown, inactive ops ok to keep around. They can't affect anything
+                if i_op.id == r.id {
+                    broke = true;
+                    break;
+                }
+            }
+            if !broke {
+                return Err(RollbackError::OutOfSync(OpSync { ops: slice }));
+            }
+        }
+        // This should never return an Err
+        self.overwrite(rollback.ops)
+            .map_err(|e| RollbackError::SliceError(e))
     }
 
     /// Attempts to sync the local log with a remote log.
     /// Returns Err if the starting op id of the given log can't be found in this log.
     /// Otherwise, Ok is returned and contains a SyncStatus
     pub fn sync(&mut self, other: OpSync) -> SyncStatus {
-        let id = match other.ops.start_id() {
-            Some(id) => id,
-            None => {
-                return SyncStatus::SyncError(other);
+        let slice = match self.slice_from_slice(&other.ops) {
+            Ok(s) => s,
+            Err(e) => {
+                return SyncStatus::SyncError(e);
             }
         };
-        let slice = match self.get_slice(id) {
-            Some(s) => s,
-            None => {
-                return SyncStatus::SyncError(other);
-            }
-        };
-        let merge = slice.merge(other.ops);
-        match merge {
-            Ok(new_slice) => {
-                let index = self.ops.iter().position(|o| o.id == id).unwrap();
-                self.ops.truncate(index);
-                self.ops.extend(new_slice.ops.iter().cloned());
-                SyncStatus::Completed(Synced { known: new_slice })
-            }
-            Err(block) => SyncStatus::InProgress(block),
-        }
+        let op = other.ops.start_op().unwrap();
+        slice.merge(other.ops)
     }
 }
 
@@ -511,11 +603,25 @@ impl OpSlice {
     }
 
     /// Returns the index of the first stored operation.
+    pub fn start_op(&self) -> Option<FullOp> {
+        self.ops.first().cloned()
+    }
+
+    /// Returns the index of the first stored operation.
     pub fn start_id(&self) -> Option<OpId> {
         self.ops.first().map(|o| o.id)
     }
 
-    /// Takes another op slice and attempts to merge it with this log.
+    /// Takes the slice and strips all inactive operations. This is only needed in the unlikely
+    /// scenerio where a client rollbacks without communicating with the server and then tries to
+    /// sync with the server.
+    pub fn squash(self) -> Self {
+        Self {
+            ops: self.ops.into_iter().filter(|o| o.active).collect(),
+        }
+    }
+
+    /// Takes another op slice and attempts to merge it with this slice.
     ///
     /// If there are no blockages, the `Ok` varient is returned containing the rectified log and
     /// this log is updated.
@@ -523,8 +629,8 @@ impl OpSlice {
     /// If there is a blockage, the `Err` varient is returned two partial logs, a copy of this log and the
     /// given log. The first operation of  but whose first operations are blocking.
     ///
-    /// Promised invarient: If two log can be merged with blockages, they will be meaningfully the
-    /// identical; however, identical sequences are not the same. For example, if player A record
+    /// Promised invarient: If two slices can be merged without blockages, they will be meaningfully the
+    /// identical; however, identical sequences are not the same. For example, if player A records
     /// their match result and then player B records their result for their (different) match, the
     /// order of these can be swapped without issue.
     ///
@@ -542,38 +648,50 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(mut self, mut other: OpSlice) -> Result<Self, Blockage> {
-        todo!()
-        /*
-        let mut merged = OpSlice::new();
-        for (i, (_, other_op)) in other.ops.clone().iter().enumerate() {
-            let mut iter = self
-                .ops
-                .iter()
-                .enumerate()
-                .take_while(|(i, (_, o))| o != other_op && !o.blocks(other_op));
-            let (_, other_op) = other.ops.remove(i);
-            if let Some((i, (_, this_op))) = iter.next() {
-                let (_, this_op) = self.ops.remove(i);
-                if this_op == other_op {
-                    merged.add_op(this_op);
-                } else {
-                    return Err(Blockage {
-                        known: self,
-                        agreed: merged,
-                        other,
-                        problem: (this_op, other_op),
-                    });
+    pub fn merge(mut self, mut other: OpSlice) -> SyncStatus {
+        let mut agreed: Vec<FullOp> = Vec::with_capacity(self.ops.len() + other.ops.len());
+        let mut self_iter = self.ops.iter();
+        let mut other_iter = self.ops.iter();
+        while let Some(self_op) = self_iter.next() {
+            // Our (the server's) rollbacks are ok
+            if !self_op.active {
+                agreed.push(self_op.clone());
+                continue;
+            }
+            if let Some(other_op) = other_iter.next() {
+                if !other_op.active {
+                    // Their (the client's) rollbacks are not ok. They need to squash them or use
+                    // our history.
+                    return SyncStatus::SyncError(SyncError::RollbackFound(other));
+                }
+                if self_op.op == other_op.op {
+                    agreed.push(self_op.clone());
+                }
+                for i_op in self_iter.clone() {
+                    if i_op.op == other_op.op {
+                        agreed.push(other_op.clone());
+                        break;
+                    } else if i_op.blocks(other_op) || other_op.blocks(i_op) {
+                        // Blockage found!
+                        return SyncStatus::InProgress(Blockage {
+                            known: OpSlice {
+                                ops: self_iter.cloned().collect(),
+                            },
+                            agreed: OpSlice { ops: agreed },
+                            other: OpSlice {
+                                ops: other_iter.cloned().collect(),
+                            },
+                            problem: (i_op.clone(), other_op.clone()),
+                        });
+                    }
                 }
             } else {
-                merged.add_op(other_op);
+                agreed.push(self_op.clone());
             }
         }
-        for (_, o) in self.ops {
-            merged.add_op(o);
-        }
-        Ok(merged)
-            */
+        SyncStatus::Completed(OpSync {
+            ops: OpSlice { ops: agreed },
+        })
     }
 }
 
@@ -605,8 +723,68 @@ impl FullOp {
 }
 
 impl TournOp {
-    /// Determines if the given operation affects this operation
+    /// Determines if this operation only makes sense if it happens before the other.
+    pub fn implied_ordering(&self, other: &Self) -> bool {
+        todo!()
+        /*
+        use TournOp::*;
+        match self {
+            Freeze => other == &Thaw(),
+            ReadyPlayer(p1) => if let UnReadyPlayer(p2) = other {
+                p1 == p2
+            } else {
+                false
+            },
+            _ => false,
+        }
+        */
+    }
+    
+    /// Determines if this operation blocks a given operation
     pub fn blocks(&self, other: &Self) -> bool {
         todo!()
+        /*
+        use TournOp::*;
+        match self {
+            // Blocks everything
+            Freeze |
+            Thaw |
+            End |
+            Cancel => true,
+            // Blocks nothing
+            Create(_) |
+            TimeExtension(RoundIdentifier, Duration) => false,
+            // Blocks at least one thing
+            CheckIn(p1) => match other {
+                PrunePlayers => true,
+                _ => false,
+            },
+            RegisterPlayer(_) => match other {
+                PrunePlayers => true,
+                Cut(usize) => false,
+                ReadyPlayer(PlayerIdentifier) => false,
+                UnReadyPlayer(PlayerIdentifier) => false,
+            },
+            UpdateReg(bool) => false,
+            Start => false,
+            RecordResult(RoundIdentifier, RoundResult) => false,
+            ConfirmResult(PlayerIdentifier) => false,
+            DropPlayer(PlayerIdentifier) => false,
+            AdminDropPlayer(PlayerIdentifier) => false,
+            AddDeck(PlayerIdentifier, String, Deck) => false,
+            RemoveDeck(PlayerIdentifier, String) => false,
+            RemoveRound(RoundIdentifier) => false,
+            SetGamerTag(PlayerIdentifier, String) => false,
+            ReadyPlayer(PlayerIdentifier) => false,
+            UnReadyPlayer(PlayerIdentifier) => false,
+            UpdateTournSetting(TournamentSetting) => false,
+            GiveBye(PlayerIdentifier) => false,
+            CreateRound(Vec<PlayerIdentifier>) => false,
+            PairRound => false,
+            Cut(usize) => false,
+            PruneDecks => false,
+            PrunePlayers => false,
+        }
+        */
     }
 }

@@ -14,12 +14,13 @@ use mtgjson::model::deck::Deck;
 use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
+    identifiers::{PlayerId, PlayerIdentifier, RoundId, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::Pairings,
-    player::{Player, PlayerId, PlayerStatus},
-    player_registry::{PlayerIdentifier, PlayerRegistry},
-    round::{Round, RoundId, RoundResult, RoundStatus},
-    round_registry::{RoundIdentifier, RoundRegistry},
+    player::{Player, PlayerStatus},
+    player_registry::PlayerRegistry,
+    round::{Round, RoundResult, RoundStatus},
+    round_registry::RoundRegistry,
     scoring::{Score, Standings},
     settings::{
         self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
@@ -29,6 +30,8 @@ use crate::{
     swiss_pairings::SwissPairings,
 };
 
+pub use crate::identifiers::{TournamentId, TournamentIdentifier};
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub enum TournamentPreset {
@@ -36,12 +39,12 @@ pub enum TournamentPreset {
     Fluid,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
@@ -57,17 +60,7 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, Copy)]
-#[repr(C)]
-pub struct TournamentId(pub Uuid);
-
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-pub enum TournamentIdentifier {
-    Id(TournamentId),
-    Name(String),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Tournament {
     pub id: TournamentId,
     pub name: String,
@@ -89,7 +82,7 @@ pub struct Tournament {
 impl Tournament {
     pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
         Tournament {
-            id: TournamentId(Uuid::new_v4()),
+            id: TournamentId::new(Uuid::new_v4()),
             name,
             use_table_number: true,
             format,
@@ -110,6 +103,7 @@ impl Tournament {
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
+            Create(_) => OpResult::Ok(OpData::Nothing),
             UpdateReg(b) => self.update_reg(b),
             Start() => self.start(),
             Freeze() => self.freeze(),
@@ -136,8 +130,14 @@ impl Tournament {
             Cut(n) => self.cut_to_top(n),
             PruneDecks() => self.prune_decks(),
             PrunePlayers() => self.prune_players(),
-            ImportPlayer(plyr) => self.import_player(plyr),
-            ImportRound(rnd) => self.import_round(rnd),
+            AdminRegisterPlayer(_)
+            | AdminRecordResult(_, _)
+            | AdminConfirmResult(_)
+            | AdminAddDeck(_, _, _)
+            | AdminReadyPlayer(_)
+            | AdminUnReadyPlayer(_) => todo!()
+            //ImportPlayer(plyr) => self.import_player(plyr),
+            //ImportRound(rnd) => self.import_round(rnd),
         }
     }
 
@@ -345,9 +345,15 @@ impl Tournament {
                 self.use_table_number = b;
             }
             MinDeckCount(c) => {
+                if c > self.max_deck_count {
+                    return Err(TournamentError::InvalidDeckCount);
+                }
                 self.min_deck_count = c;
             }
             MaxDeckCount(c) => {
+                if c < self.min_deck_count {
+                    return Err(TournamentError::InvalidDeckCount);
+                }
                 self.max_deck_count = c;
             }
             RequireCheckIn(b) => {
@@ -386,7 +392,7 @@ impl Tournament {
     }
 
     pub(crate) fn update_reg(&mut self, reg_status: bool) -> OpResult {
-        if self.is_dead() {
+        if self.is_frozen() || self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         self.reg_open = reg_status;

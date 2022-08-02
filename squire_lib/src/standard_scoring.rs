@@ -1,7 +1,6 @@
 pub use crate::{
     error::TournamentError,
-    player::PlayerId,
-    player_registry::PlayerIdentifier,
+    identifiers::{PlayerId, PlayerIdentifier},
     player_registry::PlayerRegistry,
     round::{Round, RoundResult},
     round_registry::RoundRegistry,
@@ -50,7 +49,7 @@ struct ScoreCounter {
     pub opponents: HashSet<PlayerId>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[repr(C)]
 pub struct StandardScoring {
     match_win_points: f64,
