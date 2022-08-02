@@ -8,7 +8,8 @@ use rocket::{
 };
 
 #[cfg(feature = "rocket")]
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use serde::Deserialize;
 
 #[cfg(feature = "rocket")]
 use crate::error::SERIALIZER_ERROR;
