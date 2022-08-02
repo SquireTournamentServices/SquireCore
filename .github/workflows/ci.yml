@@ -25,6 +25,18 @@ jobs:
       - run: cargo build --package squire_lib --verbose
       - run: cargo test --package squire_lib --verbose
       - run: cargo doc --package squire_lib --verbose
+  squire_lib_ffi_build_tests:
+    name: SquireLib - FFI Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [nightly]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
       - run: cargo build --package squire_lib --verbose --features ffi
       - run: cargo test --package squire_lib --verbose --features ffi
       - run: cargo doc --package squire_lib --verbose --features ffi
