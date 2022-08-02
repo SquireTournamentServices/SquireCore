@@ -8,7 +8,6 @@ use crate::{player::Player, round::Round, tournament::Tournament};
 #[derive(Serialize, Deserialize, Debug)]
 #[repr(C)]
 pub struct TypeId<T>(pub Uuid, PhantomData<T>);
-
 pub type PlayerId = TypeId<Player>;
 pub type RoundId = TypeId<Round>;
 pub type TournamentId = TypeId<Tournament>;
@@ -20,14 +19,12 @@ pub enum PlayerIdentifier {
 }
 
 #[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
-#[repr(C)]
 pub enum RoundIdentifier {
     Id(RoundId),
     Number(u64),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
-#[repr(C)]
 pub enum TournamentIdentifier {
     Id(TournamentId),
     Name(String),
