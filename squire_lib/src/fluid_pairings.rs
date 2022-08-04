@@ -1,10 +1,8 @@
 use crate::{
-    error::TournamentError,
     identifiers::PlayerId,
     pairings::Pairings,
     player_registry::PlayerRegistry,
     round_registry::RoundRegistry,
-    scoring::{Score, Standings},
     settings::FluidPairingsSetting,
 };
 
@@ -57,7 +55,7 @@ impl FluidPairings {
         }
     }
 
-    pub fn pair(&mut self, players: &PlayerRegistry, matches: &RoundRegistry) -> Option<Pairings> {
+    pub fn pair(&mut self, _players: &PlayerRegistry, matches: &RoundRegistry) -> Option<Pairings> {
         if !self.ready_to_pair() {
             return None;
         }
@@ -85,7 +83,7 @@ impl FluidPairings {
                 let mut pairing: Vec<PlayerId> =
                     Vec::with_capacity(self.players_per_match as usize);
                 for i in index_buffer {
-                    pairing.push(plyrs[i].clone());
+                    pairing.push(plyrs[i]);
                 }
                 digest.paired.push(pairing);
             } else {

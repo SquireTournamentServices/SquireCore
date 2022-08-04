@@ -1,15 +1,17 @@
-#![allow(
-    dead_code,
-    irrefutable_let_patterns,
+#![allow(dead_code, irrefutable_let_patterns)]
+#![deny(
+    //dead_code,
     unused_variables,
     unused_imports,
-    unused_import_braces
+    unused_import_braces,
+    rustdoc::broken_intra_doc_links,
+    missing_debug_implementations,
+    unreachable_pub,
 )]
+#![warn(rust_2018_idioms)]
+
 // Used in ffi
 #![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
-
-#[macro_use]
-extern crate lazy_static;
 
 //#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 //#![deny(improper_ctypes_definitions)]

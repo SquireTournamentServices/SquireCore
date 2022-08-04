@@ -27,7 +27,7 @@ pub enum TournamentError {
 }
 
 impl fmt::Display for TournamentError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use TournamentError::*;
         let s = match &self {
             IncorrectStatus(_) => "IncorrectStatus",

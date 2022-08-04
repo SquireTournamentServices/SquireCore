@@ -1,5 +1,4 @@
 use crate::{
-    error::TournamentError,
     identifiers::{PlayerId, PlayerIdentifier},
     pairings::Pairings,
     player::PlayerStatus,
@@ -7,14 +6,13 @@ use crate::{
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
     settings::SwissPairingsSetting,
-    tournament::ScoringSystem,
 };
 
 use serde::{Deserialize, Serialize};
 
-use std::{collections::HashSet, ops::RangeBounds};
+use std::collections::HashSet;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SwissPairings {
     players_per_match: u8,
     do_check_ins: bool,
@@ -83,7 +81,7 @@ impl SwissPairings {
             .scores
             .drain(0..)
             .filter_map(|(p, _)| {
-                if players.get_player_status(&PlayerIdentifier::Id(p.clone()))?
+                if players.get_player_status(&PlayerIdentifier::Id(p))?
                     == PlayerStatus::Registered
                 {
                     Some(p)
@@ -115,7 +113,7 @@ impl SwissPairings {
                 let mut pairing: Vec<PlayerId> =
                     Vec::with_capacity(self.players_per_match as usize);
                 for i in index_buffer {
-                    pairing.push(plyrs[i].clone());
+                    pairing.push(plyrs[i]);
                 }
                 digest.paired.push(pairing);
             } else {

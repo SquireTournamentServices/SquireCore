@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    hash::{Hash, Hasher},
     string::ToString,
 };
 
@@ -76,15 +75,6 @@ impl Player {
 
     pub fn can_play(&self) -> bool {
         self.status == PlayerStatus::Registered
-    }
-}
-
-impl Hash for Player {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        let _ = &self.id.hash(state);
     }
 }
 

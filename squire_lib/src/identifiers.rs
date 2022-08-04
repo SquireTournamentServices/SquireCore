@@ -1,4 +1,4 @@
-use std::{hash::Hash, marker::PhantomData};
+use std::{ops::Deref, hash::Hash, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -38,7 +38,7 @@ impl<T> TypeId<T> {
 
 impl<T> Clone for TypeId<T> {
     fn clone(&self) -> Self {
-        Self(self.0.clone(), PhantomData)
+        Self(self.0, PhantomData)
     }
 }
 
@@ -57,3 +57,10 @@ impl<T> PartialEq for TypeId<T> {
 }
 
 impl<T> Eq for TypeId<T> {}
+
+impl<T> Deref for TypeId<T> {
+    type Target = Uuid;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}

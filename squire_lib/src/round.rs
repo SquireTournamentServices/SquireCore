@@ -1,8 +1,7 @@
 use std::{
     collections::HashSet,
     fmt,
-    hash::{Hash, Hasher},
-    time::{Duration, Instant, SystemTime},
+    time::{Duration, SystemTime},
 };
 
 use serde::{Deserialize, Serialize};
@@ -78,7 +77,7 @@ impl Round {
     }
 
     pub fn get_id(&self) -> RoundId {
-        self.id.clone()
+        self.id
     }
 
     pub fn add_player(&mut self, player: PlayerId) {
@@ -127,7 +126,7 @@ impl Round {
             Err(TournamentError::InvalidBye)
         } else {
             self.is_bye = true;
-            self.winner = Some(self.players.iter().next().unwrap().clone());
+            self.winner = Some(*self.players.iter().next().unwrap());
             self.status = RoundStatus::Certified;
             Ok(())
         }
@@ -141,33 +140,6 @@ impl Round {
         self.status == RoundStatus::Certified
     }
 }
-/*
-pub struct Round {
-}
-
-impl Serialize for Round {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // 3 is the number of fields in the struct.
-        let mut state = serializer.serialize_struct("Round", 12)?;
-        state.serialize_field("id", &self.id)?;
-        state.serialize_field("match_number", &self.match_number)?;
-        state.serialize_field("table_number", &self.table_number)?;
-        state.serialize_field("players", &self.players)?;
-        state.serialize_field("confirmations", &self.confirmations)?;
-        state.serialize_field("results", &self.results)?;
-        state.serialize_field("status", &self.status)?;
-        state.serialize_field("winner", &self.winner)?;
-        state.serialize_field("timer", &self.timer)?;
-        state.serialize_field("length", &self.length)?;
-        state.serialize_field("extension", &self.extension)?;
-        state.serialize_field("is_bye", &self.is_bye)?;
-        state.end()
-    }
-}
-*/
 
 impl fmt::Display for RoundStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -181,14 +153,5 @@ impl fmt::Display for RoundStatus {
                 Self::Dead => "Dead",
             }
         )
-    }
-}
-
-impl Hash for Round {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        let _ = &self.id.hash(state);
     }
 }

@@ -14,7 +14,6 @@ use std::fmt::Write as _;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    string::ToString,
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -36,17 +35,17 @@ pub struct StandardScore {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ScoreCounter {
-    pub player: PlayerId,
-    pub games: u64,
-    pub game_wins: u64,
-    pub game_losses: u64,
-    pub game_draws: u64,
-    pub rounds: u64,
-    pub wins: u64,
-    pub losses: u64,
-    pub draws: u64,
-    pub byes: u64,
-    pub opponents: HashSet<PlayerId>,
+    pub(crate) player: PlayerId,
+    pub(crate) games: u64,
+    pub(crate) game_wins: u64,
+    pub(crate) game_losses: u64,
+    pub(crate) game_draws: u64,
+    pub(crate) rounds: u64,
+    pub(crate) wins: u64,
+    pub(crate) losses: u64,
+    pub(crate) draws: u64,
+    pub(crate) byes: u64,
+    pub(crate) opponents: HashSet<PlayerId>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -175,9 +174,9 @@ impl StandardScoring {
             .players
             .iter()
             .filter(|(_, p)| p.can_play())
-            .map(|(id, _)| (id.clone(), ScoreCounter::new(id.clone())))
+            .map(|(id, _)| (*id, ScoreCounter::new(*id)))
             .collect();
-        for (id, round) in round_reg.rounds.iter() {
+        for (_, round) in round_reg.rounds.iter() {
             if !round.is_certified() {
                 continue;
             }
@@ -201,7 +200,7 @@ impl StandardScoring {
                 score.mwp = score.match_points / (self.match_win_points * (counter.rounds as f64));
                 score.gwp = score.game_points / (self.game_win_points * (counter.games as f64));
             }
-            digest.insert(id.clone(), score);
+            digest.insert(*id, score);
         }
         for (id, counter) in &counters {
             // If your only round was a bye, your percentages stay at 0
@@ -330,7 +329,7 @@ impl ScoreCounter {
                 RoundResult::Draw() => {
                     self.game_draws += 1;
                 }
-                RoundResult::Wins(p_id, count) => {
+                RoundResult::Wins(p_id, _) => {
                     if p_id == &self.player {
                         self.game_wins += 1;
                     } else {

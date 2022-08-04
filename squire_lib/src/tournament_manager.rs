@@ -38,7 +38,7 @@ impl TournamentManager {
 
     /// Starts the syncing processing. If syncing can occur, the op logs are merged and
     /// SyncStatus::Completed is returned.
-    pub fn start_sync(&mut self, sy: OpSync) -> SyncStatus {
+    pub fn start_sync(&mut self, _sy: OpSync) -> SyncStatus {
         todo!()
     }
 
@@ -46,15 +46,15 @@ impl TournamentManager {
     /// Returns Err containing a SyncStatus if it the log has changed. If that SyncStatus is
     /// Completed, the this log is updated accordingly (otherwise, the method would have to be
     /// immediately called again).
-    pub fn import_sync(&mut self, ops: OpSync) -> Result<OpSync, SyncStatus> {
+    pub fn import_sync(&mut self, _ops: OpSync) -> Result<OpSync, SyncStatus> {
         todo!()
     }
 
-    pub fn overwrite(&mut self, ops: OpSlice) {
+    pub fn overwrite(&mut self, _ops: OpSlice) {
         todo!()
     }
 
-    pub fn propose_rollback<F>(&mut self, f: F) -> Rollback
+    pub fn propose_rollback<F>(&mut self, _f: F) -> Rollback
     where
         F: FnMut(&FullOp) -> Option<bool>,
     {
@@ -101,11 +101,11 @@ impl TournamentManager {
     }
 
     /// Returns an iterator over all the states of a tournament
-    pub fn states(&self) -> StateIter {
+    pub fn states(&self) -> StateIter<'_> {
         StateIter {
             state: Tournament::from_preset(
                 self.name.clone(),
-                self.seed.clone(),
+                self.seed,
                 self.format.clone(),
             ),
             ops: self.log.ops.iter(),
@@ -114,6 +114,7 @@ impl TournamentManager {
     }
 }
 
+#[allow(missing_debug_implementations)]
 /// An iterator over all the states of a tournament
 pub struct StateIter<'a> {
     state: Tournament,

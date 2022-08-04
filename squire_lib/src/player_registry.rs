@@ -1,9 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    slice::SliceIndex,
-};
+use std::collections::{HashMap, HashSet};
 
-use mtgjson::model::deck::Deck;
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
@@ -68,8 +64,8 @@ impl PlayerRegistry {
         if self.name_and_id.contains_left(&plyr.name) || self.name_and_id.contains_right(&plyr.id) {
             Err(TournamentError::PlayerLookup)
         } else {
-            self.name_and_id.insert(plyr.name.clone(), plyr.id.clone());
-            self.players.insert(plyr.id.clone(), plyr);
+            self.name_and_id.insert(plyr.name.clone(), plyr.id);
+            self.players.insert(plyr.id, plyr);
             Ok(())
         }
     }
@@ -79,9 +75,9 @@ impl PlayerRegistry {
             Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name.clone());
-            let digest = Ok(plyr.id.clone());
-            self.name_and_id.insert(name, plyr.id.clone());
-            self.players.insert(plyr.id.clone(), plyr);
+            let digest = Ok(plyr.id);
+            self.name_and_id.insert(name, plyr.id);
+            self.players.insert(plyr.id, plyr);
             digest
         }
     }
@@ -120,7 +116,7 @@ impl PlayerRegistry {
 
     pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Option<PlayerId> {
         match ident {
-            PlayerIdentifier::Id(id) => Some(id.clone()),
+            PlayerIdentifier::Id(id) => Some(*id),
             PlayerIdentifier::Name(name) => self.name_and_id.get_right(name).cloned(),
         }
     }

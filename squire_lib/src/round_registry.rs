@@ -1,9 +1,5 @@
 use std::{
-    collections::{
-        hash_map::{HashMap, Iter},
-        HashSet,
-    },
-    ops::RangeBounds,
+    collections::{hash_map::HashMap, HashSet},
     time::Duration,
 };
 
@@ -15,7 +11,7 @@ pub use crate::identifiers::RoundIdentifier;
 use crate::{
     error::TournamentError,
     identifiers::{PlayerId, RoundId},
-    round::{Round, RoundStatus},
+    round::Round,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -90,7 +86,7 @@ impl RoundRegistry {
         {
             Err(TournamentError::RoundLookup)
         } else {
-            self.num_and_id.insert(rnd.id.clone(), rnd.match_number);
+            self.num_and_id.insert(rnd.id, rnd.match_number);
             self.rounds.insert(rnd.match_number, rnd);
             Ok(())
         }
@@ -100,7 +96,7 @@ impl RoundRegistry {
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
         let round = Round::new(match_num, table_number, self.length);
-        let digest = RoundIdentifier::Id(round.id.clone());
+        let digest = RoundIdentifier::Id(round.id);
         self.rounds.insert(match_num, round);
         digest
     }
@@ -114,15 +110,13 @@ impl RoundRegistry {
             .get_mut_round(ident)
             .ok_or(TournamentError::RoundLookup)?;
         let players = round.get_all_players();
-        round.add_player(plyr.clone());
-        if !self.opponents.contains_key(&plyr) {
-            self.opponents.insert(plyr.clone(), HashSet::new());
-        }
+        round.add_player(plyr);
+        self.opponents.entry(plyr).or_insert_with(HashSet::new);
         for p in players {
             self.opponents
                 .get_mut(&p)
                 .expect("Player should already be in the opponents map.")
-                .insert(plyr.clone());
+                .insert(plyr);
             self.opponents
                 .get_mut(&plyr)
                 .expect("Player should already be in the opponents map.")
@@ -133,7 +127,7 @@ impl RoundRegistry {
 
     pub fn get_round_id(&self, ident: &RoundIdentifier) -> Option<RoundId> {
         match ident {
-            RoundIdentifier::Id(id) => Some(id.clone()),
+            RoundIdentifier::Id(id) => Some(*id),
             RoundIdentifier::Number(num) => self.num_and_id.get_left(num).cloned(),
         }
     }
@@ -141,7 +135,7 @@ impl RoundRegistry {
     pub fn get_round_number(&self, ident: &RoundIdentifier) -> Option<u64> {
         match ident {
             RoundIdentifier::Number(num) => Some(*num),
-            RoundIdentifier::Id(id) => self.num_and_id.get_right(&id).cloned(),
+            RoundIdentifier::Id(id) => self.num_and_id.get_right(id).cloned(),
         }
     }
 

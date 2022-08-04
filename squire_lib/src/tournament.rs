@@ -1,8 +1,5 @@
 use std::{
     collections::HashMap,
-    ffi::{CStr, CString},
-    hash::{Hash, Hasher},
-    str::Utf8Error,
     time::Duration,
 };
 
@@ -14,18 +11,15 @@ use mtgjson::model::deck::Deck;
 use crate::{
     error::TournamentError,
     fluid_pairings::FluidPairings,
-    identifiers::{PlayerId, PlayerIdentifier, RoundId, RoundIdentifier},
+    identifiers::{PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::Pairings,
     player::{Player, PlayerStatus},
     player_registry::PlayerRegistry,
-    round::{Round, RoundResult, RoundStatus},
+    round::{Round, RoundResult},
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
-    settings::{
-        self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
-        SwissPairingsSetting, TournamentSetting,
-    },
+    settings::{self, TournamentSetting},
     standard_scoring::{StandardScore, StandardScoring},
     swiss_pairings::SwissPairings,
 };
@@ -44,7 +38,7 @@ pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum PairingSystem {
     Swiss(SwissPairings),
     Fluid(FluidPairings),
@@ -219,22 +213,6 @@ impl Tournament {
                 }
             }
         }
-        Ok(OpData::Nothing)
-    }
-
-    pub(crate) fn import_player(&mut self, plyr: Player) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        self.player_reg.import_player(plyr)?;
-        Ok(OpData::Nothing)
-    }
-
-    pub(crate) fn import_round(&mut self, rnd: Round) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        self.round_reg.import_round(rnd)?;
         Ok(OpData::Nothing)
     }
 
@@ -581,10 +559,10 @@ impl Tournament {
             .ok_or(TournamentError::PlayerLookup)?;
         let mut should_pair = false;
         if plyr.can_play() {
-            self.pairing_sys.ready_player(plyr.id.clone());
+            self.pairing_sys.ready_player(plyr.id);
             should_pair = match &self.pairing_sys {
                 PairingSystem::Fluid(sys) => sys.ready_to_pair(),
-                PairingSystem::Swiss(sys) => false,
+                PairingSystem::Swiss(_) => false,
             };
         }
         if should_pair {
@@ -676,15 +654,6 @@ impl Tournament {
             let _ = self.drop_player(&id);
         }
         Ok(OpData::Nothing)
-    }
-}
-
-impl Hash for Tournament {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        let _ = &self.id.hash(state);
     }
 }
 

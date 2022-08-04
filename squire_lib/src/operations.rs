@@ -1,19 +1,17 @@
 use std::time::Duration;
 
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
+
+use mtgjson::model::deck::Deck;
 
 use crate::{
     error::TournamentError,
     identifiers::{PlayerIdentifier, RoundIdentifier},
-    player::Player,
-    round::{Round, RoundResult, RoundStatus},
+    round::{RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
 };
-
-use mtgjson::model::deck::Deck;
-
-use serde::{Deserialize, Serialize};
 
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -291,7 +289,7 @@ impl TournOp {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OpData {
     Nothing,
     RegisterPlayer(PlayerIdentifier),
@@ -553,7 +551,7 @@ impl OpLog {
     pub fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), RollbackError> {
         let slice = self
             .slice_from_slice(&rollback.ops)
-            .map_err(|e| RollbackError::SliceError(e))?;
+            .map_err(RollbackError::SliceError)?;
         if slice.ops.len() > rollback.ops.ops.len() {
             return Err(RollbackError::OutOfSync(OpSync { ops: slice }));
         }
@@ -574,7 +572,7 @@ impl OpLog {
         }
         // This should never return an Err
         self.overwrite(rollback.ops)
-            .map_err(|e| RollbackError::SliceError(e))
+            .map_err(RollbackError::SliceError)
     }
 
     /// Attempts to sync the local log with a remote log.
@@ -587,7 +585,6 @@ impl OpLog {
                 return SyncStatus::SyncError(e);
             }
         };
-        let op = other.ops.start_op().unwrap();
         slice.merge(other.ops)
     }
 }
@@ -648,7 +645,7 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(mut self, mut other: OpSlice) -> SyncStatus {
+    pub fn merge(self, other: OpSlice) -> SyncStatus {
         let mut agreed: Vec<FullOp> = Vec::with_capacity(self.ops.len() + other.ops.len());
         let mut self_iter = self.ops.iter();
         let mut other_iter = self.ops.iter();
@@ -724,7 +721,7 @@ impl FullOp {
 
 impl TournOp {
     /// Determines if this operation only makes sense if it happens before the other.
-    pub fn implied_ordering(&self, other: &Self) -> bool {
+    pub fn implied_ordering(&self, _other: &Self) -> bool {
         todo!()
         /*
         use TournOp::*;
@@ -741,7 +738,7 @@ impl TournOp {
     }
     
     /// Determines if this operation blocks a given operation
-    pub fn blocks(&self, other: &Self) -> bool {
+    pub fn blocks(&self, _other: &Self) -> bool {
         todo!()
         /*
         use TournOp::*;
