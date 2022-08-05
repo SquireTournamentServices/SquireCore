@@ -81,8 +81,7 @@ impl SwissPairings {
             .scores
             .drain(0..)
             .filter_map(|(p, _)| {
-                if players.get_player_status(&PlayerIdentifier::Id(p))?
-                    == PlayerStatus::Registered
+                if players.get_player_status(&PlayerIdentifier::Id(p))? == PlayerStatus::Registered
                 {
                     Some(p)
                 } else {

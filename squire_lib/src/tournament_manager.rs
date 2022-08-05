@@ -103,11 +103,7 @@ impl TournamentManager {
     /// Returns an iterator over all the states of a tournament
     pub fn states(&self) -> StateIter<'_> {
         StateIter {
-            state: Tournament::from_preset(
-                self.name.clone(),
-                self.seed,
-                self.format.clone(),
-            ),
+            state: Tournament::from_preset(self.name.clone(), self.seed, self.format.clone()),
             ops: self.log.ops.iter(),
             shown_init: false,
         }

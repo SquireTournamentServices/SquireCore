@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

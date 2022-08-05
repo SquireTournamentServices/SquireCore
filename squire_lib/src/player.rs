@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    string::ToString,
-};
+use std::{collections::HashMap, string::ToString};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
