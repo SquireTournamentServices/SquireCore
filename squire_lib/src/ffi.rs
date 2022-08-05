@@ -3,15 +3,15 @@ use crate::tournament::scoring_system_factory;
 use crate::tournament::PairingSystem::{Fluid, Swiss};
 use crate::tournament::{Tournament, TournamentPreset, TournamentStatus};
 use crate::{
-    identifiers::{TournamentId, PlayerId, RoundId},
     error::TournamentError,
     fluid_pairings::FluidPairings,
+    identifiers::{PlayerId, RoundId, TournamentId},
     operations::{OpData, OpResult, TournOp},
     pairings::Pairings,
     player::{Player, PlayerStatus},
-    player_registry::{PlayerRegistry},
+    player_registry::PlayerRegistry,
     round::{Round, RoundResult, RoundStatus},
-    round_registry::{RoundRegistry},
+    round_registry::RoundRegistry,
     scoring::{Score, Standings},
     settings::{
         self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
@@ -23,17 +23,18 @@ use crate::{
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use serde_json;
+use std::alloc::{Allocator, Layout, System};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::fs::{read_to_string, remove_file, rename, write};
+use std::mem::size_of;
 use std::option::Option;
 use std::os::raw::c_char;
+use std::ptr;
 use std::ptr::null;
 use std::time::Duration;
 use std::vec::Vec;
 use uuid::Uuid;
-use std::alloc::{Allocator, System, Layout};
-use std::ptr;
 
 /// NULL UUIDs are returned on errors
 const NULL_UUID_BYTES: [u8; 16] = [0; 16];
@@ -55,8 +56,11 @@ pub extern "C" fn init_squire_ffi() {
 unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
     let len: usize = s.len() + 1;
     let s_str = s.as_bytes();
-    
-    let ptr = System.allocate(Layout::from_size_align(len, 1).unwrap()).unwrap().as_mut_ptr() as *mut c_char;
+
+    let ptr = System
+        .allocate(Layout::from_size_align(len, 1).unwrap())
+        .unwrap()
+        .as_mut_ptr() as *mut c_char;
     let mut slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
     let mut i: usize = 0;
     while i < s.len() {
@@ -71,6 +75,38 @@ unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
 /// TournamentIds can be used to get data safely from
 /// the Rust lib with these methods
 impl TournamentId {
+    /// Returns a raw pointer to players
+    /// This is an array that is terminated by the NULL UUID
+    /// This is heap allocted, please free it
+    /// Returns NULL on error
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_players(self: Self) -> *const PlayerId {
+        let tourn: Tournament;
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => tourn = t.value().clone(),
+            None => {
+                return std::ptr::null();
+            }
+        }
+
+        let players: Vec<PlayerId> = tourn.player_reg.get_player_ids();
+
+        let len: usize = (players.len() + 1) * std::mem::size_of::<PlayerId>();
+
+        let ptr = System
+            .allocate(Layout::from_size_align(len, 1).unwrap())
+            .unwrap()
+            .as_mut_ptr() as *mut PlayerId;
+        let mut slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]);
+        let mut i: usize = 0;
+        while i < players.len() {
+            slice[i] = players[i];
+            i += 1;
+        }
+        slice[i] = PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+        return ptr;
+    }
+
     /// Returns the name of a tournament
     /// Returns NULL if an error happens
     /// This is heap allocated, please free it
