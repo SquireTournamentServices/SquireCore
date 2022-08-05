@@ -3,35 +3,17 @@ use crate::tournament::scoring_system_factory;
 use crate::tournament::PairingSystem::{Fluid, Swiss};
 use crate::tournament::{Tournament, TournamentPreset, TournamentStatus};
 use crate::{
-    error::TournamentError,
-    fluid_pairings::FluidPairings,
-    identifiers::{PlayerId, RoundId, TournamentId},
-    operations::{OpData, OpResult, TournOp},
-    pairings::Pairings,
-    player::{Player, PlayerStatus},
+    identifiers::{PlayerId, TournamentId},
     player_registry::PlayerRegistry,
-    round::{Round, RoundResult, RoundStatus},
-    round_registry::RoundRegistry,
-    scoring::{Score, Standings},
-    settings::{
-        self, FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
-        SwissPairingsSetting, TournamentSetting,
-    },
-    standard_scoring::{StandardScore, StandardScoring},
-    swiss_pairings::SwissPairings,
 };
+use crate::standard_scoring::RoundRegistry;
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use serde_json;
 use std::alloc::{Allocator, Layout, System};
 use std::ffi::CStr;
-use std::ffi::CString;
-use std::fs::{read_to_string, remove_file, rename, write};
-use std::mem::size_of;
-use std::option::Option;
 use std::os::raw::c_char;
 use std::ptr;
-use std::ptr::null;
 use std::time::Duration;
 use std::vec::Vec;
 use uuid::Uuid;
@@ -49,7 +31,7 @@ const BACKUP_EXT: &str = ".bak";
 #[no_mangle]
 pub extern "C" fn init_squire_ffi() {
     let map: DashMap<TournamentId, Tournament> = DashMap::new();
-    FFI_TOURNAMENT_REGISTRY.set(map);
+    FFI_TOURNAMENT_REGISTRY.set(map).unwrap();
 }
 
 /// Helper function for cloning strings
@@ -61,7 +43,7 @@ unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
         .allocate(Layout::from_size_align(len, 1).unwrap())
         .unwrap()
         .as_mut_ptr() as *mut c_char;
-    let mut slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
+    let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
     let mut i: usize = 0;
     while i < s.len() {
         slice[i] = s_str[i] as i8;
@@ -97,7 +79,7 @@ impl TournamentId {
             .allocate(Layout::from_size_align(len, 1).unwrap())
             .unwrap()
             .as_mut_ptr() as *mut PlayerId;
-        let mut slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]);
+        let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]);
         let mut i: usize = 0;
         while i < players.len() {
             slice[i] = players[i];
@@ -317,7 +299,7 @@ impl TournamentId {
 pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> TournamentId {
     let file: &str = unsafe { CStr::from_ptr(__file).to_str().unwrap() };
     let json: String;
-    match read_to_string(file) {
+    match std::fs::read_to_string(file) {
         Ok(v) => json = v.to_string(),
         Err(_) => {
             println!("[FFI]: Cannot read input file");

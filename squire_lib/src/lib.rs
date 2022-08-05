@@ -17,7 +17,7 @@
 //#![deny(improper_ctypes_definitions)]
 pub mod error;
 #[cfg(feature = "ffi")]
-pub mod ffi;
+pub mod ffi_tournament;
 pub mod fluid_pairings;
 pub mod identifiers;
 pub mod operations;

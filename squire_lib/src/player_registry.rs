@@ -1,9 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
-    slice::SliceIndex,
 };
 
-use mtgjson::model::deck::Deck;
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
