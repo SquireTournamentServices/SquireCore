@@ -15,6 +15,8 @@ pub const NULL_UUID_BYTES: [u8; 16] = [0; 16];
 /// at the lanuage barrier
 pub static FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
 
+/// Call this in main()
+/// Inits the internal structs of squire lib for FFI.
 #[no_mangle]
 pub extern "C" fn init_squire_ffi() {
     let map: DashMap<TournamentId, Tournament> = DashMap::new();
@@ -22,6 +24,7 @@ pub extern "C" fn init_squire_ffi() {
 }
 
 /// Helper function for cloning strings
+/// Returns NULL on error
 pub unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
     let len: usize = s.len() + 1;
     let s_str = s.as_bytes();
