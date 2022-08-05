@@ -9,7 +9,6 @@
     unreachable_pub,
 )]
 #![warn(rust_2018_idioms)]
-
 // Used in ffi
 #![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
 
@@ -17,7 +16,12 @@
 //#![deny(improper_ctypes_definitions)]
 pub mod error;
 #[cfg(feature = "ffi")]
+pub mod ffi;
+#[cfg(feature = "ffi")]
+pub mod ffi_player;
+#[cfg(feature = "ffi")]
 pub mod ffi_tournament;
+
 pub mod fluid_pairings;
 pub mod identifiers;
 pub mod operations;

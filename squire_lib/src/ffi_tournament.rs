@@ -1,3 +1,5 @@
+use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY, NULL_UUID_BYTES};
+use crate::standard_scoring::RoundRegistry;
 use crate::tournament::pairing_system_factory;
 use crate::tournament::scoring_system_factory;
 use crate::tournament::PairingSystem::{Fluid, Swiss};
@@ -6,9 +8,6 @@ use crate::{
     identifiers::{PlayerId, TournamentId},
     player_registry::PlayerRegistry,
 };
-use crate::standard_scoring::RoundRegistry;
-use dashmap::DashMap;
-use once_cell::sync::OnceCell;
 use serde_json;
 use std::alloc::{Allocator, Layout, System};
 use std::ffi::CStr;
@@ -17,42 +16,7 @@ use std::ptr;
 use std::time::Duration;
 use std::vec::Vec;
 use uuid::Uuid;
-
-/// NULL UUIDs are returned on errors
-const NULL_UUID_BYTES: [u8; 16] = [0; 16];
-
-/// A map of tournament ids to tournaments
-/// this is used for allocating ffi tournaments
-/// all ffi tournaments are always deeply copied
-/// at the lanuage barrier
-static FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
 const BACKUP_EXT: &str = ".bak";
-
-#[no_mangle]
-pub extern "C" fn init_squire_ffi() {
-    let map: DashMap<TournamentId, Tournament> = DashMap::new();
-    FFI_TOURNAMENT_REGISTRY.set(map).unwrap();
-}
-
-/// Helper function for cloning strings
-unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
-    let len: usize = s.len() + 1;
-    let s_str = s.as_bytes();
-
-    let ptr = System
-        .allocate(Layout::from_size_align(len, 1).unwrap())
-        .unwrap()
-        .as_mut_ptr() as *mut c_char;
-    let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
-    let mut i: usize = 0;
-    while i < s.len() {
-        slice[i] = s_str[i] as i8;
-        i += 1;
-    }
-    slice[i] = 0;
-
-    return ptr;
-}
 
 /// TournamentIds can be used to get data safely from
 /// the Rust lib with these methods

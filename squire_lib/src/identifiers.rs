@@ -1,4 +1,4 @@
-use std::{ops::Deref, hash::Hash, marker::PhantomData};
+use std::{hash::Hash, marker::PhantomData, ops::Deref};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

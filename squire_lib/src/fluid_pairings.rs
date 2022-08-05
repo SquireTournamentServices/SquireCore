@@ -1,9 +1,6 @@
 use crate::{
-    identifiers::PlayerId,
-    pairings::Pairings,
-    player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
-    settings::FluidPairingsSetting,
+    identifiers::PlayerId, pairings::Pairings, player_registry::PlayerRegistry,
+    round_registry::RoundRegistry, settings::FluidPairingsSetting,
 };
 
 use serde::{Deserialize, Serialize};

@@ -1,4 +1,4 @@
-use rocket::http::{Status, ContentType, MediaType};
+use rocket::http::{ContentType, MediaType, Status};
 
 use squire_lib::tournament::TournamentPreset;
 use squire_sdk::tournaments::{CreateResponse, TournamentCreateRequest};

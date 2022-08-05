@@ -1,9 +1,10 @@
 use dashmap::DashMap;
-use rocket::{get, routes, Rocket, Build};
+use rocket::{get, routes, Build, Rocket};
 use squire_sdk::accounts::{AccountId, UserAccount};
 use uuid::Uuid;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
 mod accounts;
 mod matches;
@@ -66,8 +67,7 @@ async fn main() -> Result<(), rocket::Error> {
     };
     println!("{account:?}");
     USERS_MAP.get().unwrap().insert(id, account);
-    client.launch()
-        .await?;
+    client.launch().await?;
 
     Ok(())
 }

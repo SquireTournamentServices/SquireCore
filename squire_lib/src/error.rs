@@ -42,7 +42,7 @@ impl fmt::Display for TournamentError {
             PlayerNotCheckedIn => "PlayerNotCheckedIn",
             IncompatibleScoringSystem => "IncompatibleScoringSystem",
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
-            InvalidDeckCount => "InvalidDeckCount"
+            InvalidDeckCount => "InvalidDeckCount",
         };
         write!(f, "{}", s)
     }

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use uuid::Uuid;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use mtgjson::model::deck::Deck;
 
@@ -283,8 +283,9 @@ impl TournOp {
             | AdminUnReadyPlayer(_)
             | PruneDecks()
             | PrunePlayers() => None,
-            AdminRecordResult(ident, _)
-            | TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
+            AdminRecordResult(ident, _) | TimeExtension(ident, _) | RecordResult(ident, _) => {
+                Some(ident.clone())
+            }
         }
     }
 }
@@ -432,7 +433,7 @@ impl Blockage {
         }
         self.attempt_resolution()
     }
-    
+
     fn attempt_resolution(mut self) -> SyncStatus {
         match self.known.merge(self.other) {
             SyncStatus::Completed(sync) => {
@@ -736,7 +737,7 @@ impl TournOp {
         }
         */
     }
-    
+
     /// Determines if this operation blocks a given operation
     pub fn blocks(&self, _other: &Self) -> bool {
         todo!()
