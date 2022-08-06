@@ -1,11 +1,13 @@
 use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY, NULL_UUID_BYTES};
+use crate::operations::OpData::RegisterPlayer;
+use crate::operations::TournOp;
 use crate::standard_scoring::RoundRegistry;
 use crate::tournament::pairing_system_factory;
 use crate::tournament::scoring_system_factory;
 use crate::tournament::PairingSystem::{Fluid, Swiss};
 use crate::tournament::{Tournament, TournamentPreset, TournamentStatus};
 use crate::{
-    identifiers::{PlayerId, TournamentId},
+    identifiers::{PlayerId, PlayerIdentifier, TournamentId},
     player_registry::PlayerRegistry,
 };
 use serde_json;
@@ -51,6 +53,36 @@ impl TournamentId {
         }
         slice[i] = PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
         return ptr;
+    }
+
+    /// Adds a player to a tournament
+    /// On error a NULL UUID is returned
+    #[no_mangle]
+    pub extern "C" fn tid_add_player(self: Self, __name: *const c_char) -> PlayerId {
+        let name: &str = unsafe { CStr::from_ptr(__name).to_str().unwrap() };
+        let op: TournOp = TournOp::RegisterPlayer(name.to_string());
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => {
+                match t.apply_op(op) {
+                    Ok(RegisterPlayer(PlayerIdentifier::Id(id))) => {
+                        return id;
+                    }
+                    Err(t_err) => {
+                        println!("{t_err}");
+                        return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+                    }
+                    // We are known the from that the data will take if it exists
+                    // so we can ignore the other outcomes
+                    _ => {
+                        return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+                    }
+                };
+            }
+            None => {
+                return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+            }
+        }
     }
 
     /// Returns the name of a tournament
