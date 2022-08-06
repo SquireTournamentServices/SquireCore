@@ -15,33 +15,22 @@ use accounts::*;
 use players::*;
 use tournaments::*;
 
-#[get("/world")]
-fn world() -> &'static str {
-    "Hello, world!"
-}
-
 pub fn init() -> Rocket<Build> {
     let _ = USERS_MAP.set(DashMap::new());
     let _ = ORGS_MAP.set(DashMap::new());
     let _ = TOURNS_MAP.set(DashMap::new());
     rocket::build()
-        .mount("/hello", routes![world])
-        .mount("/accounts", routes![users, all_users, orgs])
+        .mount("/api/v1/accounts", routes![users, all_users, orgs])
         .mount(
-            "/tournaments",
+            "/api/v1/tournaments",
             routes![
                 create_tournament,
                 get_tournament,
                 get_all_tournaments,
                 get_standings,
-                list_ops,
+                slice_ops,
                 sync,
-                rollback
-            ],
-        )
-        .mount(
-            "/tournaments/players",
-            routes![
+                rollback,
                 get_player,
                 get_all_players,
                 get_active_players,
