@@ -3,7 +3,7 @@ mod tests {
     use squire_lib::{
         operations::TournOp::*,
         settings::*,
-        standard_scoring::TournamentError,
+        error::TournamentError,
         tournament::{Tournament, TournamentPreset},
     };
 

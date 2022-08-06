@@ -1,4 +1,5 @@
 use crate::{
+    tournament::PairingSystem,
     identifiers::{PlayerId, PlayerIdentifier},
     pairings::Pairings,
     player::PlayerStatus,
@@ -13,13 +14,21 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+/// Swiss pairings are the "traditional" pairings system for Magic tournaments
 pub struct SwissPairings {
     players_per_match: u8,
     do_check_ins: bool,
     check_ins: HashSet<PlayerId>,
 }
 
+impl Into<PairingSystem> for SwissPairings {
+    fn into(self) -> PairingSystem {
+        PairingSystem::Swiss(self)
+    }
+}
+
 impl SwissPairings {
+    /// Creates a new swiss pairings struct
     pub fn new(players_per_match: u8) -> Self {
         SwissPairings {
             players_per_match,
@@ -28,14 +37,17 @@ impl SwissPairings {
         }
     }
 
+    /// Marks a player as ready to play in their next round
     pub fn ready_player(&mut self, plyr: PlayerId) {
         self.check_ins.insert(plyr);
     }
 
+    /// Marks a player as unready to play in their next round
     pub fn unready_player(&mut self, plyr: PlayerId) {
         self.check_ins.remove(&plyr);
     }
 
+    /// Updates a single pairings setting
     pub fn update_setting(&mut self, setting: SwissPairingsSetting) {
         use SwissPairingsSetting::*;
         match setting {
@@ -48,6 +60,7 @@ impl SwissPairings {
         }
     }
 
+    /// Calculates if the system can pair more rounds
     pub fn ready_to_pair(&self, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> bool {
         let mut digest = true;
         if self.do_check_ins {
@@ -57,6 +70,7 @@ impl SwissPairings {
         digest
     }
 
+    /// Checks to see if a player can be apart of a potential pairing
     fn valid_pairing(&self, matches: &RoundRegistry, known: &[&PlayerId], new: &PlayerId) -> bool {
         if let Some(opps) = matches.opponents.get(new) {
             known.iter().any(|p| !opps.contains(p))
@@ -65,6 +79,8 @@ impl SwissPairings {
         }
     }
 
+    /// Attempts to create the next set of pairings.
+    /// NOTE: This does not create new rounds, only pairings
     pub fn pair<S>(
         &mut self,
         players: &PlayerRegistry,
