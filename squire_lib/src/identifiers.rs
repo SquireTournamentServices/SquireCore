@@ -2,6 +2,7 @@ use std::{hash::Hash, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use accounts::{SquireAccount, OrganizationAccount};
 
 use crate::{player::Player, round::Round, tournament::Tournament};
 
@@ -11,6 +12,8 @@ pub struct TypeId<T>(pub Uuid, PhantomData<T>);
 pub type PlayerId = TypeId<Player>;
 pub type RoundId = TypeId<Round>;
 pub type TournamentId = TypeId<Tournament>;
+pub type UserAccountID = TypeId<SquireAccount>;
+pub type OrganizationAccountID = TypeId<OrganizationAccount>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 pub enum PlayerIdentifier {

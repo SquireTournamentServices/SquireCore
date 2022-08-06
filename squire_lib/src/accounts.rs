@@ -1,27 +1,28 @@
-use uuid::Uuid;
-use mtgjson::model::deck::Deck;
+use identifiers::{UserAccountID, OrganizationAccountID};
 use settings;
 
-enum SharingPermissions {
-    decklist{name: String, deck: Deck},
-    user_name(String),
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum SharingPermissions {
+    Everything,
+    OnlyDeckList,
+    OnlyDeckName,
+    Nothing
 }
 
-struct UserId {
-    pub Uuid,
-}
-
-struct SquireAccount {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct SquireAccount {
     display_name: String,
     user_name: String,
-    user_id: UserId,
+    gamer_tags = Vec<Option<String>>,
+    user_id: UserAccountID,
     do_share: SharingPermissions,
 }
 
-struct OrganizationAccount {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct OrganizationAccount {
     display_name: String,
     user_name: String,
-    user_id: UserId,
+    user_id: OrganizationAccountID,
     owner: SquireAccount,
     default_judge: Vec<SquireAccount>,
     admin_account: Vec<SquireAccount>,
