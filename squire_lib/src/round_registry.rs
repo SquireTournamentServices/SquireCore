@@ -15,15 +15,25 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+/// The struct that creates and manages all rounds.
 pub struct RoundRegistry {
+    /// A lookup table between round ids and match numbers
+    // TODO: We don't need this. A GroupMap between RoundIdentifiers and Rounds would suffice for
+    // the rounds field
     pub num_and_id: CycleMap<RoundId, u64>,
+    /// All the rounds in a tournament
     pub rounds: HashMap<u64, Round>,
+    /// A lookup table between players and their opponents. This is duplicate data, but used
+    /// heavily by scoring and pairings systems
     pub opponents: HashMap<PlayerId, HashSet<PlayerId>>,
+    /// The starting table number for assigning table numbers
     pub starting_table: u64,
+    /// The length of new round
     pub length: Duration,
 }
 
 impl RoundRegistry {
+    /// Creates a new round registry
     pub fn new(starting_table: u64, len: Duration) -> Self {
         RoundRegistry {
             num_and_id: CycleMap::new(),
@@ -34,6 +44,8 @@ impl RoundRegistry {
         }
     }
 
+    /// Gets the next table number. Not all pairing systems force all matches to be over before
+    /// pairing more players. This ensure new rounds don't the same table number as an active round
     pub(crate) fn get_table_number(&self) -> u64 {
         let range = 0..(self.rounds.len());
         let mut numbers: Vec<u64> = range
@@ -57,11 +69,12 @@ impl RoundRegistry {
         }
     }
 
+    /// Marks a round as dead
     pub fn kill_round(&mut self, ident: &RoundIdentifier) -> Result<(), TournamentError> {
         let rnd = self
             .get_mut_round(ident)
             .ok_or(TournamentError::RoundLookup)?;
-        let players = rnd.get_all_players();
+        let players = rnd.players.clone();
         rnd.kill_round();
         for plyr in &players {
             for p in &players {
@@ -73,13 +86,15 @@ impl RoundRegistry {
         Ok(())
     }
 
+    /// Calculates the number of rounds that are not confirmed or dead
     pub fn active_round_count(&self) -> usize {
         self.rounds
             .iter()
-            .filter(|(_, r)| !r.is_certified())
+            .filter(|(_, r)| r.is_active())
             .count()
     }
 
+    /* TODO: Is this needed?
     pub fn import_round(&mut self, rnd: Round) -> Result<(), TournamentError> {
         if self.num_and_id.contains_left(&rnd.id)
             || self.num_and_id.contains_right(&rnd.match_number)
@@ -91,16 +106,19 @@ impl RoundRegistry {
             Ok(())
         }
     }
+    */
 
+    /// Creates a new round with no players and returns its id
     pub fn create_round(&mut self) -> RoundIdentifier {
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
         let round = Round::new(match_num, table_number, self.length);
-        let digest = RoundIdentifier::Id(round.id);
+        let digest = round.id.into();
         self.rounds.insert(match_num, round);
         digest
     }
 
+    /// Adds a player to the specified round
     pub fn add_player_to_round(
         &mut self,
         ident: &RoundIdentifier,
@@ -109,7 +127,7 @@ impl RoundRegistry {
         let round = self
             .get_mut_round(ident)
             .ok_or(TournamentError::RoundLookup)?;
-        let players = round.get_all_players();
+        let players = round.players.clone();
         round.add_player(plyr);
         self.opponents.entry(plyr).or_insert_with(HashSet::new);
         for p in players {
@@ -125,6 +143,7 @@ impl RoundRegistry {
         Ok(())
     }
 
+    /// Given a round identifier, returns a round id if the round can be found
     pub fn get_round_id(&self, ident: &RoundIdentifier) -> Option<RoundId> {
         match ident {
             RoundIdentifier::Id(id) => Some(*id),
@@ -132,6 +151,7 @@ impl RoundRegistry {
         }
     }
 
+    /// Given a round identifier, returns a round's match number if the round can be found
     pub fn get_round_number(&self, ident: &RoundIdentifier) -> Option<u64> {
         match ident {
             RoundIdentifier::Number(num) => Some(*num),
@@ -139,6 +159,7 @@ impl RoundRegistry {
         }
     }
 
+    /// Given a round identifier, returns a mutable reference to the round if the round can be found
     pub(crate) fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
         match ident {
             RoundIdentifier::Id(id) => {
@@ -149,6 +170,7 @@ impl RoundRegistry {
         }
     }
 
+    /// Given a round identifier, returns a reference to the round if the round can be found
     pub fn get_round(&self, ident: &RoundIdentifier) -> Option<&Round> {
         match ident {
             RoundIdentifier::Id(id) => {
@@ -159,14 +181,15 @@ impl RoundRegistry {
         }
     }
 
-    // This is a messy function... but the idea was ported directly from the Python version
-    // It is theoretically possible for a player to end up in more than one active match (unlikely,
-    // but we must prepare for the worst). Should this ever happen, we return the "oldest" active
-    // match of theirs. However, this is FAR from ideal as every match certification requires a
-    // pass through all matches... gross.
-    //
-    // Potentail clean up: We can likely avoid this be maintaining that a player can be in at most
-    // one match at a time. We can then use a GroupMap to look up match ids via player ids.
+    // TODO: Rework
+    /// This is a messy function... but the idea was ported directly from the Python version
+    /// It is theoretically possible for a player to end up in more than one active match (unlikely,
+    /// but we must prepare for the worst). Should this ever happen, we return the "oldest" active
+    /// match of theirs. However, this is FAR from ideal as every match certification requires a
+    /// pass through all matches... gross.
+    /// 
+    /// Potentail clean up: We can likely avoid this be maintaining that a player can be in at most
+    /// one match at a time. We can then use a GroupMap to look up match ids via player ids.
     pub fn get_player_active_round(
         &mut self,
         id: &PlayerId,
@@ -185,6 +208,7 @@ impl RoundRegistry {
         }
     }
 
+    /// Sets the length for new rounds
     pub fn set_round_length(&mut self, length: Duration) {
         self.length = length;
     }

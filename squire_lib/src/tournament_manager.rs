@@ -50,10 +50,12 @@ impl TournamentManager {
         todo!()
     }
 
+    /// TODO: 
     pub fn overwrite(&mut self, _ops: OpSlice) {
         todo!()
     }
 
+    /// TODO: 
     pub fn propose_rollback<F>(&mut self, _f: F) -> Rollback
     where
         F: FnMut(&FullOp) -> Option<bool>,

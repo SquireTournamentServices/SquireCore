@@ -7,7 +7,7 @@ use mtgjson::model::deck::Deck;
 
 use crate::{
     error::TournamentError,
-    identifiers::{PlayerIdentifier, RoundIdentifier},
+    identifiers::{PlayerIdentifier, RoundIdentifier, OpId},
     round::{RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
@@ -17,43 +17,78 @@ use crate::{
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournOp {
     // Non-admin operations
+    /// Operation for a player check themself into a tournament
     CheckIn(PlayerIdentifier),
+    /// Operation for a player register themself for a tournament
     RegisterPlayer(String),
+    /// Operation for a player drop themself from a tournament
     DropPlayer(PlayerIdentifier),
+    /// Operation for a player record their round result
     RecordResult(RoundIdentifier, RoundResult),
+    /// Operation for a player confirm their round result
     ConfirmResult(PlayerIdentifier),
+    /// Operation for a player add a deck to their registration information
     AddDeck(PlayerIdentifier, String, Deck),
+    /// Operation for a player remove a deck to their registration information
     RemoveDeck(PlayerIdentifier, String),
+    /// Operation for a player set their gamer tag
     SetGamerTag(PlayerIdentifier, String),
+    /// Operation for a player to mark themself as ready for their next round
     ReadyPlayer(PlayerIdentifier),
+    /// Operation for a player to mark themself as unready for their next round
     UnReadyPlayer(PlayerIdentifier),
     // Admin-level operations
+    /// Operation to mark the creation of a tournament
     Create(TournamentPreset),
+    /// Operation to check the registration status of the tournament
     UpdateReg(bool),
+    /// Operation to start a tournament
     Start(),
+    /// Operation to freeze a tournament
     Freeze(),
+    /// Operation to thaw a tournament
     Thaw(),
+    /// Operation to end a tournament
     End(),
+    /// Operation to cancel a tournament
     Cancel(),
+    /// Operation to register a player via an admin
     AdminRegisterPlayer(String),
+    /// Operation to record the result of a round via an admin
     AdminRecordResult(RoundIdentifier, RoundResult),
+    /// Operation to confirm the result of a round via an admin
     AdminConfirmResult(PlayerIdentifier),
+    /// Operation to drop a player via an admin
     AdminDropPlayer(PlayerIdentifier),
+    /// Operation to add a deck for a player via an admin
     AdminAddDeck(PlayerIdentifier, String, Deck),
+    /// Operation to mark a player as ready for their next round via an admin
     AdminReadyPlayer(PlayerIdentifier),
+    /// Operation to mark a player as unready for their next round via an admin
     AdminUnReadyPlayer(PlayerIdentifier),
+    /// Operation to kill a round
     RemoveRound(RoundIdentifier),
+    /// Operation to update a single tournament setting
     UpdateTournSetting(TournamentSetting),
+    /// Operation to give a player a bye
     GiveBye(PlayerIdentifier),
+    /// Operation to manually create a round
     CreateRound(Vec<PlayerIdentifier>),
+    /// Operation to attempt to pair the next set of rounds
     PairRound(),
+    /// Operation to give a round a time extension
     TimeExtension(RoundIdentifier, Duration),
+    /// Operation to cut to the top N players (by standings)
     Cut(usize),
+    /// Operation to prune excess decks from players
     PruneDecks(),
+    /// Operation to prune players that aren't fully registered
     PrunePlayers(),
 }
 
 impl TournOp {
+    /// Swaps the player identifier in an operation for another. Uses to swap an id for a name in
+    /// the operation sync protocol
     pub fn swap_player_ident(self, ident: PlayerIdentifier) -> Self {
         use TournOp::*;
         match self {
@@ -93,6 +128,8 @@ impl TournOp {
         }
     }
 
+    /// Swaps all the player identifiers in an operation for another set of identifiers. Uses to
+    /// swap ids for names in the operation sync protocol
     pub fn swap_all_player_idents(self, idents: Vec<PlayerIdentifier>) -> Self {
         use TournOp::*;
         match self {
@@ -132,6 +169,8 @@ impl TournOp {
         }
     }
 
+    /// Swaps a match identifier in an operation for another identifier. Uses to swap ids for match
+    /// numbers in the operation sync protocol
     pub fn swap_match_ident(self, ident: RoundIdentifier) -> Self {
         use TournOp::*;
         match self {
@@ -171,6 +210,8 @@ impl TournOp {
         }
     }
 
+    /// Returns the player identifier of an operation if that operation contains exactly on player
+    /// identifier
     pub fn get_player_ident(&self) -> Option<PlayerIdentifier> {
         use TournOp::*;
         match self {
@@ -211,6 +252,7 @@ impl TournOp {
     }
 
     // Used only for CreateRound
+    /// Returns all the player identifiers of an operation if that operation contains multiple identifiers
     pub fn list_player_ident(&self) -> Option<Vec<PlayerIdentifier>> {
         use TournOp::*;
         match self {
@@ -250,6 +292,8 @@ impl TournOp {
         }
     }
 
+    /// Returns the round identifier of an operation if that operation contains exactly on round
+    /// identifier.
     pub fn get_match_ident(&self) -> Option<RoundIdentifier> {
         use TournOp::*;
         match self {
@@ -291,50 +335,60 @@ impl TournOp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// An enum that encodes all possible data after successfully applying a tournament operation
 pub enum OpData {
+    /// There is no data to be returned
     Nothing,
+    /// A player was registerd and this is their id
     RegisterPlayer(PlayerIdentifier),
+    /// A round result was confirmed and this is the current status of that round
     ConfirmResult(RoundStatus),
+    /// A player was given a bye and this is the id of that round
     GiveBye(RoundIdentifier),
+    /// A round was manually created and this is that round's id
     CreateRound(RoundIdentifier),
+    /// The next set of rounds was paired and these are those round's ids
     Pair(Vec<RoundIdentifier>),
 }
 
+/// A shorthand for the outcome of attempting to apply an operation to a tournament
 pub type OpResult = Result<OpData, TournamentError>;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct OpId(Uuid);
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+/// An full operation used by the tournament manager to help track metadata for client-server
+/// syncing
 pub struct FullOp {
     pub(crate) op: TournOp,
     pub(crate) id: OpId,
     pub(crate) active: bool,
 }
 
-/// An ordered list of all operations applied to a tournament
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An ordered list of all operations applied to a tournament
 pub struct OpLog {
     pub(crate) ops: Vec<FullOp>,
 }
 
-/// An ordered list of some of the operations applied to a tournament
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An ordered list of some of the operations applied to a tournament
 pub struct OpSlice {
     pub(crate) ops: Vec<FullOp>,
 }
 
-/// A struct to help resolve syncing op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// A struct to help resolve syncing op logs
 pub struct OpSync {
     pub(crate) ops: OpSlice,
 }
 
-/// An enum to help track the progress of the syncing of two op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An enum to help track the progress of the syncing of two op logs
 pub enum SyncStatus {
+    /// There was an error when attempting to initially sync
     SyncError(SyncError),
+    /// There are discrepancies in between the two logs that are being synced
     InProgress(Blockage),
+    /// The logs have been successfully syncs
     Completed(OpSync),
 }
 
@@ -345,19 +399,26 @@ pub enum SyncStatus {
 /// overwrite the local log
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SyncError {
+    /// One of the log was empty
     EmptySync,
+    /// The starting operation of the slice in unknown to the other log
     UnknownOperation(FullOp),
+    /// One of the logs contains a rollback that the other doesn't have
     RollbackFound(OpSlice),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An enum that encodes that errors that can occur during a rollback
 pub enum RollbackError {
+    /// The rollback slice has an unknown starting point
     SliceError(SyncError),
+    /// The log that doesn't contain the rollback contains operations that the rolled back log
+    /// doesn't contain
     OutOfSync(OpSync),
 }
 
-/// A struct to help resolve blockages
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// A struct to help resolve blockages
 pub struct Blockage {
     pub(crate) known: OpSlice,
     pub(crate) agreed: OpSlice,
@@ -365,8 +426,8 @@ pub struct Blockage {
     pub(crate) problem: (FullOp, FullOp),
 }
 
-/// A struct used to communicate a rollback
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// A struct used to communicate a rollback
 pub struct Rollback {
     pub(crate) ops: OpSlice,
 }
@@ -468,6 +529,7 @@ impl OpLog {
         OpLog { ops: Vec::new() }
     }
 
+    /// Adds an operation to the end of the OpLog
     pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
     }
@@ -596,6 +658,7 @@ impl OpSlice {
         OpSlice { ops: Vec::new() }
     }
 
+    /// Adds an operation to the end of the OpSlice
     pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
     }
@@ -706,10 +769,11 @@ impl Default for OpSlice {
 }
 
 impl FullOp {
+    /// Creates a new FullOp from an existing TournOp
     pub fn new(op: TournOp) -> Self {
         Self {
             op,
-            id: OpId(Uuid::new_v4()),
+            id: OpId::new(Uuid::new_v4()),
             active: true,
         }
     }
