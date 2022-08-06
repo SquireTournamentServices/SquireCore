@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use squire_lib::operations::{OpSlice, OpSync, Rollback, SyncStatus};
+use squire_lib::operations::{OpSlice, OpSync, Rollback, SyncStatus, RollbackError};
 pub use squire_lib::{
     error::TournamentError,
     identifiers::{TournamentId, TournamentIdentifier},
@@ -13,12 +13,7 @@ pub use squire_lib::{
 
 use crate::response::SquireResponse;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TournamentGetRequest {
-    pub ident: TournamentIdentifier,
-}
-
-pub type GetResponse = SquireResponse<Option<Tournament>>;
+pub type TournamentGetResponse = SquireResponse<Option<Tournament>>;
 
 pub type GetAllResponse = SquireResponse<HashMap<TournamentId, Tournament>>;
 
@@ -31,23 +26,12 @@ pub struct TournamentCreateRequest {
 
 pub type CreateResponse = SquireResponse<Tournament>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct StandingsRequest {
-    pub ident: TournamentIdentifier,
-}
-
 pub type StandingsResponse = SquireResponse<Option<Standings<StandardScore>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ListOpsRequest {
-    pub ident: TournamentIdentifier,
-}
-
-pub type ListOpsResponse = SquireResponse<Option<OpSlice>>;
+pub type OpSliceResponse = SquireResponse<Option<OpSlice>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SyncRequest {
-    pub ident: TournamentIdentifier,
     pub sync: OpSync,
 }
 
@@ -55,7 +39,6 @@ pub type SyncResponse = SquireResponse<Option<SyncStatus>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SyncImportRequest {
-    pub ident: TournamentIdentifier,
     pub sync: OpSync,
 }
 
@@ -63,8 +46,7 @@ pub type SyncImportResponse = SquireResponse<Option<SyncStatus>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RollbackRequest {
-    pub ident: TournamentIdentifier,
     pub sync: Rollback,
 }
 
-pub type RollbackResponse = SquireResponse<Option<SyncStatus>>;
+pub type RollbackResponse = SquireResponse<Option<Result<(), RollbackError>>>;

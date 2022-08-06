@@ -1,7 +1,7 @@
 use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY, NULL_UUID_BYTES};
 use crate::operations::OpData::RegisterPlayer;
 use crate::operations::TournOp;
-use crate::standard_scoring::RoundRegistry;
+use crate::round_registry::RoundRegistry;
 use crate::tournament::pairing_system_factory;
 use crate::tournament::scoring_system_factory;
 use crate::tournament::PairingSystem::{Fluid, Swiss};

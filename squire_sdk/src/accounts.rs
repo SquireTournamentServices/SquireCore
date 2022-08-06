@@ -9,12 +9,6 @@ use crate::response::SquireResponse;
 pub struct AccountId(pub Uuid);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AccountIdentifier {
-    Name(String),
-    Id(AccountId),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserAccount {
     pub external_id: AccountId,
     pub display_name: String,
