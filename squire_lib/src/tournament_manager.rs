@@ -1,13 +1,15 @@
-use crate::{
-    error::TournamentError,
-    identifiers::{PlayerIdentifier, RoundIdentifier},
-    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, TournOp},
-    tournament::*,
-};
+use std::{collections::{HashSet, HashMap}, slice::Iter};
 
 use serde::{Deserialize, Serialize};
 
-use std::slice::Iter;
+use cycle_map::CycleMap;
+
+use crate::{
+    error::TournamentError,
+    identifiers::{OpId, PlayerIdentifier, RoundIdentifier},
+    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, TournOp},
+    tournament::*,
+};
 
 /// A state manager for the tournament struct
 ///
@@ -17,10 +19,9 @@ use std::slice::Iter;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TournamentManager {
     tourn: Tournament,
-    seed: TournamentPreset,
-    name: String,
-    format: String,
     log: OpLog,
+    /// The last OpId of the last operation after a successful sync
+    last_sync: OpId,
 }
 
 impl TournamentManager {
@@ -30,9 +31,19 @@ impl TournamentManager {
         &self.tourn
     }
 
-    /// Takes the manager and return the underlying tournament, consuming the manager in the
-    /// process.
+    /// Takes the manager, removes all unnecessary data for storage, and return the underlying
+    /// tournament, consuming the manager in the process.
     pub fn extract(self) -> Tournament {
+        self.tourn.player_reg.check_ins = HashSet::new();
+        self.tourn.player_reg.name_and_id = CycleMap::new();
+        for (_, plyr) in self.tourn.player_reg.players.iter_mut() {
+            plyr.deck_ordering = Vec::new();
+        }
+        self.tourn.round_reg.num_and_id = CycleMap::new();
+        self.tourn.round_reg.opponents = HashMap::new();
+        for (_, rnd) in self.tourn.round_reg.rounds.iter_mut() {
+            rnd.confirmations = HashSet::new();
+        }
         self.tourn
     }
 
@@ -50,12 +61,12 @@ impl TournamentManager {
         todo!()
     }
 
-    /// TODO: 
+    /// TODO:
     pub fn overwrite(&mut self, _ops: OpSlice) {
         todo!()
     }
 
-    /// TODO: 
+    /// TODO:
     pub fn propose_rollback<F>(&mut self, _f: F) -> Rollback
     where
         F: FnMut(&FullOp) -> Option<bool>,

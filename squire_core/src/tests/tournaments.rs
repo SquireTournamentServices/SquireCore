@@ -14,7 +14,7 @@ async fn create_tournament() {
         format: "Pioneer".into(),
     };
     let response = client
-        .post("/tournaments/create")
+        .post("/api/v1/tournaments/create")
         .header(ContentType(MediaType::JSON))
         .body(serde_json::to_string(&data).expect("Could not serialize tournament create request"))
         .dispatch()
