@@ -1,210 +1,162 @@
-use dashmap::DashMap;
-use once_cell::sync::OnceCell;
-use rocket::{get, post, serde::json::Json};
+use rocket::{get, serde::json::Json};
 
-use squire_lib::tournament::{Tournament, TournamentId, TournamentIdentifier};
+use squire_lib::{
+    identifiers::{PlayerId, PlayerIdentifier},
+    tournament::{TournamentId, TournamentIdentifier},
+};
 use squire_sdk::players::{
-    GetAllDecksRequest, GetAllDecksResponse, GetAllPlayerDecksRequest, GetAllPlayerDecksResponse,
-    GetDeckRequest, GetDeckResponse, GetLatestPlayerMatchRequest, GetLatestPlayerMatchResponse,
-    GetMultiplePlayersRequest, GetMultiplePlayersResponse, GetPlayerCountRequest,
-    GetPlayerCountResponse, GetPlayerMatchesRequest, GetPlayerMatchesResponse, GetPlayerRequest,
+    GetAllDecksResponse, GetAllPlayerDecksResponse, GetDeckResponse, GetLatestPlayerMatchResponse,
+    GetMultiplePlayersResponse, GetPlayerCountResponse, GetPlayerMatchesResponse,
     GetPlayerResponse,
 };
+use uuid::Uuid;
 
 use crate::tournaments::TOURNS_MAP;
 
-#[get("/get", format = "json", data = "<data>")]
-pub fn get_player(data: Json<GetPlayerRequest>) -> GetPlayerResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&id)
-                .map(|tourn| tourn.get_player(&data.0.player).map(|p| p.clone()).ok());
-            GetPlayerResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/all", format = "json", data = "<data>")]
-pub fn get_all_players(data: Json<GetMultiplePlayersRequest>) -> GetMultiplePlayersResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
+#[get("/<t_id>/players/<p_id>/get")]
+pub fn get_player(t_id: Uuid, p_id: Uuid) -> GetPlayerResponse {
+    GetPlayerResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|tourn| {
                 tourn
-                    .player_reg
-                    .players
-                    .iter()
-                    .map(|(id, p)| (id.clone(), p.clone()))
-                    .collect()
-            });
-            GetMultiplePlayersResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/active", format = "json", data = "<data>")]
-pub fn get_active_players(data: Json<GetMultiplePlayersRequest>) -> GetMultiplePlayersResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
-                tourn
-                    .player_reg
-                    .players
-                    .iter()
-                    .filter(|(_, p)| p.can_play())
-                    .map(|(id, p)| (id.clone(), p.clone()))
-                    .collect()
-            });
-            GetMultiplePlayersResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/count", format = "json", data = "<data>")]
-pub fn get_player_count(data: Json<GetPlayerCountRequest>) -> GetPlayerCountResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&id)
-                .map(|tourn| tourn.player_reg.players.len() as u64);
-            GetPlayerCountResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/active_count", format = "json", data = "<data>")]
-pub fn get_active_player_count(data: Json<GetPlayerCountRequest>) -> GetPlayerCountResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&id)
-                .map(|tourn| tourn.player_reg.active_player_count() as u64);
-            GetPlayerCountResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/matches", format = "json", data = "<data>")]
-pub fn get_player_matches(data: Json<GetPlayerMatchesRequest>) -> GetPlayerMatchesResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
-                tourn.get_player(&data.0.player).ok().map(|p| {
-                    tourn
-                        .round_reg
-                        .rounds
-                        .iter()
-                        .filter(|(_, r)| r.players.contains(&p.id))
-                        .map(|(_, r)| r.clone())
-                        .collect()
-                })
-            });
-            GetPlayerMatchesResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/latest_match", format = "json", data = "<data>")]
-pub fn get_latest_player_match(
-    data: Json<GetLatestPlayerMatchRequest>,
-) -> GetLatestPlayerMatchResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            // TODO: This is techincally incorrect. Fix
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
-                tourn.get_player(&data.0.player).ok().map(|p| {
-                    tourn
-                        .round_reg
-                        .rounds
-                        .iter()
-                        .find(|(_, r)| r.players.contains(&p.id))
-                        .map(|(_, r)| r.clone())
-                })
-            });
-            GetLatestPlayerMatchResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/decks/get", format = "json", data = "<data>")]
-pub fn get_player_deck(data: Json<GetDeckRequest>) -> GetDeckResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
-                tourn
-                    .get_player(&data.0.player)
+                    .get_player(&PlayerIdentifier::Id(PlayerId::new(p_id)))
+                    .map(|p| p.clone())
                     .ok()
-                    .map(|p| p.get_deck(&data.0.deck_name))
-            });
-            GetDeckResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
+            }),
+    )
 }
 
-#[get("/decks/all", format = "json", data = "<data>")]
-pub fn get_all_decks(data: Json<GetAllDecksRequest>) -> GetAllDecksResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
+#[get("/<t_id>/players/get/all")]
+pub fn get_all_players(t_id: Uuid) -> GetMultiplePlayersResponse {
+    GetMultiplePlayersResponse::new(TOURNS_MAP.get().unwrap().get(&TournamentId::new(t_id)).map(
+        |tourn| {
+            tourn
+                .player_reg
+                .players
+                .iter()
+                .map(|(id, p)| (id.clone(), p.clone()))
+                .collect()
+        },
+    ))
+}
+
+#[get("/<t_id>/players/get/active")]
+pub fn get_active_players(t_id: Uuid) -> GetMultiplePlayersResponse {
+    GetMultiplePlayersResponse::new(TOURNS_MAP.get().unwrap().get(&TournamentId::new(t_id)).map(
+        |tourn| {
+            tourn
+                .player_reg
+                .players
+                .iter()
+                .filter(|(_, p)| p.can_play())
+                .map(|(id, p)| (id.clone(), p.clone()))
+                .collect()
+        },
+    ))
+}
+
+#[get("/<t_id>/players/count")]
+pub fn get_player_count(t_id: Uuid) -> GetPlayerCountResponse {
+    GetPlayerCountResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|tourn| tourn.player_reg.players.len() as u64),
+    )
+}
+
+#[get("/<t_id>/players/active_count")]
+pub fn get_active_player_count(t_id: Uuid) -> GetPlayerCountResponse {
+    GetPlayerCountResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|tourn| tourn.player_reg.active_player_count() as u64),
+    )
+}
+
+#[get("/<t_id>/players/<p_id>/matches")]
+pub fn get_player_matches(t_id: Uuid, p_id: Uuid) -> GetPlayerMatchesResponse {
+    let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
+    GetPlayerMatchesResponse::new(TOURNS_MAP.get().unwrap().get(&TournamentId::new(t_id)).map(
+        |tourn| {
+            tourn.get_player(&p_id).ok().map(|p| {
+                tourn
+                    .round_reg
+                    .rounds
+                    .iter()
+                    .filter(|(_, r)| r.players.contains(&p.id))
+                    .map(|(_, r)| r.clone())
+                    .collect()
+            })
+        },
+    ))
+}
+
+#[get("/<t_id>/players/<p_id>/latest_match")]
+pub fn get_latest_player_match(t_id: Uuid, p_id: Uuid) -> GetLatestPlayerMatchResponse {
+    let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
+    // TODO: This is techincally incorrect. Fix
+    GetLatestPlayerMatchResponse::new(TOURNS_MAP.get().unwrap().get(&TournamentId::new(t_id)).map(
+        |tourn| {
+            tourn.get_player(&p_id).ok().map(|p| {
+                tourn
+                    .round_reg
+                    .rounds
+                    .iter()
+                    .find(|(_, r)| r.players.contains(&p.id))
+                    .map(|(_, r)| r.clone())
+            })
+        },
+    ))
+}
+
+#[get("/<t_id>/players/<p_id>/decks/get/<name>")]
+pub fn get_player_deck(t_id: Uuid, p_id: Uuid, name: String) -> GetDeckResponse {
+    let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
+    GetDeckResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|tourn| tourn.get_player(&p_id).ok().map(|p| p.get_deck(&name))),
+    )
+}
+
+#[get("/<t_id>/players/<p_id>/decks/all")]
+pub fn get_all_player_decks(t_id: Uuid, p_id: Uuid) -> GetAllPlayerDecksResponse {
+    let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
+    GetAllPlayerDecksResponse::new(
+        TOURNS_MAP.get().unwrap().get(&TournamentId::new(t_id)).map(
+        |tourn| {
+            tourn
+                .get_player(&p_id)
+                .ok()
+                .map(|p| p.decks.clone())
+        },
+    )
+    )
+}
+
+#[get("/<t_id>/decks/all")]
+pub fn get_all_decks(t_id: Uuid) -> GetAllDecksResponse {
+    GetAllDecksResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|tourn| {
                 tourn
                     .player_reg
                     .players
                     .iter()
                     .map(|(id, p)| (id.clone(), p.decks.clone()))
                     .collect()
-            });
-            GetAllDecksResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
-}
-
-#[get("/decks/player_all", format = "json", data = "<data>")]
-pub fn get_all_player_decks(data: Json<GetAllPlayerDecksRequest>) -> GetAllPlayerDecksResponse {
-    match data.0.tourn {
-        TournamentIdentifier::Id(id) => {
-            let digest = TOURNS_MAP.get().unwrap().get(&id).map(|tourn| {
-                tourn
-                    .get_player(&data.0.player)
-                    .ok()
-                    .map(|p| p.decks.clone())
-            });
-            GetAllPlayerDecksResponse::new(digest)
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
+            }),
+    )
 }
