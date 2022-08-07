@@ -4,8 +4,9 @@ use rocket::{get, post, serde::json::Json};
 
 use squire_lib::tournament::{Tournament, TournamentId};
 use squire_sdk::tournaments::{
-    self, CreateResponse, GetAllResponse, OpSliceResponse, RollbackRequest, RollbackResponse,
-    StandingsResponse, SyncRequest, SyncResponse, TournamentCreateRequest, TournamentGetResponse,
+    self, CreateResponse, AllTournamentsResponse, RollbackRequest,
+    RollbackResponse, StandingsResponse, SyncRequest, SyncResponse,
+    TournamentCreateRequest, TournamentGetResponse, OpSliceResponse,
 };
 use uuid::Uuid;
 
@@ -19,7 +20,7 @@ pub fn create_tournament(data: Json<TournamentCreateRequest>) -> CreateResponse 
     tournaments::CreateResponse::new(tourn)
 }
 
-#[get("/get/<id>")]
+#[get("/<id>/get")]
 pub fn get_tournament(id: Uuid) -> TournamentGetResponse {
     tournaments::TournamentGetResponse::new(
         TOURNS_MAP
@@ -31,17 +32,17 @@ pub fn get_tournament(id: Uuid) -> TournamentGetResponse {
 }
 
 #[get("/all")]
-pub fn get_all_tournaments() -> GetAllResponse {
+pub fn get_all_tournaments() -> AllTournamentsResponse {
     let map = TOURNS_MAP
         .get()
         .unwrap()
         .iter()
         .map(|r| (r.key().clone(), r.value().clone()))
         .collect();
-    GetAllResponse::new(map)
+    AllTournamentsResponse::new(map)
 }
 
-#[get("/standings/<id>")]
+#[get("/<id>/standings")]
 pub fn get_standings(id: Uuid) -> StandingsResponse {
     StandingsResponse::new(
         TOURNS_MAP
@@ -52,7 +53,7 @@ pub fn get_standings(id: Uuid) -> StandingsResponse {
     )
 }
 
-#[get("/manage/<t_id>/ops/slice/<o_id>")]
+#[get("/<t_id>/manage/ops/slice/<o_id>")]
 pub fn slice_ops(t_id: Uuid, o_id: Uuid) -> OpSliceResponse {
     OpSliceResponse::new(
         TOURNS_MAP
@@ -63,7 +64,18 @@ pub fn slice_ops(t_id: Uuid, o_id: Uuid) -> OpSliceResponse {
     )
 }
 
-#[post("/manage/<id>/sync", format = "json", data = "<data>")]
+#[post("/<id>/manage/refresh", format = "json", data = "<data>")]
+pub fn refresh(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
+    SyncResponse::new(
+        TOURNS_MAP
+                .get()
+                .unwrap()
+                .get(&TournamentId::new(id))
+                .map(|a| todo!())
+    )
+}
+
+#[post("/<id>/manage/sync", format = "json", data = "<data>")]
 pub fn sync(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
     SyncResponse::new(
         TOURNS_MAP
@@ -74,7 +86,7 @@ pub fn sync(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
     )
 }
 
-#[post("/manage/<id>/rollback", format = "json", data = "<data>")]
+#[post("/<id>/manage/rollback", format = "json", data = "<data>")]
 pub fn rollback(id: Uuid, data: Json<RollbackRequest>) -> RollbackResponse {
     RollbackResponse::new(
         TOURNS_MAP

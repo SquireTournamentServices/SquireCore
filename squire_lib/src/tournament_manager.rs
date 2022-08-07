@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::{
     collections::{HashMap, HashSet},
     slice::Iter,
