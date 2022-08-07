@@ -85,20 +85,32 @@ impl<T> Deref for TypeId<T> {
     }
 }
 
-impl Into<PlayerIdentifier> for PlayerId {
-    fn into(self) -> PlayerIdentifier {
-        PlayerIdentifier::Id(self)
+impl<T> From<TypeId<T>> for Uuid {
+    fn from(other: TypeId<T>) -> Uuid {
+        other.0
     }
 }
 
-impl Into<RoundIdentifier> for RoundId {
-    fn into(self) -> RoundIdentifier {
-        RoundIdentifier::Id(self)
+impl<T> From<Uuid> for TypeId<T> {
+    fn from(other: Uuid) -> TypeId<T> {
+        TypeId(other, PhantomData)
     }
 }
 
-impl Into<TournamentIdentifier> for TournamentId {
-    fn into(self) -> TournamentIdentifier {
-        TournamentIdentifier::Id(self)
+impl From<PlayerId> for PlayerIdentifier {
+    fn from(other: PlayerId) -> PlayerIdentifier {
+        PlayerIdentifier::Id(other)
+    }
+}
+
+impl From<RoundId> for RoundIdentifier {
+    fn from(other: RoundId) -> RoundIdentifier {
+        RoundIdentifier::Id(other)
+    }
+}
+
+impl From<TournamentId> for TournamentIdentifier {
+    fn from(other: TournamentId) -> TournamentIdentifier {
+        TournamentIdentifier::Id(other)
     }
 }

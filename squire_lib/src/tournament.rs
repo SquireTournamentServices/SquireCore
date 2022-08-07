@@ -127,7 +127,7 @@ impl Tournament {
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
-            Create(_) => OpResult::Ok(OpData::Nothing),
+            Create(_, _, _) => OpResult::Ok(OpData::Nothing),
             UpdateReg(b) => self.update_reg(b),
             Start() => self.start(),
             Freeze() => self.freeze(),
@@ -773,6 +773,24 @@ impl ScoringSystem {
         match self {
             ScoringSystem::Standard(s) => s.get_standings(player_reg, round_reg),
         }
+    }
+}
+
+impl From<SwissPairings> for PairingSystem {
+    fn from(other: SwissPairings) -> Self {
+        Self::Swiss(other)
+    }
+}
+
+impl From<FluidPairings> for PairingSystem {
+    fn from(other: FluidPairings) -> Self {
+        Self::Fluid(other)
+    }
+}
+
+impl From<StandardScoring> for ScoringSystem {
+    fn from(other: StandardScoring) -> Self {
+        Self::Standard(other)
     }
 }
 
