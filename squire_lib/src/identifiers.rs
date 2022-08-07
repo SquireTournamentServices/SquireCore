@@ -2,9 +2,14 @@ use std::{hash::Hash, marker::PhantomData, ops::Deref};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use accounts::{SquireAccount, OrganizationAccount};
 
-use crate::{operations::FullOp, player::Player, round::Round, tournament::Tournament};
+use crate::{
+    accounts::{OrganizationAccount, SquireAccount},
+    operations::FullOp,
+    player::Player,
+    round::Round,
+    tournament::Tournament,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[repr(C)]
@@ -17,8 +22,10 @@ pub type PlayerId = TypeId<Player>;
 pub type RoundId = TypeId<Round>;
 /// A type-checked Uuid for tournaments
 pub type TournamentId = TypeId<Tournament>;
-pub type UserAccountID = TypeId<SquireAccount>;
-pub type OrganizationAccountID = TypeId<OrganizationAccount>;
+/// A type-checked Uuid for user accounts
+pub type UserAccountId = TypeId<SquireAccount>;
+/// A type-checked Uuid for org accounts
+pub type OrganizationAccountId = TypeId<OrganizationAccount>;
 /// A type-checked Uuid for tournament operations
 pub type OpId = TypeId<FullOp>;
 
