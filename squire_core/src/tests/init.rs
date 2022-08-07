@@ -6,7 +6,6 @@ use rocket::local::asynchronous::Client;
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 static SERVER: OnceCell<Client> = OnceCell::new();
 
-
 async fn init() {
     let client = Client::tracked(crate::init())
         .await

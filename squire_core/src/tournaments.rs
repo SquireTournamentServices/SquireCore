@@ -2,12 +2,13 @@ use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use rocket::{get, post, serde::json::Json};
 
-use squire_lib::tournament::{Tournament, TournamentId, TournamentIdentifier};
+use squire_lib::tournament::{Tournament, TournamentId};
 use squire_sdk::tournaments::{
-    self, CreateResponse, GetAllResponse, GetResponse, ListOpsRequest, ListOpsResponse,
-    RollbackRequest, RollbackResponse, StandingsRequest, StandingsResponse, SyncRequest,
-    SyncResponse, TournamentCreateRequest, TournamentGetRequest,
+    self, CreateResponse, GetAllResponse, RollbackRequest,
+    RollbackResponse, StandingsResponse, SyncRequest, SyncResponse,
+    TournamentCreateRequest, TournamentGetResponse, OpSliceResponse,
 };
+use uuid::Uuid;
 
 pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
 
@@ -19,16 +20,15 @@ pub fn create_tournament(data: Json<TournamentCreateRequest>) -> CreateResponse 
     tournaments::CreateResponse::new(tourn)
 }
 
-#[get("/get", format = "json", data = "<data>")]
-pub fn get_tournament(data: Json<TournamentGetRequest>) -> GetResponse {
-    match data.0.ident {
-        TournamentIdentifier::Id(id) => {
-            tournaments::GetResponse::new(TOURNS_MAP.get().unwrap().get(&id).map(|a| a.clone()))
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
+#[get("/get/<id>")]
+pub fn get_tournament(id: Uuid) -> TournamentGetResponse {
+    tournaments::TournamentGetResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(id))
+            .map(|a| a.clone()),
+    )
 }
 
 #[get("/all")]
@@ -42,54 +42,46 @@ pub fn get_all_tournaments() -> GetAllResponse {
     GetAllResponse::new(map)
 }
 
-#[get("/standings", format = "json", data = "<data>")]
-pub fn get_standings(data: Json<StandingsRequest>) -> StandingsResponse {
-    match data.0.ident {
-        TournamentIdentifier::Id(id) => StandingsResponse::new(
-            TOURNS_MAP
+#[get("/standings/<id>")]
+pub fn get_standings(id: Uuid) -> StandingsResponse {
+    StandingsResponse::new(
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(id))
+            .map(|a| a.get_standings()),
+    )
+}
+
+#[get("/manage/<t_id>/ops/slice/<o_id>")]
+pub fn slice_ops(t_id: Uuid, o_id: Uuid) -> OpSliceResponse {
+    OpSliceResponse::new(
+        TOURNS_MAP
                 .get()
                 .unwrap()
-                .get(&id)
-                .map(|a| a.get_standings()),
-        ),
-        TournamentIdentifier::Name(_name) => {
-            todo!("Yet to be impl-ed");
-        }
-    }
+                .get(&TournamentId::new(t_id))
+                .map(|a| todo!())
+    )
 }
 
-#[post("/manage/list_ops", format = "json", data = "<data>")]
-pub fn list_ops(data: Json<ListOpsRequest>) -> ListOpsResponse {
-    match data.0.ident {
-        TournamentIdentifier::Id(id) => {
-            todo!()
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!()
-        }
-    }
+#[post("/manage/<id>/sync", format = "json", data = "<data>")]
+pub fn sync(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
+    SyncResponse::new(
+        TOURNS_MAP
+                .get()
+                .unwrap()
+                .get(&TournamentId::new(id))
+                .map(|a| todo!())
+    )
 }
 
-#[post("/manage/sync", format = "json", data = "<data>")]
-pub fn sync(data: Json<SyncRequest>) -> SyncResponse {
-    match data.0.ident {
-        TournamentIdentifier::Id(id) => {
-            todo!()
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!()
-        }
-    }
-}
-
-#[post("/manage/rollback", format = "json", data = "<data>")]
-pub fn rollback(data: Json<RollbackRequest>) -> RollbackResponse {
-    match data.0.ident {
-        TournamentIdentifier::Id(id) => {
-            todo!()
-        }
-        TournamentIdentifier::Name(_name) => {
-            todo!()
-        }
-    }
+#[post("/manage/<id>/rollback", format = "json", data = "<data>")]
+pub fn rollback(id: Uuid, data: Json<RollbackRequest>) -> RollbackResponse {
+    RollbackResponse::new(
+        TOURNS_MAP
+                .get()
+                .unwrap()
+                .get(&TournamentId::new(id))
+                .map(|a| todo!())
+    )
 }
