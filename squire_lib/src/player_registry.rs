@@ -37,8 +37,8 @@ impl PlayerRegistry {
     /// Returns a list of copied player ids, this is used in FFI mostly.
     pub fn get_player_ids(&self) -> Vec<PlayerId> {
         let mut ret: Vec<PlayerId> = Vec::new();
-        self.players.iter().for_each(|(id, _)| ret.push(id.clone()));
-        return ret;
+        self.players.iter().for_each(|(id, _)| ret.push(*id));
+        ret
     }
 
     /// Checks in a player for registration
@@ -92,9 +92,9 @@ impl PlayerRegistry {
             Err(TournamentError::PlayerLookup)
         } else {
             let plyr = Player::new(name.clone());
-            let digest = Ok(plyr.id.clone());
-            self.name_and_id.insert(name, plyr.id.clone());
-            self.players.insert(plyr.id.clone(), plyr);
+            let digest = Ok(plyr.id);
+            self.name_and_id.insert(name, plyr.id);
+            self.players.insert(plyr.id, plyr);
             digest
         }
     }
@@ -131,7 +131,7 @@ impl PlayerRegistry {
     /// Given a player identifier, returns that player's id if found
     pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Option<PlayerId> {
         match ident {
-            PlayerIdentifier::Id(id) => Some(id.clone()),
+            PlayerIdentifier::Id(id) => Some(*id),
             PlayerIdentifier::Name(name) => self.name_and_id.get_right(name).cloned(),
         }
     }

@@ -1,5 +1,4 @@
 use crate::{
-    tournament::PairingSystem,
     identifiers::PlayerId, pairings::Pairings, player_registry::PlayerRegistry,
     round_registry::RoundRegistry, settings::FluidPairingsSetting,
 };
@@ -15,12 +14,6 @@ pub struct FluidPairings {
     players_per_match: u8,
     check_ins: HashSet<PlayerId>,
     queue: Vec<PlayerId>,
-}
-
-impl Into<PairingSystem> for FluidPairings {
-    fn into(self) -> PairingSystem {
-        PairingSystem::Fluid(self)
-    }
 }
 
 impl FluidPairings {
