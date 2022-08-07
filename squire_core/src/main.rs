@@ -1,26 +1,27 @@
+#![allow(unused)]
 use dashmap::DashMap;
-use rocket::{get, routes, Build, Rocket};
-use squire_sdk::accounts::{AccountId, UserAccount};
-use uuid::Uuid;
+use rocket::{routes, Build, Rocket};
+//use squire_sdk::accounts::{AccountId, UserAccount};
+//use uuid::Uuid;
 
 #[cfg(test)]
 mod tests;
 
-mod accounts;
+//mod accounts;
 mod matches;
 mod players;
 mod tournaments;
 
-use accounts::*;
+//use accounts::*;
 use players::*;
 use tournaments::*;
 
 pub fn init() -> Rocket<Build> {
-    let _ = USERS_MAP.set(DashMap::new());
-    let _ = ORGS_MAP.set(DashMap::new());
+    //let _ = USERS_MAP.set(DashMap::new());
+    //let _ = ORGS_MAP.set(DashMap::new());
     let _ = TOURNS_MAP.set(DashMap::new());
     rocket::build()
-        .mount("/api/v1/accounts", routes![users, all_users, orgs])
+        //.mount("/api/v1/accounts", routes![users, all_users, orgs])
         .mount(
             "/api/v1/tournaments",
             routes![
@@ -48,6 +49,7 @@ pub fn init() -> Rocket<Build> {
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     let client = init();
+    /*
     let id = AccountId(Uuid::new_v4());
     let account = UserAccount {
         external_id: id.clone(),
@@ -56,6 +58,7 @@ async fn main() -> Result<(), rocket::Error> {
     };
     println!("{account:?}");
     USERS_MAP.get().unwrap().insert(id, account);
+    */
     client.launch().await?;
 
     Ok(())

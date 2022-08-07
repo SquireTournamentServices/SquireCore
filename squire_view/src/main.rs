@@ -6,8 +6,9 @@ use reqwasm::http::{Request, RequestMode};
 use serde::Deserialize;
 use serde_json;
 
-use squire_sdk::accounts::{AccountId, UserAccount};
+//use squire_sdk::accounts::{AccountId, UserAccount};
 
+/*
 #[derive(Properties)]
 struct UserListProps {
     users: HashMap<AccountId, UserAccount>,
@@ -24,9 +25,12 @@ fn user_list(UserListProps { users }: &UserListProps) -> Html {
         })
         .collect()
 }
+*/
 
 #[function_component(App)]
 fn app() -> Html {
+    todo!()
+    /*
     let users = use_state(|| HashMap::new());
     {
         let users = users.clone();
@@ -61,14 +65,17 @@ fn app() -> Html {
             </div>
             </>
     }
+    */
 }
 
 fn main() {
     yew::start_app::<App>();
 }
 
+/*
 impl PartialEq for UserListProps {
     fn eq(&self, other: &Self) -> bool {
         self.users.len().eq(&other.users.len())
     }
 }
+*/
