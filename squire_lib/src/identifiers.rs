@@ -3,7 +3,13 @@ use std::{hash::Hash, marker::PhantomData, ops::Deref};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{operations::FullOp, player::Player, round::Round, tournament::Tournament};
+use crate::{
+    accounts::{OrganizationAccount, SquireAccount},
+    operations::FullOp,
+    player::Player,
+    round::Round,
+    tournament::Tournament,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[repr(C)]
@@ -16,6 +22,10 @@ pub type PlayerId = TypeId<Player>;
 pub type RoundId = TypeId<Round>;
 /// A type-checked Uuid for tournaments
 pub type TournamentId = TypeId<Tournament>;
+/// A type-checked Uuid for user accounts
+pub type UserAccountId = TypeId<SquireAccount>;
+/// A type-checked Uuid for org accounts
+pub type OrganizationAccountId = TypeId<OrganizationAccount>;
 /// A type-checked Uuid for tournament operations
 pub type OpId = TypeId<FullOp>;
 
@@ -82,20 +92,32 @@ impl<T> Deref for TypeId<T> {
     }
 }
 
-impl Into<PlayerIdentifier> for PlayerId {
-    fn into(self) -> PlayerIdentifier {
-        PlayerIdentifier::Id(self)
+impl<T> From<TypeId<T>> for Uuid {
+    fn from(other: TypeId<T>) -> Uuid {
+        other.0
     }
 }
 
-impl Into<RoundIdentifier> for RoundId {
-    fn into(self) -> RoundIdentifier {
-        RoundIdentifier::Id(self)
+impl<T> From<Uuid> for TypeId<T> {
+    fn from(other: Uuid) -> TypeId<T> {
+        TypeId(other, PhantomData)
     }
 }
 
-impl Into<TournamentIdentifier> for TournamentId {
-    fn into(self) -> TournamentIdentifier {
-        TournamentIdentifier::Id(self)
+impl From<PlayerId> for PlayerIdentifier {
+    fn from(other: PlayerId) -> PlayerIdentifier {
+        PlayerIdentifier::Id(other)
+    }
+}
+
+impl From<RoundId> for RoundIdentifier {
+    fn from(other: RoundId) -> RoundIdentifier {
+        RoundIdentifier::Id(other)
+    }
+}
+
+impl From<TournamentId> for TournamentIdentifier {
+    fn from(other: TournamentId) -> TournamentIdentifier {
+        TournamentIdentifier::Id(other)
     }
 }

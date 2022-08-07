@@ -12,7 +12,6 @@ use crate::{
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
     settings::StandardScoringSetting,
-    tournament::ScoringSystem,
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -79,12 +78,6 @@ pub struct StandardScoring {
     include_gwp: bool,
     include_opp_mwp: bool,
     include_opp_gwp: bool,
-}
-
-impl Into<ScoringSystem> for StandardScoring {
-    fn into(self) -> ScoringSystem {
-        ScoringSystem::Standard(self)
-    }
 }
 
 impl StandardScoring {

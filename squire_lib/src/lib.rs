@@ -37,6 +37,8 @@ pub mod ffi_player;
 /// Contains the ffi C bindings for a tournament used in SquireDesktop
 pub mod ffi_tournament;
 
+/// Contains the models for user and organization accounts
+pub mod accounts;
 /// Contains a queue-based pairings system model
 pub mod fluid_pairings;
 /// Contains identifiers for all major tournament types

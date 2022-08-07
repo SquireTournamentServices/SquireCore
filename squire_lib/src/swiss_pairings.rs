@@ -1,5 +1,4 @@
 use crate::{
-    tournament::PairingSystem,
     identifiers::{PlayerId, PlayerIdentifier},
     pairings::Pairings,
     player::PlayerStatus,
@@ -19,12 +18,6 @@ pub struct SwissPairings {
     players_per_match: u8,
     do_check_ins: bool,
     check_ins: HashSet<PlayerId>,
-}
-
-impl Into<PairingSystem> for SwissPairings {
-    fn into(self) -> PairingSystem {
-        PairingSystem::Swiss(self)
-    }
 }
 
 impl SwissPairings {
