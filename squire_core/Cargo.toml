@@ -8,9 +8,10 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
 # In-House deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
 squire_lib = { path = "../squire_lib" }
 squire_sdk = { path = "../squire_sdk" }
+cycle_map = { version = "0.1.1", features = ["serde"] }
 
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "tls", "json"] }
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
@@ -19,6 +20,7 @@ serde_json = { version = "1.0.68" }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 once_cell = { version = "1.13.0" }
 dashmap = { version = "5.0", features = ["serde"] }
+reqwest = { version = "0.11.10", features = ["json"] }
 #hyper = { version = "0.14.20" }
 #hyper-tls = { version = "0.5" }
 

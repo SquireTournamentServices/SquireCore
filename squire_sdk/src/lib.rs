@@ -24,3 +24,5 @@ pub mod players;
 pub mod response;
 /// Request/response structs for SquireCore tournament apis
 pub mod tournaments;
+/// Request/response structs for SquireCore card apis
+pub mod cards;
