@@ -6,6 +6,7 @@ use cycle_map::CycleMap;
 
 pub use crate::identifiers::PlayerIdentifier;
 use crate::{
+    accounts::SquireAccount,
     error::TournamentError,
     identifiers::PlayerId,
     player::{Player, PlayerStatus},
@@ -87,11 +88,12 @@ impl PlayerRegistry {
     */
 
     /// Creates a new player
-    pub fn add_player(&mut self, name: String) -> Result<PlayerId, TournamentError> {
-        if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
+    pub fn add_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
+        if self.verify_identifier(&PlayerIdentifier::Name(account.user_name.clone())) {
             Err(TournamentError::PlayerLookup)
         } else {
-            let plyr = Player::new(name.clone());
+            let name = account.user_name.clone();
+            let plyr = Player::from_account(account);
             let digest = Ok(plyr.id);
             self.name_and_id.insert(name, plyr.id);
             self.players.insert(plyr.id, plyr);

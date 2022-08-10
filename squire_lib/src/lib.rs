@@ -37,6 +37,8 @@ pub mod ffi_tournament;
 
 /// Contains the models for user and organization accounts
 pub mod accounts;
+/// Contains the models for judges and admins
+pub mod admin;
 /// Contains a queue-based pairings system model
 pub mod fluid_pairings;
 /// Contains identifiers for all major tournament types

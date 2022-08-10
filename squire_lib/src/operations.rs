@@ -6,8 +6,10 @@ use uuid::Uuid;
 use mtgjson::model::deck::Deck;
 
 use crate::{
+    accounts::SquireAccount,
+    admin::TournOfficialId,
     error::TournamentError,
-    identifiers::{OpId, PlayerIdentifier, RoundIdentifier},
+    identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
     round::{RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
@@ -16,11 +18,14 @@ use crate::{
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournOp {
+    // Top level operations
+    /// Operation to mark the creation of a tournament
+    Create(SquireAccount, String, TournamentPreset, String),
     // Non-admin operations
     /// Operation for a player check themself into a tournament
     CheckIn(PlayerIdentifier),
     /// Operation for a player register themself for a tournament
-    RegisterPlayer(String),
+    RegisterPlayer(SquireAccount),
     /// Operation for a player drop themself from a tournament
     DropPlayer(PlayerIdentifier),
     /// Operation for a player record their round result
@@ -37,53 +42,60 @@ pub enum TournOp {
     ReadyPlayer(PlayerIdentifier),
     /// Operation for a player to mark themself as unready for their next round
     UnReadyPlayer(PlayerIdentifier),
-    // Admin-level operations
-    /// Operation to mark the creation of a tournament
-    Create(String, TournamentPreset, String),
-    /// Operation to check the registration status of the tournament
-    UpdateReg(bool),
-    /// Operation to start a tournament
-    Start(),
-    /// Operation to freeze a tournament
-    Freeze(),
-    /// Operation to thaw a tournament
-    Thaw(),
-    /// Operation to end a tournament
-    End(),
-    /// Operation to cancel a tournament
-    Cancel(),
+    // Judge/Admin-level operations
+    /// Operation for adding a guest player to a tournament (i.e. someone without an account)
+    RegisterGuest(TournOfficialId, String),
     /// Operation to register a player via an admin
-    AdminRegisterPlayer(String),
+    AdminRegisterPlayer(TournOfficialId, String),
     /// Operation to record the result of a round via an admin
-    AdminRecordResult(RoundIdentifier, RoundResult),
+    AdminRecordResult(TournOfficialId, RoundIdentifier, RoundResult),
     /// Operation to confirm the result of a round via an admin
-    AdminConfirmResult(PlayerIdentifier),
-    /// Operation to drop a player via an admin
-    AdminDropPlayer(PlayerIdentifier),
+    AdminConfirmResult(TournOfficialId, PlayerIdentifier),
     /// Operation to add a deck for a player via an admin
-    AdminAddDeck(PlayerIdentifier, String, Deck),
+    AdminAddDeck(TournOfficialId, PlayerIdentifier, String, Deck),
     /// Operation to mark a player as ready for their next round via an admin
-    AdminReadyPlayer(PlayerIdentifier),
+    AdminReadyPlayer(TournOfficialId, PlayerIdentifier),
     /// Operation to mark a player as unready for their next round via an admin
-    AdminUnReadyPlayer(PlayerIdentifier),
-    /// Operation to kill a round
-    RemoveRound(RoundIdentifier),
-    /// Operation to update a single tournament setting
-    UpdateTournSetting(TournamentSetting),
-    /// Operation to give a player a bye
-    GiveBye(PlayerIdentifier),
-    /// Operation to manually create a round
-    CreateRound(Vec<PlayerIdentifier>),
-    /// Operation to attempt to pair the next set of rounds
-    PairRound(),
+    AdminUnReadyPlayer(TournOfficialId, PlayerIdentifier),
     /// Operation to give a round a time extension
-    TimeExtension(RoundIdentifier, Duration),
+    TimeExtension(TournOfficialId, RoundIdentifier, Duration),
+    // Admin-level operations
+    /// Operation to check the registration status of the tournament
+    UpdateReg(AdminId, bool),
+    /// Operation to start a tournament
+    Start(AdminId),
+    /// Operation to freeze a tournament
+    Freeze(AdminId),
+    /// Operation to thaw a tournament
+    Thaw(AdminId),
+    /// Operation to end a tournament
+    End(AdminId),
+    /// Operation to cancel a tournament
+    Cancel(AdminId),
+    /// Operation to overwrite the result of a round via an admin (used after a confirmation)
+    AdminOverwriteResult(AdminId, RoundIdentifier, RoundResult),
+    /// Operation for adding a new judge to the tournament
+    RegisterJudge(AdminId, SquireAccount),
+    /// Operation for adding a new tournament admin
+    RegisterAdmin(AdminId, SquireAccount),
+    /// Operation to drop a player via an admin
+    AdminDropPlayer(AdminId, PlayerIdentifier),
+    /// Operation to kill a round
+    RemoveRound(AdminId, RoundIdentifier),
+    /// Operation to update a single tournament setting
+    UpdateTournSetting(AdminId, TournamentSetting),
+    /// Operation to give a player a bye
+    GiveBye(AdminId, PlayerIdentifier),
+    /// Operation to manually create a round
+    CreateRound(AdminId, Vec<PlayerIdentifier>),
+    /// Operation to attempt to pair the next set of rounds
+    PairRound(AdminId),
     /// Operation to cut to the top N players (by standings)
-    Cut(usize),
+    Cut(AdminId, usize),
     /// Operation to prune excess decks from players
-    PruneDecks(),
+    PruneDecks(AdminId),
     /// Operation to prune players that aren't fully registered
-    PrunePlayers(),
+    PrunePlayers(AdminId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -618,251 +630,5 @@ impl TournOp {
             PrunePlayers => false,
         }
         */
-    }
-
-    /// Swaps the player identifier in an operation for another. Uses to swap an id for a name in
-    /// the operation sync protocol
-    pub fn swap_player_ident(self, ident: PlayerIdentifier) -> Self {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_, _, _)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | RemoveRound(_)
-            | RecordResult(_, _)
-            | CreateRound(_)
-            | AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _) => self,
-            CheckIn(_) => Self::CheckIn(ident),
-            ConfirmResult(_) => Self::ConfirmResult(ident),
-            DropPlayer(_) => Self::DropPlayer(ident),
-            AdminDropPlayer(_) => Self::AdminDropPlayer(ident),
-            AddDeck(_, name, deck) => Self::AddDeck(ident, name, deck),
-            RemoveDeck(_, deck) => Self::RemoveDeck(ident, deck),
-            SetGamerTag(_, name) => Self::SetGamerTag(ident, name),
-            ReadyPlayer(_) => Self::ReadyPlayer(ident),
-            UnReadyPlayer(_) => Self::UnReadyPlayer(ident),
-            GiveBye(_) => Self::GiveBye(ident),
-            AdminConfirmResult(_) => Self::AdminConfirmResult(ident),
-            AdminAddDeck(_, name, deck) => Self::AdminAddDeck(ident, name, deck),
-            AdminReadyPlayer(_) => Self::AdminReadyPlayer(ident),
-            AdminUnReadyPlayer(_) => Self::UnReadyPlayer(ident),
-        }
-    }
-
-    /// Swaps all the player identifiers in an operation for another set of identifiers. Uses to
-    /// swap ids for names in the operation sync protocol
-    pub fn swap_all_player_idents(self, idents: Vec<PlayerIdentifier>) -> Self {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_, _, _)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | RemoveRound(_)
-            | RecordResult(_, _)
-            | CheckIn(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | GiveBye(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | AdminRegisterPlayer(_)
-            | AdminConfirmResult(_)
-            | AdminRecordResult(_, _) => self,
-            CreateRound(_) => Self::CreateRound(idents),
-        }
-    }
-
-    /// Swaps a match identifier in an operation for another identifier. Uses to swap ids for match
-    /// numbers in the operation sync protocol
-    pub fn swap_match_ident(self, ident: RoundIdentifier) -> Self {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_, _, _)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | CheckIn(_)
-            | RegisterPlayer(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | RemoveRound(_)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | UpdateTournSetting(_)
-            | GiveBye(_)
-            | CreateRound(_)
-            | PairRound()
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | AdminRegisterPlayer(_)
-            | AdminConfirmResult(_) => self,
-            AdminRecordResult(_, res) => Self::AdminRecordResult(ident, res),
-            TimeExtension(_, dur) => Self::TimeExtension(ident, dur),
-            RecordResult(_, res) => Self::RecordResult(ident, res),
-        }
-    }
-
-    /// Returns the player identifier of an operation if that operation contains exactly on player
-    /// identifier
-    pub fn get_player_ident(&self) -> Option<PlayerIdentifier> {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_, _, _)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | RemoveRound(_)
-            | RecordResult(_, _)
-            | AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _)
-            | CreateRound(_) => None,
-            CheckIn(ident)
-            | ConfirmResult(ident)
-            | DropPlayer(ident)
-            | AdminDropPlayer(ident)
-            | AddDeck(ident, _, _)
-            | RemoveDeck(ident, _)
-            | SetGamerTag(ident, _)
-            | ReadyPlayer(ident)
-            | UnReadyPlayer(ident)
-            | AdminConfirmResult(ident)
-            | AdminAddDeck(ident, _, _)
-            | AdminReadyPlayer(ident)
-            | AdminUnReadyPlayer(ident)
-            | GiveBye(ident) => Some(ident.clone()),
-        }
-    }
-
-    // Used only for CreateRound
-    /// Returns all the player identifiers of an operation if that operation contains multiple identifiers
-    pub fn list_player_ident(&self) -> Option<Vec<PlayerIdentifier>> {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_, _, _)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | CheckIn(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | GiveBye(_)
-            | PrunePlayers()
-            | RemoveRound(_)
-            | AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _)
-            | AdminConfirmResult(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | RecordResult(_, _) => None,
-            CreateRound(idents) => Some(idents.clone()),
-        }
-    }
-
-    /// Returns the round identifier of an operation if that operation contains exactly on round
-    /// identifier.
-    pub fn get_match_ident(&self) -> Option<RoundIdentifier> {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_, _, _)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | CheckIn(_)
-            | RegisterPlayer(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | RemoveRound(_)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | UpdateTournSetting(_)
-            | GiveBye(_)
-            | CreateRound(_)
-            | PairRound()
-            | Cut(_)
-            | AdminRegisterPlayer(_)
-            | AdminConfirmResult(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | PruneDecks()
-            | PrunePlayers() => None,
-            AdminRecordResult(ident, _) | TimeExtension(ident, _) | RecordResult(ident, _) => {
-                Some(ident.clone())
-            }
-        }
     }
 }
