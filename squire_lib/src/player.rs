@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use mtgjson::model::deck::Deck;
 
-use crate::error::TournamentError;
 pub use crate::identifiers::PlayerId;
+use crate::{accounts::SquireAccount, error::TournamentError};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 #[repr(C)]
@@ -47,6 +47,18 @@ impl Player {
             id: PlayerId::new(Uuid::new_v4()),
             name,
             game_name: None,
+            deck_ordering: Vec::new(),
+            decks: HashMap::new(),
+            status: PlayerStatus::Registered,
+        }
+    }
+
+    /// Creates a new player
+    pub fn from_account(account: SquireAccount) -> Self {
+        Player {
+            id: account.user_id.0.into(),
+            name: account.user_name,
+            game_name: account.arena_name,
             deck_ordering: Vec::new(),
             decks: HashMap::new(),
             status: PlayerStatus::Registered,

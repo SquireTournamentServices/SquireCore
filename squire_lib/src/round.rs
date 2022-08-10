@@ -40,13 +40,13 @@ pub enum RoundResult {
 /// A "round" might also be known as a "match" in some circles. This contains of at least two
 /// players playing at least one games against each other; however, a round can also encode a bye,
 /// a free win for exactly one player.
-/// 
+///
 /// Each round tracks its start time, expected length, and any extentions. The round clock starts
 /// immediately after being created.
-/// 
+///
 /// Results are recorded for each player as well as for each drawn game. After that, the results
 /// need to be confirmed by all players or by an admin.
-/// 
+///
 /// After the results have been confirmed, the round is consider certified and a winner is declared
 /// (if possible)
 pub struct Round {

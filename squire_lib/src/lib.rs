@@ -15,10 +15,8 @@
     unreachable_pub,
 )]
 #![warn(rust_2018_idioms)]
-
 // Used in FFI for access to the allocator's api
 #![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
-
 // TODO: Once FFI has been stablized, we should deny unsafe FFI types in FFI signatures
 //#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 
@@ -39,6 +37,8 @@ pub mod ffi_tournament;
 
 /// Contains the models for user and organization accounts
 pub mod accounts;
+/// Contains the models for judges and admins
+pub mod admin;
 /// Contains a queue-based pairings system model
 pub mod fluid_pairings;
 /// Contains identifiers for all major tournament types

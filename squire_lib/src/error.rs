@@ -20,6 +20,8 @@ pub enum TournamentError {
     PlayerLookup,
     /// The specified round couldn't be found
     RoundLookup,
+    /// The specified tournament official couldn't be found
+    OfficalLookup,
     /// The specified deck couldn't be found
     DeckLookup,
     /// Registration for the tournament is closed
@@ -49,6 +51,7 @@ impl fmt::Display for TournamentError {
             IncorrectStatus(_) => "IncorrectStatus",
             PlayerLookup => "PlayerLookup",
             RoundLookup => "RoundLookup",
+            OfficalLookup => "OfficalLookup",
             DeckLookup => "DeckLookup",
             RegClosed => "RegClosed",
             PlayerNotInRound => "PlayerNotInRound",
