@@ -5,7 +5,8 @@ use crate::{
     identifiers::{AdminId, OrganizationAccountId, UserAccountId},
     operations::TournOp,
     settings::TournamentSettingsTree,
-    tournament::{Tournament, TournamentPreset},
+    tournament::TournamentPreset,
+    tournament_manager::TournamentManager,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -61,6 +62,31 @@ pub struct OrganizationAccount {
     pub default_tournament_settings: TournamentSettingsTree,
 }
 
+impl SquireAccount {
+    /// Creates a new account object
+    pub fn new(user_name: String, display_name: String) -> Self {
+        Self {
+            user_name,
+            display_name,
+            user_id: Uuid::new_v4().into(),
+            arena_name: None,
+            mtgo_name: None,
+            trice_name: None,
+            do_share: SharingPermissions::Everything,
+        }
+    }
+
+    /// Creates a new tournament and loads it with the default settings of the org
+    pub fn create_tournament(
+        &self,
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> TournamentManager {
+        TournamentManager::new(self.clone(), name, preset, format)
+    }
+}
+
 impl OrganizationAccount {
     /// Creates a new account object
     pub fn new(owner: SquireAccount, org_name: String, display_name: String) -> Self {
@@ -81,8 +107,8 @@ impl OrganizationAccount {
         name: String,
         preset: TournamentPreset,
         format: String,
-    ) -> Tournament {
-        let mut tourn = Tournament::from_preset(name, preset, format);
+    ) -> TournamentManager {
+        let mut tourn = TournamentManager::new(self.owner.clone(), name, preset, format);
         let owner_id: AdminId = self.owner.user_id.0.into();
         for judge in self.default_judge.iter().cloned() {
             // Should never error
@@ -94,6 +120,7 @@ impl OrganizationAccount {
         }
         for s in self.default_tournament_settings.as_settings(preset) {
             // TODO: Should we be returning this error??
+            // Or maybe this should never error... The settings tree would have to enforce this.
             let _ = tourn.apply_op(TournOp::UpdateTournSetting(owner_id, s));
         }
         tourn
