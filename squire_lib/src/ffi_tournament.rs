@@ -318,7 +318,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         .unwrap()
         .contains_key(&tournament.id)
     {
-        println!("Input file is already open");
+        println!("[FFI]: Input tournament is already open");
         return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
     }
 
