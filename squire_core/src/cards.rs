@@ -7,10 +7,9 @@ use once_cell::sync::OnceCell;
 use rocket::{get, post, serde::json::Json};
 
 use cycle_map::cycle_map::CycleMap;
+use serde::{Deserialize, Serialize};
 use squire_sdk::cards::{AtomicCardsResponse, MetaResponse, MinimalCardsResponse};
 use tokio::sync::RwLock;
-use serde::{Serialize, Deserialize};
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// Used for requests to MTGJSON
@@ -25,7 +24,6 @@ pub static META_CACHE: OnceCell<RwLock<Meta>> = OnceCell::new();
 pub static ATOMICS_MAP: OnceCell<RwLock<Atomics>> = OnceCell::new();
 /// The cache of collections of minimal cards
 pub static MINIMAL_CACHE: OnceCell<DashMap<String, MinimalCardCollection>> = OnceCell::new();
-
 
 #[get("/meta")]
 pub async fn meta() -> MetaResponse {
@@ -50,7 +48,13 @@ pub async fn minimal(lang: String) -> MinimalCardsResponse {
             let cards: CycleMap<String, MinimalCard> = atomics
                 .data
                 .iter()
-                .map(|(name, card)| (name.clone(), card.as_minimal(&lang).expect(&format!("Could not minimize {name} in {lang}"))))
+                .map(|(name, card)| {
+                    (
+                        name.clone(),
+                        card.as_minimal(&lang)
+                            .expect(&format!("Could not minimize {name} in {lang}")),
+                    )
+                })
                 .collect();
             let coll = MinimalCardCollection { cards };
             MINIMAL_CACHE.get().unwrap().insert(lang, coll.clone());

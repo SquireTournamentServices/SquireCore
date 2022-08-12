@@ -4,9 +4,9 @@ use rocket::{get, post, serde::json::Json};
 
 use squire_lib::tournament::{Tournament, TournamentId};
 use squire_sdk::tournaments::{
-    self, CreateResponse, AllTournamentsResponse, RollbackRequest,
-    RollbackResponse, StandingsResponse, SyncRequest, SyncResponse,
-    TournamentCreateRequest, TournamentGetResponse, OpSliceResponse,
+    self, AllTournamentsResponse, CreateResponse, OpSliceResponse, RollbackRequest,
+    RollbackResponse, StandingsResponse, SyncRequest, SyncResponse, TournamentCreateRequest,
+    TournamentGetResponse,
 };
 use uuid::Uuid;
 
@@ -68,10 +68,10 @@ pub fn slice_ops(t_id: Uuid, o_id: Uuid) -> OpSliceResponse {
 pub fn refresh(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
     SyncResponse::new(
         TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&TournamentId::new(id))
-                .map(|a| todo!())
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(id))
+            .map(|a| todo!()),
     )
 }
 
