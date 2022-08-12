@@ -3,7 +3,7 @@ use crate::tournament::Tournament;
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use std::alloc::{Allocator, Layout, System};
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 
 /// NULL UUIDs are returned on errors
@@ -39,7 +39,14 @@ pub unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
         slice[i] = s_str[i] as i8;
         i += 1;
     }
-    slice[i] = 0;
+    slice[s.len()] = 0;
 
     return ptr;
+}
+
+/// Deallocates a block assigned in the FFI portion, 
+/// use this when handling with squire strings
+#[no_mangle]
+pub unsafe extern "C" fn sq_free(pointer: *mut c_void, len: usize) {
+    System.deallocate(ptr::NonNull::new(pointer as *mut u8).unwrap(), Layout::from_size_align(len, 1).unwrap());
 }
