@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use squire_lib::{operations::{OpSlice, OpSync, Rollback, SyncStatus, RollbackError}, identifiers::OpId};
 pub use squire_lib::{
     error::TournamentError,
     identifiers::{TournamentId, TournamentIdentifier},
@@ -9,6 +8,10 @@ pub use squire_lib::{
     scoring::Standings,
     standard_scoring::StandardScore,
     tournament::{Tournament, TournamentPreset},
+};
+use squire_lib::{
+    identifiers::OpId,
+    operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus},
 };
 
 use crate::response::SquireResponse;
@@ -82,7 +85,7 @@ pub enum RefreshError {
     OpNotFound(OpId),
     /// The requested operation was found but was not where it was expected. Thsi likely is because
     /// a sync reordered these operations
-    OutOfOrder{
+    OutOfOrder {
         /// The operation id that was part of the request
         expected: OpId,
         /// The operation id that was found in its place
