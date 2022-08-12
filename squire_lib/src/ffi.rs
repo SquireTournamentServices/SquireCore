@@ -13,12 +13,13 @@ pub const NULL_UUID_BYTES: [u8; 16] = [0; 16];
 /// this is used for allocating ffi tournaments
 /// all ffi tournaments are always deeply copied
 /// at the lanuage barrier
-pub static FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
+pub static mut FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> =
+    OnceCell::new();
 
 /// Call this in main()
 /// Inits the internal structs of squire lib for FFI.
 #[no_mangle]
-pub extern "C" fn init_squire_ffi() {
+pub unsafe extern "C" fn init_squire_ffi() {
     let map: DashMap<TournamentId, Tournament> = DashMap::new();
     FFI_TOURNAMENT_REGISTRY.set(map).unwrap();
 }
@@ -44,9 +45,12 @@ pub unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
     return ptr;
 }
 
-/// Deallocates a block assigned in the FFI portion, 
+/// Deallocates a block assigned in the FFI portion,
 /// use this when handling with squire strings
 #[no_mangle]
 pub unsafe extern "C" fn sq_free(pointer: *mut c_void, len: usize) {
-    System.deallocate(ptr::NonNull::new(pointer as *mut u8).unwrap(), Layout::from_size_align(len, 1).unwrap());
+    System.deallocate(
+        ptr::NonNull::new(pointer as *mut u8).unwrap(),
+        Layout::from_size_align(len, 1).unwrap(),
+    );
 }

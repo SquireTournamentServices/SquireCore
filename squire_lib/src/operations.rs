@@ -7,7 +7,7 @@ use mtgjson::model::deck::Deck;
 
 use crate::{
     error::TournamentError,
-    identifiers::{PlayerIdentifier, RoundIdentifier, OpId},
+    identifiers::{OpId, PlayerIdentifier, RoundIdentifier},
     round::{RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
@@ -619,7 +619,7 @@ impl TournOp {
         }
         */
     }
-    
+
     /// Swaps the player identifier in an operation for another. Uses to swap an id for a name in
     /// the operation sync protocol
     pub fn swap_player_ident(self, ident: PlayerIdentifier) -> Self {

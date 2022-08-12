@@ -4,9 +4,8 @@ use rocket::{get, post, serde::json::Json};
 
 use squire_lib::tournament::{Tournament, TournamentId};
 use squire_sdk::tournaments::{
-    self, CreateResponse, GetAllResponse, RollbackRequest,
-    RollbackResponse, StandingsResponse, SyncRequest, SyncResponse,
-    TournamentCreateRequest, TournamentGetResponse, OpSliceResponse,
+    self, CreateResponse, GetAllResponse, OpSliceResponse, RollbackRequest, RollbackResponse,
+    StandingsResponse, SyncRequest, SyncResponse, TournamentCreateRequest, TournamentGetResponse,
 };
 use uuid::Uuid;
 
@@ -57,10 +56,10 @@ pub fn get_standings(id: Uuid) -> StandingsResponse {
 pub fn slice_ops(t_id: Uuid, o_id: Uuid) -> OpSliceResponse {
     OpSliceResponse::new(
         TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&TournamentId::new(t_id))
-                .map(|a| todo!())
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|a| todo!()),
     )
 }
 
@@ -68,10 +67,10 @@ pub fn slice_ops(t_id: Uuid, o_id: Uuid) -> OpSliceResponse {
 pub fn sync(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
     SyncResponse::new(
         TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&TournamentId::new(id))
-                .map(|a| todo!())
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(id))
+            .map(|a| todo!()),
     )
 }
 
@@ -79,9 +78,9 @@ pub fn sync(id: Uuid, data: Json<SyncRequest>) -> SyncResponse {
 pub fn rollback(id: Uuid, data: Json<RollbackRequest>) -> RollbackResponse {
     RollbackResponse::new(
         TOURNS_MAP
-                .get()
-                .unwrap()
-                .get(&TournamentId::new(id))
-                .map(|a| todo!())
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(id))
+            .map(|a| todo!()),
     )
 }

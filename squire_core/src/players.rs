@@ -132,14 +132,11 @@ pub fn get_player_deck(t_id: Uuid, p_id: Uuid, name: String) -> GetDeckResponse 
 pub fn get_all_player_decks(t_id: Uuid, p_id: Uuid) -> GetAllPlayerDecksResponse {
     let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
     GetAllPlayerDecksResponse::new(
-        TOURNS_MAP.get().unwrap().get(&TournamentId::new(t_id)).map(
-        |tourn| {
-            tourn
-                .get_player(&p_id)
-                .ok()
-                .map(|p| p.decks.clone())
-        },
-    )
+        TOURNS_MAP
+            .get()
+            .unwrap()
+            .get(&TournamentId::new(t_id))
+            .map(|tourn| tourn.get_player(&p_id).ok().map(|p| p.decks.clone())),
     )
 }
 

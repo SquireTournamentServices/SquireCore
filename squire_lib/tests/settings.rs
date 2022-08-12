@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use squire_lib::{
+        error::TournamentError,
         operations::TournOp::*,
         settings::*,
-        error::TournamentError,
         tournament::{Tournament, TournamentPreset},
     };
 

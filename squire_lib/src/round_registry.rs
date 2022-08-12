@@ -88,10 +88,7 @@ impl RoundRegistry {
 
     /// Calculates the number of rounds that are not confirmed or dead
     pub fn active_round_count(&self) -> usize {
-        self.rounds
-            .iter()
-            .filter(|(_, r)| r.is_active())
-            .count()
+        self.rounds.iter().filter(|(_, r)| r.is_active()).count()
     }
 
     /* TODO: Is this needed?
@@ -187,7 +184,7 @@ impl RoundRegistry {
     /// but we must prepare for the worst). Should this ever happen, we return the "oldest" active
     /// match of theirs. However, this is FAR from ideal as every match certification requires a
     /// pass through all matches... gross.
-    /// 
+    ///
     /// Potentail clean up: We can likely avoid this be maintaining that a player can be in at most
     /// one match at a time. We can then use a GroupMap to look up match ids via player ids.
     pub fn get_player_active_round(
