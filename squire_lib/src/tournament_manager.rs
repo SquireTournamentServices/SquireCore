@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::{
     collections::{HashMap, HashSet},
     slice::Iter,
@@ -10,8 +9,8 @@ use cycle_map::CycleMap;
 use uuid::Uuid;
 
 use crate::{
-    error::TournamentError,
-    identifiers::{OpId, PlayerIdentifier, RoundIdentifier},
+    accounts::SquireAccount,
+    identifiers::OpId,
     operations::{
         FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncError, SyncStatus, TournOp,
     },
@@ -33,9 +32,14 @@ pub struct TournamentManager {
 
 impl TournamentManager {
     /// Creates a tournament manager, tournament, and operations log
-    pub fn new(name: String, preset: TournamentPreset, format: String) -> Self {
+    pub fn new(
+        owner: SquireAccount,
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> Self {
         let first_op = FullOp {
-            op: TournOp::Create(name.clone(), preset, format.clone()),
+            op: TournOp::Create(owner, name.clone(), preset, format.clone()),
             id: Uuid::new_v4().into(),
             active: true,
         };
@@ -115,36 +119,6 @@ impl TournamentManager {
     /// it to the tournament, and returns the result.
     /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
-        // NOTE: We need to ensure that common data is being stored in the op log, i.e. player
-        // names and match numbers instead of IDs. IDs aren't shared between clients.
-        let op = if let Some(ident) = op.get_player_ident() {
-            let name = self
-                .tourn
-                .player_reg
-                .get_player_name(&ident)
-                .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_player_ident(PlayerIdentifier::Name(name))
-        } else if let Some(idents) = op.list_player_ident() {
-            let mut new_idents = Vec::with_capacity(idents.len());
-            for ident in idents {
-                new_idents.push(PlayerIdentifier::Name(
-                    self.tourn
-                        .player_reg
-                        .get_player_name(&ident)
-                        .ok_or(TournamentError::PlayerLookup)?,
-                ));
-            }
-            op.swap_all_player_idents(new_idents)
-        } else if let Some(ident) = op.get_match_ident() {
-            let num = self
-                .tourn
-                .round_reg
-                .get_round_number(&ident)
-                .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_match_ident(RoundIdentifier::Number(num))
-        } else {
-            op
-        };
         let f_op = FullOp::new(op.clone());
         self.log.ops.push(f_op);
         self.tourn.apply_op(op)
@@ -155,7 +129,7 @@ impl TournamentManager {
         let mut iter = self.log.ops.iter();
         let tourn = match iter.next() {
             Some(FullOp {
-                op: TournOp::Create(name, seed, format),
+                op: TournOp::Create(_, name, seed, format),
                 ..
             }) => Tournament::from_preset(name.clone(), *seed, format.clone()),
             _ => {

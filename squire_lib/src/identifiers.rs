@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     accounts::{OrganizationAccount, SquireAccount},
+    admin::{Admin, Judge},
     operations::FullOp,
     player::Player,
     round::Round,
@@ -28,6 +29,10 @@ pub type UserAccountId = TypeId<SquireAccount>;
 pub type OrganizationAccountId = TypeId<OrganizationAccount>;
 /// A type-checked Uuid for tournament operations
 pub type OpId = TypeId<FullOp>;
+/// A type-checked Uuid for tournament judges
+pub type JudgeId = TypeId<Judge>;
+/// A type-checked Uuid for tournament admin
+pub type AdminId = TypeId<Admin>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 /// An enum for identifying a player

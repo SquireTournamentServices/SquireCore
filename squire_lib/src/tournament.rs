@@ -6,9 +6,11 @@ use uuid::Uuid;
 use mtgjson::model::deck::Deck;
 
 use crate::{
+    accounts::SquireAccount,
+    admin::TournOfficialId,
     error::TournamentError,
     fluid_pairings::FluidPairings,
-    identifiers::{PlayerId, PlayerIdentifier, RoundIdentifier},
+    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::Pairings,
     player::{Player, PlayerStatus},
@@ -127,39 +129,45 @@ impl Tournament {
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
-            Create(_, _, _) => OpResult::Ok(OpData::Nothing),
-            UpdateReg(b) => self.update_reg(b),
-            Start() => self.start(),
-            Freeze() => self.freeze(),
-            Thaw() => self.thaw(),
-            End() => self.end(),
-            Cancel() => self.cancel(),
+            Create(..) => OpResult::Ok(OpData::Nothing),
+            // Player ops
             CheckIn(p_ident) => self.check_in(&p_ident),
-            RegisterPlayer(name) => self.register_player(name),
+            RegisterPlayer(account) => self.register_player(account),
             RecordResult(r_ident, result) => self.record_result(&r_ident, result),
             ConfirmResult(p_ident) => self.confirm_round(&p_ident),
             DropPlayer(p_ident) => self.drop_player(&p_ident),
-            AdminDropPlayer(p_ident) => self.admin_drop_player(&p_ident),
             AddDeck(p_ident, name, deck) => self.player_add_deck(&p_ident, name, deck),
             RemoveDeck(p_ident, name) => self.remove_player_deck(&p_ident, name),
-            RemoveRound(r_ident) => self.remove_round(&r_ident),
             SetGamerTag(p_ident, tag) => self.player_set_game_name(&p_ident, tag),
             ReadyPlayer(p_ident) => self.ready_player(&p_ident),
             UnReadyPlayer(p_ident) => self.unready_player(&p_ident),
-            UpdateTournSetting(setting) => self.update_setting(setting),
-            GiveBye(p_ident) => self.give_bye(&p_ident),
-            CreateRound(p_idents) => self.create_round(p_idents),
-            PairRound() => self.pair(),
-            TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
-            Cut(n) => self.cut_to_top(n),
-            PruneDecks() => self.prune_decks(),
-            PrunePlayers() => self.prune_players(),
-            AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _)
-            | AdminConfirmResult(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_) => todo!()
+            // Judge/Admin ops
+            AdminDropPlayer(id, p_ident) => self.admin_drop_player(id, &p_ident),
+            RemoveRound(id, r_ident) => self.remove_round(id, &r_ident),
+            UpdateReg(id, b) => self.update_reg(id, b),
+            Start(id, ) => self.start(id, ),
+            Freeze(id, ) => self.freeze(id, ),
+            Thaw(id, ) => self.thaw(id, ),
+            End(id, ) => self.end(id, ),
+            Cancel(id, ) => self.cancel(id, ),
+            UpdateTournSetting(id, setting) => self.update_setting(id, setting),
+            GiveBye(id, p_ident) => self.give_bye(id, &p_ident),
+            CreateRound(id, p_idents) => self.create_round(id, p_idents),
+            PairRound(id, ) => self.pair(id, ),
+            TimeExtension(id, rnd, ext) => self.give_time_extension(id, &rnd, ext),
+            Cut(id, n) => self.cut_to_top(id, n),
+            PruneDecks(id, ) => self.prune_decks(id, ),
+            PrunePlayers(id, ) => self.prune_players(id, ),
+            AdminRegisterPlayer(..)
+            | RegisterGuest(..)
+            | RegisterJudge(..)
+            | RegisterAdmin(..)
+            | AdminRecordResult(..)
+            | AdminConfirmResult(..)
+            | AdminAddDeck(..)
+            | AdminReadyPlayer(..)
+            | AdminOverwriteResult(..)
+            | AdminUnReadyPlayer(..) => todo!()
             //ImportPlayer(plyr) => self.import_player(plyr),
             //ImportRound(rnd) => self.import_round(rnd),
         }
@@ -255,7 +263,7 @@ impl Tournament {
 
     /// Removes excess decks for players (as defined by `max_deck_count`). The newest decks are
     /// kept.
-    pub(crate) fn prune_decks(&mut self) -> OpResult {
+    pub(crate) fn prune_decks(&mut self, _: AdminId) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -273,7 +281,7 @@ impl Tournament {
     /// Removes players from the tournament that did not complete registration.
     /// This include players that did not submit enough decks (defined by `require_deck_reg` and
     /// `min_deck_count`) and that didn't check in (defined by `require_check_in`).
-    pub(crate) fn prune_players(&mut self) -> OpResult {
+    pub(crate) fn prune_players(&mut self, _: AdminId) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -295,7 +303,12 @@ impl Tournament {
     }
 
     /// Adds a time extension to a round
-    pub(crate) fn give_time_extension(&mut self, rnd: &RoundIdentifier, ext: Duration) -> OpResult {
+    pub(crate) fn give_time_extension(
+        &mut self,
+        _: TournOfficialId,
+        rnd: &RoundIdentifier,
+        ext: Duration,
+    ) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -325,7 +338,7 @@ impl Tournament {
     }
 
     /// Attempts to create the next set of rounds for the tournament
-    pub(crate) fn pair(&mut self) -> OpResult {
+    pub(crate) fn pair(&mut self, _: AdminId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -362,7 +375,7 @@ impl Tournament {
     /// Makes a round irrelevant to the tournament.
     /// NOTE: The round will still exist but will have a "dead" status and will be ignored by the
     /// tournament.
-    pub(crate) fn remove_round(&mut self, ident: &RoundIdentifier) -> OpResult {
+    pub(crate) fn remove_round(&mut self, _: AdminId, ident: &RoundIdentifier) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -371,7 +384,7 @@ impl Tournament {
     }
 
     /// Updates a single tournament setting
-    pub(crate) fn update_setting(&mut self, setting: TournamentSetting) -> OpResult {
+    pub(crate) fn update_setting(&mut self, _: AdminId, setting: TournamentSetting) -> OpResult {
         use TournamentSetting::*;
         if self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -434,7 +447,7 @@ impl Tournament {
     }
 
     /// Changes the registration status
-    pub(crate) fn update_reg(&mut self, reg_status: bool) -> OpResult {
+    pub(crate) fn update_reg(&mut self, _: AdminId, reg_status: bool) -> OpResult {
         if self.is_frozen() || self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -443,7 +456,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Active`.
-    pub(crate) fn start(&mut self) -> OpResult {
+    pub(crate) fn start(&mut self, _: AdminId) -> OpResult {
         if !self.is_planned() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -454,7 +467,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Frozen`.
-    pub(crate) fn freeze(&mut self) -> OpResult {
+    pub(crate) fn freeze(&mut self, _: AdminId) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -465,7 +478,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Active` only if the current status is `Frozen`
-    pub(crate) fn thaw(&mut self) -> OpResult {
+    pub(crate) fn thaw(&mut self, _: AdminId) -> OpResult {
         if !self.is_frozen() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -475,7 +488,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Ended`.
-    pub(crate) fn end(&mut self) -> OpResult {
+    pub(crate) fn end(&mut self, _: AdminId) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -486,7 +499,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Cancelled`.
-    pub(crate) fn cancel(&mut self) -> OpResult {
+    pub(crate) fn cancel(&mut self, _: AdminId) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -497,14 +510,14 @@ impl Tournament {
     }
 
     /// Adds a player to the tournament
-    pub(crate) fn register_player(&mut self, name: String) -> OpResult {
+    pub(crate) fn register_player(&mut self, account: SquireAccount) -> OpResult {
         if !(self.is_active() || self.is_planned()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        let id = self.player_reg.add_player(name)?;
+        let id = self.player_reg.add_player(account)?;
         Ok(OpData::RegisterPlayer(PlayerIdentifier::Id(id)))
     }
 
@@ -551,7 +564,7 @@ impl Tournament {
     }
 
     /// An admin drops a player
-    pub(crate) fn admin_drop_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn admin_drop_player(&mut self, _: AdminId, ident: &PlayerIdentifier) -> OpResult {
         if self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -670,7 +683,7 @@ impl Tournament {
     }
 
     /// Gives a player a bye
-    pub(crate) fn give_bye(&mut self, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn give_bye(&mut self, _: AdminId, ident: &PlayerIdentifier) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -688,7 +701,7 @@ impl Tournament {
     }
 
     /// Creates a new round from a list of players
-    pub(crate) fn create_round(&mut self, idents: Vec<PlayerIdentifier>) -> OpResult {
+    pub(crate) fn create_round(&mut self, _: AdminId, idents: Vec<PlayerIdentifier>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -711,7 +724,7 @@ impl Tournament {
     }
 
     /// Drops all by the top N players (by standings)
-    pub(crate) fn cut_to_top(&mut self, len: usize) -> OpResult {
+    pub(crate) fn cut_to_top(&mut self, _: AdminId, len: usize) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
