@@ -53,10 +53,15 @@ impl TournamentManager {
     pub fn get_state(&self) -> &Tournament {
         &self.tourn
     }
-    
+
     /// Returns the latest active operation id
     pub fn get_last_active_id(&self) -> OpId {
-        self.log.ops.iter().rev().find_map(|op| if op.active { Some(op.id) } else { None } ).unwrap()
+        self.log
+            .ops
+            .iter()
+            .rev()
+            .find_map(|op| if op.active { Some(op.id) } else { None })
+            .unwrap()
     }
 
     /// Takes the manager, removes all unnecessary data for storage, and return the underlying

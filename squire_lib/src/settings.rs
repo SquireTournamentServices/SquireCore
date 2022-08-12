@@ -378,9 +378,7 @@ impl SwissPairingsSettingsTree {
 impl FluidPairingsSettingsTree {
     /// Creates a settings tree for fluid pairing systems
     pub fn new() -> FluidPairingsSettingsTree {
-        FluidPairingsSettingsTree {
-            match_size: 2,
-        }
+        FluidPairingsSettingsTree { match_size: 2 }
     }
 }
 
@@ -397,20 +395,20 @@ impl StandardScoringSettingsTree {
     /// Creates a settings tree for standard scoring systems
     pub fn new() -> StandardScoringSettingsTree {
         StandardScoringSettingsTree {
-        match_win_points: 3.0,
-        match_draw_points: 1.0,
-        match_loss_points: 0.0,
-        game_win_points: 3.0,
-        game_draw_points: 1.0,
-        game_loss_points: 0.0,
-        bye_points: 3.0,
-        include_byes: true,
-        include_match_points: true,
-        include_game_points: true,
-        include_mwp: true,
-        include_gwp: true,
-        include_opp_mwp: true,
-        include_opp_gwp: true,
+            match_win_points: 3.0,
+            match_draw_points: 1.0,
+            match_loss_points: 0.0,
+            game_win_points: 3.0,
+            game_draw_points: 1.0,
+            game_loss_points: 0.0,
+            bye_points: 3.0,
+            include_byes: true,
+            include_match_points: true,
+            include_game_points: true,
+            include_mwp: true,
+            include_gwp: true,
+            include_opp_mwp: true,
+            include_opp_gwp: true,
         }
     }
 }

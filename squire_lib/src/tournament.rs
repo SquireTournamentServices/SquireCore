@@ -185,7 +185,7 @@ impl Tournament {
         self.status == TournamentStatus::Ended || self.status == TournamentStatus::Cancelled
     }
 
-    /// Gets a copy of a player's registration data 
+    /// Gets a copy of a player's registration data
     /// NOTE: This does not include their round data
     pub fn get_player(&self, ident: &PlayerIdentifier) -> Result<Player, TournamentError> {
         match self.player_reg.get_player(ident) {

@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::identifiers::{UserAccountId, OrganizationAccountId};
+use crate::identifiers::{OrganizationAccountId, UserAccountId};
 use crate::settings::TournamentSettingsTree;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -15,7 +15,7 @@ pub enum SharingPermissions {
     /// Only the name of the player's deck is shard
     OnlyDeckName,
     /// Nothing about the player is shared
-    Nothing
+    Nothing,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

@@ -30,7 +30,7 @@ impl TournamentId {
     #[no_mangle]
     pub unsafe extern "C" fn tid_players(self: Self) -> *const PlayerId {
         let tourn: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => tourn = t.value().clone(),
             None => {
                 return std::ptr::null();
@@ -58,18 +58,18 @@ impl TournamentId {
     /// Adds a player to a tournament
     /// On error a NULL UUID is returned
     #[no_mangle]
-    pub extern "C" fn tid_add_player(self: Self, __name: *const c_char) -> PlayerId {
+    pub unsafe extern "C" fn tid_add_player(self: Self, __name: *const c_char) -> PlayerId {
         let name: &str = unsafe { CStr::from_ptr(__name).to_str().unwrap() };
         let op: TournOp = TournOp::RegisterPlayer(name.to_string());
 
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get_mut(&self) {
             Some(mut t) => {
                 match t.apply_op(op) {
                     Ok(RegisterPlayer(PlayerIdentifier::Id(id))) => {
                         return id;
                     }
                     Err(t_err) => {
-                        println!("{t_err}");
+                        println!("[FFI]: {t_err}");
                         return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
                     }
                     // We are known the from that the data will take if it exists
@@ -80,6 +80,7 @@ impl TournamentId {
                 };
             }
             None => {
+                println!("[FFI]: Cannot find tournament in tid_add_player");
                 return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
             }
         }
@@ -89,37 +90,39 @@ impl TournamentId {
     /// Returns NULL if an error happens
     /// This is heap allocated, please free it
     #[no_mangle]
-    pub extern "C" fn tid_name(self: Self) -> *const c_char {
+    pub unsafe extern "C" fn tid_name(self: Self) -> *const c_char {
         let tourn: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => tourn = t.value().clone(),
             None => {
+                println!("[FFI]: Cannot find tournament");
                 return std::ptr::null();
             }
         }
-        return unsafe { clone_string_to_c_string(tourn.name) };
+        return clone_string_to_c_string(tourn.name);
     }
 
     /// Returns the format of a tournament
     /// Returns NULL if an error happens
     /// This is heap allocated, please free it
     #[no_mangle]
-    pub extern "C" fn tid_format(self: Self) -> *const c_char {
+    pub unsafe extern "C" fn tid_format(self: Self) -> *const c_char {
         let tourn: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => tourn = t.value().clone(),
             None => {
+                println!("[FFI]: Cannot find tournament");
                 return std::ptr::null();
             }
         }
-        return unsafe { clone_string_to_c_string(tourn.format) };
+        return clone_string_to_c_string(tourn.format);
     }
 
     /// Returns whether table numbers are being used for this tournament
     /// false, is the error value (kinda sketchy)
     #[no_mangle]
-    pub extern "C" fn tid_use_table_number(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_use_table_number(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.value().use_table_number,
             None => {
                 println!("Cannot find tournament in tourn_id.use_table_number();");
@@ -131,8 +134,8 @@ impl TournamentId {
     /// Returns the game size
     /// -1 is the error value
     #[no_mangle]
-    pub extern "C" fn tid_game_size(self: Self) -> i32 {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_game_size(self: Self) -> i32 {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.value().game_size as i32,
             None => {
                 println!("Cannot find tournament in tourn_id.game_size();");
@@ -144,8 +147,8 @@ impl TournamentId {
     /// Returns the min deck count
     /// -1 is the error value
     #[no_mangle]
-    pub extern "C" fn tid_min_deck_count(self: Self) -> i32 {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_min_deck_count(self: Self) -> i32 {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.value().min_deck_count as i32,
             None => {
                 println!("Cannot find tournament in tourn_id.min_deck_count();");
@@ -157,8 +160,8 @@ impl TournamentId {
     /// Returns the max deck count
     /// -1 is the error value
     #[no_mangle]
-    pub extern "C" fn tid_max_deck_count(self: Self) -> i32 {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_max_deck_count(self: Self) -> i32 {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.value().max_deck_count as i32,
             None => {
                 println!("Cannot find tournament in tourn_id.max_deck_count();");
@@ -173,11 +176,13 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_pairing_type(self: Self) -> i32 {
         let tourn: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(t) => tourn = t.value().clone(),
-            None => {
-                println!("Cannot find tournament in tourn_id.pairing_type();");
-                return -1;
+        unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+                Some(t) => tourn = t.value().clone(),
+                None => {
+                    println!("Cannot find tournament in tourn_id.pairing_type();");
+                    return -1;
+                }
             }
         }
 
@@ -194,8 +199,8 @@ impl TournamentId {
     /// Whether reg is open
     /// False on error
     #[no_mangle]
-    pub extern "C" fn tid_reg_open(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_reg_open(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.reg_open,
             None => {
                 println!("Cannot find tournament in tourn_id.reg_open();");
@@ -207,8 +212,8 @@ impl TournamentId {
     /// Whether checkins are needed
     /// False on error
     #[no_mangle]
-    pub extern "C" fn tid_require_check_in(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_require_check_in(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.require_check_in,
             None => {
                 println!("Cannot find tournament in tourn_id.require_check_in();");
@@ -220,8 +225,8 @@ impl TournamentId {
     /// Whether deck reg is needed
     /// False on error
     #[no_mangle]
-    pub extern "C" fn tid_require_deck_reg(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_require_deck_reg(self: Self) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.require_deck_reg,
             None => {
                 println!("Cannot find tournament in tourn_id.require_deck_reg();");
@@ -233,8 +238,8 @@ impl TournamentId {
     /// Returns the status
     /// Returns cancelled on error
     #[no_mangle]
-    pub extern "C" fn tid_status(self: Self) -> TournamentStatus {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+    pub unsafe extern "C" fn tid_status(self: Self) -> TournamentStatus {
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
             Some(t) => return t.status,
             None => {
                 println!("Cannot find tournament in tourn_id.status();");
@@ -247,8 +252,8 @@ impl TournamentId {
 
     /// Closes a tournament removing it from the internal FFI state
     #[no_mangle]
-    pub extern "C" fn close_tourn(self: Self) {
-        FFI_TOURNAMENT_REGISTRY.get().unwrap().remove(&self);
+    pub unsafe extern "C" fn close_tourn(self: Self) {
+        FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().remove(&self).unwrap();
     }
 
     /// Saves a tournament to a name
@@ -257,10 +262,12 @@ impl TournamentId {
     pub extern "C" fn save_tourn(self: Self, __file: *const c_char) -> bool {
         let file: &str = unsafe { CStr::from_ptr(__file).to_str().unwrap() };
         let tournament: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(v) => tournament = v.value().clone(),
-            None => {
-                return false;
+        unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+                Some(v) => tournament = v.value().clone(),
+                None => {
+                    return false;
+                }
             }
         }
 
@@ -280,7 +287,7 @@ impl TournamentId {
                 return true;
             }
             Err(e) => {
-                println!("ffi-error: {}", e);
+                println!("[FFI]: {}", e);
                 return false;
             }
         }
@@ -312,21 +319,25 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         }
     };
 
-    // Cannot open the same tournament twice
-    if FFI_TOURNAMENT_REGISTRY
-        .get()
-        .unwrap()
-        .contains_key(&tournament.id)
-    {
-        println!("[FFI]: Input tournament is already open");
-        return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+    unsafe {
+        // Cannot open the same tournament twice
+        if FFI_TOURNAMENT_REGISTRY
+            .get_mut()
+            .unwrap()
+            .contains_key(&tournament.id)
+        {
+            println!("[FFI]: Input tournament is already open");
+            return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+        }
     }
 
     let tid: TournamentId = tournament.id.clone();
-    FFI_TOURNAMENT_REGISTRY
-        .get()
-        .unwrap()
-        .insert(tid, tournament.clone());
+    unsafe {
+        FFI_TOURNAMENT_REGISTRY
+            .get_mut()
+            .unwrap()
+            .insert(tid, tournament.clone());
+    }
 
     return tournament.id;
 }
@@ -366,10 +377,12 @@ pub extern "C" fn new_tournament_from_settings(
     };
     let tid: TournamentId = tournament.id;
 
-    FFI_TOURNAMENT_REGISTRY
-        .get()
-        .unwrap()
-        .insert(tid, tournament.clone());
+    unsafe {
+        FFI_TOURNAMENT_REGISTRY
+            .get_mut()
+            .unwrap()
+            .insert(tid, tournament.clone());
+    }
 
     if !tournament.id.save_tourn(__file) {
         return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));

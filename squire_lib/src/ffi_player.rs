@@ -11,11 +11,13 @@ impl PlayerId {
     /// Returns the player if it can be found in the tournament
     fn get_tourn_player(self, tid: TournamentId) -> Option<Player> {
         let tourn: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
-            Some(t) => tourn = t.value().clone(),
-            None => {
-                println!("Cannot find player in get_tourn_player();");
-                return None;
+        unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&tid) {
+                Some(t) => tourn = t.value().clone(),
+                None => {
+                    println!("Cannot find player in get_tourn_player();");
+                    return None;
+                }
             }
         }
 

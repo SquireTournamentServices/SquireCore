@@ -15,10 +15,8 @@
     unreachable_pub,
 )]
 #![warn(rust_2018_idioms)]
-
 // Used in FFI for access to the allocator's api
 #![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
-
 // TODO: Once FFI has been stablized, we should deny unsafe FFI types in FFI signatures
 //#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 
