@@ -253,7 +253,11 @@ impl TournamentId {
     /// Closes a tournament removing it from the internal FFI state
     #[no_mangle]
     pub unsafe extern "C" fn close_tourn(self: Self) {
-        FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().remove(&self).unwrap();
+        FFI_TOURNAMENT_REGISTRY
+            .get_mut()
+            .unwrap()
+            .remove(&self)
+            .unwrap();
     }
 
     /// Saves a tournament to a name
