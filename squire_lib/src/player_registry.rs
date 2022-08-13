@@ -101,6 +101,19 @@ impl PlayerRegistry {
         }
     }
 
+    /// Creates a new player without an account
+    pub fn add_guest(&mut self, name: String) -> Result<PlayerId, TournamentError> {
+        if self.verify_identifier(&PlayerIdentifier::Name(name.clone())) {
+            Err(TournamentError::PlayerLookup)
+        } else {
+            let plyr = Player::new(name.clone());
+            let digest = Ok(plyr.id);
+            self.name_and_id.insert(name, plyr.id);
+            self.players.insert(plyr.id, plyr);
+            digest
+        }
+    }
+
     /// Sets the specified player's status to `Dropped`
     pub fn drop_player(&mut self, ident: &PlayerIdentifier) -> Option<()> {
         let plyr = self.get_mut_player(ident)?;
