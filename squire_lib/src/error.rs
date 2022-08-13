@@ -24,6 +24,8 @@ pub enum TournamentError {
     OfficalLookup,
     /// The specified deck couldn't be found
     DeckLookup,
+    /// The round is already confirmed
+    RoundConfirmed,
     /// Registration for the tournament is closed
     RegClosed,
     /// The specified player wasn't in the specified round
@@ -62,6 +64,7 @@ impl fmt::Display for TournamentError {
             IncompatibleScoringSystem => "IncompatibleScoringSystem",
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
             InvalidDeckCount => "InvalidDeckCount",
+            RoundConfirmed => "RoundConfirmed",
         };
         write!(f, "{}", s)
     }
