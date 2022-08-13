@@ -1,6 +1,12 @@
-pub use crate::{
-    error::TournamentError,
-    identifiers::{PlayerId, PlayerIdentifier},
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{Display, Write as _},
+};
+
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    identifiers::PlayerId,
     player_registry::PlayerRegistry,
     round::{Round, RoundResult},
     round_registry::RoundRegistry,
@@ -8,49 +14,55 @@ pub use crate::{
     settings::StandardScoringSetting,
 };
 
-use serde::{Deserialize, Serialize};
-
-use std::fmt::Write as _;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-    string::ToString,
-};
-
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[repr(C)]
+/// The score type used by the standard scoring system
 pub struct StandardScore {
+    /// The number of match points a player has
     pub match_points: f64,
+    /// The number of game points a player has
     pub game_points: f64,
+    /// The match win percentage of a player
     pub mwp: f64,
+    /// The game win percentage of a player
     pub gwp: f64,
+    /// The average match win percentage of a player's opponents
     pub opp_mwp: f64,
+    /// The average game win percentage of a player's opponents
     pub opp_gwp: f64,
+    /// Whether or not match points should be considered
     pub include_match_points: bool,
+    /// Whether or not game points should be considered
     pub include_game_points: bool,
+    /// Whether or not match win percentage should be considered
     pub include_mwp: bool,
+    /// Whether or not game win percentage should be considered
     pub include_gwp: bool,
+    /// Whether or not opponent's match win percentage should be considered
     pub include_opp_mwp: bool,
+    /// Whether or not opponent's game win percentage should be considered
     pub include_opp_gwp: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// A counter used to track player info while calculating scores
 struct ScoreCounter {
-    pub player: PlayerId,
-    pub games: u64,
-    pub game_wins: u64,
-    pub game_losses: u64,
-    pub game_draws: u64,
-    pub rounds: u64,
-    pub wins: u64,
-    pub losses: u64,
-    pub draws: u64,
-    pub byes: u64,
-    pub opponents: HashSet<PlayerId>,
+    pub(crate) player: PlayerId,
+    pub(crate) games: u64,
+    pub(crate) game_wins: u64,
+    pub(crate) game_losses: u64,
+    pub(crate) game_draws: u64,
+    pub(crate) rounds: u64,
+    pub(crate) wins: u64,
+    pub(crate) losses: u64,
+    pub(crate) draws: u64,
+    pub(crate) byes: u64,
+    pub(crate) opponents: HashSet<PlayerId>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[repr(C)]
+/// The scoring stuct that uses the standard match point model
 pub struct StandardScoring {
     match_win_points: f64,
     match_draw_points: f64,
@@ -69,6 +81,26 @@ pub struct StandardScoring {
 }
 
 impl StandardScoring {
+    /// Creates a new standard scorig system
+    pub fn new() -> Self {
+        StandardScoring {
+            match_win_points: 3.0,
+            match_draw_points: 1.0,
+            match_loss_points: 0.0,
+            game_win_points: 3.0,
+            game_draw_points: 1.0,
+            game_loss_points: 0.0,
+            bye_points: 3.0,
+            include_byes: true,
+            include_match_points: true,
+            include_game_points: true,
+            include_mwp: true,
+            include_gwp: true,
+            include_opp_mwp: true,
+            include_opp_gwp: true,
+        }
+    }
+
     fn new_score(&self) -> StandardScore {
         StandardScore::new(
             self.include_match_points,
@@ -99,25 +131,7 @@ impl StandardScoring {
             + self.game_loss_points * (counter.game_losses as f64)
     }
 
-    pub fn new() -> Self {
-        StandardScoring {
-            match_win_points: 3.0,
-            match_draw_points: 1.0,
-            match_loss_points: 0.0,
-            game_win_points: 3.0,
-            game_draw_points: 1.0,
-            game_loss_points: 0.0,
-            bye_points: 3.0,
-            include_byes: true,
-            include_match_points: true,
-            include_game_points: true,
-            include_mwp: true,
-            include_gwp: true,
-            include_opp_mwp: true,
-            include_opp_gwp: true,
-        }
-    }
-
+    /// Updates a single scoring setting
     pub fn update_setting(&mut self, setting: StandardScoringSetting) {
         use StandardScoringSetting::*;
         match setting {
@@ -166,6 +180,7 @@ impl StandardScoring {
         }
     }
 
+    /// Calculates all the standing for the active players
     pub fn get_standings(
         &self,
         player_reg: &PlayerRegistry,
@@ -175,9 +190,9 @@ impl StandardScoring {
             .players
             .iter()
             .filter(|(_, p)| p.can_play())
-            .map(|(id, _)| (id.clone(), ScoreCounter::new(id.clone())))
+            .map(|(id, _)| (*id, ScoreCounter::new(*id)))
             .collect();
-        for (id, round) in round_reg.rounds.iter() {
+        for (_, round) in round_reg.rounds.iter() {
             if !round.is_certified() {
                 continue;
             }
@@ -201,7 +216,7 @@ impl StandardScoring {
                 score.mwp = score.match_points / (self.match_win_points * (counter.rounds as f64));
                 score.gwp = score.game_points / (self.game_win_points * (counter.games as f64));
             }
-            digest.insert(id.clone(), score);
+            digest.insert(*id, score);
         }
         for (id, counter) in &counters {
             // If your only round was a bye, your percentages stay at 0
@@ -330,7 +345,7 @@ impl ScoreCounter {
                 RoundResult::Draw() => {
                     self.game_draws += 1;
                 }
-                RoundResult::Wins(p_id, count) => {
+                RoundResult::Wins(p_id, _) => {
                     if p_id == &self.player {
                         self.game_wins += 1;
                     } else {

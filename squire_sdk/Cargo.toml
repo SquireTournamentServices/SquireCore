@@ -11,7 +11,7 @@ deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
 
 [dependencies]
 # In-House deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
 squire_lib = { path = "../squire_lib", default-features = false }
 
 rocket = { version = "0.5.0-rc.1", optional = true }

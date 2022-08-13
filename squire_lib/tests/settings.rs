@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
     use squire_lib::{
+        error::TournamentError,
         operations::TournOp::*,
         settings::*,
-        tournament::{Tournament, TournamentPreset}, standard_scoring::TournamentError,
+        tournament::{Tournament, TournamentPreset},
     };
 
     #[test]
@@ -37,11 +38,12 @@ mod tests {
             TournamentPreset::Swiss,
             "Pioneer".into(),
         );
-        assert_eq!(Err(TournamentError::IncompatiblePairingSystem), tourn
-            .apply_op(UpdateTournSetting(TournamentSetting::PairingSetting(
+        assert_eq!(
+            Err(TournamentError::IncompatiblePairingSystem),
+            tourn.apply_op(UpdateTournSetting(TournamentSetting::PairingSetting(
                 PairingSetting::Fluid(FluidPairingsSetting::MatchSize(10))
             )))
-            );
+        );
         assert!(tourn
             .apply_op(UpdateTournSetting(TournamentSetting::PairingSetting(
                 PairingSetting::Swiss(SwissPairingsSetting::MatchSize(10))
@@ -52,11 +54,12 @@ mod tests {
             TournamentPreset::Fluid,
             "Pioneer".into(),
         );
-        assert_eq!(Err(TournamentError::IncompatiblePairingSystem), tourn
-            .apply_op(UpdateTournSetting(TournamentSetting::PairingSetting(
+        assert_eq!(
+            Err(TournamentError::IncompatiblePairingSystem),
+            tourn.apply_op(UpdateTournSetting(TournamentSetting::PairingSetting(
                 PairingSetting::Swiss(SwissPairingsSetting::MatchSize(10))
             )))
-            );
+        );
         assert!(tourn
             .apply_op(UpdateTournSetting(TournamentSetting::PairingSetting(
                 PairingSetting::Fluid(FluidPairingsSetting::MatchSize(10))

@@ -1,341 +1,158 @@
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use mtgjson::model::deck::Deck;
+
 use crate::{
+    accounts::SquireAccount,
+    admin::TournOfficialId,
     error::TournamentError,
-    identifiers::{PlayerIdentifier, RoundIdentifier},
-    player::Player,
-    round::{Round, RoundResult, RoundStatus},
+    identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
+    round::{RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
 };
 
-use mtgjson::model::deck::Deck;
-
-use serde::{Deserialize, Serialize};
-
 /// This enum captures all ways in which a tournament can mutate.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TournOp {
+    // Top level operations
+    /// Operation to mark the creation of a tournament
+    Create(SquireAccount, String, TournamentPreset, String),
     // Non-admin operations
+    /// Operation for a player check themself into a tournament
     CheckIn(PlayerIdentifier),
-    RegisterPlayer(String),
+    /// Operation for a player register themself for a tournament
+    RegisterPlayer(SquireAccount),
+    /// Operation for a player drop themself from a tournament
     DropPlayer(PlayerIdentifier),
+    /// Operation for a player record their round result
     RecordResult(RoundIdentifier, RoundResult),
+    /// Operation for a player confirm their round result
     ConfirmResult(PlayerIdentifier),
+    /// Operation for a player add a deck to their registration information
     AddDeck(PlayerIdentifier, String, Deck),
+    /// Operation for a player remove a deck to their registration information
     RemoveDeck(PlayerIdentifier, String),
+    /// Operation for a player set their gamer tag
     SetGamerTag(PlayerIdentifier, String),
+    /// Operation for a player to mark themself as ready for their next round
     ReadyPlayer(PlayerIdentifier),
+    /// Operation for a player to mark themself as unready for their next round
     UnReadyPlayer(PlayerIdentifier),
+    // Judge/Admin-level operations
+    /// Operation for adding a guest player to a tournament (i.e. someone without an account)
+    RegisterGuest(TournOfficialId, String),
+    /// Operation to register a player via an admin
+    AdminRegisterPlayer(TournOfficialId, String),
+    /// Operation to record the result of a round via an admin
+    AdminRecordResult(TournOfficialId, RoundIdentifier, RoundResult),
+    /// Operation to confirm the result of a round via an admin
+    AdminConfirmResult(TournOfficialId, PlayerIdentifier),
+    /// Operation to add a deck for a player via an admin
+    AdminAddDeck(TournOfficialId, PlayerIdentifier, String, Deck),
+    /// Operation to mark a player as ready for their next round via an admin
+    AdminReadyPlayer(TournOfficialId, PlayerIdentifier),
+    /// Operation to mark a player as unready for their next round via an admin
+    AdminUnReadyPlayer(TournOfficialId, PlayerIdentifier),
+    /// Operation to give a round a time extension
+    TimeExtension(TournOfficialId, RoundIdentifier, Duration),
     // Admin-level operations
-    Create(TournamentPreset),
-    UpdateReg(bool),
-    Start(),
-    Freeze(),
-    Thaw(),
-    End(),
-    Cancel(),
-    AdminRegisterPlayer(String),
-    AdminRecordResult(RoundIdentifier, RoundResult),
-    AdminConfirmResult(PlayerIdentifier),
-    AdminDropPlayer(PlayerIdentifier),
-    AdminAddDeck(PlayerIdentifier, String, Deck),
-    AdminReadyPlayer(PlayerIdentifier),
-    AdminUnReadyPlayer(PlayerIdentifier),
-    RemoveRound(RoundIdentifier),
-    UpdateTournSetting(TournamentSetting),
-    GiveBye(PlayerIdentifier),
-    CreateRound(Vec<PlayerIdentifier>),
-    PairRound(),
-    TimeExtension(RoundIdentifier, Duration),
-    Cut(usize),
-    PruneDecks(),
-    PrunePlayers(),
+    /// Operation to check the registration status of the tournament
+    UpdateReg(AdminId, bool),
+    /// Operation to start a tournament
+    Start(AdminId),
+    /// Operation to freeze a tournament
+    Freeze(AdminId),
+    /// Operation to thaw a tournament
+    Thaw(AdminId),
+    /// Operation to end a tournament
+    End(AdminId),
+    /// Operation to cancel a tournament
+    Cancel(AdminId),
+    /// Operation to overwrite the result of a round via an admin (used after a confirmation)
+    AdminOverwriteResult(AdminId, RoundIdentifier, RoundResult),
+    /// Operation for adding a new judge to the tournament
+    RegisterJudge(AdminId, SquireAccount),
+    /// Operation for adding a new tournament admin
+    RegisterAdmin(AdminId, SquireAccount),
+    /// Operation to drop a player via an admin
+    AdminDropPlayer(AdminId, PlayerIdentifier),
+    /// Operation to kill a round
+    RemoveRound(AdminId, RoundIdentifier),
+    /// Operation to update a single tournament setting
+    UpdateTournSetting(AdminId, TournamentSetting),
+    /// Operation to give a player a bye
+    GiveBye(AdminId, PlayerIdentifier),
+    /// Operation to manually create a round
+    CreateRound(AdminId, Vec<PlayerIdentifier>),
+    /// Operation to attempt to pair the next set of rounds
+    PairRound(AdminId),
+    /// Operation to cut to the top N players (by standings)
+    Cut(AdminId, usize),
+    /// Operation to prune excess decks from players
+    PruneDecks(AdminId),
+    /// Operation to prune players that aren't fully registered
+    PrunePlayers(AdminId),
 }
 
-impl TournOp {
-    pub fn swap_player_ident(self, ident: PlayerIdentifier) -> Self {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | RemoveRound(_)
-            | RecordResult(_, _)
-            | CreateRound(_)
-            | AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _) => self,
-            CheckIn(_) => Self::CheckIn(ident),
-            ConfirmResult(_) => Self::ConfirmResult(ident),
-            DropPlayer(_) => Self::DropPlayer(ident),
-            AdminDropPlayer(_) => Self::AdminDropPlayer(ident),
-            AddDeck(_, name, deck) => Self::AddDeck(ident, name, deck),
-            RemoveDeck(_, deck) => Self::RemoveDeck(ident, deck),
-            SetGamerTag(_, name) => Self::SetGamerTag(ident, name),
-            ReadyPlayer(_) => Self::ReadyPlayer(ident),
-            UnReadyPlayer(_) => Self::UnReadyPlayer(ident),
-            GiveBye(_) => Self::GiveBye(ident),
-            AdminConfirmResult(_) => Self::AdminConfirmResult(ident),
-            AdminAddDeck(_, name, deck) => Self::AdminAddDeck(ident, name, deck),
-            AdminReadyPlayer(_) => Self::AdminReadyPlayer(ident),
-            AdminUnReadyPlayer(_) => Self::UnReadyPlayer(ident),
-        }
-    }
-
-    pub fn swap_all_player_idents(self, idents: Vec<PlayerIdentifier>) -> Self {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | RemoveRound(_)
-            | RecordResult(_, _)
-            | CheckIn(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | GiveBye(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | AdminRegisterPlayer(_)
-            | AdminConfirmResult(_)
-            | AdminRecordResult(_, _) => self,
-            CreateRound(_) => Self::CreateRound(idents),
-        }
-    }
-
-    pub fn swap_match_ident(self, ident: RoundIdentifier) -> Self {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | CheckIn(_)
-            | RegisterPlayer(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | RemoveRound(_)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | UpdateTournSetting(_)
-            | GiveBye(_)
-            | CreateRound(_)
-            | PairRound()
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | AdminRegisterPlayer(_)
-            | AdminConfirmResult(_) => self,
-            AdminRecordResult(_, res) => Self::AdminRecordResult(ident, res),
-            TimeExtension(_, dur) => Self::TimeExtension(ident, dur),
-            RecordResult(_, res) => Self::RecordResult(ident, res),
-        }
-    }
-
-    pub fn get_player_ident(&self) -> Option<PlayerIdentifier> {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | PrunePlayers()
-            | RemoveRound(_)
-            | RecordResult(_, _)
-            | AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _)
-            | CreateRound(_) => None,
-            CheckIn(ident)
-            | ConfirmResult(ident)
-            | DropPlayer(ident)
-            | AdminDropPlayer(ident)
-            | AddDeck(ident, _, _)
-            | RemoveDeck(ident, _)
-            | SetGamerTag(ident, _)
-            | ReadyPlayer(ident)
-            | UnReadyPlayer(ident)
-            | AdminConfirmResult(ident)
-            | AdminAddDeck(ident, _, _)
-            | AdminReadyPlayer(ident)
-            | AdminUnReadyPlayer(ident)
-            | GiveBye(ident) => Some(ident.clone()),
-        }
-    }
-
-    // Used only for CreateRound
-    pub fn list_player_ident(&self) -> Option<Vec<PlayerIdentifier>> {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | RegisterPlayer(_)
-            | UpdateTournSetting(_)
-            | PairRound()
-            | TimeExtension(_, _)
-            | Cut(_)
-            | PruneDecks()
-            | CheckIn(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | GiveBye(_)
-            | PrunePlayers()
-            | RemoveRound(_)
-            | AdminRegisterPlayer(_)
-            | AdminRecordResult(_, _)
-            | AdminConfirmResult(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | RecordResult(_, _) => None,
-            CreateRound(idents) => Some(idents.clone()),
-        }
-    }
-
-    pub fn get_match_ident(&self) -> Option<RoundIdentifier> {
-        use TournOp::*;
-        match self {
-            UpdateReg(_)
-            | Create(_)
-            | Start()
-            | Freeze()
-            | Thaw()
-            | End()
-            | Cancel()
-            | CheckIn(_)
-            | RegisterPlayer(_)
-            | ConfirmResult(_)
-            | DropPlayer(_)
-            | AdminDropPlayer(_)
-            | AddDeck(_, _, _)
-            | RemoveDeck(_, _)
-            | RemoveRound(_)
-            | SetGamerTag(_, _)
-            | ReadyPlayer(_)
-            | UnReadyPlayer(_)
-            | UpdateTournSetting(_)
-            | GiveBye(_)
-            | CreateRound(_)
-            | PairRound()
-            | Cut(_)
-            | AdminRegisterPlayer(_)
-            | AdminConfirmResult(_)
-            | AdminAddDeck(_, _, _)
-            | AdminReadyPlayer(_)
-            | AdminUnReadyPlayer(_)
-            | PruneDecks()
-            | PrunePlayers() => None,
-            AdminRecordResult(ident, _)
-            | TimeExtension(ident, _) | RecordResult(ident, _) => Some(ident.clone()),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// An enum that encodes all possible data after successfully applying a tournament operation
 pub enum OpData {
+    /// There is no data to be returned
     Nothing,
+    /// A player was registerd and this is their id
     RegisterPlayer(PlayerIdentifier),
+    /// A round result was confirmed and this is the current status of that round
     ConfirmResult(RoundStatus),
+    /// A player was given a bye and this is the id of that round
     GiveBye(RoundIdentifier),
+    /// A round was manually created and this is that round's id
     CreateRound(RoundIdentifier),
+    /// The next set of rounds was paired and these are those round's ids
     Pair(Vec<RoundIdentifier>),
 }
 
+/// A shorthand for the outcome of attempting to apply an operation to a tournament
 pub type OpResult = Result<OpData, TournamentError>;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct OpId(Uuid);
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+/// An full operation used by the tournament manager to help track metadata for client-server
+/// syncing
 pub struct FullOp {
     pub(crate) op: TournOp,
     pub(crate) id: OpId,
     pub(crate) active: bool,
 }
 
-/// An ordered list of all operations applied to a tournament
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An ordered list of all operations applied to a tournament
 pub struct OpLog {
     pub(crate) ops: Vec<FullOp>,
 }
 
-/// An ordered list of some of the operations applied to a tournament
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An ordered list of some of the operations applied to a tournament
 pub struct OpSlice {
     pub(crate) ops: Vec<FullOp>,
 }
 
-/// A struct to help resolve syncing op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// A struct to help resolve syncing op logs
 pub struct OpSync {
     pub(crate) ops: OpSlice,
 }
 
-/// An enum to help track the progress of the syncing of two op logs
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An enum to help track the progress of the syncing of two op logs
 pub enum SyncStatus {
+    /// There was an error when attempting to initially sync
     SyncError(SyncError),
+    /// There are discrepancies in between the two logs that are being synced
     InProgress(Blockage),
+    /// The logs have been successfully syncs
     Completed(OpSync),
 }
 
@@ -346,19 +163,26 @@ pub enum SyncStatus {
 /// overwrite the local log
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SyncError {
+    /// One of the log was empty
     EmptySync,
+    /// The starting operation of the slice in unknown to the other log
     UnknownOperation(FullOp),
+    /// One of the logs contains a rollback that the other doesn't have
     RollbackFound(OpSlice),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// An enum that encodes that errors that can occur during a rollback
 pub enum RollbackError {
+    /// The rollback slice has an unknown starting point
     SliceError(SyncError),
+    /// The log that doesn't contain the rollback contains operations that the rolled back log
+    /// doesn't contain
     OutOfSync(OpSync),
 }
 
-/// A struct to help resolve blockages
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// A struct to help resolve blockages
 pub struct Blockage {
     pub(crate) known: OpSlice,
     pub(crate) agreed: OpSlice,
@@ -366,16 +190,10 @@ pub struct Blockage {
     pub(crate) problem: (FullOp, FullOp),
 }
 
-/// A struct used to communicate a rollback
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// A struct used to communicate a rollback
 pub struct Rollback {
     pub(crate) ops: OpSlice,
-}
-
-impl From<Rollback> for OpSlice {
-    fn from(r: Rollback) -> OpSlice {
-        r.ops
-    }
 }
 
 impl Blockage {
@@ -434,7 +252,7 @@ impl Blockage {
         }
         self.attempt_resolution()
     }
-    
+
     fn attempt_resolution(mut self) -> SyncStatus {
         match self.known.merge(self.other) {
             SyncStatus::Completed(sync) => {
@@ -465,10 +283,13 @@ impl Blockage {
 
 impl OpLog {
     /// Creates a new log
-    pub fn new() -> Self {
-        OpLog { ops: Vec::new() }
+    pub fn new(op: FullOp) -> Self {
+        let mut ops = Vec::new();
+        ops.push(op);
+        OpLog { ops }
     }
 
+    /// Adds an operation to the end of the OpLog
     pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
     }
@@ -535,11 +356,9 @@ impl OpLog {
     /// that cause the closure to return `true` will be dropped and `false` will be kept. An
     /// operation causes `None` to be returned will end the iteration, will not be in the slice,
     /// but kept in the log.
-    pub fn create_rollback(&self, op: &FullOp) -> Option<Rollback> {
-        let mut ops = self.get_slice_extra(op.id, 1)?;
-        for op in ops.ops.iter_mut().skip(1) {
-            op.active = false;
-        }
+    pub fn create_rollback(&self, id: OpId) -> Option<Rollback> {
+        let mut ops = self.get_slice_extra(id, 1)?;
+        ops.ops.iter_mut().skip(1).for_each(|op| op.active = false);
         Some(Rollback { ops })
     }
 
@@ -553,7 +372,7 @@ impl OpLog {
     pub fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), RollbackError> {
         let slice = self
             .slice_from_slice(&rollback.ops)
-            .map_err(|e| RollbackError::SliceError(e))?;
+            .map_err(RollbackError::SliceError)?;
         if slice.ops.len() > rollback.ops.ops.len() {
             return Err(RollbackError::OutOfSync(OpSync { ops: slice }));
         }
@@ -574,7 +393,7 @@ impl OpLog {
         }
         // This should never return an Err
         self.overwrite(rollback.ops)
-            .map_err(|e| RollbackError::SliceError(e))
+            .map_err(RollbackError::SliceError)
     }
 
     /// Attempts to sync the local log with a remote log.
@@ -587,7 +406,6 @@ impl OpLog {
                 return SyncStatus::SyncError(e);
             }
         };
-        let op = other.ops.start_op().unwrap();
         slice.merge(other.ops)
     }
 }
@@ -598,6 +416,7 @@ impl OpSlice {
         OpSlice { ops: Vec::new() }
     }
 
+    /// Adds an operation to the end of the OpSlice
     pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
     }
@@ -648,7 +467,7 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(mut self, mut other: OpSlice) -> SyncStatus {
+    pub fn merge(self, other: OpSlice) -> SyncStatus {
         let mut agreed: Vec<FullOp> = Vec::with_capacity(self.ops.len() + other.ops.len());
         let mut self_iter = self.ops.iter();
         let mut other_iter = self.ops.iter();
@@ -695,23 +514,48 @@ impl OpSlice {
     }
 }
 
-impl Default for OpLog {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Default for OpSlice {
     fn default() -> Self {
         Self::new()
     }
 }
 
+impl From<Rollback> for OpSlice {
+    fn from(r: Rollback) -> OpSlice {
+        r.ops
+    }
+}
+
+impl From<OpSync> for OpSlice {
+    fn from(s: OpSync) -> OpSlice {
+        s.ops
+    }
+}
+
+impl From<SyncError> for SyncStatus {
+    fn from(other: SyncError) -> SyncStatus {
+        SyncStatus::SyncError(other)
+    }
+}
+
+impl From<Blockage> for SyncStatus {
+    fn from(other: Blockage) -> SyncStatus {
+        SyncStatus::InProgress(other)
+    }
+}
+
+impl From<OpSync> for SyncStatus {
+    fn from(other: OpSync) -> SyncStatus {
+        SyncStatus::Completed(other)
+    }
+}
+
 impl FullOp {
+    /// Creates a new FullOp from an existing TournOp
     pub fn new(op: TournOp) -> Self {
         Self {
             op,
-            id: OpId(Uuid::new_v4()),
+            id: OpId::new(Uuid::new_v4()),
             active: true,
         }
     }
@@ -724,7 +568,7 @@ impl FullOp {
 
 impl TournOp {
     /// Determines if this operation only makes sense if it happens before the other.
-    pub fn implied_ordering(&self, other: &Self) -> bool {
+    pub fn implied_ordering(&self, _other: &Self) -> bool {
         todo!()
         /*
         use TournOp::*;
@@ -739,9 +583,9 @@ impl TournOp {
         }
         */
     }
-    
+
     /// Determines if this operation blocks a given operation
-    pub fn blocks(&self, other: &Self) -> bool {
+    pub fn blocks(&self, _other: &Self) -> bool {
         todo!()
         /*
         use TournOp::*;

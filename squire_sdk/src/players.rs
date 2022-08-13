@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
-
 use mtgjson::model::deck::Deck;
 pub use squire_lib::{
     error::TournamentError,
@@ -13,64 +11,38 @@ pub use squire_lib::{
 
 use crate::response::SquireResponse;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetPlayerRequest {
-    pub tourn: TournamentIdentifier,
-    pub player: PlayerIdentifier,
-}
-
+/// The response type used by the `players/<id>/get` SC API. The nested options encode that the
+/// requested tournament and player might not be found.
 pub type GetPlayerResponse = SquireResponse<Option<Option<Player>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetMultiplePlayersRequest {
-    pub tourn: TournamentIdentifier,
-}
-
+/// The response type used by any SC API that returns multiple players. The option encodes
+/// that the requested tournament. The inner data is a map of player Id and player objects.
 pub type GetMultiplePlayersResponse = SquireResponse<Option<HashMap<PlayerId, Player>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetDeckRequest {
-    pub tourn: TournamentIdentifier,
-    pub player: PlayerIdentifier,
-    pub deck_name: String,
-}
-
+/// The response type used by the `players/<id>/decks/get/<name>` SC API. The nested options
+/// encodes that the requested tournament and player might not be found and, if found, the
+/// requested deck might not exist.
 pub type GetDeckResponse = SquireResponse<Option<Option<Option<Deck>>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetAllPlayerDecksRequest {
-    pub tourn: TournamentIdentifier,
-    pub player: PlayerIdentifier,
-}
-
+/// The response type used by the `players/<id>/decks/all` SC API. The nested options encodes that
+/// the requested tournament and player might not be found
 pub type GetAllPlayerDecksResponse = SquireResponse<Option<Option<HashMap<String, Deck>>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetAllDecksRequest {
-    pub tourn: TournamentIdentifier,
-}
-
+/// The response type used by the `decks/all` SC API. The option encodes that the requested
+/// tournament. The inner data is a map of all active players and a map of their decks. Note that
+/// if a player has no decks, this will just be an empty map.
 pub type GetAllDecksResponse = SquireResponse<Option<HashMap<PlayerId, HashMap<String, Deck>>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetPlayerCountRequest {
-    pub tourn: TournamentIdentifier,
-}
-
+/// The response type used by any SC API that calculates the number of players in a tournament. The
+/// option encodes that the requested tournament.
 pub type GetPlayerCountResponse = SquireResponse<Option<u64>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetLatestPlayerMatchRequest {
-    pub tourn: TournamentIdentifier,
-    pub player: PlayerIdentifier,
-}
-
+/// The response type used by the `players/<id>/latest_match` SC API. The nested options encodes
+/// that the requested tournament and player might not be found and, if found, the player might not
+/// have been in a round yet.
 pub type GetLatestPlayerMatchResponse = SquireResponse<Option<Option<Option<Round>>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetPlayerMatchesRequest {
-    pub tourn: TournamentIdentifier,
-    pub player: PlayerIdentifier,
-}
-
+/// The response type used by the `players/<id>/matches` SC API. The nested options encodes that
+/// the requested tournament and player might not be found. The inner data is an unordered list of
+/// rounds.
 pub type GetPlayerMatchesResponse = SquireResponse<Option<Option<Vec<Round>>>>;

@@ -1,13 +1,21 @@
-use crate::{
-    error::TournamentError,
-    identifiers::{PlayerIdentifier, RoundIdentifier},
-    operations::{FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncStatus, TournOp},
-    tournament::*,
+use std::{
+    collections::{HashMap, HashSet},
+    slice::Iter,
 };
 
 use serde::{Deserialize, Serialize};
 
-use std::slice::Iter;
+use cycle_map::CycleMap;
+use uuid::Uuid;
+
+use crate::{
+    accounts::SquireAccount,
+    identifiers::OpId,
+    operations::{
+        FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncError, SyncStatus, TournOp,
+    },
+    tournament::*,
+};
 
 /// A state manager for the tournament struct
 ///
@@ -17,103 +25,126 @@ use std::slice::Iter;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TournamentManager {
     tourn: Tournament,
-    seed: TournamentPreset,
-    name: String,
-    format: String,
     log: OpLog,
+    /// The last OpId of the last operation after a successful sync
+    last_sync: OpId,
 }
 
 impl TournamentManager {
+    /// Creates a tournament manager, tournament, and operations log
+    pub fn new(
+        owner: SquireAccount,
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> Self {
+        let first_op = FullOp {
+            op: TournOp::Create(owner, name.clone(), preset, format.clone()),
+            id: Uuid::new_v4().into(),
+            active: true,
+        };
+        let last_sync = first_op.id;
+        let tourn = Tournament::from_preset(name, preset, format);
+        Self {
+            tourn,
+            log: OpLog::new(first_op),
+            last_sync,
+        }
+    }
+
     /// Read only accesses to tournaments don't need to be wrapped, so we can freely provide
     /// references to them
     pub fn get_state(&self) -> &Tournament {
         &self.tourn
     }
 
-    /// Takes the manager and return the underlying tournament, consuming the manager in the
-    /// process.
-    pub fn extract(self) -> Tournament {
+    /// Returns the latest active operation id
+    pub fn get_last_active_id(&self) -> OpId {
+        self.log
+            .ops
+            .iter()
+            .rev()
+            .find_map(|op| if op.active { Some(op.id) } else { None })
+            .unwrap()
+    }
+
+    /// Takes the manager, removes all unnecessary data for storage, and return the underlying
+    /// tournament, consuming the manager in the process.
+    pub fn extract(mut self) -> Tournament {
+        self.tourn.player_reg.check_ins = HashSet::new();
+        self.tourn.player_reg.name_and_id = CycleMap::new();
+        for (_, plyr) in self.tourn.player_reg.players.iter_mut() {
+            plyr.deck_ordering = Vec::new();
+        }
+        self.tourn.round_reg.num_and_id = CycleMap::new();
+        self.tourn.round_reg.opponents = HashMap::new();
+        for (_, rnd) in self.tourn.round_reg.rounds.iter_mut() {
+            rnd.confirmations = HashSet::new();
+        }
         self.tourn
     }
 
-    /// Starts the syncing processing. If syncing can occur, the op logs are merged and
-    /// SyncStatus::Completed is returned.
-    pub fn start_sync(&mut self, sy: OpSync) -> SyncStatus {
-        todo!()
+    /// Gets a slice of the op log
+    pub fn get_op_slice(&self, id: OpId) -> Option<OpSlice> {
+        self.log.get_slice(id)
     }
 
-    /// Imports a synced op log. Returns Ok containing the given Synced if this log hasn't changed.
-    /// Returns Err containing a SyncStatus if it the log has changed. If that SyncStatus is
-    /// Completed, the this log is updated accordingly (otherwise, the method would have to be
-    /// immediately called again).
-    pub fn import_sync(&mut self, ops: OpSync) -> Result<OpSync, SyncStatus> {
-        todo!()
+    /// Gets a slice of the log starting at the operation of the last log.
+    /// Primarily used by clients to track when they last synced with the server
+    pub fn slice_from_last_sync(&self) -> OpSlice {
+        self.get_op_slice(self.last_sync).unwrap()
     }
 
-    pub fn overwrite(&mut self, ops: OpSlice) {
-        todo!()
+    /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op
+    /// logs are merged and SyncStatus::Completed is returned.
+    pub fn attempt_sync(&mut self, sy: OpSync) -> SyncStatus {
+        // TODO: This should move the last_sync id forward
+        self.log.sync(sy)
     }
 
-    pub fn propose_rollback<F>(&mut self, f: F) -> Rollback
-    where
-        F: FnMut(&FullOp) -> Option<bool>,
-    {
-        todo!()
+    /// TODO:
+    pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
+        // TODO: This should set the last_sync id back
+        self.log.overwrite(ops)
+    }
+
+    // TODO: Should proposing a rollback lock the tournament manager?
+    /// Creates a rollback proposal but leaves the operations log unaffected.
+    /// `id` should be the id of the last operation that is **removed**
+    pub fn propose_rollback(&self, id: OpId) -> Option<Rollback> {
+        self.log.create_rollback(id)
     }
 
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
     /// it to the tournament, and returns the result.
     /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
-        // NOTE: We need to ensure that common data is being stored in the op log, i.e. player
-        // names and match numbers instead of IDs. IDs aren't shared between clients.
-        let op = if let Some(ident) = op.get_player_ident() {
-            let name = self
-                .tourn
-                .player_reg
-                .get_player_name(&ident)
-                .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_player_ident(PlayerIdentifier::Name(name))
-        } else if let Some(idents) = op.list_player_ident() {
-            let mut new_idents = Vec::with_capacity(idents.len());
-            for ident in idents {
-                new_idents.push(PlayerIdentifier::Name(
-                    self.tourn
-                        .player_reg
-                        .get_player_name(&ident)
-                        .ok_or(TournamentError::PlayerLookup)?,
-                ));
-            }
-            op.swap_all_player_idents(new_idents)
-        } else if let Some(ident) = op.get_match_ident() {
-            let num = self
-                .tourn
-                .round_reg
-                .get_round_number(&ident)
-                .ok_or(TournamentError::PlayerLookup)?;
-            op.swap_match_ident(RoundIdentifier::Number(num))
-        } else {
-            op
-        };
         let f_op = FullOp::new(op.clone());
         self.log.ops.push(f_op);
         self.tourn.apply_op(op)
     }
 
     /// Returns an iterator over all the states of a tournament
-    pub fn states(&self) -> StateIter {
+    pub fn states(&self) -> StateIter<'_> {
+        let mut iter = self.log.ops.iter();
+        let tourn = match iter.next() {
+            Some(FullOp {
+                op: TournOp::Create(_, name, seed, format),
+                ..
+            }) => Tournament::from_preset(name.clone(), *seed, format.clone()),
+            _ => {
+                unreachable!("First operation isn't a create");
+            }
+        };
         StateIter {
-            state: Tournament::from_preset(
-                self.name.clone(),
-                self.seed.clone(),
-                self.format.clone(),
-            ),
-            ops: self.log.ops.iter(),
+            state: tourn,
+            ops: iter,
             shown_init: false,
         }
     }
 }
 
+#[allow(missing_debug_implementations)]
 /// An iterator over all the states of a tournament
 pub struct StateIter<'a> {
     state: Tournament,
@@ -125,11 +156,11 @@ impl Iterator for StateIter<'_> {
     type Item = Tournament;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // TODO: This doesn't take rollbacks into account
         if self.shown_init {
             let op = self.ops.next()?;
             let _ = self.state.apply_op(op.op.clone());
         } else {
-            self.ops.next(); // The first operation already included the preset
             self.shown_init = true;
         }
         Some(self.state.clone())

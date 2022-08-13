@@ -1,11 +1,6 @@
 use crate::{
-    error::TournamentError,
-    identifiers::PlayerId,
-    pairings::Pairings,
-    player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
-    scoring::{Score, Standings},
-    settings::FluidPairingsSetting,
+    identifiers::PlayerId, pairings::Pairings, player_registry::PlayerRegistry,
+    round_registry::RoundRegistry, settings::FluidPairingsSetting,
 };
 
 use serde::{Deserialize, Serialize};
@@ -13,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+/// Fluid pairings are also known as a looking-for-game queue and are used for on-the-fly pairings
+/// between players.
 pub struct FluidPairings {
     players_per_match: u8,
     check_ins: HashSet<PlayerId>,
@@ -20,6 +17,7 @@ pub struct FluidPairings {
 }
 
 impl FluidPairings {
+    /// Creates a new fluid pairings struct
     pub fn new(players_per_match: u8) -> Self {
         FluidPairings {
             players_per_match,
@@ -28,14 +26,17 @@ impl FluidPairings {
         }
     }
 
+    /// Marks a player as ready to play a game
     pub fn ready_player(&mut self, plyr: PlayerId) {
         self.check_ins.insert(plyr);
     }
 
+    /// Removes the player from the LFG queue
     pub fn unready_player(&mut self, plyr: PlayerId) {
         self.check_ins.remove(&plyr);
     }
 
+    /// Updates a pairing setting
     pub fn update_setting(&mut self, setting: FluidPairingsSetting) {
         use FluidPairingsSetting::*;
         match setting {
@@ -45,10 +46,12 @@ impl FluidPairings {
         }
     }
 
+    /// Calculates if a pairing is potentially possible
     pub fn ready_to_pair(&self) -> bool {
         self.check_ins.len() + self.queue.len() >= self.players_per_match as usize
     }
 
+    /// Checks to see if a player can be apart of a potential pairing
     fn valid_pairing(&self, matches: &RoundRegistry, known: &[&PlayerId], new: &PlayerId) -> bool {
         if let Some(opps) = matches.opponents.get(new) {
             known.iter().any(|p| !opps.contains(p))
@@ -57,7 +60,9 @@ impl FluidPairings {
         }
     }
 
-    pub fn pair(&mut self, players: &PlayerRegistry, matches: &RoundRegistry) -> Option<Pairings> {
+    /// Attempts to pair all players in the queue.
+    /// NOTE: This does not create any round, only pairings.
+    pub fn pair(&mut self, _players: &PlayerRegistry, matches: &RoundRegistry) -> Option<Pairings> {
         if !self.ready_to_pair() {
             return None;
         }
@@ -85,7 +90,7 @@ impl FluidPairings {
                 let mut pairing: Vec<PlayerId> =
                     Vec::with_capacity(self.players_per_match as usize);
                 for i in index_buffer {
-                    pairing.push(plyrs[i].clone());
+                    pairing.push(plyrs[i]);
                 }
                 digest.paired.push(pairing);
             } else {
