@@ -18,22 +18,22 @@ pub enum Platforms {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SquireAccount {
-    display_name: String,
-    user_name: String,
-    gamer_tags: HashMap<Platforms, Option<String>>,
-    user_id: UserAccountID,
-    do_share: SharingPermissions,
+    pub display_name: String,
+    pub user_name: String,
+    pub gamer_tags: HashMap<Platforms, Option<String>>,
+    pub user_id: UserAccountID,
+    pub do_share: SharingPermissions,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct OrganizationAccount {
-    display_name: String,
-    user_name: String,
-    user_id: OrganizationAccountID,
-    owner: SquireAccount,
-    default_judge: Vec<SquireAccount>,
-    admin_account: Vec<SquireAccount>,
-    default_tournament_settings: settings,
+    pub display_name: String,
+    pub user_name: String,
+    pub user_id: OrganizationAccountID,
+    pub owner: SquireAccount,
+    pub default_judge: Vec<SquireAccount>,
+    pub admin_account: Vec<SquireAccount>,
+    pub default_tournament_settings: settings,
 }
 
 impl SquireAccount {
@@ -55,7 +55,7 @@ impl SquireAccount {
         let tags = Vec::new()
         for platform in platforms {
             let gamer_tag = self.gamer_tags.get(platform);
-            tags.insert(Some(platform.clone()));
+            tags.insert(Some(gamer_tag.clone()));
         }
         tags
     }
