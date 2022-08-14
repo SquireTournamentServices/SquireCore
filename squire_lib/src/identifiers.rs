@@ -1,6 +1,6 @@
 use std::{hash::Hash, marker::PhantomData, ops::Deref};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use uuid::Uuid;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     tournament::Tournament,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 #[repr(C)]
 /// A generic type-checked wrapper around a Uuid (to reduce boilerplate and redudent code)
 pub struct TypeId<T>(pub Uuid, PhantomData<T>);
@@ -124,5 +124,55 @@ impl From<RoundId> for RoundIdentifier {
 impl From<TournamentId> for TournamentIdentifier {
     fn from(other: TournamentId) -> TournamentIdentifier {
         TournamentIdentifier::Id(other)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for TypeId<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Uuid::deserialize(deserializer).map(|id| id.into())
+    }
+}
+
+impl<T> Serialize for TypeId<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use uuid::Uuid;
+
+    use crate::admin::Admin;
+    use super::{PlayerId, AdminId};
+
+    #[test]
+    fn basic_serde() {
+        let id = Uuid::new_v4();
+        let p_id: PlayerId = id.into();
+        assert_eq!(serde_json::to_string(&id).unwrap(), serde_json::to_string(&p_id).unwrap());
+        let new_p_id: PlayerId = serde_json::from_str(&serde_json::to_string(&id).unwrap()).unwrap();
+        assert_eq!(id, new_p_id.0);
+        assert_eq!(p_id, new_p_id);
+    }
+    
+    #[test]
+    fn mapped_ids_serde() {
+        let mut map: HashMap<AdminId, Admin> = HashMap::new();
+        let admin = Admin { name: "Test".into(), id: Uuid::new_v4().into() };
+        let id = admin.id;
+        map.insert(id, admin);
+        let data = serde_json::to_string(&map);
+        assert!(data.is_ok());
+        let new_map: HashMap<AdminId, Admin> = serde_json::from_str(&data.unwrap()).unwrap();
+        assert_eq!(new_map, map);
     }
 }
