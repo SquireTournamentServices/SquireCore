@@ -28,12 +28,23 @@ impl FluidPairings {
 
     /// Marks a player as ready to play a game
     pub fn ready_player(&mut self, plyr: PlayerId) {
-        self.check_ins.insert(plyr);
+        if self.queue.iter().find(|p| **p == plyr).is_none() {
+            self.check_ins.insert(plyr);
+        }
     }
 
     /// Removes the player from the LFG queue
     pub fn unready_player(&mut self, plyr: PlayerId) {
-        self.check_ins.remove(&plyr);
+        if self.check_ins.contains(&plyr) {
+            self.check_ins.remove(&plyr);
+        } else if let Some(index) =
+            self.queue
+                .iter()
+                .enumerate()
+                .find_map(|(i, p)| if *p == plyr { Some(i) } else { None })
+        {
+            self.queue.remove(index);
+        }
     }
 
     /// Updates a pairing setting
@@ -48,13 +59,13 @@ impl FluidPairings {
 
     /// Calculates if a pairing is potentially possible
     pub fn ready_to_pair(&self) -> bool {
-        self.check_ins.len() + self.queue.len() >= self.players_per_match as usize
+        !self.check_ins.is_empty() && self.check_ins.len() + self.queue.len() >= self.players_per_match as usize
     }
 
     /// Checks to see if a player can be apart of a potential pairing
-    fn valid_pairing(&self, matches: &RoundRegistry, known: &[&PlayerId], new: &PlayerId) -> bool {
+    fn valid_pairing(&self, matches: &RoundRegistry, known: &[PlayerId], new: &PlayerId) -> bool {
         if let Some(opps) = matches.opponents.get(new) {
-            known.iter().any(|p| !opps.contains(p))
+            known.iter().all(|p| !opps.contains(p))
         } else {
             true
         }
@@ -66,21 +77,21 @@ impl FluidPairings {
         if !self.ready_to_pair() {
             return None;
         }
-        let mut plyrs: Vec<PlayerId> = self.check_ins.drain().collect();
-        plyrs.extend(self.queue.drain(0..));
+        let mut plyrs: Vec<PlayerId> = self.queue.drain(0..).rev().collect();
+        plyrs.extend(self.check_ins.drain());
         let mut digest = Pairings {
             paired: Vec::with_capacity(plyrs.len() / self.players_per_match as usize + 1),
             rejected: Vec::new(),
         };
-        while plyrs.len() > self.players_per_match as usize {
+        while plyrs.len() >= self.players_per_match as usize {
             let mut index_buffer: Vec<usize> = Vec::with_capacity(self.players_per_match as usize);
-            let mut id_buffer: Vec<&PlayerId> = Vec::with_capacity(self.players_per_match as usize);
+            let mut id_buffer: Vec<PlayerId> = Vec::with_capacity(self.players_per_match as usize);
             index_buffer.push(0);
-            id_buffer.push(&plyrs[0]);
+            id_buffer.push(plyrs[0]);
             for (i, _) in plyrs.iter().enumerate().skip(1) {
                 if self.valid_pairing(matches, &id_buffer, &plyrs[i]) {
                     index_buffer.push(i);
-                    id_buffer.push(&plyrs[i]);
+                    id_buffer.push(plyrs[i]);
                     if index_buffer.len() == self.players_per_match as usize {
                         break;
                     }
@@ -89,14 +100,16 @@ impl FluidPairings {
             if index_buffer.len() == self.players_per_match as usize {
                 let mut pairing: Vec<PlayerId> =
                     Vec::with_capacity(self.players_per_match as usize);
-                for i in index_buffer {
-                    pairing.push(plyrs[i]);
+                for (count, i) in index_buffer.iter().enumerate() {
+                    let id = plyrs.remove(i - count);
+                    pairing.push(id);
                 }
                 digest.paired.push(pairing);
             } else {
                 self.queue.push(plyrs.pop().unwrap());
             }
         }
+        self.queue.extend_from_slice(&plyrs);
         Some(digest)
     }
 }
