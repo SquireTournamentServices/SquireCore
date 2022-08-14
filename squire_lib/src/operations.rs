@@ -7,7 +7,7 @@ use mtgjson::model::deck::Deck;
 
 use crate::{
     accounts::SquireAccount,
-    admin::TournOfficialId,
+    admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
     identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
     round::{RoundResult, RoundStatus},
@@ -46,7 +46,7 @@ pub enum TournOp {
     /// Operation for adding a guest player to a tournament (i.e. someone without an account)
     RegisterGuest(TournOfficialId, String),
     /// Operation to register a player via an admin
-    AdminRegisterPlayer(TournOfficialId, String),
+    AdminRegisterPlayer(TournOfficialId, SquireAccount),
     /// Operation to record the result of a round via an admin
     AdminRecordResult(TournOfficialId, RoundIdentifier, RoundResult),
     /// Operation to confirm the result of a round via an admin
@@ -105,6 +105,10 @@ pub enum OpData {
     Nothing,
     /// A player was registerd and this is their id
     RegisterPlayer(PlayerIdentifier),
+    /// A player was registerd and this is their id
+    RegisterJudge(Judge),
+    /// A player was registerd and this is their id
+    RegisterAdmin(Admin),
     /// A round result was confirmed and this is the current status of that round
     ConfirmResult(RoundStatus),
     /// A player was given a bye and this is the id of that round

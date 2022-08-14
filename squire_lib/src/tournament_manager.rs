@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     accounts::SquireAccount,
+    admin::Admin,
     identifiers::OpId,
     operations::{
         FullOp, OpLog, OpResult, OpSlice, OpSync, Rollback, SyncError, SyncStatus, TournOp,
@@ -38,13 +39,15 @@ impl TournamentManager {
         preset: TournamentPreset,
         format: String,
     ) -> Self {
+        let admin = Admin::new(owner.clone());
         let first_op = FullOp {
             op: TournOp::Create(owner, name.clone(), preset, format.clone()),
             id: Uuid::new_v4().into(),
             active: true,
         };
         let last_sync = first_op.id;
-        let tourn = Tournament::from_preset(name, preset, format);
+        let mut tourn = Tournament::from_preset(name, preset, format);
+        tourn.admins.insert(admin.id, admin);
         Self {
             tourn,
             log: OpLog::new(first_op),
