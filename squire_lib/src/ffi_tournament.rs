@@ -260,6 +260,7 @@ impl TournamentId {
                 return true;
             }
             None => {
+                println!("[FFI]: Cannot find tournament in clsoe_tourn");
                 return false;
             }
         }
@@ -275,6 +276,7 @@ impl TournamentId {
             match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
                 Some(v) => tournament = v.value().clone(),
                 None => {
+                    println!("[FFI]: Cannot find tournament in save_tourn");
                     return false;
                 }
             }
@@ -283,7 +285,10 @@ impl TournamentId {
         let json: String;
         match serde_json::to_string::<Tournament>(&tournament) {
             Ok(v) => json = v,
-            Err(_) => return false,
+            Err(e) => {
+                println!("[FFI]: Cannot convert tournament to json in save_tourn: {}", e);
+                return false;
+            },
         }
 
         // Backup old data, do check for errors.
@@ -296,7 +301,7 @@ impl TournamentId {
                 return true;
             }
             Err(e) => {
-                println!("[FFI]: {}", e);
+                println!("[FFI]: Cannot write file: {}", e);
                 return false;
             }
         }
