@@ -1,3 +1,4 @@
+use crate::accounts::SquireAccount;
 use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY, NULL_UUID_BYTES};
 use crate::operations::OpData::RegisterPlayer;
 use crate::operations::TournOp;
@@ -60,7 +61,8 @@ impl TournamentId {
     #[no_mangle]
     pub unsafe extern "C" fn tid_add_player(self: Self, __name: *const c_char) -> PlayerId {
         let name: &str = unsafe { CStr::from_ptr(__name).to_str().unwrap() };
-        let op: TournOp = TournOp::RegisterPlayer(name.to_string());
+        let op: TournOp =
+            TournOp::RegisterPlayer(SquireAccount::new(name.to_string(), name.to_string()));
 
         match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get_mut(&self) {
             Some(mut t) => {
