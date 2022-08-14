@@ -1,6 +1,6 @@
 use std::{hash::Hash, marker::PhantomData, ops::Deref};
 
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::{
@@ -151,23 +151,30 @@ mod tests {
 
     use uuid::Uuid;
 
+    use super::{AdminId, PlayerId};
     use crate::admin::Admin;
-    use super::{PlayerId, AdminId};
 
     #[test]
     fn basic_serde() {
         let id = Uuid::new_v4();
         let p_id: PlayerId = id.into();
-        assert_eq!(serde_json::to_string(&id).unwrap(), serde_json::to_string(&p_id).unwrap());
-        let new_p_id: PlayerId = serde_json::from_str(&serde_json::to_string(&id).unwrap()).unwrap();
+        assert_eq!(
+            serde_json::to_string(&id).unwrap(),
+            serde_json::to_string(&p_id).unwrap()
+        );
+        let new_p_id: PlayerId =
+            serde_json::from_str(&serde_json::to_string(&id).unwrap()).unwrap();
         assert_eq!(id, new_p_id.0);
         assert_eq!(p_id, new_p_id);
     }
-    
+
     #[test]
     fn mapped_ids_serde() {
         let mut map: HashMap<AdminId, Admin> = HashMap::new();
-        let admin = Admin { name: "Test".into(), id: Uuid::new_v4().into() };
+        let admin = Admin {
+            name: "Test".into(),
+            id: Uuid::new_v4().into(),
+        };
         let id = admin.id;
         map.insert(id, admin);
         let data = serde_json::to_string(&map);

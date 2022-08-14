@@ -13,6 +13,7 @@ use crate::{
 };
 use serde_json;
 use std::alloc::{Allocator, Layout, System};
+use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
@@ -286,9 +287,12 @@ impl TournamentId {
         match serde_json::to_string::<Tournament>(&tournament) {
             Ok(v) => json = v,
             Err(e) => {
-                println!("[FFI]: Cannot convert tournament to json in save_tourn: {}", e);
+                println!(
+                    "[FFI]: Cannot convert tournament to json in save_tourn: {}",
+                    e
+                );
                 return false;
-            },
+            }
         }
 
         // Backup old data, do check for errors.
@@ -388,6 +392,8 @@ pub extern "C" fn new_tournament_from_settings(
         require_check_in: require_check_in,
         require_deck_reg: require_deck_reg,
         status: TournamentStatus::Planned,
+        judges: HashMap::new(),
+        admins: HashMap::new(),
     };
     let tid: TournamentId = tournament.id;
 
