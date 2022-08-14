@@ -15,6 +15,7 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::time::Duration;
 use std::vec::Vec;
+use std::collections::HashMap;
 use uuid::Uuid;
 const BACKUP_EXT: &str = ".bak";
 
@@ -331,6 +332,8 @@ pub extern "C" fn new_tournament_from_settings(
         require_check_in: require_check_in,
         require_deck_reg: require_deck_reg,
         status: TournamentStatus::Planned,
+        admins: HashMap::new(),
+        judges: HashMap::new(),
     };
     let tid: TournamentId = tournament.id;
 

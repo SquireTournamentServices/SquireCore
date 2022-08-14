@@ -111,6 +111,7 @@ impl RoundRegistry {
         let table_number = self.get_table_number();
         let round = Round::new(match_num, table_number, self.length);
         let digest = round.id.into();
+        self.num_and_id.insert(round.id, match_num);
         self.rounds.insert(match_num, round);
         digest
     }
