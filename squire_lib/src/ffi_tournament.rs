@@ -78,7 +78,7 @@ impl TournamentId {
                     // We are known the from that the data will take if it exists
                     // so we can ignore the other outcomes
                     _ => {
-                        return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+                        return Uuid::default().into();
                     }
                 };
             }
