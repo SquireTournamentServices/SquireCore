@@ -33,7 +33,7 @@ impl TournamentId {
     pub extern "C" fn tid_players(self: Self) -> *const PlayerId {
         unsafe {
             let tourn: Tournament;
-            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
                 Some(t) => tourn = t.value().clone(),
                 None => {
                     return std::ptr::null();
@@ -67,7 +67,7 @@ impl TournamentId {
         let op: TournOp =
             TournOp::RegisterPlayer(SquireAccount::new(name.to_string(), name.to_string()));
 
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get_mut(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
             Some(mut t) => {
                 match t.apply_op(op) {
                     Ok(RegisterPlayer(PlayerIdentifier::Id(id))) => {
@@ -96,7 +96,7 @@ impl TournamentId {
     /// This is heap allocated, please free it
     #[no_mangle]
     pub unsafe extern "C" fn tid_name(self: Self) -> *const c_char {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => {
                 return clone_string_to_c_string(t.clone().name);
             }
@@ -112,7 +112,7 @@ impl TournamentId {
     /// This is heap allocated, please free it
     #[no_mangle]
     pub unsafe extern "C" fn tid_format(self: Self) -> *const c_char {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => {
                 return clone_string_to_c_string(t.clone().format);
             }
@@ -127,7 +127,7 @@ impl TournamentId {
     /// false, is the error value (kinda sketchy)
     #[no_mangle]
     pub unsafe extern "C" fn tid_use_table_number(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.value().use_table_number,
             None => {
                 println!("Cannot find tournament in tourn_id.use_table_number();");
@@ -140,7 +140,7 @@ impl TournamentId {
     /// -1 is the error value
     #[no_mangle]
     pub unsafe extern "C" fn tid_game_size(self: Self) -> i32 {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.value().game_size as i32,
             None => {
                 println!("Cannot find tournament in tourn_id.game_size();");
@@ -153,7 +153,7 @@ impl TournamentId {
     /// -1 is the error value
     #[no_mangle]
     pub unsafe extern "C" fn tid_min_deck_count(self: Self) -> i32 {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.value().min_deck_count as i32,
             None => {
                 println!("Cannot find tournament in tourn_id.min_deck_count();");
@@ -166,7 +166,7 @@ impl TournamentId {
     /// -1 is the error value
     #[no_mangle]
     pub unsafe extern "C" fn tid_max_deck_count(self: Self) -> i32 {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.value().max_deck_count as i32,
             None => {
                 println!("Cannot find tournament in tourn_id.max_deck_count();");
@@ -182,7 +182,7 @@ impl TournamentId {
     pub extern "C" fn tid_pairing_type(self: Self) -> i32 {
         let tourn: Tournament;
         unsafe {
-            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
                 Some(t) => tourn = t.value().clone(),
                 None => {
                     println!("Cannot find tournament in tourn_id.pairing_type();");
@@ -205,7 +205,7 @@ impl TournamentId {
     /// False on error
     #[no_mangle]
     pub unsafe extern "C" fn tid_reg_open(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.reg_open,
             None => {
                 println!("Cannot find tournament in tourn_id.reg_open();");
@@ -218,7 +218,7 @@ impl TournamentId {
     /// False on error
     #[no_mangle]
     pub unsafe extern "C" fn tid_require_check_in(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.require_check_in,
             None => {
                 println!("Cannot find tournament in tourn_id.require_check_in();");
@@ -231,7 +231,7 @@ impl TournamentId {
     /// False on error
     #[no_mangle]
     pub unsafe extern "C" fn tid_require_deck_reg(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.require_deck_reg,
             None => {
                 println!("Cannot find tournament in tourn_id.require_deck_reg();");
@@ -244,7 +244,7 @@ impl TournamentId {
     /// Returns cancelled on error
     #[no_mangle]
     pub unsafe extern "C" fn tid_status(self: Self) -> TournamentStatus {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(t) => return t.status,
             None => {
                 println!("Cannot find tournament in tourn_id.status();");
@@ -258,7 +258,7 @@ impl TournamentId {
     /// Closes a tournament removing it from the internal FFI state
     #[no_mangle]
     pub unsafe extern "C" fn close_tourn(self: Self) -> bool {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().remove(&self) {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().remove(&self) {
             Some(_) => {
                 return true;
             }
@@ -276,7 +276,7 @@ impl TournamentId {
         let file: &str = unsafe { CStr::from_ptr(__file).to_str().unwrap() };
         let tournament: Tournament;
         unsafe {
-            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
                 Some(v) => tournament = v.value().clone(),
                 None => {
                     println!("[FFI]: Cannot find tournament in save_tourn");
