@@ -63,7 +63,7 @@ impl TournamentId {
     /// On error a NULL UUID is returned
     #[no_mangle]
     pub unsafe extern "C" fn tid_add_player(self: Self, __name: *const c_char) -> PlayerId {
-        let name: &str = unsafe { CStr::from_ptr(__name).to_str().unwrap() };
+        let name: &str = CStr::from_ptr(__name).to_str().unwrap();
         let op: TournOp =
             TournOp::RegisterPlayer(SquireAccount::new(name.to_string(), name.to_string()));
 
