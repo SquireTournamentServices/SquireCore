@@ -39,7 +39,7 @@ impl PlayerId {
             }
         }
 
-        return unsafe { clone_string_to_c_string(player.name) };
+        return clone_string_to_c_string(player.name);
     }
 
     /// Returns the player's game name if they can be found
@@ -56,7 +56,7 @@ impl PlayerId {
 
         match player.game_name {
             Some(n) => {
-                return unsafe { clone_string_to_c_string(n) };
+                return clone_string_to_c_string(n);
             }
             None => {
                 return std::ptr::null();
