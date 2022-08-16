@@ -19,7 +19,6 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::time::Duration;
 use std::vec::Vec;
-use std::collections::HashMap;
 use uuid::Uuid;
 const BACKUP_EXT: &str = ".bak";
 
