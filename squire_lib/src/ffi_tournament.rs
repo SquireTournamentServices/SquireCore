@@ -1,5 +1,5 @@
 use crate::accounts::SquireAccount;
-use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY, NULL_UUID_BYTES};
+use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY};
 use crate::operations::OpData::RegisterPlayer;
 use crate::operations::TournOp;
 use crate::round_registry::RoundRegistry;
@@ -54,7 +54,7 @@ impl TournamentId {
                 slice[i] = players[i];
                 i += 1;
             }
-            slice[i] = PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+            slice[i] = Uuid::default().into();
             return ptr;
         }
     }
@@ -75,7 +75,7 @@ impl TournamentId {
                     }
                     Err(t_err) => {
                         println!("[FFI]: {t_err}");
-                        return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+                        return Uuid::default().into();
                     }
                     // We are known the from that the data will take if it exists
                     // so we can ignore the other outcomes
@@ -86,7 +86,7 @@ impl TournamentId {
             }
             None => {
                 println!("[FFI]: Cannot find tournament in tid_add_player");
-                return PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+                return Uuid::default().into();
             }
         }
     }
@@ -326,7 +326,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         Ok(v) => json = v.to_string(),
         Err(_) => {
             println!("[FFI]: Cannot read input file");
-            return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+            return Uuid::default().into();
         }
     };
 
@@ -335,7 +335,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         Ok(v) => tournament = v,
         Err(_) => {
             println!("[FFI]: Input file is invalid");
-            return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+            return Uuid::default().into();
         }
     };
 
@@ -347,7 +347,7 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
             .contains_key(&tournament.id)
         {
             println!("[FFI]: Input tournament is already open");
-            return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+            return Uuid::default().into();
         }
 
         let tid: TournamentId = tournament.id.clone();
@@ -404,7 +404,7 @@ pub extern "C" fn new_tournament_from_settings(
     }
 
     if !tournament.id.save_tourn(__file) {
-        return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+        return Uuid::default().into();
     }
     return tournament.id;
 }
