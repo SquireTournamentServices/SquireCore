@@ -30,31 +30,33 @@ impl TournamentId {
     /// This is heap allocted, please free it
     /// Returns NULL on error
     #[no_mangle]
-    pub unsafe extern "C" fn tid_players(self: Self) -> *const PlayerId {
-        let tourn: Tournament;
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
-            Some(t) => tourn = t.value().clone(),
-            None => {
-                return std::ptr::null();
+    pub extern "C" fn tid_players(self: Self) -> *const PlayerId {
+        unsafe {
+            let tourn: Tournament;
+            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
+                Some(t) => tourn = t.value().clone(),
+                None => {
+                    return std::ptr::null();
+                }
             }
+
+            let players: Vec<PlayerId> = tourn.player_reg.get_player_ids();
+
+            let len: usize = (players.len() + 1) * std::mem::size_of::<PlayerId>();
+
+            let ptr = System
+                .allocate(Layout::from_size_align(len, 1).unwrap())
+                .unwrap()
+                .as_mut_ptr() as *mut PlayerId;
+            let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]);
+            let mut i: usize = 0;
+            while i < players.len() {
+                slice[i] = players[i];
+                i += 1;
+            }
+            slice[i] = PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
+            return ptr;
         }
-
-        let players: Vec<PlayerId> = tourn.player_reg.get_player_ids();
-
-        let len: usize = (players.len() + 1) * std::mem::size_of::<PlayerId>();
-
-        let ptr = System
-            .allocate(Layout::from_size_align(len, 1).unwrap())
-            .unwrap()
-            .as_mut_ptr() as *mut PlayerId;
-        let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]);
-        let mut i: usize = 0;
-        while i < players.len() {
-            slice[i] = players[i];
-            i += 1;
-        }
-        slice[i] = PlayerId::new(Uuid::from_bytes(NULL_UUID_BYTES));
-        return ptr;
     }
 
     /// Adds a player to a tournament

@@ -26,23 +26,25 @@ pub unsafe extern "C" fn init_squire_ffi() {
 
 /// Helper function for cloning strings
 /// Returns NULL on error
-pub unsafe fn clone_string_to_c_string(s: String) -> *mut c_char {
-    let len: usize = s.len() + 1;
-    let s_str = s.as_bytes();
+pub fn clone_string_to_c_string(s: String) -> *mut c_char {
+    unsafe {
+        let len: usize = s.len() + 1;
+        let s_str = s.as_bytes();
 
-    let ptr = System
-        .allocate(Layout::from_size_align(len, 1).unwrap())
-        .unwrap()
-        .as_mut_ptr() as *mut c_char;
-    let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
-    let mut i: usize = 0;
-    while i < s.len() {
-        slice[i] = s_str[i] as i8;
-        i += 1;
+        let ptr = System
+            .allocate(Layout::from_size_align(len, 1).unwrap())
+            .unwrap()
+            .as_mut_ptr() as *mut c_char;
+        let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [c_char]);
+        let mut i: usize = 0;
+        while i < s.len() {
+            slice[i] = s_str[i] as i8;
+            i += 1;
+        }
+        slice[s.len()] = 0;
+
+        return ptr;
     }
-    slice[s.len()] = 0;
-
-    return ptr;
 }
 
 /// Deallocates a block assigned in the FFI portion,
