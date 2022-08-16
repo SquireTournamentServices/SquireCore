@@ -6,9 +6,6 @@ use std::alloc::{Allocator, Layout, System};
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 
-/// NULL UUIDs are returned on errors
-pub const NULL_UUID_BYTES: [u8; 16] = [0; 16];
-
 /// A map of tournament ids to tournaments
 /// this is used for allocating ffi tournaments
 /// all ffi tournaments are always deeply copied
