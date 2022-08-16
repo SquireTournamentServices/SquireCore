@@ -339,27 +339,24 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
         }
     };
 
+    // Cannot open the same tournament twice
     unsafe {
-        // Cannot open the same tournament twice
         if FFI_TOURNAMENT_REGISTRY
-            .get_mut()
+            .get()
             .unwrap()
             .contains_key(&tournament.id)
         {
             println!("[FFI]: Input tournament is already open");
             return TournamentId::new(Uuid::from_bytes(NULL_UUID_BYTES));
         }
-    }
 
-    let tid: TournamentId = tournament.id.clone();
-    unsafe {
+        let tid: TournamentId = tournament.id.clone();
         FFI_TOURNAMENT_REGISTRY
-            .get_mut()
+            .get()
             .unwrap()
-            .insert(tid, tournament.clone());
+            .insert(tid, tournament);
+        return tid;
     }
-
-    return tournament.id;
 }
 
 /// Creates a tournament from the settings provided
