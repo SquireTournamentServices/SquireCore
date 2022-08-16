@@ -1,6 +1,6 @@
 use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY};
 use crate::{
-    identifiers::{PlayerId, PlayerIdentifier, TournamentId},
+    identifiers::{PlayerId, TournamentId},
     player::{Player, PlayerStatus},
     tournament::Tournament,
 };
@@ -21,10 +21,7 @@ impl PlayerId {
             }
         }
 
-        match tourn.player_reg.get_player(&PlayerIdentifier::Id(self)) {
-            Some(p) => return Some(p.clone()),
-            None => return None,
-        }
+        tourn.player_reg.get_player(&self.into()).cloned()
     }
 
     /// Returns the player name if they can be found
