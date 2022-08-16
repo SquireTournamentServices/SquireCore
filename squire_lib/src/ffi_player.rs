@@ -15,7 +15,7 @@ impl PlayerId {
                     return t.player_reg.get_player(&self.into()).cloned();
                 }
                 None => {
-                    println!("Cannot find player in get_tourn_player();");
+                    println!("[FFI]: Cannot find tournament in get_tourn_player();");
                     return None;
                 }
             }
