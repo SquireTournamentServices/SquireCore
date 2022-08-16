@@ -96,15 +96,15 @@ impl TournamentId {
     /// This is heap allocated, please free it
     #[no_mangle]
     pub unsafe extern "C" fn tid_name(self: Self) -> *const c_char {
-        let tourn: Tournament;
         match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
-            Some(t) => tourn = t.value().clone(),
+            Some(t) => {
+                return clone_string_to_c_string(t.clone().name);
+            }
             None => {
                 println!("[FFI]: Cannot find tournament");
                 return std::ptr::null();
             }
         }
-        return clone_string_to_c_string(tourn.name);
     }
 
     /// Returns the format of a tournament
@@ -112,15 +112,15 @@ impl TournamentId {
     /// This is heap allocated, please free it
     #[no_mangle]
     pub unsafe extern "C" fn tid_format(self: Self) -> *const c_char {
-        let tourn: Tournament;
         match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&self) {
-            Some(t) => tourn = t.value().clone(),
+            Some(t) => {
+                return clone_string_to_c_string(t.clone().format);
+            }
             None => {
                 println!("[FFI]: Cannot find tournament");
                 return std::ptr::null();
             }
         }
-        return clone_string_to_c_string(tourn.format);
     }
 
     /// Returns whether table numbers are being used for this tournament
