@@ -99,7 +99,7 @@ impl SquireAccount {
         tags
     }
 
-    pub fn delete_tags(&mut self, platform: Platforms) {
+    pub fn delete_tag(&mut self, platform: &Platforms) {
         self.gamer_tags.insert(platform, None)
     }
     
