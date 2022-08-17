@@ -86,7 +86,7 @@ impl SquireAccount {
         }
     }
 
-    pub fn update_tags(&mut self, platfrom: Platforms, user_name: String) {
+    pub fn add_tag(&mut self, platfrom: Platforms, user_name: String) {
         self.gamer_tags.insert(platfrom, user_name);
     }
 
