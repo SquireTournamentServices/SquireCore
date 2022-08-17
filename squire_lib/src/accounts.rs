@@ -81,7 +81,7 @@ impl SquireAccount {
             display_name,
             user_name,
             gamer_tags: HashMap::new(),
-            user_id: UserAccountID::new(Uuid::new_v4()),
+            user_id: Uuid::new_v4().into(),
             permissions
         }
     }
