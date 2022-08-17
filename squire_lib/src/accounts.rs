@@ -1,3 +1,4 @@
+use identifiers::{UserAccountID, OrganizationAccountID};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -8,6 +9,22 @@ use crate::{
     tournament::TournamentPreset,
     tournament_manager::TournamentManager,
 };
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum SharingPermissions {
+    Everything,
+    OnlyDeckList,
+    OnlyDeckName,
+    Nothing
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum Platforms {
+    Cockatrice,
+    MTGOnline,
+    Arena
+}
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 /// An enum that encodes the amount of information that is shared about the player after a
@@ -32,11 +49,7 @@ pub struct SquireAccount {
     /// The name that's displayed on the user's account
     pub display_name: String,
     /// The name of the user on MTG Arena
-    pub arena_name: Option<String>,
-    /// The name of the user on Magic: Online
-    pub mtgo_name: Option<String>,
-    /// The name of the user on Cockatrice
-    pub trice_name: Option<String>,
+    pub gamer_tags: HashMap<Platforms, Option<String>>,
     /// The user's Id
     pub user_id: UserAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
@@ -63,19 +76,33 @@ pub struct OrganizationAccount {
 }
 
 impl SquireAccount {
-    /// Creates a new account object
-    pub fn new(user_name: String, display_name: String) -> Self {
-        Self {
-            user_name,
+    pub fn new(user_name: String, display_name: String, permissions: SharingPermissions) -> Self {
+        SquireAccount {
             display_name,
+            user_name,
+            gamer_tags: HashMap::new(),
             user_id: Uuid::new_v4().into(),
-            arena_name: None,
-            mtgo_name: None,
-            trice_name: None,
-            do_share: SharingPermissions::Everything,
+            permissions
         }
     }
 
+    pub fn add_tag(&mut self, platfrom: Platforms, user_name: String) {
+        self.gamer_tags.insert(platfrom, user_name);
+    }
+
+    pub fn get_tags(&self, platforms: Vec<Platforms>) -> Vec<Option<String>> {
+        let tags = Vec::new()
+        for platform in platforms {
+            let gamer_tag = self.gamer_tags.get(platform);
+            tags.insert(Some(gamer_tag.clone()));
+        }
+        tags
+    }
+
+    pub fn delete_tag(&mut self, platform: &Platforms) {
+        self.gamer_tags.remove(platform);
+    }
+    
     /// Creates a new tournament and loads it with the default settings of the org
     pub fn create_tournament(
         &self,
