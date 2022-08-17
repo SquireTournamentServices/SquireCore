@@ -100,7 +100,7 @@ impl SquireAccount {
     }
 
     pub fn delete_tag(&mut self, platform: &Platforms) {
-        self.gamer_tags.insert(platform, None)
+        self.gamer_tags.remove(platform);
     }
     
     /// Creates a new tournament and loads it with the default settings of the org
