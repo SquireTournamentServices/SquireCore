@@ -58,7 +58,7 @@ impl Player {
         Player {
             id: account.user_id.0.into(),
             name: account.user_name,
-            game_name: account.arena_name,
+            game_name: Some(account.display_name),
             deck_ordering: Vec::new(),
             decks: HashMap::new(),
             status: PlayerStatus::Registered,
