@@ -76,7 +76,7 @@ pub struct OrganizationAccount {
 }
 
 impl SquireAccount {
-    pub fn create(user_name: String, display_name: String, permissions: SharingPermissions) -> Self {
+    pub fn new(user_name: String, display_name: String, permissions: SharingPermissions) -> Self {
         SquireAccount {
             display_name,
             user_name,
