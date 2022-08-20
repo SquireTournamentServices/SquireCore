@@ -9,18 +9,16 @@ use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
-    fluid_pairings::FluidPairings,
     identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
-    pairings::Pairings,
+    pairings::{PairingStyle, PairingSystem},
     player::{Player, PlayerStatus},
     player_registry::PlayerRegistry,
     round::{Round, RoundResult},
     round_registry::RoundRegistry,
-    scoring::{Score, Standings},
+    scoring::Standings,
     settings::{self, TournamentSetting},
     standard_scoring::{StandardScore, StandardScoring},
-    swiss_pairings::SwissPairings,
 };
 
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
@@ -41,15 +39,6 @@ pub enum TournamentPreset {
 pub enum ScoringSystem {
     /// The tournament has a standard scoring system
     Standard(StandardScoring),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-/// An enum that encodes all the possible pairing systems a tournament can have.
-pub enum PairingSystem {
-    /// The tournament has a swiss pairing system
-    Swiss(SwissPairings),
-    /// The tournament has a fluid pairing system
-    Fluid(FluidPairings),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -120,8 +109,8 @@ impl Tournament {
             max_deck_count: 2,
             player_reg: PlayerRegistry::new(),
             round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
-            pairing_sys: pairing_system_factory(&preset, 2),
-            scoring_sys: scoring_system_factory(&preset),
+            pairing_sys: PairingSystem::new(preset),
+            scoring_sys: scoring_system_factory(preset),
             reg_open: true,
             require_check_in: false,
             require_deck_reg: false,
@@ -381,7 +370,7 @@ impl Tournament {
                 }
                 rounds.push(r_id);
             }
-            if let PairingSystem::Swiss(_) = &self.pairing_sys {
+            if let PairingStyle::Swiss(_) = &self.pairing_sys.style {
                 for plyr in pairings.rejected {
                     let r_id = self.round_reg.create_round();
                     let rnd = self.round_reg.get_mut_round(&r_id).unwrap();
@@ -441,22 +430,9 @@ impl Tournament {
             RequireDeckReg(b) => {
                 self.require_deck_reg = b;
             }
-            PairingSetting(setting) => match setting {
-                settings::PairingSetting::Swiss(s) => {
-                    if let PairingSystem::Swiss(sys) = &mut self.pairing_sys {
-                        sys.update_setting(s);
-                    } else {
-                        return Err(TournamentError::IncompatiblePairingSystem);
-                    }
-                }
-                settings::PairingSetting::Fluid(s) => {
-                    if let PairingSystem::Fluid(sys) = &mut self.pairing_sys {
-                        sys.update_setting(s);
-                    } else {
-                        return Err(TournamentError::IncompatiblePairingSystem);
-                    }
-                }
-            },
+            PairingSetting(setting) => {
+                self.pairing_sys.update_setting(setting)?;
+            }
             ScoringSetting(setting) => match setting {
                 settings::ScoringSetting::Standard(s) => {
                     if let ScoringSystem::Standard(sys) = &mut self.scoring_sys {
@@ -665,9 +641,11 @@ impl Tournament {
         let mut should_pair = false;
         if plyr.can_play() {
             self.pairing_sys.ready_player(plyr.id);
-            should_pair = match &self.pairing_sys {
-                PairingSystem::Fluid(sys) => sys.ready_to_pair(),
-                PairingSystem::Swiss(_) => false,
+            should_pair = match &self.pairing_sys.style {
+                PairingStyle::Fluid(_) => self
+                    .pairing_sys
+                    .ready_to_pair(&self.player_reg, &self.round_reg),
+                PairingStyle::Swiss(_) => false,
             };
         }
         if should_pair {
@@ -699,10 +677,7 @@ impl Tournament {
             .player_reg
             .get_player_id(plyr)
             .ok_or(TournamentError::PlayerLookup)?;
-        match &mut self.pairing_sys {
-            PairingSystem::Swiss(sys) => sys.unready_player(plyr),
-            PairingSystem::Fluid(sys) => sys.unready_player(plyr),
-        };
+        self.pairing_sys.unready_player(plyr);
         Ok(OpData::Nothing)
     }
 
@@ -897,9 +872,11 @@ impl Tournament {
         let mut should_pair = false;
         if plyr.can_play() {
             self.pairing_sys.ready_player(plyr.id);
-            should_pair = match &self.pairing_sys {
-                PairingSystem::Fluid(sys) => sys.ready_to_pair(),
-                PairingSystem::Swiss(_) => false,
+            should_pair = match &self.pairing_sys.style {
+                PairingStyle::Fluid(_) => self
+                    .pairing_sys
+                    .ready_to_pair(&self.player_reg, &self.round_reg),
+                PairingStyle::Swiss(_) => false,
             };
         }
         if should_pair {
@@ -957,45 +934,8 @@ impl Tournament {
             .player_reg
             .get_player_id(&ident)
             .ok_or(TournamentError::PlayerLookup)?;
-        match &mut self.pairing_sys {
-            PairingSystem::Swiss(sys) => sys.unready_player(plyr),
-            PairingSystem::Fluid(sys) => sys.unready_player(plyr),
-        };
+        self.pairing_sys.unready_player(plyr);
         Ok(OpData::Nothing)
-    }
-}
-
-impl PairingSystem {
-    /// Marks a player as ready to play in their next round
-    pub fn ready_player(&mut self, id: PlayerId) {
-        match self {
-            Self::Swiss(sys) => sys.ready_player(id),
-            Self::Fluid(sys) => sys.ready_player(id),
-        }
-    }
-
-    /// Calculates if the pairing system is able to create a set of pairings
-    pub fn ready_to_pair(&self, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> bool {
-        match self {
-            Self::Swiss(sys) => sys.ready_to_pair(plyr_reg, rnd_reg),
-            Self::Fluid(sys) => sys.ready_to_pair(),
-        }
-    }
-
-    /// Attempts to create the next set of pairings
-    pub fn pair<S>(
-        &mut self,
-        plyr_reg: &PlayerRegistry,
-        rnd_reg: &RoundRegistry,
-        standings: Standings<S>,
-    ) -> Option<Pairings>
-    where
-        S: Score,
-    {
-        match self {
-            Self::Swiss(sys) => sys.pair(plyr_reg, rnd_reg, standings),
-            Self::Fluid(sys) => sys.pair(plyr_reg, rnd_reg),
-        }
     }
 }
 
@@ -1012,36 +952,17 @@ impl ScoringSystem {
     }
 }
 
-impl From<SwissPairings> for PairingSystem {
-    fn from(other: SwissPairings) -> Self {
-        Self::Swiss(other)
-    }
-}
-
-impl From<FluidPairings> for PairingSystem {
-    fn from(other: FluidPairings) -> Self {
-        Self::Fluid(other)
-    }
-}
-
 impl From<StandardScoring> for ScoringSystem {
     fn from(other: StandardScoring) -> Self {
         Self::Standard(other)
     }
 }
 
-/// Creates pairings systems from a tournament preset and game size
-pub fn pairing_system_factory(preset: &TournamentPreset, game_size: u8) -> PairingSystem {
-    match preset {
-        TournamentPreset::Swiss => SwissPairings::new(game_size).into(),
-        TournamentPreset::Fluid => FluidPairings::new(game_size).into(),
-    }
-}
-
 /// Creates scoring systems from a tournament preset
-pub fn scoring_system_factory(preset: &TournamentPreset) -> ScoringSystem {
+pub fn scoring_system_factory(preset: TournamentPreset) -> ScoringSystem {
+    use TournamentPreset::*;
     match preset {
-        TournamentPreset::Swiss => StandardScoring::new().into(),
-        TournamentPreset::Fluid => StandardScoring::new().into(),
+        Swiss => StandardScoring::new().into(),
+        Fluid => StandardScoring::new().into(),
     }
 }

@@ -2,10 +2,12 @@ use crate::accounts::SquireAccount;
 use crate::ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY};
 use crate::operations::OpData::RegisterPlayer;
 use crate::operations::TournOp;
+use crate::pairings::{
+    PairingStyle::{Fluid, Swiss},
+    PairingSystem,
+};
 use crate::round_registry::RoundRegistry;
-use crate::tournament::pairing_system_factory;
 use crate::tournament::scoring_system_factory;
-use crate::tournament::PairingSystem::{Fluid, Swiss};
 use crate::tournament::{Tournament, TournamentPreset, TournamentStatus};
 use crate::{
     identifiers::{PlayerId, PlayerIdentifier, TournamentId},
@@ -191,7 +193,7 @@ impl TournamentId {
             }
         }
 
-        match tourn.pairing_sys {
+        match tourn.pairing_sys.style {
             Swiss(_) => {
                 return TournamentPreset::Swiss as i32;
             }
@@ -378,18 +380,18 @@ pub extern "C" fn new_tournament_from_settings(
     let tournament: Tournament = Tournament {
         id: TournamentId::new(Uuid::new_v4()),
         name: String::from(unsafe { CStr::from_ptr(__name).to_str().unwrap().to_string() }),
-        use_table_number: use_table_number,
+        use_table_number,
         format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() }),
-        game_size: game_size,
-        min_deck_count: min_deck_count,
-        max_deck_count: max_deck_count,
+        game_size,
+        min_deck_count,
+        max_deck_count,
         player_reg: PlayerRegistry::new(),
         round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
-        pairing_sys: pairing_system_factory(&preset, 2),
-        scoring_sys: scoring_system_factory(&preset),
-        reg_open: reg_open,
-        require_check_in: require_check_in,
-        require_deck_reg: require_deck_reg,
+        pairing_sys: PairingSystem::new(preset),
+        scoring_sys: scoring_system_factory(preset),
+        reg_open,
+        require_check_in,
+        require_deck_reg,
         status: TournamentStatus::Planned,
         admins: HashMap::new(),
         judges: HashMap::new(),
