@@ -9,7 +9,7 @@ where
 {
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// An ordered collection of scores
 pub struct Standings<S> {
     /// The player, score pairings

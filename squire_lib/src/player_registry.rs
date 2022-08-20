@@ -37,9 +37,7 @@ impl PlayerRegistry {
 
     /// Returns a list of copied player ids, this is used in FFI mostly.
     pub fn get_player_ids(&self) -> Vec<PlayerId> {
-        let mut ret: Vec<PlayerId> = Vec::new();
-        self.players.iter().for_each(|(id, _)| ret.push(*id));
-        ret
+        self.players.iter().map(|(id, _)| *id).collect()
     }
 
     /// Checks in a player for registration
@@ -161,7 +159,7 @@ impl PlayerRegistry {
 
     /// Given a player identifier, returns that player's status if found
     pub fn get_player_status(&self, ident: &PlayerIdentifier) -> Option<PlayerStatus> {
-        Some(self.get_player(ident)?.status)
+        self.get_player(ident).map(|p| p.status)
     }
 
     /// Verfies that a player's identifier is valid
