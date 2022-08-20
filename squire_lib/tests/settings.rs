@@ -70,21 +70,16 @@ mod tests {
             TournamentPreset::Swiss,
             "Pioneer".into(),
         );
-        assert_eq!(
-            Err(TournamentError::IncompatiblePairingSystem),
-            tourn.apply_op(UpdateTournSetting(
-                admin_id,
-                TournamentSetting::PairingSetting(PairingSetting::Fluid(
-                    FluidPairingsSetting::MatchSize(10)
-                ))
-            ))
-        );
         assert!(tourn
             .apply_op(UpdateTournSetting(
                 admin_id,
-                TournamentSetting::PairingSetting(PairingSetting::Swiss(
-                    SwissPairingsSetting::MatchSize(10)
-                ))
+                TournamentSetting::PairingSetting(PairingSetting::MatchSize(10))
+            ))
+            .is_ok());
+        assert!(tourn
+            .apply_op(UpdateTournSetting(
+                admin_id,
+                SwissPairingsSetting::DoCheckIns(true).into()
             ))
             .is_ok());
         let mut tourn = admin.create_tournament(
@@ -92,22 +87,18 @@ mod tests {
             TournamentPreset::Fluid,
             "Pioneer".into(),
         );
+        assert!(tourn
+            .apply_op(UpdateTournSetting(
+                admin_id,
+                TournamentSetting::PairingSetting(PairingSetting::MatchSize(10))
+            ))
+            .is_ok());
         assert_eq!(
             Err(TournamentError::IncompatiblePairingSystem),
             tourn.apply_op(UpdateTournSetting(
                 admin_id,
-                TournamentSetting::PairingSetting(PairingSetting::Swiss(
-                    SwissPairingsSetting::MatchSize(10)
-                ))
+                SwissPairingsSetting::DoCheckIns(true).into()
             ))
         );
-        assert!(tourn
-            .apply_op(UpdateTournSetting(
-                admin_id,
-                TournamentSetting::PairingSetting(PairingSetting::Fluid(
-                    FluidPairingsSetting::MatchSize(10)
-                ))
-            ))
-            .is_ok());
     }
 }
