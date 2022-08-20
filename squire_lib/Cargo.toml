@@ -10,6 +10,7 @@ crate-type = ["lib", "staticlib"]
 
 [features]
 default = ["mtgjson/hyper", "mtgjson/hyper-tls"]
+#default = ["ffi", "mtgjson/hyper", "mtgjson/hyper-tls"]
 deck_sites = ["mtgjson/hyper", "mtgjson/hyper-tls"]
 ffi = ["cbindgen", "libc"]
 
