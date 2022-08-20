@@ -393,8 +393,8 @@ pub extern "C" fn new_tournament_from_settings(
         require_check_in,
         require_deck_reg,
         status: TournamentStatus::Planned,
-        admins: HashMap::new(),
         judges: HashMap::new(),
+        admins: HashMap::new(),
     };
     let tid: TournamentId = tournament.id;
 
