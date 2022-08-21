@@ -1,10 +1,13 @@
-use crate::identifiers::TournamentId;
-use crate::tournament::Tournament;
+use std::{
+    alloc::{Allocator, Layout, System},
+    os::raw::{c_char, c_void},
+    ptr,
+};
+
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-use std::alloc::{Allocator, Layout, System};
-use std::os::raw::{c_char, c_void};
-use std::ptr;
+
+use crate::{identifiers::TournamentId, tournament::Tournament};
 
 /// A map of tournament ids to tournaments
 /// this is used for allocating ffi tournaments
@@ -25,7 +28,18 @@ pub unsafe extern "C" fn init_squire_ffi() {
 /// does not end in a NULL char. Returns NULL on error
 pub fn clone_string_to_c_string(mut s: String) -> *mut c_char {
     s.push(char::default());
-    s.as_mut_ptr() as *mut i8
+
+    let ptr = System
+        .allocate(Layout::from_size_align(s.len(), 1).unwrap())
+        .unwrap()
+        .as_mut_ptr() as *mut c_char;
+
+    let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, s.len()) as *mut [c_char]) };
+    slice.iter_mut().zip(s.chars()).for_each(|(dst, c)| {
+        *dst = c as i8;
+    });
+
+    ptr
 }
 
 /// Deallocates a block assigned in the FFI portion,

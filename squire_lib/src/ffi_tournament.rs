@@ -1,4 +1,11 @@
-use std::{collections::HashMap, ffi::CStr, os::raw::c_char, time::Duration};
+use std::{
+    alloc::{Allocator, Layout, System},
+    collections::HashMap,
+    ffi::CStr,
+    os::raw::c_char,
+    ptr,
+    time::Duration,
+};
 
 use serde_json;
 use uuid::Uuid;
@@ -26,7 +33,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_players(self: Self) -> *const PlayerId {
         let tourn = match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(t) => t.value().clone(),
+            Some(t) => t,
             None => {
                 return std::ptr::null();
             }
@@ -34,7 +41,21 @@ impl TournamentId {
 
         let mut players = tourn.player_reg.get_player_ids();
         players.push(Uuid::default().into());
-        players.as_mut_ptr()
+
+        let len = players.len() * std::mem::size_of::<PlayerId>();
+
+        let ptr = System
+            .allocate(Layout::from_size_align(len, 1).unwrap())
+            .unwrap()
+            .as_mut_ptr() as *mut PlayerId;
+
+        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]) };
+
+        slice.iter_mut().zip(players.iter()).for_each(|(dst, p)| {
+            *dst = *p;
+        });
+
+        ptr
     }
 
     /// Adds a player to a tournament
