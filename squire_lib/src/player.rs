@@ -56,9 +56,9 @@ impl Player {
     /// Creates a new player
     pub fn from_account(account: SquireAccount) -> Self {
         Player {
-            id: account.user_id.0.into(),
-            name: account.user_name,
-            game_name: Some(account.display_name),
+            id: account.get_user_id().0.into(),
+            name: account.get_user_name(),
+            game_name: Some(account.get_display_name()),
             deck_ordering: Vec::new(),
             decks: HashMap::new(),
             status: PlayerStatus::Registered,
