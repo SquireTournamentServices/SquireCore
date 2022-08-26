@@ -1,6 +1,6 @@
-use identifiers::{UserAccountID, OrganizationAccountID};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use std::collections::HashMap;
 
 use crate::{
     identifiers::{AdminId, OrganizationAccountId, UserAccountId},
@@ -10,19 +10,12 @@ use crate::{
     tournament_manager::TournamentManager,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum SharingPermissions {
-    Everything,
-    OnlyDeckList,
-    OnlyDeckName,
-    Nothing
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Platforms {
     Cockatrice,
     MTGOnline,
-    Arena
+    Arena,
+    Other
 }
 
 
@@ -53,7 +46,7 @@ pub struct SquireAccount {
     /// The user's Id
     pub user_id: UserAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
-    pub do_share: SharingPermissions,
+    pub permissions: SharingPermissions,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -68,14 +61,15 @@ pub struct OrganizationAccount {
     /// The owner of the account
     pub owner: SquireAccount,
     /// A list of accounts that will be added as judges to new tournaments
-    pub default_judge: Vec<SquireAccount>,
+    pub default_judges: Vec<SquireAccount>,
     /// A list of accounts that will be added as tournament admins to new tournaments
     pub default_admins: Vec<SquireAccount>,
     /// The default settings for new tournaments
-    pub default_tournament_settings: TournamentSettingsTree,
+    default_tournament_settings: TournamentSettingsTree,
 }
 
 impl SquireAccount {
+    /// Creates a new SquireAccount with associated data
     pub fn new(user_name: String, display_name: String, permissions: SharingPermissions) -> Self {
         SquireAccount {
             display_name,
@@ -86,21 +80,69 @@ impl SquireAccount {
         }
     }
 
+    /// Adds a new gamer tag to internal hash map
     pub fn add_tag(&mut self, platfrom: Platforms, user_name: String) {
-        self.gamer_tags.insert(platfrom, user_name);
+        self.gamer_tags.insert(platfrom, Some(user_name));
     }
 
-    pub fn get_tags(&self, platforms: Vec<Platforms>) -> Vec<Option<String>> {
-        let tags = Vec::new()
-        for platform in platforms {
-            let gamer_tag = self.gamer_tags.get(platform);
-            tags.insert(Some(gamer_tag.clone()));
-        }
-        tags
+    /// Gets the gamer tag the user has for a specific platform
+    pub fn get_tag(&self, platform: Platforms) -> Option<String> {
+        *self.gamer_tags.get(&platform).unwrap()
     }
 
+    /// Gets all tags for a user
+    pub fn get_all_tags(&self) -> HashMap<Platforms, Option<String>> {
+        self.gamer_tags.clone()
+    }
+
+    /// Deletes a gamer tag for a platform
     pub fn delete_tag(&mut self, platform: &Platforms) {
         self.gamer_tags.remove(platform);
+    }
+
+    /// Gets the username
+    pub fn get_user_name(&self) -> String {
+        self.user_name.clone()
+    }
+
+    /// Update username to something else
+    pub fn change_user_name(&mut self, user_name: String) {
+        self.user_name = user_name
+    }
+
+    /// Deletes the username
+    pub fn delete_user_name(&mut self) {
+        self.user_name.clear()
+    }
+
+    /// Gets the display name
+    pub fn get_display_name(&self) -> String {
+        self.display_name.clone()
+    }
+
+    /// Update the display name to something else
+    pub fn change_display_name(&mut self, display_name: String) {
+        self.display_name = display_name
+    }
+
+    /// Deletes the display name
+    pub fn delete_display_name(&mut self) {
+        self.display_name.clear()
+    }
+
+    /// Gets the user ID
+    pub fn get_user_id(&self) -> UserAccountId {
+        self.user_id
+    }
+
+    /// Gets the Sharing Permissions
+    pub fn get_current_permissions(&self) -> SharingPermissions {
+        self.permissions.clone()
+    }
+
+    /// Update Sharing Permissions to something else
+    pub fn change_permissions(&mut self, permissions: SharingPermissions) {
+        self.permissions = permissions
     }
     
     /// Creates a new tournament and loads it with the default settings of the org
@@ -122,7 +164,7 @@ impl OrganizationAccount {
             org_name,
             display_name,
             account_id: Uuid::new_v4().into(),
-            default_judge: Vec::new(),
+            default_judges: Vec::new(),
             default_admins: Vec::new(),
             default_tournament_settings: TournamentSettingsTree::new(),
         }
@@ -137,7 +179,7 @@ impl OrganizationAccount {
     ) -> TournamentManager {
         let mut tourn = TournamentManager::new(self.owner.clone(), name, preset, format);
         let owner_id: AdminId = self.owner.user_id.0.into();
-        for judge in self.default_judge.iter().cloned() {
+        for judge in self.default_judges.iter().cloned() {
             // Should never error
             let _ = tourn.apply_op(TournOp::RegisterJudge(owner_id, judge));
         }
@@ -152,4 +194,35 @@ impl OrganizationAccount {
         }
         tourn
     }
+
+    /// Update judges
+    pub fn update_judges(&mut self, judge: SquireAccount) {
+        self.default_judges.insert(self.default_judges.len(), judge)
+    }
+
+    /// Clear Judges
+    pub fn delete_judges(&self) {
+        self.default_judges.clear()
+    }
+
+    /// Update admins
+    pub fn update_admins(&mut self, admin: SquireAccount) {
+        self.default_admins.insert(self.default_admins.len(), admin)
+    }
+
+    /// Clear Admins
+    pub fn delete_admins(&self) {
+        self.default_admins.clear()
+    }
+
+    /// Update Display Name
+    pub fn update_display_name(&mut self, display_name: String) {
+        self.display_name = display_name
+    }
+
+    /// Clear Display Name
+    pub fn delete_judges(&self) {
+        self.display_name.clear()
+    }
+    
 }

@@ -2,7 +2,6 @@ use std::{hash::Hash, marker::PhantomData, ops::Deref};
 
 use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use uuid::Uuid;
-use accounts::{SquireAccount, OrganizationAccount};
 
 use crate::{
     accounts::{OrganizationAccount, SquireAccount},
