@@ -194,5 +194,35 @@ impl OrganizationAccount {
         }
         tourn
     }
+
+    /// Update judges
+    pub fn update_judges(&mut self, judge: SquireAccount) {
+        self.default_judges.insert(self.default_judges.len(), judge)
+    }
+
+    /// Clear Judges
+    pub fn delete_judges(&self) {
+        self.default_judges.clear()
+    }
+
+    /// Update admins
+    pub fn update_admins(&mut self, admin: SquireAccount) {
+        self.default_admins.insert(self.default_admins.len(), admin)
+    }
+
+    /// Clear Admins
+    pub fn delete_admins(&self) {
+        self.default_admins.clear()
+    }
+
+    /// Update Display Name
+    pub fn update_display_name(&mut self, display_name: String) {
+        self.display_name = display_name
+    }
+
+    /// Clear Display Name
+    pub fn delete_judges(&self) {
+        self.display_name.clear()
+    }
     
 }
