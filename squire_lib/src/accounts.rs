@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 use crate::{
     identifiers::{AdminId, OrganizationAccountId, UserAccountId},
@@ -11,20 +11,25 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
+/// The platforms that we officially support (plus a wildcard)
 pub enum Platforms {
+    /// The Cockatrice platform
     Cockatrice,
+    /// The Magic: the Gathering Online platform
     MTGOnline,
+    /// The Magic: the Gathering Arena platform
     Arena,
-    Other
+    /// Other platforms that we don't yet support officially
+    Other(String),
 }
 
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 /// An enum that encodes the amount of information that is shared about the player after a
 /// tournament is over
 pub enum SharingPermissions {
     /// Everything about the player is shared and their account is linked to their registration
     /// information
+    #[default]
     Everything,
     /// Deck information is shared, but not the player's name
     OnlyDeckList,
@@ -42,7 +47,7 @@ pub struct SquireAccount {
     /// The name that's displayed on the user's account
     pub display_name: String,
     /// The name of the user on MTG Arena
-    pub gamer_tags: HashMap<Platforms, Option<String>>,
+    pub gamer_tags: HashMap<Platforms, String>,
     /// The user's Id
     pub user_id: UserAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
@@ -61,37 +66,37 @@ pub struct OrganizationAccount {
     /// The owner of the account
     pub owner: SquireAccount,
     /// A list of accounts that will be added as judges to new tournaments
-    pub default_judges: Vec<SquireAccount>,
+    pub default_judges: HashMap<UserAccountId, SquireAccount>,
     /// A list of accounts that will be added as tournament admins to new tournaments
-    pub default_admins: Vec<SquireAccount>,
+    pub default_admins: HashMap<UserAccountId, SquireAccount>,
     /// The default settings for new tournaments
     default_tournament_settings: TournamentSettingsTree,
 }
 
 impl SquireAccount {
     /// Creates a new SquireAccount with associated data
-    pub fn new(user_name: String, display_name: String, permissions: SharingPermissions) -> Self {
+    pub fn new(user_name: String, display_name: String) -> Self {
         SquireAccount {
             display_name,
             user_name,
             gamer_tags: HashMap::new(),
             user_id: Uuid::new_v4().into(),
-            permissions
+            permissions: SharingPermissions::default(),
         }
     }
 
     /// Adds a new gamer tag to internal hash map
     pub fn add_tag(&mut self, platfrom: Platforms, user_name: String) {
-        self.gamer_tags.insert(platfrom, Some(user_name));
+        self.gamer_tags.insert(platfrom, user_name);
     }
 
     /// Gets the gamer tag the user has for a specific platform
-    pub fn get_tag(&self, platform: Platforms) -> Option<String> {
-        *self.gamer_tags.get(&platform).unwrap()
+    pub fn get_tag(&mut self, platform: Platforms) -> Option<String> {
+        self.gamer_tags.get(&platform).cloned()
     }
 
     /// Gets all tags for a user
-    pub fn get_all_tags(&self) -> HashMap<Platforms, Option<String>> {
+    pub fn get_all_tags(&self) -> HashMap<Platforms, String> {
         self.gamer_tags.clone()
     }
 
@@ -144,7 +149,7 @@ impl SquireAccount {
     pub fn change_permissions(&mut self, permissions: SharingPermissions) {
         self.permissions = permissions
     }
-    
+
     /// Creates a new tournament and loads it with the default settings of the org
     pub fn create_tournament(
         &self,
@@ -164,8 +169,8 @@ impl OrganizationAccount {
             org_name,
             display_name,
             account_id: Uuid::new_v4().into(),
-            default_judges: Vec::new(),
-            default_admins: Vec::new(),
+            default_judges: HashMap::new(),
+            default_admins: HashMap::new(),
             default_tournament_settings: TournamentSettingsTree::new(),
         }
     }
@@ -179,11 +184,11 @@ impl OrganizationAccount {
     ) -> TournamentManager {
         let mut tourn = TournamentManager::new(self.owner.clone(), name, preset, format);
         let owner_id: AdminId = self.owner.user_id.0.into();
-        for judge in self.default_judges.iter().cloned() {
+        for judge in self.default_judges.values().cloned() {
             // Should never error
             let _ = tourn.apply_op(TournOp::RegisterJudge(owner_id, judge));
         }
-        for admin in self.default_admins.iter().cloned() {
+        for admin in self.default_admins.values().cloned() {
             // Should never error
             let _ = tourn.apply_op(TournOp::RegisterJudge(owner_id, admin));
         }
@@ -197,32 +202,26 @@ impl OrganizationAccount {
 
     /// Update judges
     pub fn update_judges(&mut self, judge: SquireAccount) {
-        self.default_judges.insert(self.default_judges.len(), judge)
-    }
-
-    /// Clear Judges
-    pub fn delete_judges(&self) {
-        self.default_judges.clear()
+        self.default_judges.insert(judge.user_id, judge);
     }
 
     /// Update admins
     pub fn update_admins(&mut self, admin: SquireAccount) {
-        self.default_admins.insert(self.default_admins.len(), admin)
+        self.default_admins.insert(admin.user_id, admin);
     }
 
-    /// Clear Admins
-    pub fn delete_admins(&self) {
-        self.default_admins.clear()
+    /// Remove an Admin
+    pub fn delete_admin(&mut self, id: UserAccountId) {
+        self.default_admins.remove(&id);
+    }
+
+    /// Remove a Judge
+    pub fn delete_judge(&mut self, id: UserAccountId) {
+        self.default_judges.remove(&id);
     }
 
     /// Update Display Name
     pub fn update_display_name(&mut self, display_name: String) {
         self.display_name = display_name
     }
-
-    /// Clear Display Name
-    pub fn delete_judges(&self) {
-        self.display_name.clear()
-    }
-    
 }

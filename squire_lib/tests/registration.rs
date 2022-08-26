@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
         identifiers::AdminId,
@@ -13,11 +15,9 @@ mod tests {
         SquireAccount {
             user_name: id.to_string(),
             display_name: id.to_string(),
-            arena_name: None,
-            mtgo_name: None,
-            trice_name: None,
+            gamer_tags: HashMap::new(),
             user_id: id.into(),
-            do_share: SharingPermissions::Everything,
+            permissions: SharingPermissions::Everything,
         }
     }
 

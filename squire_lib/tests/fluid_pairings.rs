@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{collections::HashMap, time::Duration};
 
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
@@ -19,11 +19,9 @@ mod tests {
         SquireAccount {
             user_name: id.to_string(),
             display_name: id.to_string(),
-            arena_name: None,
-            mtgo_name: None,
-            trice_name: None,
+            gamer_tags: HashMap::new(),
             user_id: id,
-            do_share: SharingPermissions::Everything,
+            permissions: SharingPermissions::Everything,
         }
     }
 
