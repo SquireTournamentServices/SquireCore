@@ -87,10 +87,10 @@ impl PlayerRegistry {
 
     /// Creates a new player
     pub fn add_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
-        if self.verify_identifier(&PlayerIdentifier::Name(account.user_name.clone())) {
+        if self.verify_identifier(&PlayerIdentifier::Name(account.get_user_name().clone())) {
             Err(TournamentError::PlayerLookup)
         } else {
-            let name = account.user_name.clone();
+            let name = account.get_user_name().clone();
             let plyr = Player::from_account(account);
             let digest = Ok(plyr.id);
             self.name_and_id.insert(name, plyr.id);

@@ -36,8 +36,8 @@ impl Judge {
     /// Creates a new judge object from a `SquireAccount`
     pub fn new(account: SquireAccount) -> Self {
         Self {
-            name: account.user_name,
-            id: account.user_id.0.into(),
+            name: account.get_user_name(),
+            id: account.get_user_id().0.into(),
         }
     }
 }
@@ -46,8 +46,8 @@ impl Admin {
     /// Creates a new admin object from a `SquireAccount`
     pub fn new(account: SquireAccount) -> Self {
         Self {
-            name: account.user_name,
-            id: account.user_id.0.into(),
+            name: account.get_user_name(),
+            id: account.get_user_id().0.into(),
         }
     }
 }

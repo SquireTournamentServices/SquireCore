@@ -10,7 +10,7 @@ use crate::{
     tournament_manager::TournamentManager,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Platforms {
     Cockatrice,
     MTGOnline,
@@ -61,11 +61,11 @@ pub struct OrganizationAccount {
     /// The owner of the account
     pub owner: SquireAccount,
     /// A list of accounts that will be added as judges to new tournaments
-    pub default_judge: Vec<SquireAccount>,
+    pub default_judges: Vec<SquireAccount>,
     /// A list of accounts that will be added as tournament admins to new tournaments
     pub default_admins: Vec<SquireAccount>,
     /// The default settings for new tournaments
-    pub default_tournament_settings: TournamentSettingsTree,
+    default_tournament_settings: TournamentSettingsTree,
 }
 
 impl SquireAccount {
@@ -164,7 +164,7 @@ impl OrganizationAccount {
             org_name,
             display_name,
             account_id: Uuid::new_v4().into(),
-            default_judge: Vec::new(),
+            default_judges: Vec::new(),
             default_admins: Vec::new(),
             default_tournament_settings: TournamentSettingsTree::new(),
         }
@@ -179,7 +179,7 @@ impl OrganizationAccount {
     ) -> TournamentManager {
         let mut tourn = TournamentManager::new(self.owner.clone(), name, preset, format);
         let owner_id: AdminId = self.owner.user_id.0.into();
-        for judge in self.default_judge.iter().cloned() {
+        for judge in self.default_judges.iter().cloned() {
             // Should never error
             let _ = tourn.apply_op(TournOp::RegisterJudge(owner_id, judge));
         }
@@ -194,4 +194,5 @@ impl OrganizationAccount {
         }
         tourn
     }
+    
 }
