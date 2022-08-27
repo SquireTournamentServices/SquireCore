@@ -17,7 +17,7 @@ ffi = ["cbindgen", "libc"]
 [dependencies]
 #In-house deps
 cycle_map = { version = "0.1.1", features = ["serde"] }
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="864d71022fd285defb371626e06d6de7c7119f45", default-features = false }
 # mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 lazy_static = "1.4.0"
 

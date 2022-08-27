@@ -195,7 +195,7 @@ impl RoundRegistry {
         let mut nums: Vec<u64> = self
             .rounds
             .iter()
-            .filter(|(_, r)| r.players.contains(id) && r.is_certified())
+            .filter(|(_, r)| r.players.contains(id) && !r.is_certified())
             .map(|(_, r)| r.match_number)
             .collect();
         nums.sort_unstable();
@@ -204,6 +204,16 @@ impl RoundRegistry {
         } else {
             Ok(self.rounds.get_mut(&nums[0]).unwrap())
         }
+    }
+
+    // TODO: Rework
+    /// Gets a Vec of `&mut Round`
+    pub fn get_player_active_rounds(&mut self, id: &PlayerId) -> Vec<&mut Round> {
+        self.rounds
+            .iter_mut()
+            .map(|(_, r)| r)
+            .filter(|r| r.players.contains(id) && r.is_certified())
+            .collect()
     }
 
     /// Sets the length for new rounds

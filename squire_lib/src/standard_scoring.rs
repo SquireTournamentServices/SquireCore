@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     identifiers::PlayerId,
     player_registry::PlayerRegistry,
-    round::{Round, RoundResult},
+    round::Round,
     round_registry::RoundRegistry,
     scoring::{Score, Standings},
     settings::StandardScoringSetting,
@@ -340,18 +340,11 @@ impl ScoreCounter {
                 }
             }
         }
-        for result in &round.results {
-            match result {
-                RoundResult::Draw() => {
-                    self.game_draws += 1;
-                }
-                RoundResult::Wins(p_id, _) => {
-                    if p_id == &self.player {
-                        self.game_wins += 1;
-                    } else {
-                        self.game_losses += 1;
-                    }
-                }
+        for (p_id, count) in &round.results {
+            if p_id == &self.player {
+                self.game_wins += *count as u64;
+            } else {
+                self.game_losses += *count as u64;
             }
         }
     }

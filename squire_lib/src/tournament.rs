@@ -560,6 +560,10 @@ impl Tournament {
         self.player_reg
             .drop_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
+        let id = self.player_reg.get_player_id(ident).unwrap();
+        for rnd in self.round_reg.get_player_active_rounds(&id) {
+            rnd.remove_player(id);
+        }
         Ok(OpData::Nothing)
     }
 
@@ -571,6 +575,10 @@ impl Tournament {
         self.player_reg
             .drop_player(ident)
             .ok_or(TournamentError::PlayerLookup)?;
+        let id = self.player_reg.get_player_id(ident).unwrap();
+        for rnd in self.round_reg.get_player_active_rounds(&id) {
+            rnd.remove_player(id);
+        }
         Ok(OpData::Nothing)
     }
 

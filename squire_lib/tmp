@@ -1,0 +1,148 @@
+squire_lib v0.1.0-pre-alpha.1 (/home/tyler/Code/SquireCore/squire_lib)
+├── cycle_map v0.1.1
+│   ├── hashbrown v0.12.1
+│   │   └── ahash v0.7.6
+│   │       ├── getrandom v0.2.6
+│   │       │   ├── cfg-if v1.0.0
+│   │       │   └── libc v0.2.126
+│   │       └── once_cell v1.13.0
+│   │       [build-dependencies]
+│   │       └── version_check v0.9.4
+│   └── serde v1.0.137
+│       └── serde_derive v1.0.137 (proc-macro)
+│           ├── proc-macro2 v1.0.39
+│           │   └── unicode-ident v1.0.0
+│           ├── quote v1.0.18
+│           │   └── proc-macro2 v1.0.39 (*)
+│           └── syn v1.0.95
+│               ├── proc-macro2 v1.0.39 (*)
+│               ├── quote v1.0.18 (*)
+│               └── unicode-ident v1.0.0
+├── dashmap v5.3.4
+│   ├── cfg-if v1.0.0
+│   ├── hashbrown v0.12.1 (*)
+│   ├── lock_api v0.4.7
+│   │   └── scopeguard v1.1.0
+│   │   [build-dependencies]
+│   │   └── autocfg v1.1.0
+│   ├── parking_lot_core v0.9.3
+│   │   ├── cfg-if v1.0.0
+│   │   ├── libc v0.2.126
+│   │   └── smallvec v1.9.0
+│   └── serde v1.0.137 (*)
+├── lazy_static v1.4.0
+├── mtgjson v0.0.0 (https://github.com/TylerBloom/mtgjson-rust-sdk#318a685e)
+│   ├── cycle_map v0.1.1 (*)
+│   ├── hashbag v0.1.5
+│   │   └── serde v1.0.137 (*)
+│   ├── hyper v0.14.18
+│   │   ├── bytes v1.1.0
+│   │   ├── futures-channel v0.3.21
+│   │   │   └── futures-core v0.3.21
+│   │   ├── futures-core v0.3.21
+│   │   ├── futures-util v0.3.21
+│   │   │   ├── futures-core v0.3.21
+│   │   │   ├── futures-task v0.3.21
+│   │   │   ├── pin-project-lite v0.2.9
+│   │   │   └── pin-utils v0.1.0
+│   │   ├── http v0.2.7
+│   │   │   ├── bytes v1.1.0
+│   │   │   ├── fnv v1.0.7
+│   │   │   └── itoa v1.0.2
+│   │   ├── http-body v0.4.5
+│   │   │   ├── bytes v1.1.0
+│   │   │   ├── http v0.2.7 (*)
+│   │   │   └── pin-project-lite v0.2.9
+│   │   ├── httparse v1.7.1
+│   │   ├── httpdate v1.0.2
+│   │   ├── itoa v1.0.2
+│   │   ├── pin-project-lite v0.2.9
+│   │   ├── socket2 v0.4.4
+│   │   │   └── libc v0.2.126
+│   │   ├── tokio v1.20.0
+│   │   │   ├── libc v0.2.126
+│   │   │   ├── mio v0.8.3
+│   │   │   │   ├── libc v0.2.126
+│   │   │   │   └── log v0.4.17
+│   │   │   │       └── cfg-if v1.0.0
+│   │   │   ├── once_cell v1.13.0
+│   │   │   ├── pin-project-lite v0.2.9
+│   │   │   └── socket2 v0.4.4 (*)
+│   │   │   [build-dependencies]
+│   │   │   └── autocfg v1.1.0
+│   │   ├── tower-service v0.3.1
+│   │   ├── tracing v0.1.34
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   ├── pin-project-lite v0.2.9
+│   │   │   └── tracing-core v0.1.26
+│   │   │       └── lazy_static v1.4.0
+│   │   └── want v0.3.0
+│   │       ├── log v0.4.17 (*)
+│   │       └── try-lock v0.2.3
+│   ├── hyper-tls v0.5.0
+│   │   ├── bytes v1.1.0
+│   │   ├── hyper v0.14.18 (*)
+│   │   ├── native-tls v0.2.10
+│   │   │   ├── log v0.4.17 (*)
+│   │   │   ├── openssl v0.10.40
+│   │   │   │   ├── bitflags v1.3.2
+│   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   ├── foreign-types v0.3.2
+│   │   │   │   │   └── foreign-types-shared v0.1.1
+│   │   │   │   ├── libc v0.2.126
+│   │   │   │   ├── once_cell v1.13.0
+│   │   │   │   ├── openssl-macros v0.1.0 (proc-macro)
+│   │   │   │   │   ├── proc-macro2 v1.0.39 (*)
+│   │   │   │   │   ├── quote v1.0.18 (*)
+│   │   │   │   │   └── syn v1.0.95 (*)
+│   │   │   │   └── openssl-sys v0.9.73
+│   │   │   │       └── libc v0.2.126
+│   │   │   │       [build-dependencies]
+│   │   │   │       ├── autocfg v1.1.0
+│   │   │   │       ├── cc v1.0.73
+│   │   │   │       └── pkg-config v0.3.25
+│   │   │   ├── openssl-probe v0.1.5
+│   │   │   └── openssl-sys v0.9.73 (*)
+│   │   ├── tokio v1.20.0 (*)
+│   │   └── tokio-native-tls v0.3.0
+│   │       ├── native-tls v0.2.10 (*)
+│   │       └── tokio v1.20.0 (*)
+│   ├── lazy_static v1.4.0
+│   ├── regex v1.5.6
+│   │   ├── aho-corasick v0.7.18
+│   │   │   └── memchr v2.5.0
+│   │   ├── memchr v2.5.0
+│   │   └── regex-syntax v0.6.26
+│   ├── serde v1.0.137 (*)
+│   ├── serde_json v1.0.81
+│   │   ├── itoa v1.0.2
+│   │   ├── ryu v1.0.10
+│   │   └── serde v1.0.137 (*)
+│   ├── serde_with v1.13.0
+│   │   ├── rustversion v1.0.6 (proc-macro)
+│   │   ├── serde v1.0.137 (*)
+│   │   └── serde_with_macros v1.5.2 (proc-macro)
+│   │       ├── darling v0.13.4
+│   │       │   ├── darling_core v0.13.4
+│   │       │   │   ├── fnv v1.0.7
+│   │       │   │   ├── ident_case v1.0.1
+│   │       │   │   ├── proc-macro2 v1.0.39 (*)
+│   │       │   │   ├── quote v1.0.18 (*)
+│   │       │   │   ├── strsim v0.10.0
+│   │       │   │   └── syn v1.0.95 (*)
+│   │       │   └── darling_macro v0.13.4 (proc-macro)
+│   │       │       ├── darling_core v0.13.4 (*)
+│   │       │       ├── quote v1.0.18 (*)
+│   │       │       └── syn v1.0.95 (*)
+│   │       ├── proc-macro2 v1.0.39 (*)
+│   │       ├── quote v1.0.18 (*)
+│   │       └── syn v1.0.95 (*)
+│   └── uuid v0.8.2
+│       └── sha1 v0.6.1
+│           └── sha1_smol v1.0.0
+├── once_cell v1.13.0
+├── serde v1.0.137 (*)
+├── serde_json v1.0.81 (*)
+└── uuid v1.1.2
+    ├── getrandom v0.2.6 (*)
+    └── serde v1.0.137 (*)
