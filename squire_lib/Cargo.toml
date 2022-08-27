@@ -1,6 +1,6 @@
 [package]
 name = "squire_lib"
-version = "0.1.0"
+version = "0.1.0-pre-alpha.1"
 edition = "2021"
 license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
@@ -9,15 +9,16 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 crate-type = ["lib", "staticlib"]
 
 [features]
-default = ["mtgjson/hyper", "mtgjson/hyper-tls"]
-#default = ["ffi", "mtgjson/hyper", "mtgjson/hyper-tls"]
-deck_sites = ["mtgjson/hyper", "mtgjson/hyper-tls"]
+default = ["deck_sites"]
+#default = ["ffi", "mtgjson/deck_sites"]
+deck_sites = ["mtgjson/deck_sites"]
 ffi = ["cbindgen", "libc"]
 
 [dependencies]
 #In-house deps
 cycle_map = { version = "0.1.1", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
+# mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 lazy_static = "1.4.0"
 
 uuid = { version = "1.1", features = ["serde", "v4"] }

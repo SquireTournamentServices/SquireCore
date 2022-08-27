@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mtgjson::model::deck::Deck;
+pub use mtgjson::model::deck::Deck;
 
 pub use crate::identifiers::PlayerId;
 use crate::{accounts::SquireAccount, error::TournamentError};

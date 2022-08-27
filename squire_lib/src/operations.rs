@@ -3,7 +3,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mtgjson::model::deck::Deck;
+// use mtgjson::model::deck::Deck;
 
 use crate::{
     accounts::SquireAccount,
@@ -13,6 +13,7 @@ use crate::{
     round::{RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
+    player::Deck,
 };
 
 /// This enum captures all ways in which a tournament can mutate.

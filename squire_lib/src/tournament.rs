@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mtgjson::model::deck::Deck;
+// use mtgjson::model::deck::Deck;
 
 use crate::{
     accounts::SquireAccount,
@@ -12,7 +12,7 @@ use crate::{
     identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::{PairingStyle, PairingSystem},
-    player::{Player, PlayerStatus},
+    player::{Deck, Player, PlayerStatus},
     player_registry::PlayerRegistry,
     round::{Round, RoundResult},
     round_registry::RoundRegistry,
