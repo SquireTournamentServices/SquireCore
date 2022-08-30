@@ -47,7 +47,7 @@ impl RoundRegistry {
     /// Returns a list of copied round ids, this is used in FFI mostly.
     pub fn get_round_ids(&self) -> Vec<RoundId> {
         let mut ret: Vec<RoundId> = Vec::new();
-        self.rounds.keys.collect()
+        self.rounds.iter().for_each(|(_, rnd)| ret.push(rnd.id));
         ret
     }
 
