@@ -13,7 +13,8 @@ use crate::{identifiers::TournamentId, tournament::Tournament};
 /// this is used for allocating ffi tournaments
 /// all ffi tournaments are always deeply copied
 /// at the lanuage barrier
-pub static FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
+pub static mut FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> =
+    OnceCell::new();
 
 /// Call this in main()
 /// Inits the internal structs of squire lib for FFI.

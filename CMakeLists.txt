@@ -14,8 +14,8 @@ message(STATUS "SQ Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "SQ Version: ${CMAKE_PROJECT_VERSION}")
 message(STATUS "SQ Build OS: ${CMAKE_SYSTEM_NAME}")
 
-# Copy into your CMakeFile after importing this sub directory
-# Get the branch name
+# Copy into your CMakeFile after importing this sub directory Get the branch
+# name
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -34,7 +34,8 @@ message(STATUS "SQ Commit info: ${SQ_GIT_COMMIT_HASH}@${SQ_GIT_BRANCH}")
 add_definitions("-DSQ_GIT_COMMIT_HASH=\"${SQ_GIT_COMMIT_HASH}\"")
 add_definitions("-DSQ_GIT_BRANCH=\"${SQ_GIT_BRANCH}\"")
 add_definitions(
-  "-DSQ_VERSION=\"${CMAKE_PROJECT_VERSION} (${SQ_GIT_COMMIT_HASH}@${SQ_GIT_BRANCH})\"")
+  "-DSQ_VERSION=\"${CMAKE_PROJECT_VERSION} (${SQ_GIT_COMMIT_HASH}@${SQ_GIT_BRANCH})\""
+)
 
 if(WIN32)
   set(EXT "lib")
@@ -59,7 +60,8 @@ if(WIN32)
       "${RUST_PART_CXX_FILE}"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/squire_core.h"
             "${RUST_PART_H_FILE}"
-    COMMAND ${CMAKE_COMMAND} -E copy "${RUST_PART_CXX_FILE}" "${CMAKE_BINARY_DIR}/squire_core.${EXT}"
+    COMMAND ${CMAKE_COMMAND} -E copy "${RUST_PART_CXX_FILE}"
+            "${CMAKE_BINARY_DIR}/squire_core.${EXT}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 else()
   add_custom_command(
@@ -78,9 +80,9 @@ add_custom_target(RUST_PART_H DEPENDS ${RUST_PART_H_FILE})
 
 set(LIBS)
 if(UNIX)
-    set(LIBS "dl" "pthread")
+  set(LIBS "dl" "pthread")
 elseif(WIN32)
-    set(LIBS "wsock32" "ws2_32" "bcrypt")
+  set(LIBS "wsock32" "ws2_32" "bcrypt")
 endif()
 
 add_library(squire_core INTERFACE)

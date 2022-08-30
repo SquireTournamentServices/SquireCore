@@ -663,3 +663,162 @@ impl fmt::Display for StandardScoringSetting {
         }
     }
 }
+
+impl TournamentSettingsTree {
+    /// Creates a settings tree for all tournament settings
+    pub fn new() -> TournamentSettingsTree {
+        TournamentSettingsTree {
+            format: "Pioneer".into(),
+            starting_table_number: 1,
+            use_table_numbers: true,
+            min_deck_count: 0,
+            max_deck_count: 1,
+            require_check_in: false,
+            require_deck_reg: false,
+            pairing_settings: PairingSettingsTree::new(),
+            scoring_settings: ScoringSettingsTree::new(),
+        }
+    }
+}
+
+impl PairingSettingsTree {
+    /// Creates a settings tree for all pairings systems
+    pub fn new() -> PairingSettingsTree {
+        PairingSettingsTree {
+            swiss: SwissPairingsSettingsTree::new(),
+            fluid: FluidPairingsSettingsTree::new(),
+        }
+    }
+}
+
+impl SwissPairingsSettingsTree {
+    /// Creates a settings tree for fluid pairing systems
+    pub fn new() -> SwissPairingsSettingsTree {
+        SwissPairingsSettingsTree {
+            match_size: 2,
+            do_check_ins: false,
+        }
+    }
+}
+
+impl FluidPairingsSettingsTree {
+    /// Creates a settings tree for fluid pairing systems
+    pub fn new() -> FluidPairingsSettingsTree {
+        FluidPairingsSettingsTree { match_size: 2 }
+    }
+}
+
+impl ScoringSettingsTree {
+    /// Creates a settings tree for all scoring systems
+    pub fn new() -> ScoringSettingsTree {
+        ScoringSettingsTree {
+            standard: StandardScoringSettingsTree::new(),
+        }
+    }
+}
+
+impl StandardScoringSettingsTree {
+    /// Creates a settings tree for standard scoring systems
+    pub fn new() -> StandardScoringSettingsTree {
+        StandardScoringSettingsTree {
+            match_win_points: 3.0,
+            match_draw_points: 1.0,
+            match_loss_points: 0.0,
+            game_win_points: 3.0,
+            game_draw_points: 1.0,
+            game_loss_points: 0.0,
+            bye_points: 3.0,
+            include_byes: true,
+            include_match_points: true,
+            include_game_points: true,
+            include_mwp: true,
+            include_gwp: true,
+            include_opp_mwp: true,
+            include_opp_gwp: true,
+        }
+    }
+}
+
+impl Default for TournamentSettingsTree {
+    fn default() -> TournamentSettingsTree {
+        TournamentSettingsTree::new()
+    }
+}
+
+impl Default for PairingSettingsTree {
+    fn default() -> PairingSettingsTree {
+        PairingSettingsTree::new()
+    }
+}
+
+impl Default for SwissPairingsSettingsTree {
+    fn default() -> SwissPairingsSettingsTree {
+        SwissPairingsSettingsTree::new()
+    }
+}
+
+impl Default for FluidPairingsSettingsTree {
+    fn default() -> FluidPairingsSettingsTree {
+        FluidPairingsSettingsTree::new()
+    }
+}
+
+impl Default for ScoringSettingsTree {
+    fn default() -> ScoringSettingsTree {
+        ScoringSettingsTree::new()
+    }
+}
+
+impl Default for StandardScoringSettingsTree {
+    fn default() -> StandardScoringSettingsTree {
+        StandardScoringSettingsTree::new()
+    }
+}
+
+impl From<PairingSetting> for TournamentSetting {
+    fn from(other: PairingSetting) -> TournamentSetting {
+        TournamentSetting::PairingSetting(other)
+    }
+}
+
+impl From<ScoringSetting> for TournamentSetting {
+    fn from(other: ScoringSetting) -> TournamentSetting {
+        TournamentSetting::ScoringSetting(other)
+    }
+}
+
+impl From<SwissPairingsSetting> for PairingSetting {
+    fn from(other: SwissPairingsSetting) -> PairingSetting {
+        PairingSetting::Swiss(other)
+    }
+}
+
+impl From<FluidPairingsSetting> for PairingSetting {
+    fn from(other: FluidPairingsSetting) -> PairingSetting {
+        PairingSetting::Fluid(other)
+    }
+}
+
+impl From<StandardScoringSetting> for ScoringSetting {
+    fn from(other: StandardScoringSetting) -> ScoringSetting {
+        ScoringSetting::Standard(other)
+    }
+}
+
+impl From<SwissPairingsSetting> for TournamentSetting {
+    fn from(other: SwissPairingsSetting) -> TournamentSetting {
+        TournamentSetting::PairingSetting(other.into())
+    }
+}
+
+impl From<FluidPairingsSetting> for TournamentSetting {
+    fn from(other: FluidPairingsSetting) -> TournamentSetting {
+        TournamentSetting::PairingSetting(other.into())
+    }
+}
+
+impl From<StandardScoringSetting> for TournamentSetting {
+    fn from(other: StandardScoringSetting) -> TournamentSetting {
+        TournamentSetting::ScoringSetting(other.into())
+    }
+}

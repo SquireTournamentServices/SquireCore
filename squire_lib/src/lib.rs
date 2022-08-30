@@ -31,6 +31,8 @@ pub mod ffi;
 #[cfg(feature = "ffi")]
 /// Contains the ffi C bindings for players used in SquireDesktop
 pub mod ffi_player;
+/// Contains the ffi C bindings for a tournament used in SquireDesktop
+pub mod ffi_rounds;
 #[cfg(feature = "ffi")]
 /// Contains the ffi C bindings for a tournament used in SquireDesktop
 pub mod ffi_tournament;
