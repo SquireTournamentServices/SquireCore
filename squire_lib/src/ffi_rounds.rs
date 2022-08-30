@@ -58,7 +58,7 @@ impl RoundId {
     /// Dead on error
     #[no_mangle]
     pub extern "C" fn rid_status(self, tid: TournamentId) -> RoundStatus {
-        match self.get_tourn_round(tid) {
+        self.get_tourn_round(tid).map(|r| r.status).unwrap_or(RoundStatus::Dead)
             Some(r) => {
                 return r.status;
             }
