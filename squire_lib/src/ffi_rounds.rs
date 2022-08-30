@@ -72,7 +72,7 @@ impl RoundId {
     /// Retrusn -1 on error
     #[no_mangle]
     pub extern "C" fn rid_time_left(self, tid: TournamentId) -> i64 {
-        match self.get_tourn_round(tid) {
+        self.get_tourn_round(tid).map(|r| r.time_left().as_secs() as i64).unwrap_or(-1)
             Some(r) => {
                 return r.time_left().as_secs() as i64;
             }
