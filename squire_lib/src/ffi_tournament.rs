@@ -409,7 +409,7 @@ pub extern "C" fn new_tournament_from_settings(
 /// Otherwise true is returned and the operations are all
 /// applied to the tournament.
 #[no_mangle]
-pub extern "C" tid_update_settings(
+pub extern "C" fn tid_update_settings(
     tid: TournamentId,
     __format: *const c_char,
     starting_table_number: u64,
@@ -419,11 +419,12 @@ pub extern "C" tid_update_settings(
     max_deck_count: u8,
     reg_open: bool,
     require_check_in: bool,
-    require_deck_reg: bool) -> bool {
-    let tournament: Tournament;
+    require_deck_reg: bool,
+) -> bool {
+    let mut tournament: Tournament;
     unsafe {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(v) => tournament = v.value().clone(),
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(v) => tournament = v,
             None => {
                 println!("[FFI]: Cannot find tournament in update_settings");
                 return false;
@@ -432,33 +433,88 @@ pub extern "C" tid_update_settings(
     }
 
     // Sort input strings out
-    let format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() });
+    let format = String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() });
 
     // Init list of operations to execute
+    let aid: AdminId = Uuid::default::into();
     let mut op_vect: Vec<TournOp> = Vec::<TournOp>::new();
     if format != tournament.format {
-        op_vect.push(TournOp::UpdateSetting(tid, TournamentSetting::Format(format)));
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::Format(format),
+        ));
     }
 
     if starting_table_number != tournament.round_reg.starting_table {
-        op_vect.push(TournOp::UpdateSetting(tid, TournamentSetting::StartingTableNumber(starting_table_number)));
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::StartingTableNumber(starting_table_number),
+        ));
     }
 
     if use_table_number != tournament.use_table_number {
-        op_vect.push(TournOp::UpdateSetting(tid, TournamentSetting::UseTableNumbers(use_table_number)));
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::UseTableNumbers(use_table_number),
+        ));
     }
 
     if game_size != tournament.game_size {
-        todo!("fix me");
-        //op_vect.push(TournOp::UpdateSetting(tid, TournamentSetting::PairingSetting::MatchSize(game_size)));
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::PairingSetting::MatchSize(game_size),
+        ));
     }
 
-    min_deck_count: u8,
-    max_deck_count: u8,
-    reg_open: bool,
-    require_check_in: bool,
-    require_deck_reg: bool) -> bool {
-    // Apply all settings, rollback on error.
-    
-    // Panic on double trouble
+    if min_deck_count != tournament.min_deck_count {
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::MinDeckCount(min_deck_count),
+        ));
+    }
+
+    if max_deck_count != tournament.max_deck_count {
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::MaxDeckCount(max_deck_count),
+        ));
+    }
+
+    if reg_open != tournament.reg_open {
+        op_vect.push(TournOp::UpdateSetting(aid, reg_open));
+    }
+
+    if require_check_in != tournament.require_check_in {
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::RequireCheckIn(require_check_in),
+        ));
+    }
+
+    if require_deck_reg != tournament.require_deck_reg {
+        op_vect.push(TournOp::UpdateSetting(
+            aid,
+            TournamentSetting::RequireDeckReg(require_deck_reg),
+        ));
+    }
+
+    // Apply all settings
+    let err: bool = false;
+    for i in 0..op_vect.size() {
+        match tournament.apply_op(op) {
+            Err(t_err) => {
+                println!("[FFI]: update_settings error: {t_err}");
+                err = true;
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    // Rollback on error.
+    if err {
+        // Panic on double trouble
+    }
+
+    return true;
 }
