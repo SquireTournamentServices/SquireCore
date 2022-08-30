@@ -13,11 +13,15 @@ use uuid::Uuid;
 use crate::{
     accounts::SquireAccount,
     ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY},
-    identifiers::{PlayerId, PlayerIdentifier, TournamentId},
-    operations::{OpData::RegisterPlayer, TournOp},
+    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundId, TournamentId},
+    operations::{
+        OpData::{Pair, RegisterPlayer},
+        PairRound, TournOp,
+    },
     pairings::{PairingStyle, PairingSystem},
     player_registry::PlayerRegistry,
     round_registry::RoundRegistry,
+    settings::TournamentSetting,
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 
@@ -58,6 +62,39 @@ impl TournamentId {
         ptr
     }
 
+    /// Returns a raw pointer to rounds
+    /// This is an array that is terminated by the NULL UUID
+    /// This is heap allocted, please free it
+    /// Returns NULL on error
+    #[no_mangle]
+    pub extern "C" fn tid_rounds(self: Self) -> *const RoundId {
+        unsafe {
+            let tourn: Tournament;
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+                Some(t) => tourn = t.value().clone(),
+                None => {
+                    return std::ptr::null();
+                }
+            }
+
+            let rounds: Vec<RoundId> = tourn.round_reg.get_round_ids();
+
+            let len: usize = (rounds.len() + 1) * std::mem::size_of::<RoundId>();
+            let ptr = System
+                .allocate(Layout::from_size_align(len, 1).unwrap())
+                .unwrap()
+                .as_mut_ptr() as *mut RoundId;
+            let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId]);
+            let mut i: usize = 0;
+            while i < rounds.len() {
+                slice[i] = rounds[i];
+                i += 1;
+            }
+            slice[i] = Uuid::default().into();
+            return ptr;
+        }
+    }
+
     /// Adds a player to a tournament
     /// On error a NULL UUID is returned
     #[no_mangle]
@@ -82,6 +119,173 @@ impl TournamentId {
             None => {
                 println!("[FFI]: Cannot find tournament in tid_add_player");
                 Uuid::default().into()
+            }
+        }
+    }
+
+    /// Updates the settings
+    /// Values that are not to be changed should remain the
+    /// current setting, that would be the value the user
+    /// selected in the GUI so that is fine.
+    /// All input must be non-null.
+    ///
+    /// If any errors occur then all actions are rolled back
+    /// and, false returned.
+    ///
+    /// Otherwise true is returned and the operations are all
+    /// applied to the tournament.
+    #[no_mangle]
+    pub extern "C" fn tid_update_settings(
+        self,
+        tid: TournamentId,
+        __format: *const c_char,
+        starting_table_number: u64,
+        use_table_number: bool,
+        game_size: u8,
+        min_deck_count: u8,
+        max_deck_count: u8,
+        reg_open: bool,
+        require_check_in: bool,
+        require_deck_reg: bool,
+    ) -> bool {
+        let mut tournament: &Tournament;
+        unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+                Some(mut v) => tournament = v.value(),
+                None => {
+                    println!("[FFI]: Cannot find tournament in update_settings");
+                    return false;
+                }
+            }
+        }
+
+        // Sort input strings out
+        let format =
+            String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() });
+
+        // Init list of operations to execute
+        let aid: AdminId = Uuid::default::into();
+        let mut op_vect: Vec<TournOp> = Vec::<TournOp>::new();
+        if format != tournament.format {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::Format(format),
+            ));
+        }
+
+        if starting_table_number != tournament.round_reg.starting_table {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::StartingTableNumber(starting_table_number),
+            ));
+        }
+
+        if use_table_number != tournament.use_table_number {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::UseTableNumbers(use_table_number),
+            ));
+        }
+
+        if game_size != tournament.game_size {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::PairingsSetting::MatchSize(game_size),
+            ));
+        }
+
+        if min_deck_count != tournament.min_deck_count {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::MinDeckCount(min_deck_count),
+            ));
+        }
+
+        if max_deck_count != tournament.max_deck_count {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::MaxDeckCount(max_deck_count),
+            ));
+        }
+
+        if reg_open != tournament.reg_open {
+            op_vect.push(TournOp::UpdateTournSetting(aid, reg_open));
+        }
+
+        if require_check_in != tournament.require_check_in {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::RequireCheckIn(require_check_in),
+            ));
+        }
+
+        if require_deck_reg != tournament.require_deck_reg {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::RequireDeckReg(require_deck_reg),
+            ));
+        }
+
+        // Apply all settings
+        let err: bool = false;
+        for i in 0..op_vect.len() {
+            match tournament.apply_op(op_vect[i]) {
+                Err(t_err) => {
+                    println!("[FFI]: update_settings error: {t_err}");
+                    err = true;
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        // Rollback on error.
+        if err {
+            // Panic on double trouble
+        }
+
+        return true;
+    }
+
+    /// Pairs a set of rounds
+    /// Returns a null terminated list of the round ids
+    /// Returns NULL on error
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_pair_round(self: Self) -> *const RoundId {
+        let admin_account: AdminId = Uuid::default().into();
+        let op: TournOp = TournOp::PairRound(admin_account);
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => {
+                match t.apply_op(op) {
+                    Ok(Pair(ident_vec)) => {
+                        let len: usize = (ident_vec.len() + 1) * std::mem::size_of::<RoundId>();
+                        let ptr = System
+                            .allocate(Layout::from_size_align(len, 1).unwrap())
+                            .unwrap()
+                            .as_mut_ptr() as *mut RoundId;
+                        let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId]);
+                        let mut i: usize = 0;
+
+                        for round_ident in ident_vec {
+                            let rid: RoundId = t.round_reg.get_round_id(&round_ident).unwrap();
+                            slice[i] = rid;
+                            i += 1;
+                        }
+                        slice[i] = Uuid::default().into();
+                        return ptr;
+                    }
+                    Err(t_err) => {
+                        println!("[FFI]: {t_err}");
+                        return std::ptr::null();
+                    }
+                    // This is never called right
+                    _ => {
+                        return std::ptr::null();
+                    }
+                }
+            }
+            None => {
+                return std::ptr::null();
             }
         }
     }
@@ -395,126 +599,4 @@ pub extern "C" fn new_tournament_from_settings(
         return Uuid::default().into();
     }
     tournament.id
-}
-
-/// Updates the settings
-/// Values that are not to be changed should remain the
-/// current setting, that would be the value the user
-/// selected in the GUI so that is fine.
-/// All input must be non-null.
-///
-/// If any errors occur then all actions are rolled back
-/// and, false returned.
-///
-/// Otherwise true is returned and the operations are all
-/// applied to the tournament.
-#[no_mangle]
-pub extern "C" fn tid_update_settings(
-    tid: TournamentId,
-    __format: *const c_char,
-    starting_table_number: u64,
-    use_table_number: bool,
-    game_size: u8,
-    min_deck_count: u8,
-    max_deck_count: u8,
-    reg_open: bool,
-    require_check_in: bool,
-    require_deck_reg: bool,
-) -> bool {
-    let mut tournament: Tournament;
-    unsafe {
-        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(v) => tournament = v,
-            None => {
-                println!("[FFI]: Cannot find tournament in update_settings");
-                return false;
-            }
-        }
-    }
-
-    // Sort input strings out
-    let format = String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() });
-
-    // Init list of operations to execute
-    let aid: AdminId = Uuid::default::into();
-    let mut op_vect: Vec<TournOp> = Vec::<TournOp>::new();
-    if format != tournament.format {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::Format(format),
-        ));
-    }
-
-    if starting_table_number != tournament.round_reg.starting_table {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::StartingTableNumber(starting_table_number),
-        ));
-    }
-
-    if use_table_number != tournament.use_table_number {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::UseTableNumbers(use_table_number),
-        ));
-    }
-
-    if game_size != tournament.game_size {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::PairingSetting::MatchSize(game_size),
-        ));
-    }
-
-    if min_deck_count != tournament.min_deck_count {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::MinDeckCount(min_deck_count),
-        ));
-    }
-
-    if max_deck_count != tournament.max_deck_count {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::MaxDeckCount(max_deck_count),
-        ));
-    }
-
-    if reg_open != tournament.reg_open {
-        op_vect.push(TournOp::UpdateSetting(aid, reg_open));
-    }
-
-    if require_check_in != tournament.require_check_in {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::RequireCheckIn(require_check_in),
-        ));
-    }
-
-    if require_deck_reg != tournament.require_deck_reg {
-        op_vect.push(TournOp::UpdateSetting(
-            aid,
-            TournamentSetting::RequireDeckReg(require_deck_reg),
-        ));
-    }
-
-    // Apply all settings
-    let err: bool = false;
-    for i in 0..op_vect.size() {
-        match tournament.apply_op(op) {
-            Err(t_err) => {
-                println!("[FFI]: update_settings error: {t_err}");
-                err = true;
-                break;
-            }
-            _ => {}
-        }
-    }
-
-    // Rollback on error.
-    if err {
-        // Panic on double trouble
-    }
-
-    return true;
 }
