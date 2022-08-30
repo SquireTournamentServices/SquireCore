@@ -227,7 +227,7 @@ impl TournamentId {
         }
 
         // Apply all settings
-        let err: bool = false;
+        let err = op_vect.into_iter().map(|op| tournament.apply_op(op).is_err()).reduce(|a,b| a | b).unwrap_or_default();
         for i in 0..op_vect.len() {
             match tournament.apply_op(op_vect[i]) {
                 Err(t_err) => {
