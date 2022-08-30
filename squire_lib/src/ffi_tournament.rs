@@ -16,12 +16,12 @@ use crate::{
     identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundId, TournamentId},
     operations::{
         OpData::{Pair, RegisterPlayer},
-        PairRound, TournOp,
+        TournOp,
     },
     pairings::{PairingStyle, PairingSystem},
     player_registry::PlayerRegistry,
     round_registry::RoundRegistry,
-    settings::TournamentSetting,
+    settings::{TournamentSetting, PairingSetting},
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 
@@ -164,7 +164,7 @@ impl TournamentId {
             String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() });
 
         // Init list of operations to execute
-        let aid: AdminId = Uuid::default::into();
+        let aid: AdminId = Uuid::default().into();
         let mut op_vect: Vec<TournOp> = Vec::<TournOp>::new();
         if format != tournament.format {
             op_vect.push(TournOp::UpdateTournSetting(
@@ -190,7 +190,7 @@ impl TournamentId {
         if game_size != tournament.game_size {
             op_vect.push(TournOp::UpdateTournSetting(
                 aid,
-                TournamentSetting::PairingsSetting::MatchSize(game_size),
+                TournamentSetting::PairingSetting::MatchSize(game_size),
             ));
         }
 
@@ -209,7 +209,7 @@ impl TournamentId {
         }
 
         if reg_open != tournament.reg_open {
-            op_vect.push(TournOp::UpdateTournSetting(aid, reg_open));
+            op_vect.push(TournOp::UpdateReg(aid, reg_open));
         }
 
         if require_check_in != tournament.require_check_in {
