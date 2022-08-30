@@ -29,7 +29,7 @@ impl RoundId {
     /// -1 on error
     #[no_mangle]
     pub extern "C" fn rid_match_number(self, tid: TournamentId) -> i64 {
-        match self.get_tourn_round(tid) {
+        self.get_tourn_round(tid).map(|r| r.match_number as i64).unwrap_or(-1)
             Some(r) => {
                 return r.match_number as i64;
             }
