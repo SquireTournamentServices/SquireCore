@@ -71,7 +71,7 @@ impl TournamentId {
         unsafe {
             let tourn: Tournament;
             match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-                Some(t) => tourn = t.value().clone(),
+                Some(t) => tourn = *t.value(),
                 None => {
                     return std::ptr::null();
                 }

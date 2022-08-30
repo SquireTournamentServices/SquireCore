@@ -6,7 +6,6 @@ use std::{
 
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-
 use crate::{identifiers::TournamentId, tournament::Tournament};
 
 /// A map of tournament ids to tournaments
