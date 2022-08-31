@@ -36,10 +36,12 @@ impl TournamentId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn tid_players(self: Self) -> *const PlayerId {
-        let tourn = match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(t) => t,
-            None => {
-                return std::ptr::null();
+        let tourn = unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+                Some(t) => t,
+                None => {
+                    return std::ptr::null();
+                }
             }
         };
 
@@ -71,7 +73,7 @@ impl TournamentId {
         unsafe {
             let tourn: Tournament;
             match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-                Some(t) => tourn = *t.value(),
+                Some(t) => tourn = t.value().clone(),
                 None => {
                     return std::ptr::null();
                 }
@@ -137,7 +139,6 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_update_settings(
         self,
-        tid: TournamentId,
         __format: *const c_char,
         starting_table_number: u64,
         use_table_number: bool,
@@ -148,12 +149,12 @@ impl TournamentId {
         require_check_in: bool,
         require_deck_reg: bool,
     ) -> bool {
-        let mut tournament: &Tournament;
+        let tournament: Tournament;
         unsafe {
-            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-                Some(mut v) => tournament = v.value(),
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+                Some(t) => tournament = t.value().clone(),
                 None => {
-                    println!("[FFI]: Cannot find tournament in update_settings");
+                    println!("[FFI]: cannot find tournament in update settings");
                     return false;
                 }
             }
@@ -190,7 +191,7 @@ impl TournamentId {
         if game_size != tournament.game_size {
             op_vect.push(TournOp::UpdateTournSetting(
                 aid,
-                TournamentSetting::PairingSetting::MatchSize(game_size),
+                TournamentSetting::PairingSetting(PairingSetting::MatchSize(game_size)),
             ));
         }
 
@@ -227,19 +228,23 @@ impl TournamentId {
         }
 
         // Apply all settings
-        let err = op_vect
-            .into_iter()
-            .map(|op| tournament.apply_op(op).is_err())
-            .reduce(|a, b| a | b)
-            .unwrap_or_default();
+        let mut err: bool = false;
         for i in 0..op_vect.len() {
-            match tournament.apply_op(op_vect[i]) {
-                Err(t_err) => {
-                    println!("[FFI]: update_settings error: {t_err}");
-                    err = true;
-                    break;
+            unsafe {
+                match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+                    Some(mut tournament) => match tournament.apply_op(op_vect[i].clone()) {
+                        Err(t_err) => {
+                            println!("[FFI]: update_settings error: {t_err}");
+                            err = true;
+                            break;
+                        }
+                        _ => {}
+                    },
+                    None => {
+                        println!("[FFI]: Cannot find tournament in update_settings");
+                        return false;
+                    }
                 }
-                _ => {}
             }
         }
 
@@ -385,7 +390,7 @@ impl TournamentId {
     /// This is of type TournamentPreset, but an int to let me return error values
     /// -1 is error value
     #[no_mangle]
-    pub extern "C" fn tid_pairing_type(self: Self) -> i32 {
+    pub unsafe extern "C" fn tid_pairing_type(self: Self) -> i32 {
         use TournamentPreset::*;
         FFI_TOURNAMENT_REGISTRY
             .get()
@@ -479,11 +484,13 @@ impl TournamentId {
     /// Returns true if successful, false if not.
     #[no_mangle]
     pub extern "C" fn save_tourn(self: Self, __file: *const c_char) -> bool {
-        let tournament = match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(t) => t,
-            None => {
-                println!("[FFI]: Cannot find tournament in save_tourn");
-                return false;
+        let tournament = unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+                Some(t) => t,
+                None => {
+                    println!("[FFI]: Cannot find tournament in save_tourn");
+                    return false;
+                }
             }
         };
 
@@ -535,22 +542,24 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
     };
 
     // Cannot open the same tournament twice
-    FFI_TOURNAMENT_REGISTRY
-        .get()
-        .unwrap()
-        .get(&tournament.id)
-        .map(|_| {
-            println!("[FFI]: Input tournament is already open");
-            Uuid::default().into()
-        })
-        .unwrap_or_else(|| {
-            let tid = tournament.id;
-            FFI_TOURNAMENT_REGISTRY
-                .get()
-                .unwrap()
-                .insert(tid, tournament);
-            tid
-        })
+    unsafe {
+        FFI_TOURNAMENT_REGISTRY
+            .get()
+            .unwrap()
+            .get(&tournament.id)
+            .map(|_| {
+                println!("[FFI]: Input tournament is already open");
+                Uuid::default().into()
+            })
+            .unwrap_or_else(|| {
+                let tid = tournament.id;
+                FFI_TOURNAMENT_REGISTRY
+                    .get()
+                    .unwrap()
+                    .insert(tid, tournament);
+                tid
+            })
+    }
 }
 
 /// Creates a tournament from the settings provided
@@ -589,10 +598,12 @@ pub extern "C" fn new_tournament_from_settings(
         admins: HashMap::new(),
     };
 
-    FFI_TOURNAMENT_REGISTRY
-        .get()
-        .unwrap()
-        .insert(tournament.id, tournament.clone());
+    unsafe {
+        FFI_TOURNAMENT_REGISTRY
+            .get()
+            .unwrap()
+            .insert(tournament.id, tournament.clone());
+    }
 
     if !tournament.id.save_tourn(__file) {
         return Uuid::default().into();

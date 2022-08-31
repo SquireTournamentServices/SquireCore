@@ -12,13 +12,15 @@ use uuid::Uuid;
 impl RoundId {
     /// Returns the round if it can be found in the tournament
     fn get_tourn_round(self, tid: TournamentId) -> Option<Round> {
-        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&tid) {
-            Some(t) => {
-                return t.round_reg.get_round(&self.into()).cloned();
-            }
-            None => {
-                println!("[FFI]: Cannot find tournament in get_tourn_round();");
-                return None;
+        unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&tid) {
+                Some(t) => {
+                    return t.round_reg.get_round(&self.into()).cloned();
+                }
+                None => {
+                    println!("[FFI]: Cannot find tournament in get_tourn_round();");
+                    return None;
+                }
             }
         }
     }
