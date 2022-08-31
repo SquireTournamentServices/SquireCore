@@ -326,6 +326,21 @@ impl TournamentId {
             })
     }
 
+    /// Returns the starting table number
+    /// Retruns -1 on error
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_starting_table_number(self: Self) -> i32 {
+        FFI_TOURNAMENT_REGISTRY
+            .get()
+            .unwrap()
+            .get(&self)
+            .map(|t| t.round_reg.starting_table as i32)
+            .unwrap_or_else(|| {
+                println!("[FFI]: Cannot find tournament");
+                -1
+            })
+    }
+
     /// Returns whether table numbers are being used for this tournament
     /// false, is the error value (kinda sketchy)
     #[no_mangle]
