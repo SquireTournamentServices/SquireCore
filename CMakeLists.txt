@@ -80,7 +80,7 @@ add_custom_target(RUST_PART_H DEPENDS ${RUST_PART_H_FILE})
 
 set(LIBS)
 if(UNIX)
-  set(LIBS "dl" "pthread")
+  set(LIBS "dl" "pthread" "crypto" "ssl")
 elseif(WIN32)
   set(LIBS "wsock32" "ws2_32" "bcrypt")
 endif()
