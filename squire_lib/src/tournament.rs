@@ -68,8 +68,6 @@ pub struct Tournament {
     pub use_table_number: bool,
     /// The format the tournament will be played in (meta data)
     pub format: String,
-    /// The number of players in a round
-    pub game_size: u8,
     /// The minimum number of decks a player needs
     pub min_deck_count: u8,
     /// The maximum number of decks a player can have
@@ -104,7 +102,6 @@ impl Tournament {
             name,
             use_table_number: true,
             format,
-            game_size: 2,
             min_deck_count: 1,
             max_deck_count: 2,
             player_reg: PlayerRegistry::new(),
@@ -715,7 +712,7 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if idents.len() == self.game_size as usize
+        if idents.len() == self.pairing_sys.match_size as usize
             && idents.iter().all(|p| !self.player_reg.verify_identifier(p))
         {
             // Saftey check, we already checked that all the identifiers correspond to a player
