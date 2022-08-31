@@ -78,21 +78,20 @@ impl RoundId {
                 let players: HashSet<PlayerId> = r.players;
                 let len: usize = (players.len() + 1) * std::mem::size_of::<PlayerId>();
 
-                unsafe {
-                    let ptr = System
-                        .allocate(Layout::from_size_align(len, 1).unwrap())
-                        .unwrap()
-                        .as_mut_ptr() as *mut PlayerId;
-                    let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]);
+                let ptr = System
+                    .allocate(Layout::from_size_align(len, 1).unwrap())
+                    .unwrap()
+                    .as_mut_ptr() as *mut PlayerId;
+                let slice =
+                    unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]) };
 
-                    let mut i: usize = 0;
-                    for p in players {
-                        slice[i] = p;
-                        i += 1;
-                    }
-                    slice[i] = Uuid::default().into();
-                    return ptr;
+                let mut i: usize = 0;
+                for p in players {
+                    slice[i] = p;
+                    i += 1;
                 }
+                slice[i] = Uuid::default().into();
+                return ptr;
             }
             None => {
                 return std::ptr::null();
