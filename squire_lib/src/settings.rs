@@ -1,4 +1,5 @@
 use core::fmt;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,8 @@ pub struct TournamentSettingsTree {
     pub require_check_in: bool,
     /// The default strategy for deck registration
     pub require_deck_reg: bool,
+    /// The default round length
+    pub round_length: Duration,
     /// The default pairings settings
     pub pairing_settings: PairingSettingsTree,
     /// The default scoring settings
@@ -44,6 +47,8 @@ pub enum TournamentSetting {
     RequireCheckIn(bool),
     /// Adjusts if the tournament requires deck registration
     RequireDeckReg(bool),
+    /// Adjusts the amount of time new rounds will have
+    RoundLength(Duration),
     /// Adjusts a pairing system setting
     PairingSetting(PairingSetting),
     /// Adjusts a scoring system setting
@@ -197,6 +202,7 @@ impl TournamentSettingsTree {
             max_deck_count: 1,
             require_check_in: false,
             require_deck_reg: false,
+            round_length: Duration::from_secs(3000),
             pairing_settings: PairingSettingsTree::new(),
             scoring_settings: ScoringSettingsTree::new(),
         }
@@ -254,6 +260,9 @@ impl TournamentSettingsTree {
             }
             RequireDeckReg(b) => {
                 self.require_deck_reg = b;
+            }
+            RoundLength(dur) => {
+                self.round_length = dur;
             }
             PairingSetting(s) => {
                 self.pairing_settings.update_setting(s);
@@ -593,6 +602,9 @@ impl fmt::Display for TournamentSetting {
             }
             RequireDeckReg(s) => {
                 write!(f, "Deck Reg?: {}", if *s { "yes" } else { "no" })
+            }
+            RoundLength(dur) => {
+                write!(f, "Round Length: {} sec", dur.as_secs())
             }
             PairingSetting(s) => {
                 write!(f, "{s}")
