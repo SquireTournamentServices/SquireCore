@@ -4,9 +4,9 @@ use std::{
     ptr,
 };
 
+use crate::{identifiers::TournamentId, tournament::Tournament};
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-use crate::{identifiers::TournamentId, tournament::Tournament};
 
 /// A map of tournament ids to tournaments
 /// this is used for allocating ffi tournaments

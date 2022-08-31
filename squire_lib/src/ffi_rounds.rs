@@ -12,15 +12,13 @@ use uuid::Uuid;
 impl RoundId {
     /// Returns the round if it can be found in the tournament
     fn get_tourn_round(self, tid: TournamentId) -> Option<Round> {
-        unsafe {
-            match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&tid) {
-                Some(t) => {
-                    return t.round_reg.get_round(&self.into()).cloned();
-                }
-                None => {
-                    println!("[FFI]: Cannot find tournament in get_tourn_round();");
-                    return None;
-                }
+        match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&tid) {
+            Some(t) => {
+                return t.round_reg.get_round(&self.into()).cloned();
+            }
+            None => {
+                println!("[FFI]: Cannot find tournament in get_tourn_round();");
+                return None;
             }
         }
     }
@@ -29,14 +27,9 @@ impl RoundId {
     /// -1 on error
     #[no_mangle]
     pub extern "C" fn rid_match_number(self, tid: TournamentId) -> i64 {
-        self.get_tourn_round(tid).map(|r| r.match_number as i64).unwrap_or(-1)
-            Some(r) => {
-                return r.match_number as i64;
-            }
-            None => {
-                return -1;
-            }
-        }
+        self.get_tourn_round(tid)
+            .map(|r| r.match_number as i64)
+            .unwrap_or(-1)
     }
 
     /// Gets the table number
@@ -44,56 +37,36 @@ impl RoundId {
     /// -1 on error
     #[no_mangle]
     pub extern "C" fn rid_table_number(self, tid: TournamentId) -> i64 {
-        self.get_tourn_round(tid).map(|r| r.table_number as i64).unwrap_or(-1)
-            Some(r) => {
-                return r.table_number as i64;
-            }
-            None => {
-                return -1;
-            }
-        }
+        self.get_tourn_round(tid)
+            .map(|r| r.table_number as i64)
+            .unwrap_or(-1)
     }
 
     /// Gets the status for a round
     /// Dead on error
     #[no_mangle]
     pub extern "C" fn rid_status(self, tid: TournamentId) -> RoundStatus {
-        self.get_tourn_round(tid).map(|r| r.status).unwrap_or(RoundStatus::Dead)
-            Some(r) => {
-                return r.status;
-            }
-            None => {
-                return RoundStatus::Dead;
-            }
-        }
+        self.get_tourn_round(tid)
+            .map(|r| r.status)
+            .unwrap_or(RoundStatus::Dead)
     }
 
     /// Returns the amount of time left in a round
     /// Retrusn -1 on error
     #[no_mangle]
     pub extern "C" fn rid_time_left(self, tid: TournamentId) -> i64 {
-        self.get_tourn_round(tid).map(|r| r.time_left().as_secs() as i64).unwrap_or(-1)
-            Some(r) => {
-                return r.time_left().as_secs() as i64;
-            }
-            None => {
-                return -1;
-            }
-        }
+        self.get_tourn_round(tid)
+            .map(|r| r.time_left().as_secs() as i64)
+            .unwrap_or(-1)
     }
 
     /// Returns the total duration in a round
     /// Retrusn -1 on error
     #[no_mangle]
     pub extern "C" fn rid_duration(self, tid: TournamentId) -> i64 {
-        self.get_tourn_round(tid).map(|r| r.length.as_secs() as i64).unwrap_or(-1)
-            Some(r) => {
-                return r.length.as_secs() as i64;
-            }
-            None => {
-                return -1;
-            }
-        }
+        self.get_tourn_round(tid)
+            .map(|r| r.length.as_secs() as i64)
+            .unwrap_or(-1)
     }
 
     /// Gets the players that are in a round
