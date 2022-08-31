@@ -243,12 +243,7 @@ impl TournamentId {
             }
         }
 
-        // Rollback on error.
-        if err {
-            // Panic on double trouble
-        }
-
-        return true;
+        return !err;
     }
 
     /// Pairs a set of rounds
