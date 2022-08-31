@@ -23,6 +23,7 @@ pub struct TournamentSettingsTree {
     /// The default strategy for deck registration
     pub require_deck_reg: bool,
     /// The default round length
+    #[serde(default)]
     pub round_length: Duration,
     /// The default pairings settings
     pub pairing_settings: PairingSettingsTree,
