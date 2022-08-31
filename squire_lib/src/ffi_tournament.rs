@@ -21,7 +21,7 @@ use crate::{
     pairings::{PairingStyle, PairingSystem},
     player_registry::PlayerRegistry,
     round_registry::RoundRegistry,
-    settings::{TournamentSetting, PairingSetting},
+    settings::{PairingSetting, TournamentSetting},
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 
@@ -227,7 +227,11 @@ impl TournamentId {
         }
 
         // Apply all settings
-        let err = op_vect.into_iter().map(|op| tournament.apply_op(op).is_err()).reduce(|a,b| a | b).unwrap_or_default();
+        let err = op_vect
+            .into_iter()
+            .map(|op| tournament.apply_op(op).is_err())
+            .reduce(|a, b| a | b)
+            .unwrap_or_default();
         for i in 0..op_vect.len() {
             match tournament.apply_op(op_vect[i]) {
                 Err(t_err) => {
