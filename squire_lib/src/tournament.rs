@@ -430,6 +430,9 @@ impl Tournament {
             RequireDeckReg(b) => {
                 self.require_deck_reg = b;
             }
+            RoundLength(dur) => {
+                self.round_reg.length = dur;
+            }
             PairingSetting(setting) => {
                 self.pairing_sys.update_setting(setting)?;
             }
