@@ -148,6 +148,7 @@ impl TournamentId {
         reg_open: bool,
         require_check_in: bool,
         require_deck_reg: bool,
+        aid: AdminId
     ) -> bool {
         let tournament: Tournament;
         unsafe {
@@ -165,7 +166,6 @@ impl TournamentId {
             String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() });
 
         // Init list of operations to execute
-        let aid: AdminId = Uuid::default().into();
         let mut op_vect: Vec<TournOp> = Vec::<TournOp>::new();
         if format != tournament.format {
             op_vect.push(TournOp::UpdateTournSetting(
