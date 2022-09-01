@@ -195,6 +195,7 @@ impl TournamentId {
             ));
         }
 
+        let old_max_deck_count = tournament.max_deck_count;
         if min_deck_count != tournament.min_deck_count {
             op_vect.push(TournOp::UpdateTournSetting(
                 aid,
@@ -207,6 +208,14 @@ impl TournamentId {
                 aid,
                 TournamentSetting::MaxDeckCount(max_deck_count),
             ));
+        }
+
+        // This is really annoying as if the new min deck count is above the
+        // current max then it errors. If this is the case then add max deck 
+        // count first
+        if min_deck_count > old_max_deck_count && op_vect.len() > 1{
+            let len = op_vect.len();
+            op_vect.swap(len - 1, len - 2);
         }
 
         if reg_open != tournament.reg_open {
