@@ -130,9 +130,19 @@ impl Round {
     /// Records part of the result of the round.
     pub fn record_result(&mut self, result: RoundResult) -> Result<(), TournamentError> {
         if self.verify_result(&result) {
+            self.confirmations.clear();
             match result {
                 RoundResult::Wins(p_id, count) => {
                     self.results.insert(p_id, count);
+                    let mut max = 0;
+                    for (p, num) in self.results.iter() {
+                        if *num > max {
+                            max = *num;
+                            self.winner = Some(*p);
+                        } else if *num == max {
+                            self.winner = None;
+                        }
+                    }
                 }
                 RoundResult::Draw(count) => {
                     self.draws = count;
@@ -147,7 +157,9 @@ impl Round {
     /// Confirms the result of the round for a player
     pub fn confirm_round(&mut self, player: PlayerId) -> Result<RoundStatus, TournamentError> {
         use RoundStatus::*;
-        if !self.players.contains(&player) {
+        if self.status == Dead {
+            Err(TournamentError::NoActiveRound)
+        } else if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
         } else {
             self.confirmations.insert(player);
@@ -155,14 +167,11 @@ impl Round {
                 .confirmations
                 .iter()
                 .chain(self.drops.iter())
-                .map(|p| self.players.contains(p))
-                .reduce(|a, b| a && b)
-                .unwrap_or(false)
+                .count() == self.players.len()
             {
-                Ok(Certified)
-            } else {
-                Ok(Uncertified)
+                self.status = Certified;
             }
+            Ok(self.status)
         }
     }
 
