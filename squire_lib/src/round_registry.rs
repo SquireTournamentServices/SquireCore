@@ -212,7 +212,7 @@ impl RoundRegistry {
         self.rounds
             .iter_mut()
             .map(|(_, r)| r)
-            .filter(|r| r.players.contains(id) && r.is_certified())
+            .filter(|r| r.players.contains(id) && !r.is_certified())
             .collect()
     }
 
