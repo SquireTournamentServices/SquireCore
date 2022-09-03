@@ -549,7 +549,7 @@ impl Tournament {
             .ok_or(TournamentError::PlayerLookup)?;
         let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
-        Ok(OpData::ConfirmResult(status))
+        Ok(OpData::ConfirmResult(round.id, status))
     }
 
     /// Dropps a player from the tournament
@@ -713,7 +713,7 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if idents.len() == self.pairing_sys.match_size as usize
-            && idents.iter().all(|p| !self.player_reg.verify_identifier(p))
+            && idents.iter().all(|p| self.player_reg.verify_identifier(p))
         {
             // Saftey check, we already checked that all the identifiers correspond to a player
             let ids: Vec<PlayerId> = idents
@@ -859,7 +859,7 @@ impl Tournament {
             .ok_or(TournamentError::PlayerLookup)?;
         let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
-        Ok(OpData::ConfirmResult(status))
+        Ok(OpData::ConfirmResult(round.id, status))
     }
 
     pub(crate) fn admin_ready_player(

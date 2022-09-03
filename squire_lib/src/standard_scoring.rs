@@ -189,7 +189,6 @@ impl StandardScoring {
         let mut counters: HashMap<PlayerId, ScoreCounter> = player_reg
             .players
             .iter()
-            .filter(|(_, p)| p.can_play())
             .map(|(id, _)| (*id, ScoreCounter::new(*id)))
             .collect();
         for (_, round) in round_reg.rounds.iter() {
@@ -237,7 +236,10 @@ impl StandardScoring {
             digest.get_mut(id).unwrap().opp_mwp = opp_mp / (opp_matches as f64);
             digest.get_mut(id).unwrap().opp_gwp = opp_gp / (opp_games as f64);
         }
-        let mut results: Vec<(PlayerId, StandardScore)> = digest.drain().collect();
+        let mut results: Vec<(PlayerId, StandardScore)> = digest
+            .drain()
+            .filter(|(p, _)| player_reg.get_player(&(*p).into()).unwrap().can_play())
+            .collect();
         results.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
         Standings::new(results)
     }
