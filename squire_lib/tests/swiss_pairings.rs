@@ -174,5 +174,67 @@ mod tests {
         for plyr in winners.iter() {
             assert!(pairings.paired[0].iter().find(|p| *p == plyr).is_some());
         }
+        println!("Standings: {:?}", standings.get_standings(&plyrs, &rnds));
+    }
+
+    #[test]
+    fn large_multi_round() {
+        let (mut sys, plyrs, mut rnds, standings) = spoof_data(100);
+        for id in plyrs.players.keys() {
+            sys.ready_player(*id);
+        }
+        let mut count = 0;
+        // Pairings should exist
+        let mut pairings = sys
+            .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
+            .unwrap();
+        sys.repair_tolerance = 0;
+        while pairings.rejected.len() < 3 {
+            count += 1;
+            println!("The current count is {count}");
+            let winners: Vec<PlayerId> = pairings.paired.iter().map(|p| p[0]).collect();
+            let mut match_nums: Vec<u64> = Vec::with_capacity(winners.len());
+            for pairing in &pairings.paired {
+                let r_id = rnds.create_round();
+                match_nums.push(rnds.get_round_number(&r_id).unwrap());
+                for p in pairing {
+                    rnds.add_player_to_round(&r_id, *p).unwrap();
+                }
+            }
+            for (winner, num) in winners.iter().zip(match_nums.iter()) {
+                assert!(rnds
+                    .rounds
+                    .get_mut(num)
+                    .unwrap()
+                    .record_result(RoundResult::Wins(*winner, 1))
+                    .is_ok());
+                assert_eq!(
+                    rnds.rounds
+                        .get_mut(num)
+                        .unwrap()
+                        .winner
+                        .as_ref()
+                        .unwrap(),
+                    winner
+                )
+            }
+            for (pairing, num) in pairings.paired.iter().zip(match_nums.iter()) {
+                assert!(rnds.rounds.get(num).unwrap().is_active());
+                for plyr in pairing {
+                    assert!(rnds
+                        .rounds
+                        .get_mut(num)
+                        .unwrap()
+                        .confirm_round((**plyr).into())
+                        .is_ok());
+                }
+                assert!(rnds.rounds.get(num).unwrap().is_certified());
+            }
+            pairings = sys
+                .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
+                .unwrap();
+        }
+        println!("The number of byes is: {}", pairings.rejected.len());
+        assert_eq!(count, 100);
     }
 }
