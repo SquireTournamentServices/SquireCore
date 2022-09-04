@@ -708,7 +708,7 @@ impl Tournament {
     }
 
     /// Creates a new round from a list of players
-    pub(crate) fn create_round(&mut self, _: AdminId, idents: Vec<PlayerIdentifier>) -> OpResult {
+    pub fn create_round(&mut self, _: AdminId, idents: Vec<PlayerIdentifier>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }

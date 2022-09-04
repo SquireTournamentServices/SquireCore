@@ -195,7 +195,7 @@ impl RoundRegistry {
         let mut nums: Vec<u64> = self
             .rounds
             .iter()
-            .filter(|(_, r)| r.players.contains(id) && !r.is_certified())
+            .filter(|(_, r)| r.players.contains(id) && r.is_active())
             .map(|(_, r)| r.match_number)
             .collect();
         nums.sort_unstable();
@@ -212,7 +212,7 @@ impl RoundRegistry {
         self.rounds
             .iter_mut()
             .map(|(_, r)| r)
-            .filter(|r| r.players.contains(id) && !r.is_certified())
+            .filter(|r| r.players.contains(id) && r.is_active())
             .collect()
     }
 

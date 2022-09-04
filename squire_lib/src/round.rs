@@ -62,10 +62,14 @@ pub struct Round {
     pub status: RoundStatus,
     /// The winner after certification, if one exists
     pub winner: Option<PlayerId>,
-    pub(crate) confirmations: HashSet<PlayerId>,
-    pub(crate) drops: HashSet<PlayerId>,
-    pub(crate) results: HashMap<PlayerId, u8>,
-    pub(crate) draws: u8,
+    /// The winner after certification, if one exists
+    pub confirmations: HashSet<PlayerId>,
+    /// The winner after certification, if one exists
+    pub drops: HashSet<PlayerId>,
+    /// The winner after certification, if one exists
+    pub results: HashMap<PlayerId, u8>,
+    /// The winner after certification, if one exists
+    pub draws: u8,
     pub(crate) timer: SystemTime,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
@@ -161,6 +165,8 @@ impl Round {
             Err(TournamentError::NoActiveRound)
         } else if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
+        } else if self.drops.contains(&player) {
+            Ok(self.status)
         } else {
             self.confirmations.insert(player);
             if self
