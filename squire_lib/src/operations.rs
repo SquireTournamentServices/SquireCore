@@ -10,10 +10,10 @@ use crate::{
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
     identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
-    player::Deck,
-    round::{RoundResult, RoundStatus},
+    round::{RoundId, RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
+    player::Deck,
 };
 
 /// This enum captures all ways in which a tournament can mutate.
@@ -111,7 +111,7 @@ pub enum OpData {
     /// A player was registerd and this is their id
     RegisterAdmin(Admin),
     /// A round result was confirmed and this is the current status of that round
-    ConfirmResult(RoundStatus),
+    ConfirmResult(RoundId, RoundStatus),
     /// A player was given a bye and this is the id of that round
     GiveBye(RoundIdentifier),
     /// A round was manually created and this is that round's id

@@ -62,10 +62,14 @@ pub struct Round {
     pub status: RoundStatus,
     /// The winner after certification, if one exists
     pub winner: Option<PlayerId>,
-    pub(crate) confirmations: HashSet<PlayerId>,
-    pub(crate) drops: HashSet<PlayerId>,
-    pub(crate) results: HashMap<PlayerId, u8>,
-    pub(crate) draws: u8,
+    /// The winner after certification, if one exists
+    pub confirmations: HashSet<PlayerId>,
+    /// The winner after certification, if one exists
+    pub drops: HashSet<PlayerId>,
+    /// The winner after certification, if one exists
+    pub results: HashMap<PlayerId, u8>,
+    /// The winner after certification, if one exists
+    pub draws: u8,
     pub(crate) timer: SystemTime,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
@@ -130,9 +134,19 @@ impl Round {
     /// Records part of the result of the round.
     pub fn record_result(&mut self, result: RoundResult) -> Result<(), TournamentError> {
         if self.verify_result(&result) {
+            self.confirmations.clear();
             match result {
                 RoundResult::Wins(p_id, count) => {
                     self.results.insert(p_id, count);
+                    let mut max = 0;
+                    for (p, num) in self.results.iter() {
+                        if *num > max {
+                            max = *num;
+                            self.winner = Some(*p);
+                        } else if *num == max {
+                            self.winner = None;
+                        }
+                    }
                 }
                 RoundResult::Draw(count) => {
                     self.draws = count;
@@ -147,22 +161,18 @@ impl Round {
     /// Confirms the result of the round for a player
     pub fn confirm_round(&mut self, player: PlayerId) -> Result<RoundStatus, TournamentError> {
         use RoundStatus::*;
-        if !self.players.contains(&player) {
+        if self.status == Dead {
+            Err(TournamentError::NoActiveRound)
+        } else if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
+        } else if self.drops.contains(&player) {
+            Ok(self.status)
         } else {
             self.confirmations.insert(player);
-            if self
-                .confirmations
-                .iter()
-                .chain(self.drops.iter())
-                .map(|p| self.players.contains(p))
-                .reduce(|a, b| a && b)
-                .unwrap_or(false)
-            {
-                Ok(Certified)
-            } else {
-                Ok(Uncertified)
+            if self.confirmations.iter().chain(self.drops.iter()).count() == self.players.len() {
+                self.status = Certified;
             }
+            Ok(self.status)
         }
     }
 
