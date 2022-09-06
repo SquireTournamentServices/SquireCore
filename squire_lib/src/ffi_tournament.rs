@@ -376,6 +376,7 @@ impl TournamentId {
             Some(mut t) => {
                 match t.apply_op(op) {
                     Ok(Pair(ident_vec)) => {
+                        let ident_vec: Vec<RoundId> = ident_vec.iter().map(|ident| id t.round_reg.get_round_id(ident).unwrap()).collect();
                         let len: usize = (ident_vec.len() + 1) * std::mem::size_of::<RoundId>();
                         let ptr = System
                             .allocate(Layout::from_size_align(len, 1).unwrap())
