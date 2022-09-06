@@ -2,21 +2,23 @@ use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use rocket::get;
 
-use squire_sdk::accounts::{
-    AccountId, GetAllUsersResponse, GetOrgResponse, GetUserResponse, OrgAccount, UserAccount,
-};
-use uuid::Uuid;
+use squire_lib::identifiers::{AdminId, UserAccountId, OrganizationAccountId};
+use squire_lib::accounts::{OrganizationAccount, UserAccount};
 
-pub static USERS_MAP: OnceCell<DashMap<AccountId, UserAccount>> = OnceCell::new();
-pub static ORGS_MAP: OnceCell<DashMap<AccountId, OrgAccount>> = OnceCell::new();
+use squire_sdk::accounts::{
+    GetAllUsersResponse, GetOrgResponse, GetUserResponse,
+};
+
+pub static USERS_MAP: OnceCell<DashMap<UserAccountId, UserAccount>> = OnceCell::new();
+pub static ORGS_MAP: OnceCell<DashMap<OrganizationAccountId, OrganizationAccount>> = OnceCell::new();
 
 #[get("/users/get/<id>")]
-pub fn users(id: Uuid) -> GetUserResponse {
+pub fn users(id: UserAccountId) -> GetUserResponse {
     GetUserResponse::new(
         USERS_MAP
             .get()
             .unwrap()
-            .get(&AccountId(id))
+            .get(&UserAccountId(id))
             .map(|a| a.clone()),
     )
 }
@@ -33,12 +35,12 @@ pub fn all_users() -> GetAllUsersResponse {
 }
 
 #[get("/orgs/get/<id>")]
-pub fn orgs(id: Uuid) -> GetOrgResponse {
+pub fn orgs(id: OrganizationAccountId) -> GetOrgResponse {
     GetOrgResponse::new(
         ORGS_MAP
             .get()
             .unwrap()
-            .get(&AccountId(id))
+            .get(&OrganizationAccountId(id))
             .map(|a| a.clone()),
     )
 }
