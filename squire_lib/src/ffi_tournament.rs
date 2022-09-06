@@ -398,11 +398,13 @@ impl TournamentId {
                     }
                     // This is never called right
                     _ => {
+                        println!("[FFI]: Error in tid_pair_round");
                         return std::ptr::null();
                     }
                 }
             }
             None => {
+                println!("[FFI]: Cannot find tournament");
                 return std::ptr::null();
             }
         }
@@ -710,17 +712,17 @@ pub extern "C" fn new_tournament_from_settings(
     let mut tournament: Tournament = Tournament {
         id: TournamentId::new(Uuid::new_v4()),
         name: String::from(unsafe { CStr::from_ptr(__name).to_str().unwrap().to_string() }),
-        use_table_number,
+        use_table_number: use_table_number,
         format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() }),
-        min_deck_count,
-        max_deck_count,
+        min_deck_count: min_deck_count,
+        max_deck_count: max_deck_count,
         player_reg: PlayerRegistry::new(),
         round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
         pairing_sys: PairingSystem::new(preset),
         scoring_sys: scoring_system_factory(preset),
-        reg_open,
-        require_check_in,
-        require_deck_reg,
+        reg_open: reg_open,
+        require_check_in: require_check_in,
+        require_deck_reg: require_deck_reg,
         status: TournamentStatus::Planned,
         judges: HashMap::new(),
         admins: HashMap::new(),
