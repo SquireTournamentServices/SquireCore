@@ -125,7 +125,7 @@ impl Tournament {
             // Player ops
             CheckIn(p_ident) => self.check_in(&p_ident),
             RegisterPlayer(account) => self.register_player(account),
-            RecordResult(r_ident, result) => self.record_result(&r_ident, result),
+            RecordResult(p_ident, result) => self.record_result(&p_ident, result),
             ConfirmResult(p_ident) => self.confirm_round(&p_ident),
             DropPlayer(p_ident) => self.drop_player(&p_ident),
             AddDeck(p_ident, name, deck) => self.player_add_deck(&p_ident, name, deck),
@@ -524,16 +524,17 @@ impl Tournament {
     /// Records part of the result of a round
     pub(crate) fn record_result(
         &mut self,
-        ident: &RoundIdentifier,
+        ident: &PlayerIdentifier,
         result: RoundResult,
     ) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let round = self
-            .round_reg
-            .get_mut_round(ident)
-            .ok_or(TournamentError::RoundLookup)?;
+        let id = self
+            .player_reg
+            .get_player_id(ident)
+            .ok_or(TournamentError::PlayerLookup)?;
+        let round = self.round_reg.get_player_active_round(&id)?;
         round.record_result(result)?;
         Ok(OpData::Nothing)
     }
