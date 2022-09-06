@@ -125,6 +125,111 @@ impl TournamentId {
         }
     }
 
+    /// Defrosts a tournament
+    /// false on error, true on success.
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_thaw(self: Self, aid: AdminId) -> bool {
+        let op: TournOp = TournOp::Thaw(aid);
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => match t.apply_op(op) {
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    false
+                }
+                Ok(_) => true,
+            },
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_thaw");
+                false
+            }
+        }
+    }
+
+    /// Freezes a tournament
+    /// false on error, true on success.
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_freeze(self: Self, aid: AdminId) -> bool {
+        let op: TournOp = TournOp::Freeze(aid);
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => match t.apply_op(op) {
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    false
+                }
+                Ok(_) => true,
+            },
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_freeze");
+                false
+            }
+        }
+    }
+
+    /// End a tournament
+    /// false on error, true on success.
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_end(self: Self, aid: AdminId) -> bool {
+        let op: TournOp = TournOp::End(aid);
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => match t.apply_op(op) {
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    false
+                }
+                Ok(_) => true,
+            },
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_end");
+                false
+            }
+        }
+    }
+
+    /// Cancels a tournament
+    /// false on error, true on success.
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_cancel(self: Self, aid: AdminId) -> bool {
+        let op: TournOp = TournOp::Cancel(aid);
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => match t.apply_op(op) {
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    false
+                }
+                Ok(_) => true,
+            },
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_cancel");
+                false
+            }
+        }
+    }
+
+    /// Starts a tournament
+    /// false on error, true on success.
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_start(self: Self, aid: AdminId) -> bool {
+        let op: TournOp = TournOp::Start(aid);
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => match t.apply_op(op) {
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    false
+                }
+                Ok(_) => true,
+            },
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_start");
+                false
+            }
+        }
+    }
+
     /// Updates the settings
     /// Values that are not to be changed should remain the
     /// current setting, that would be the value the user
@@ -148,7 +253,7 @@ impl TournamentId {
         reg_open: bool,
         require_check_in: bool,
         require_deck_reg: bool,
-        aid: AdminId
+        aid: AdminId,
     ) -> bool {
         let tournament: Tournament;
         unsafe {
@@ -211,9 +316,9 @@ impl TournamentId {
         }
 
         // This is really annoying as if the new min deck count is above the
-        // current max then it errors. If this is the case then add max deck 
+        // current max then it errors. If this is the case then add max deck
         // count first
-        if min_deck_count > old_max_deck_count && op_vect.len() > 1{
+        if min_deck_count > old_max_deck_count && op_vect.len() > 1 {
             let len = op_vect.len();
             op_vect.swap(len - 1, len - 2);
         }
