@@ -30,7 +30,7 @@ pub enum TournOp {
     /// Operation for a player drop themself from a tournament
     DropPlayer(PlayerIdentifier),
     /// Operation for a player record their round result
-    RecordResult(RoundIdentifier, RoundResult),
+    RecordResult(PlayerIdentifier, RoundResult),
     /// Operation for a player confirm their round result
     ConfirmResult(PlayerIdentifier),
     /// Operation for a player add a deck to their registration information
