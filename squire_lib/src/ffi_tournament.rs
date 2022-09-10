@@ -250,6 +250,7 @@ impl TournamentId {
         game_size: u8,
         min_deck_count: u8,
         max_deck_count: u8,
+        match_length: u64,
         reg_open: bool,
         require_check_in: bool,
         require_deck_reg: bool,
@@ -321,6 +322,13 @@ impl TournamentId {
         if min_deck_count > old_max_deck_count && op_vect.len() > 1 {
             let len = op_vect.len();
             op_vect.swap(len - 1, len - 2);
+        }
+
+        if match_length != tournament.round_reg.length.as_secs() {
+            op_vect.push(TournOp::UpdateTournSetting(
+                aid,
+                TournamentSetting::RoundLength(Duration::new(match_length, 0)),
+            ));
         }
 
         if reg_open != tournament.reg_open {
@@ -534,6 +542,21 @@ impl TournamentId {
             .unwrap_or_else(|| {
                 println!("Cannot find tournament in tourn_id.pairing_type();");
                 -1
+            })
+    }
+
+    /// Returns the round length
+    /// -1 on error
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_round_length(self: Self) -> i64 {
+        FFI_TOURNAMENT_REGISTRY
+            .get()
+            .unwrap()
+            .get(&self)
+            .map(|t| t.round_reg.length.as_secs() as i64)
+            .unwrap_or_else(|| {
+                println!("Cannot find tournament in tourn_id.round_length();");
+                return -1;
             })
     }
 
