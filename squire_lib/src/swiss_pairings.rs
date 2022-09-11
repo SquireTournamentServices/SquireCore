@@ -84,7 +84,7 @@ impl SwissPairings {
             .scores
             .drain(0..)
             .filter_map(|(p, _)| {
-                if players.get_player(&p.into())?.can_play() {
+                if players.get_player(&p.into()).ok()?.can_play() {
                     Some(p)
                 } else {
                     None

@@ -68,6 +68,12 @@ impl<T> TypeId<T> {
     }
 }
 
+impl<T> Default for TypeId<T> {
+    fn default() -> Self {
+        Self(Uuid::default(), PhantomData)
+    }
+}
+
 impl<T> Clone for TypeId<T> {
     fn clone(&self) -> Self {
         Self(self.0, PhantomData)
