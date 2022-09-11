@@ -34,6 +34,17 @@ pub fn all_users() -> GetAllUsersResponse {
     GetAllUsersResponse::new(map)
 }
 
+#[get("/users/get/<id>/permissions")]
+pub fn user_permissions(id: UserAccountId) -> GetUserPermissionsResponse {
+    GetUserPermissionsResponse::new(
+        ORGS_MAP
+        .get()
+        .unwrap()
+        .get(&UserAccountId(id))
+        .map(|permissions| permissions.get_current_permissions()),
+    )
+}
+
 #[get("/orgs/get/<id>")]
 pub fn orgs(id: OrganizationAccountId) -> GetOrgResponse {
     GetOrgResponse::new(
