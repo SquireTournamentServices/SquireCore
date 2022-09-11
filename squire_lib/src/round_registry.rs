@@ -51,6 +51,17 @@ impl RoundRegistry {
         ret
     }
 
+    /// Returns a list of copied round ids for a player, this is used in FFI mostly.
+    pub fn get_round_ids_for_player(&self, pid: PlayerId) -> Vec<RoundId> {
+        let mut ret: Vec<RoundId> = Vec::new();
+        self.rounds.iter().for_each(|(_, rnd)| {
+            if rnd.players.contains(&pid) {
+               ret.push(rnd.id)
+            }
+        });
+        ret
+    }
+
     /// Gets the next table number. Not all pairing systems force all matches to be over before
     /// pairing more players. This ensure new rounds don't the same table number as an active round
     pub(crate) fn get_table_number(&self) -> u64 {

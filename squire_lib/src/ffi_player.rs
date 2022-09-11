@@ -1,9 +1,14 @@
-use std::os::raw::c_char;
-
+use std::{
+    os::raw::c_char,
+    alloc::{Allocator, Layout, System},
+    ptr,
+};
+use uuid::Uuid;
 use crate::{
     ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY},
-    identifiers::{PlayerId, TournamentId},
+    identifiers::{PlayerId, TournamentId, RoundId},
     player::{Player, PlayerStatus},
+    tournament::Tournament,
 };
 
 impl PlayerId {
@@ -51,5 +56,38 @@ impl PlayerId {
         self.get_tourn_player(tid)
             .map(|p| p.status)
             .unwrap_or(PlayerStatus::Dropped)
+    }
+    
+    /// Returns a raw pointer to rounds that a player is in
+    /// This is an array that is terminated by the NULL UUID
+    /// This is heap allocted, please free it
+    /// Returns NULL on error
+    #[no_mangle]
+    pub extern "C" fn pid_rounds(self: Self, tid: TournamentId) -> *const RoundId {
+        unsafe {
+            let tourn: Tournament;
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
+                Some(t) => tourn = t.value().clone(),
+                None => {
+                    return std::ptr::null();
+                }
+            }
+
+            let rounds: Vec<RoundId> = tourn.round_reg.get_round_ids_for_player(self);
+
+            let len: usize = (rounds.len() + 1) * std::mem::size_of::<RoundId>();
+            let ptr = System
+                .allocate(Layout::from_size_align(len, 1).unwrap())
+                .unwrap()
+                .as_mut_ptr() as *mut RoundId;
+            let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId]);
+            let mut i: usize = 0;
+            while i < rounds.len() {
+                slice[i] = rounds[i];
+                i += 1;
+            }
+            slice[i] = Uuid::default().into();
+            return ptr;
+        }
     }
 }
