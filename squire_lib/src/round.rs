@@ -113,6 +113,11 @@ impl Round {
             length - elapsed
         }
     }
+    
+    /// Adds a time extension to the round
+    pub fn time_extension(&mut self, dur: Duration) {
+        self.extension += dur;
+    }
 
     /// Adds a player to the round
     pub fn add_player(&mut self, player: PlayerId) {

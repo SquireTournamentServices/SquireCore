@@ -7,12 +7,15 @@ use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
 
-pub use crate::identifiers::RoundIdentifier;
 use crate::{
     error::TournamentError,
     identifiers::{PlayerId, RoundId},
     round::Round,
 };
+
+use TournamentError::{NoActiveRound, RoundLookup};
+
+pub use crate::identifiers::RoundIdentifier;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all rounds.
@@ -89,9 +92,7 @@ impl RoundRegistry {
 
     /// Marks a round as dead
     pub fn kill_round(&mut self, ident: &RoundIdentifier) -> Result<(), TournamentError> {
-        let rnd = self
-            .get_mut_round(ident)
-            .ok_or(TournamentError::RoundLookup)?;
+        let rnd = self.get_mut_round(ident)?;
         let players = rnd.players.clone();
         rnd.kill_round();
         for plyr in &players {
@@ -140,9 +141,7 @@ impl RoundRegistry {
         ident: &RoundIdentifier,
         plyr: PlayerId,
     ) -> Result<(), TournamentError> {
-        let round = self
-            .get_mut_round(ident)
-            .ok_or(TournamentError::RoundLookup)?;
+        let round = self.get_mut_round(ident)?;
         let players = round.players.clone();
         round.add_player(plyr);
         self.opponents.entry(plyr).or_insert_with(HashSet::new);
@@ -160,41 +159,36 @@ impl RoundRegistry {
     }
 
     /// Given a round identifier, returns a round id if the round can be found
-    pub fn get_round_id(&self, ident: &RoundIdentifier) -> Option<RoundId> {
+    pub fn get_round_id(&self, ident: &RoundIdentifier) -> Result<RoundId, TournamentError> {
         match ident {
-            RoundIdentifier::Id(id) => Some(*id),
-            RoundIdentifier::Number(num) => self.num_and_id.get_left(num).cloned(),
+            RoundIdentifier::Id(id) => Ok(*id),
+            RoundIdentifier::Number(num) => {
+                self.num_and_id.get_left(num).cloned().ok_or(RoundLookup)
+            }
         }
     }
 
     /// Given a round identifier, returns a round's match number if the round can be found
-    pub fn get_round_number(&self, ident: &RoundIdentifier) -> Option<u64> {
+    pub fn get_round_number(&self, ident: &RoundIdentifier) -> Result<u64, TournamentError> {
         match ident {
-            RoundIdentifier::Number(num) => Some(*num),
-            RoundIdentifier::Id(id) => self.num_and_id.get_right(id).cloned(),
+            RoundIdentifier::Number(num) => Ok(*num),
+            RoundIdentifier::Id(id) => self.num_and_id.get_right(id).cloned().ok_or(RoundLookup),
         }
     }
 
     /// Given a round identifier, returns a mutable reference to the round if the round can be found
-    pub(crate) fn get_mut_round(&mut self, ident: &RoundIdentifier) -> Option<&mut Round> {
-        match ident {
-            RoundIdentifier::Id(id) => {
-                let num = self.num_and_id.get_right(id)?;
-                self.rounds.get_mut(num)
-            }
-            RoundIdentifier::Number(num) => self.rounds.get_mut(num),
-        }
+    pub(crate) fn get_mut_round(
+        &mut self,
+        ident: &RoundIdentifier,
+    ) -> Result<&mut Round, TournamentError> {
+        let num = self.get_round_number(ident)?;
+        self.rounds.get_mut(&num).ok_or(RoundLookup)
     }
 
     /// Given a round identifier, returns a reference to the round if the round can be found
-    pub fn get_round(&self, ident: &RoundIdentifier) -> Option<&Round> {
-        match ident {
-            RoundIdentifier::Id(id) => {
-                let num = self.num_and_id.get_right(id)?;
-                self.rounds.get(num)
-            }
-            RoundIdentifier::Number(num) => self.rounds.get(num),
-        }
+    pub fn get_round(&self, ident: &RoundIdentifier) -> Result<&Round, TournamentError> {
+        let num = self.get_round_number(ident)?;
+        self.rounds.get(&num).ok_or(RoundLookup)
     }
 
     // TODO: Rework
@@ -218,7 +212,7 @@ impl RoundRegistry {
             .collect();
         nums.sort_unstable();
         if nums.is_empty() {
-            Err(TournamentError::NoActiveRound)
+            Err(NoActiveRound)
         } else {
             Ok(self.rounds.get_mut(&nums[0]).unwrap())
         }

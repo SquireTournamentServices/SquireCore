@@ -51,9 +51,11 @@ pub enum TournOp {
     /// Operation to record the result of a round via an admin
     AdminRecordResult(TournOfficialId, RoundIdentifier, RoundResult),
     /// Operation to confirm the result of a round via an admin
-    AdminConfirmResult(TournOfficialId, PlayerIdentifier),
+    AdminConfirmResult(TournOfficialId, RoundIdentifier, PlayerIdentifier),
     /// Operation to add a deck for a player via an admin
     AdminAddDeck(TournOfficialId, PlayerIdentifier, String, Deck),
+    /// Operation to remove a deck for a player via an admin
+    AdminRemoveDeck(TournOfficialId, PlayerIdentifier, String),
     /// Operation to mark a player as ready for their next round via an admin
     AdminReadyPlayer(TournOfficialId, PlayerIdentifier),
     /// Operation to mark a player as unready for their next round via an admin
