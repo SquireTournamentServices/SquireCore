@@ -167,7 +167,7 @@ impl Round {
     pub fn confirm_round(&mut self, player: PlayerId) -> Result<RoundStatus, TournamentError> {
         use RoundStatus::*;
         if self.status == Dead {
-            Err(TournamentError::NoActiveRound)
+            Err(TournamentError::IncorrectRoundStatus(self.status))
         } else if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
         } else if self.drops.contains(&player) {
