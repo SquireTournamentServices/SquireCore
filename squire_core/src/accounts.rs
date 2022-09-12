@@ -88,6 +88,52 @@ pub fn update_user_account(id: UserAccountId,
     )
 }
 
+#[post("/orgs/update/<id>")]
+pub fn update_user_account(id: OrganizationAccountId, 
+    display_name: Option<String>,
+    delete_display_name: Option<Boolean>,
+    admin: Option<SquireAccount>,
+    judge: Option<SquireAccount>,
+    delete_admin: Option<Boolean>,
+    delete_admin_name: Option<SquireAccount>,
+    delete_judge: Option<Boolean>,
+    delete_judge_name: Option<SquireAccount>
+) -> UpdateSquireAccountResponse {
+    UpdateSquireAccountResponse::new(
+        if(display_name.unwrap() != None) {
+            ORGS_MAP
+            .get()
+            .unwrap()
+            .get(&OrganizationAccountId(id))
+            .map(|user| user.change_display_name(display_name)),
+        }
+
+        if(delete_display_name.unwrap()) {
+            ORGS_MAP
+            .get()
+            .unwrap()
+            .get(&OrganizationAccountId(id))
+            .map(|user| user.delete_display_name()),
+        }
+
+        if(delete_admin.unwrap()) {
+            ORGS_MAP
+            .get()
+            .unwrap()
+            .get(&OrganizationAccountId(id))
+            .map(|user| user.delete_admin(delete_admin_name.unwrap())),
+        }
+
+        if(delete_judge.unwrap()) {
+            ORGS_MAP
+            .get()
+            .unwrap()
+            .get(&OrganizationAccountId(id))
+            .map(|user| user.delete_judge(delete_judge_name.unwrap())),
+        }
+    )
+}
+
 #[get("/orgs/get/<id>")]
 pub fn orgs(id: OrganizationAccountId) -> GetOrgResponse {
     GetOrgResponse::new(
