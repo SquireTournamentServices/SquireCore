@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::tournament::TournamentStatus;
+use crate::{round::RoundStatus, tournament::TournamentStatus};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 /// An error that encodes problems that can occur during client-server syncing
@@ -30,8 +30,10 @@ pub enum TournamentError {
     RegClosed,
     /// The specified player wasn't in the specified round
     PlayerNotInRound,
-    /// The specified round was inactive
+    /// The specified player isn't in an active round
     NoActiveRound,
+    /// The specified round was inactive
+    IncorrectRoundStatus(RoundStatus),
     /// A round couldn't be recorded as a bye
     InvalidBye,
     /// The specified player is in an ongoing match
@@ -51,6 +53,7 @@ impl fmt::Display for TournamentError {
         use TournamentError::*;
         let s = match &self {
             IncorrectStatus(_) => "IncorrectStatus",
+            IncorrectRoundStatus(_) => "IncorrectRoundStatus",
             PlayerLookup => "PlayerLookup",
             RoundLookup => "RoundLookup",
             OfficalLookup => "OfficalLookup",
