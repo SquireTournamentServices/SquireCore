@@ -898,6 +898,25 @@ impl Tournament {
         self.pairing_sys.unready_player(plyr);
         Ok(OpData::Nothing)
     }
+
+    /// Counts players that are not fully checked in.
+    /// First number is insufficient number of decks.
+    /// Second number is not checked in.
+    pub fn count_to_prune_players(&self) -> (usize, usize) {
+        let mut digest = (0, 0);
+        if self.require_deck_reg {
+            digest.0 = self
+                .player_reg
+                .players
+                .values()
+                .filter(|p| p.decks.len() < self.min_deck_count as usize)
+                .count();
+        }
+        if self.require_check_in {
+            digest.1 = self.player_reg.len() - self.player_reg.check_ins.len();
+        }
+        digest
+    }
 }
 
 impl ScoringSystem {
