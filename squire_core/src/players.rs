@@ -1,7 +1,7 @@
-use rocket::{get, serde::json::Json};
+use rocket::{get, request::FromParam, serde::json::Json};
 
 use squire_lib::{
-    identifiers::{PlayerId, PlayerIdentifier},
+    identifiers::{PlayerId, PlayerIdentifier, TypeId},
     tournament::{TournamentId, TournamentIdentifier},
 };
 use squire_sdk::players::{
@@ -118,42 +118,34 @@ pub fn get_latest_player_match(t_id: Uuid, p_id: Uuid) -> GetLatestPlayerMatchRe
 
 #[get("/<t_id>/players/<p_id>/decks/get/<name>")]
 pub fn get_player_deck(t_id: Uuid, p_id: Uuid, name: String) -> GetDeckResponse {
-    let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
-    GetDeckResponse::new(
-        TOURNS_MAP
-            .get()
-            .unwrap()
-            .get(&TournamentId::new(t_id))
-            .map(|tourn| tourn.get_player(&p_id).ok().map(|p| p.get_deck(&name))),
-    )
+    let p_id: PlayerId = p_id.into();
+    GetDeckResponse::new(TOURNS_MAP.get().unwrap().get(&(t_id.into())).map(|tourn| {
+        tourn
+            .get_player(&(p_id.into()))
+            .ok()
+            .map(|p| p.get_deck(&name))
+    }))
 }
 
 #[get("/<t_id>/players/<p_id>/decks/all")]
 pub fn get_all_player_decks(t_id: Uuid, p_id: Uuid) -> GetAllPlayerDecksResponse {
-    let p_id = PlayerIdentifier::Id(PlayerId::new(p_id));
-    GetAllPlayerDecksResponse::new(
-        TOURNS_MAP
-            .get()
-            .unwrap()
-            .get(&TournamentId::new(t_id))
-            .map(|tourn| tourn.get_player(&p_id).ok().map(|p| p.decks.clone())),
-    )
+    let p_id: PlayerId = p_id.into();
+    GetAllPlayerDecksResponse::new(TOURNS_MAP.get().unwrap().get(&(t_id.into())).map(|tourn| {
+        tourn
+            .get_player(&(p_id.into()))
+            .ok()
+            .map(|p| p.decks.clone())
+    }))
 }
 
 #[get("/<t_id>/decks/all")]
 pub fn get_all_decks(t_id: Uuid) -> GetAllDecksResponse {
-    GetAllDecksResponse::new(
-        TOURNS_MAP
-            .get()
-            .unwrap()
-            .get(&TournamentId::new(t_id))
-            .map(|tourn| {
-                tourn
-                    .player_reg
-                    .players
-                    .iter()
-                    .map(|(id, p)| (id.clone(), p.decks.clone()))
-                    .collect()
-            }),
-    )
+    GetAllDecksResponse::new(TOURNS_MAP.get().unwrap().get(&(t_id.into())).map(|tourn| {
+        tourn
+            .player_reg
+            .players
+            .iter()
+            .map(|(id, p)| (id.clone(), p.decks.clone()))
+            .collect()
+    }))
 }

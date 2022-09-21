@@ -1,14 +1,14 @@
 use rocket::http::{ContentType, MediaType, Status};
 
 use squire_lib::tournament::TournamentPreset;
-use squire_sdk::tournaments::{CreateResponse, TournamentCreateRequest};
+use squire_sdk::tournaments::{CreateTournamentRequest, CreateTournamentResponse};
 
 use super::init::get_server;
 
 #[tokio::test]
 async fn create_tournament() {
     let client = get_server().await;
-    let data = TournamentCreateRequest {
+    let data = CreateTournamentRequest {
         name: "Test".into(),
         preset: TournamentPreset::Swiss,
         format: "Pioneer".into(),
@@ -21,7 +21,7 @@ async fn create_tournament() {
         .await;
     println!("{:?}", response.status().reason());
     assert_eq!(response.status(), Status::Ok);
-    let response: CreateResponse = response
+    let response: CreateTournamentResponse = response
         .into_json()
         .await
         .expect("malformed response: tournament create");

@@ -10,10 +10,10 @@ use crate::{
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
     identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
-    round::{RoundResult, RoundStatus, RoundId},
+    player::Deck,
+    round::{RoundId, RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
-    player::Deck,
 };
 
 /// This enum captures all ways in which a tournament can mutate.

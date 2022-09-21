@@ -18,13 +18,13 @@ use crate::{
     tournament::TournamentPreset,
 };
 
-/// The greedy pairings module
-pub mod greedy;
 /// The branching pairings module
 pub mod branching;
+/// The greedy pairings module
+pub mod greedy;
 
-pub use greedy::greedy_pairings;
 pub use branching::branching_pairings;
+pub use greedy::greedy_pairings;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 /// A struct for communicating new pairings information
@@ -83,7 +83,7 @@ impl PairingSystem {
             style,
         }
     }
-    
+
     /// Marks a player as ready to play in their next round
     pub fn ready_player(&mut self, id: PlayerId) {
         use PairingStyle::*;

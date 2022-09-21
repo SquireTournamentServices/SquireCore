@@ -113,7 +113,7 @@ impl Round {
             length - elapsed
         }
     }
-    
+
     /// Adds a time extension to the round
     pub fn time_extension(&mut self, dur: Duration) {
         self.extension += dur;
@@ -174,12 +174,7 @@ impl Round {
             Ok(self.status)
         } else {
             self.confirmations.insert(player);
-            if self
-                .confirmations
-                .iter()
-                .chain(self.drops.iter())
-                .count() == self.players.len()
-            {
+            if self.confirmations.iter().chain(self.drops.iter()).count() == self.players.len() {
                 self.status = Certified;
             }
             Ok(self.status)

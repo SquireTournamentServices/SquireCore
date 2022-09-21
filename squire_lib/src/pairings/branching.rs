@@ -45,7 +45,7 @@ pub fn branching_pairings(
             }
             Some(pair) => {
                 is_paired.extend(pair.iter().cloned());
-                digest.paired.push(pair);
+                digest.paired.push(pair.into_iter().rev().collect());
             }
         }
     }
@@ -139,6 +139,7 @@ mod tests {
         assert_eq!(tree.cut(4).unwrap(), expected_pairing);
 
         // Use the alg to do the same thing
+        let expected_pairing: Vec<_> = ids.iter().cloned().collect();
         let pairings = branching_pairings(ids, &opps, 4, 0);
         assert_eq!(pairings.paired.len(), 1);
         assert_eq!(pairings.paired[0], expected_pairing);
@@ -194,6 +195,7 @@ mod tests {
         assert_eq!(tree.cut(4).unwrap(), expected_pairing);
 
         // Use the alg to do the same thing
+        let expected_pairing = vec![ids[0], ids[1], ids[2], ids[4]];
         let pairings = branching_pairings(ids, &opps, 4, 0);
         assert_eq!(pairings.paired.len(), 1);
         assert_eq!(pairings.paired[0], expected_pairing);
@@ -253,6 +255,7 @@ mod tests {
         assert_eq!(tree.cut(4).unwrap(), expected_pairing);
 
         // Use the alg to do the same thing
+        let expected_pairing = vec![ids[0], ids[1], ids[3], ids[4]];
         let pairings = branching_pairings(ids.clone(), &opps, 4, 0);
         assert_eq!(pairings.paired.len(), 1);
         assert_eq!(pairings.paired[0], expected_pairing);

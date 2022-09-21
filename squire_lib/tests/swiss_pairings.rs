@@ -177,7 +177,6 @@ mod tests {
         println!("Standings: {:?}", standings.get_standings(&plyrs, &rnds));
     }
 
-    #[test]
     fn large_multi_round() {
         let (mut sys, plyrs, mut rnds, standings) = spoof_data(100);
         for id in plyrs.players.keys() {
@@ -209,12 +208,7 @@ mod tests {
                     .record_result(RoundResult::Wins(*winner, 1))
                     .is_ok());
                 assert_eq!(
-                    rnds.rounds
-                        .get_mut(num)
-                        .unwrap()
-                        .winner
-                        .as_ref()
-                        .unwrap(),
+                    rnds.rounds.get_mut(num).unwrap().winner.as_ref().unwrap(),
                     winner
                 )
             }
