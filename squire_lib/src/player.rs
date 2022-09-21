@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -8,7 +8,7 @@ pub use mtgjson::model::deck::Deck;
 pub use crate::identifiers::PlayerId;
 use crate::{accounts::SquireAccount, error::TournamentError};
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy, Hash)]
 #[repr(C)]
 /// The registration status of a player
 pub enum PlayerStatus {
@@ -97,5 +97,18 @@ impl Player {
     /// Calculates if the player is registered
     pub fn can_play(&self) -> bool {
         self.status == PlayerStatus::Registered
+    }
+}
+
+impl Display for PlayerStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PlayerStatus::Registered => "Registered",
+                PlayerStatus::Dropped => "Dropped",
+            }
+        )
     }
 }
