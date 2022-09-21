@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use mtgjson::model::deck::Deck;
 pub use squire_lib::{
     error::TournamentError,
-    player::{Player, PlayerId},
+    player::{Deck, Player, PlayerId},
     player_registry::PlayerIdentifier,
     round::Round,
     tournament::TournamentIdentifier,

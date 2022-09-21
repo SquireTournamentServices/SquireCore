@@ -11,7 +11,7 @@ use crate::{
     error::TournamentError,
     identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
     player::Deck,
-    round::{RoundResult, RoundStatus, RoundId},
+    round::{RoundId, RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
 };

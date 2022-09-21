@@ -18,7 +18,7 @@ use crate::response::SquireResponse;
 
 /// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
 /// requested tournament might not be found.
-pub type TournamentGetResponse = SquireResponse<Option<Tournament>>;
+pub type GetTournamentResponse = SquireResponse<Option<Tournament>>;
 
 /// The response type used by the `tournaments/all` SC API. The inner data is a map between
 /// tournament id and tournament objects.
@@ -27,7 +27,7 @@ pub type AllTournamentsResponse = SquireResponse<HashMap<TournamentId, Tournamen
 #[derive(Debug, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/create` SC API. The fields contain all the data
 /// required to create a tournament.
-pub struct TournamentCreateRequest {
+pub struct CreateTournamentRequest {
     /// The name of the new tournament
     pub name: String,
     /// The preset of the new tournament
@@ -38,7 +38,7 @@ pub struct TournamentCreateRequest {
 
 /// The response type used by the `tournaments/all` SC API. The inner data is the newly created
 /// tournament object.
-pub type CreateResponse = SquireResponse<Tournament>;
+pub type CreateTournamentResponse = SquireResponse<Tournament>;
 
 /// The response type used by the `tournaments/<id>/standings` SC API. The option encodes that the
 /// requested tournament might not be found. The inner data is the sorted standings from the

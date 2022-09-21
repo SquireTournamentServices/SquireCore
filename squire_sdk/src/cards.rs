@@ -1,7 +1,4 @@
-use mtgjson::{
-    model::minimal_card::MinimalCardCollection,
-    mtgjson::{atomics::Atomics, meta::Meta},
-};
+use mtgjson::mtgjson::{atomics::Atomics, meta::Meta};
 
 use crate::response::SquireResponse;
 
@@ -13,6 +10,6 @@ pub type MetaResponse = SquireResponse<Meta>;
 /// collection and meta data.
 pub type AtomicCardsResponse = SquireResponse<(Meta, Atomics)>;
 
-/// The response type used by the `cards/atomics` SC API. Contains the latest minimal card
-/// collection in the requested language (or English if not found) and meta data.
-pub type MinimalCardsResponse = SquireResponse<(Meta, MinimalCardCollection)>;
+///// The response type used by the `cards/atomics` SC API. Contains the latest minimal card
+///// collection in the requested language (or English if not found) and meta data.
+//pub type MinimalCardsResponse = SquireResponse<(Meta, MinimalCardCollection)>;
