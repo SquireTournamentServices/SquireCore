@@ -177,18 +177,20 @@ mod tests {
         println!("Standings: {:?}", standings.get_standings(&plyrs, &rnds));
     }
 
+    #[test]
     fn large_multi_round() {
-        let (mut sys, plyrs, mut rnds, standings) = spoof_data(100);
+        let (mut sys, plyrs, mut rnds, standings) = spoof_data(200);
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }
         let mut count = 0;
+        let goal = 20;
         // Pairings should exist
         let mut pairings = sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
             .unwrap();
         sys.repair_tolerance = 0;
-        while pairings.rejected.len() < 3 {
+        while count < goal && pairings.rejected.len() < 3 {
             count += 1;
             println!("The current count is {count}");
             let winners: Vec<PlayerId> = pairings.paired.iter().map(|p| p[0]).collect();
@@ -229,6 +231,6 @@ mod tests {
                 .unwrap();
         }
         println!("The number of byes is: {}", pairings.rejected.len());
-        assert_eq!(count, 100);
+        assert_eq!(count, goal);
     }
 }
