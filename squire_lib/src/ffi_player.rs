@@ -1,15 +1,15 @@
-use std::{
-    os::raw::c_char,
-    alloc::{Allocator, Layout, System},
-    ptr,
-};
-use uuid::Uuid;
 use crate::{
     ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY},
-    identifiers::{PlayerId, TournamentId, RoundId},
+    identifiers::{PlayerId, RoundId, TournamentId},
     player::{Player, PlayerStatus},
     tournament::Tournament,
 };
+use std::{
+    alloc::{Allocator, Layout, System},
+    os::raw::c_char,
+    ptr,
+};
+use uuid::Uuid;
 
 impl PlayerId {
     /// Returns the player if it can be found in the tournament
@@ -57,7 +57,7 @@ impl PlayerId {
             .map(|p| p.status)
             .unwrap_or(PlayerStatus::Dropped)
     }
-    
+
     /// Returns a raw pointer to rounds that a player is in
     /// This is an array that is terminated by the NULL UUID
     /// This is heap allocted, please free it
