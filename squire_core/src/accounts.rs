@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-use rocket::get;
+use rocket::{get, post, serde::json::Json};
 
 use squire_lib::identifiers::{AdminId, UserAccountId, OrganizationAccountId};
 use squire_lib::accounts::{OrganizationAccount, UserAccount};
@@ -46,90 +46,39 @@ pub fn user_permissions(id: UserAccountId) -> GetUserPermissionsResponse {
     )
 }
 
-#[post("/users/update/<id>")]
-pub fn update_user_account(id: UserAccountId, 
-    user_name: Option<String>, 
-    display_name: Option<String>,
-    delete_user_name: Option<Boolean>,
-    delete_display_name: Option<Boolean>
-) -> UpdateSquireAccountResponse {
+#[post("/users/update/<id>", format = "json", data = "<data>")]
+pub fn update_user_account(id: UserAccountId, data: Json<UpdateSquireAccountRequest>) -> UpdateSquireAccountResponse {
+    let mut user = ORGS_MAP.get().unwrap().get(&UserAccountId(id));
     UpdateSquireAccountResponse::new(
-        if(user_name.unwrap() != None) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&UserAccountId(id))
-            .map(|user| user.change_user_name(user_name)),
+        if let Some(data.0.0.user_name) = user_name {
+            user.change_user_name(user_name);
         }
 
-        if(display_name.unwrap() != None) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&UserAccountId(id))
-            .map(|user| user.change_display_name(display_name)),
+        if let Some(data.0.0.display_name) = display_name {
+            user.change_display_name(display_name);            
         }
 
-        if(delete_user_name.unwrap()) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&UserAccountId(id))
-            .map(|user| user.delete_user_name()),
-        }
-
-        if(delete_display_name.unwrap()) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&UserAccountId(id))
-            .map(|user| user.delete_display_name()),
-        }
     )
 }
 
-#[post("/orgs/update/<id>")]
-pub fn update_user_account(id: OrganizationAccountId, 
-    display_name: Option<String>,
-    delete_display_name: Option<Boolean>,
-    admin: Option<SquireAccount>,
-    judge: Option<SquireAccount>,
-    delete_admin: Option<Boolean>,
-    delete_admin_name: Option<SquireAccount>,
-    delete_judge: Option<Boolean>,
-    delete_judge_name: Option<SquireAccount>
-) -> UpdateSquireAccountResponse {
+#[post("/orgs/update/<id>", format - "json", data = "<data>")]
+pub fn update_org_account(id: OrganizationAccountId, data: Json<UpdateSquireAccountResponse>) -> UpdateSquireAccountResponse {
+    let mut org = ORGS_MAP.get().unwrap().get(&OrganizationAccountId(id));
     UpdateSquireAccountResponse::new(
-        if(display_name.unwrap() != None) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&OrganizationAccountId(id))
-            .map(|user| user.change_display_name(display_name)),
+        if let Some(data.0.user_name) = user_name {
+            org.change_user_name(user_name);
         }
 
-        if(delete_display_name.unwrap()) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&OrganizationAccountId(id))
-            .map(|user| user.delete_display_name()),
+        if let Some(data.0.display_name) = display_name {
+            org.change_display_name(display_name);            
         }
 
-        if(delete_admin.unwrap()) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&OrganizationAccountId(id))
-            .map(|user| user.delete_admin(delete_admin_name.unwrap())),
+        if let Some(data.0.0.delete_admin) = delete_admin {
+            org.delete_admin(delete_admin);
         }
 
-        if(delete_judge.unwrap()) {
-            ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&OrganizationAccountId(id))
-            .map(|user| user.delete_judge(delete_judge_name.unwrap())),
+        if let Some(data.0.0.delete_judge) = delete_judge {
+            org.delete_judge(delete_judge);
         }
     )
 }
