@@ -56,7 +56,7 @@ impl RoundRegistry {
         let mut ret: Vec<RoundId> = Vec::new();
         self.rounds.iter().for_each(|(_, rnd)| {
             if rnd.players.contains(&pid) {
-               ret.push(rnd.id)
+                ret.push(rnd.id)
             }
         });
         ret
