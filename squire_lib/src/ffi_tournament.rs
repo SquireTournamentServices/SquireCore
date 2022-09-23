@@ -141,7 +141,7 @@ impl TournamentId {
             .get()
             .unwrap()
             .get(&self)
-            .map(|t| t.game_size as i32)
+            .map(|t| t.pairing_sys.match_size as i32)
             .unwrap_or_else(|| {
                 println!("Cannot find tournament in tourn_id.game_size();");
                 -1
@@ -366,12 +366,11 @@ pub extern "C" fn new_tournament_from_settings(
     require_check_in: bool,
     require_deck_reg: bool,
 ) -> TournamentId {
-    let tournament: Tournament = Tournament {
+    let mut tournament: Tournament = Tournament {
         id: TournamentId::new(Uuid::new_v4()),
         name: String::from(unsafe { CStr::from_ptr(__name).to_str().unwrap().to_string() }),
         use_table_number,
         format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() }),
-        game_size,
         min_deck_count,
         max_deck_count,
         player_reg: PlayerRegistry::new(),
@@ -385,6 +384,8 @@ pub extern "C" fn new_tournament_from_settings(
         judges: HashMap::new(),
         admins: HashMap::new(),
     };
+    
+    tournament.pairing_sys.match_size = game_size;
 
     FFI_TOURNAMENT_REGISTRY
         .get()

@@ -11,7 +11,7 @@ impl PlayerId {
     fn get_tourn_player(self, tid: TournamentId) -> Option<Player> {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
             // TODO: Get rid of this extra clone
-            Some(t) => t.player_reg.get_player(&self.into()).cloned(),
+            Some(t) => t.player_reg.get_player(&self.into()).ok().cloned(),
             None => {
                 println!(
                     "[FFI]: Cannot find tournament '{}' during call from PlayerId",
