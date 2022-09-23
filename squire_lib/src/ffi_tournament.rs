@@ -737,8 +737,8 @@ pub extern "C" fn new_tournament_from_settings(
         name: String::from(unsafe { CStr::from_ptr(__name).to_str().unwrap().to_string() }),
         use_table_number: use_table_number,
         format: String::from(unsafe { CStr::from_ptr(__format).to_str().unwrap().to_string() }),
-        min_deck_count: min_deck_count,
-        max_deck_count: max_deck_count,
+        min_deck_count,
+        max_deck_count,
         player_reg: PlayerRegistry::new(),
         round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
         pairing_sys: PairingSystem::new(preset),
@@ -750,6 +750,7 @@ pub extern "C" fn new_tournament_from_settings(
         judges: HashMap::new(),
         admins: HashMap::new(),
     };
+    
     tournament.pairing_sys.match_size = game_size;
 
     unsafe {

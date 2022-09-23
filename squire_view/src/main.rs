@@ -1,81 +1,57 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::RwLock};
 
+use once_cell::sync::OnceCell;
 use yew::prelude::*;
 
-use reqwasm::http::{Request, RequestMode};
-use serde::Deserialize;
-use serde_json;
+use squire_lib::{
+    identifiers::TournamentId,
+    tournament::{Tournament, TournamentPreset},
+};
 
-//use squire_sdk::accounts::{AccountId, UserAccount};
+static TOURNAMENTS: OnceCell<RwLock<HashMap<TournamentId, Tournament>>> = OnceCell::new();
 
-/*
-#[derive(Properties)]
-struct UserListProps {
-    users: HashMap<AccountId, UserAccount>,
-}
+struct Model {}
 
-#[function_component(UserList)]
-fn user_list(UserListProps { users }: &UserListProps) -> Html {
-    users
-        .iter()
-        .map(|(id, user)| {
-            html! {
-                <p>{format!("{id:?}: {}", serde_json::to_string(user).unwrap())}</p>
-            }
-        })
-        .collect()
-}
-*/
+impl Component for Model {
+    type Message = ();
+    type Properties = ();
 
-#[function_component(App)]
-fn app() -> Html {
-    todo!()
-    /*
-    let users = use_state(|| HashMap::new());
-    {
-        let users = users.clone();
-        use_effect_with_deps(
-            move |_| {
-                let users = users.clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    println!("Getting ready to fetch");
-                    let data = Request::get("http://127.0.0.1:8000/accounts/users/all")
-                        .mode(RequestMode::NoCors)
-                        .send()
-                        .await
-                        .unwrap()
-                        .json()
-                        .await
-                        .unwrap();
-                    println!("{data:?}");
-                    users.set(data);
-                });
-                || ()
-            },
-            (),
-        );
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self {}
     }
 
-    html! {
-        <>
-            <h1>{ "View all Users" }</h1>
+    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
+        let mut lock = TOURNAMENTS.get().unwrap().write().unwrap();
+        let t = Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Pioneer".into());
+        lock.insert(t.id, t);
+        true
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let lock = TOURNAMENTS.get().unwrap().read().unwrap();
+        let tourns = lock
+            .values()
+            .map(|tourn| render_tournament(tourn))
+            .collect::<Html>();
+        html! {
             <div>
-            <h3>{"Users"}</h3>
-            <UserList users={(*users).clone()} />
+                <button onclick={ctx.link().callback(|_| ())}>{ "Refresh" }</button>
+                <p>{ tourns }</p>
             </div>
-            </>
+        }
     }
-    */
 }
 
 fn main() {
-    yew::start_app::<App>();
+    let mut tourns = HashMap::new();
+    let t = Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Pioneer".into());
+    tourns.insert(t.id, t);
+    TOURNAMENTS
+        .set(RwLock::new(tourns))
+        .expect("Could not populate Tournaments' OnceCell");
+    yew::start_app::<Model>();
 }
 
-/*
-impl PartialEq for UserListProps {
-    fn eq(&self, other: &Self) -> bool {
-        self.users.len().eq(&other.users.len())
-    }
+fn render_tournament(tourn: &Tournament) -> Html {
+    todo!()
 }
-*/

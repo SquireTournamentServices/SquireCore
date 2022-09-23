@@ -184,7 +184,7 @@ mod tests {
             sys.ready_player(*id);
         }
         let mut count = 0;
-        let goal = 20;
+        let goal = 15;
         // Pairings should exist
         let mut pairings = sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))

@@ -14,17 +14,15 @@ use uuid::Uuid;
 impl PlayerId {
     /// Returns the player if it can be found in the tournament
     fn get_tourn_player(self, tid: TournamentId) -> Option<Player> {
-        unsafe {
-            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
-                // TODO: Get rid of this extra clone
-                Some(t) => t.player_reg.get_player(&self.into()).cloned(),
-                None => {
-                    println!(
-                        "[FFI]: Cannot find tournament '{}' during call from PlayerId",
-                        *tid
-                    );
-                    None
-                }
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
+            // TODO: Get rid of this extra clone
+            Some(t) => t.player_reg.get_player(&self.into()).ok().cloned(),
+            None => {
+                println!(
+                    "[FFI]: Cannot find tournament '{}' during call from PlayerId",
+                    *tid
+                );
+                None
             }
         }
     }
