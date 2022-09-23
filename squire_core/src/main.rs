@@ -16,6 +16,7 @@ mod cards;
 mod matches;
 mod players;
 mod tournaments;
+mod accounts;
 
 //use accounts::*;
 use cards::*;

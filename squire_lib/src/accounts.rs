@@ -224,4 +224,9 @@ impl OrganizationAccount {
     pub fn update_display_name(&mut self, display_name: String) {
         self.display_name = display_name
     }
+
+    /// Get Org Name
+    pub fn get_org_name(&self) -> String {
+        self.org_name.clone();
+    }
 }
