@@ -1,9 +1,3 @@
-/target
-.env
-Cargo.lock
-./cbindgen.toml
-./squire_core.h
-
-squire_core.h
-
-cbindgen.toml
+dist/*.js
+dist/*.wasm
+dist/*.html

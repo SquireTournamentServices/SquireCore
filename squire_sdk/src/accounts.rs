@@ -1,35 +1,54 @@
-use crate::response::SquireResponse;
-
 use std::collections::HashMap;
 
+use crate::response::SquireResponse;
+
 use serde::{Deserialize, Serialize};
+use squire_lib::settings::TournamentSettingsTree;
 
-pub use squire_lib::accounts::{OrganizationAccount, SquireAccount};
-pub use squire_lib::identifiers::{UserAccountId, OrganizationAccountId};
+use crate::Action;
 
+pub use squire_lib::{
+    accounts::{OrganizationAccount, Platform, SharingPermissions, SquireAccount},
+    identifiers::{OrganizationAccountId, UserAccountId},
+};
 
+/// The response type used by the `accounts/users/` SC GET API.
 pub type GetAllUsersResponse = SquireResponse<HashMap<UserAccountId, SquireAccount>>;
 
+/// The response type used by the `accounts/users/<id>` SC GET API.
 pub type GetUserResponse = SquireResponse<Option<SquireAccount>>;
 
-pub type GetUserPermissionsResponse = SquireResponse<Option<SquireAccount::permissions>>;
+/// The response type used by the `accounts/users/perms` SC GET API.
+pub type GetUserPermissionsResponse = SquireResponse<Option<SharingPermissions>>;
 
+/// The response type used by the `accounts/org/<id>` SC GET API.
 pub type GetOrgResponse = SquireResponse<Option<OrganizationAccount>>;
 
-// In SDK, to be used at the body of a POST request
 #[derive(Debug, Serialize, Deserialize)]
+/// The request type used by the `accounts/user/<id>/update` SC POST API.
 pub struct UpdateSquireAccountRequest {
-    display_name: Option<String>,
-    
-    user_name: Option<String>,
+    /// The (potential) new display name of the user
+    pub display_name: Option<String>,
+    /// Actions to take on gamer tag of the user.
+    pub gamer_tags: HashMap<Platform, (Action, String)>,
+}
 
-    delete_user_name: Option<Boolean>,
+/// The response type used by the `accounts/user/<id>/update` SC POST API.
+pub type UpdateSquireAccountResponse = SquireResponse<Option<SquireAccount>>;
 
-    delete_display_name: Option<Boolean>,
+#[derive(Debug, Serialize, Deserialize)]
+/// The request type used by the `accounts/org/<id>/update` SC POST API.
+pub struct UpdateOrgAccountRequest {
+    /// The (potential) new display name of the user
+    pub display_name: Option<String>,
+    /// The (potential) new tournament settings tree
+    pub default_settings: Option<TournamentSettingsTree>,
+    /// Actions to take on list of default tournament admins of the org.
+    pub admins: HashMap<SquireAccount, Action>,
+    /// Actions to take on list of default tournament judges of the org.
+    pub judges: HashMap<SquireAccount, Action>,
+}
 
-    delete_admin: Option<SquireAccount>,
-    
-    delete_judge: Option<SquireAccount>
-  }
+/// The response type used by the `accounts/user/<id>/update` SC POST API.
+pub type UpdateOrgAccountResponse = SquireResponse<Option<OrganizationAccount>>;
 
-pub type UpdateSquireAccountResponse = SquireResponse<UpdateSquireAccountRequest>;
