@@ -13,6 +13,7 @@ default = ["deck_sites"]
 #default = ["ffi", "mtgjson/deck_sites"]
 deck_sites = ["mtgjson/deck_sites"]
 ffi = ["cbindgen", "libc"]
+wasm = ["chrono/wasmbind"]
 
 [dependencies]
 #In-house deps
@@ -26,6 +27,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.68" }
 once_cell = { version = "1.8.0" }
 dashmap = { version = "5.0", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
 libc = { version = "0.2", optional = true }
 
 [build-dependencies]
