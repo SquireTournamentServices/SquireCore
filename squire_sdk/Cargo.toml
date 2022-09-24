@@ -8,6 +8,7 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [features]
 default = ["rocket", "mtgjson/hyper", "mtgjson/hyper-tls", "squire_lib/deck_sites"]
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
+wasm = ["squire_lib/wasm"]
 
 [dependencies]
 # In-House deps
