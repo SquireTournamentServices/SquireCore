@@ -2,26 +2,29 @@ use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use rocket::{get, post, serde::json::Json};
 
-use squire_lib::identifiers::{AdminId, UserAccountId, OrganizationAccountId};
-use squire_lib::accounts::{OrganizationAccount, UserAccount};
+use uuid::Uuid;
 
-use squire_sdk::accounts::{
-    GetAllUsersResponse, GetOrgResponse, GetUserResponse, GetUserPermissionsResponse, 
-    UpdateSquireAccountResponse,
+use squire_lib::{
+    accounts::{OrganizationAccount, SquireAccount},
+    identifiers::{AdminId, OrganizationAccountId, UserAccountId},
 };
 
-pub static USERS_MAP: OnceCell<DashMap<UserAccountId, UserAccount>> = OnceCell::new();
-pub static ORGS_MAP: OnceCell<DashMap<OrganizationAccountId, OrganizationAccount>> = OnceCell::new();
+use squire_sdk::{
+    accounts::{
+        GetAllUsersResponse, GetOrgResponse, GetUserPermissionsResponse, GetUserResponse,
+        UpdateOrgAccountRequest, UpdateOrgAccountResponse, UpdateSquireAccountRequest,
+        UpdateSquireAccountResponse,
+    },
+    Action,
+};
+
+pub static USERS_MAP: OnceCell<DashMap<UserAccountId, SquireAccount>> = OnceCell::new();
+pub static ORGS_MAP: OnceCell<DashMap<OrganizationAccountId, OrganizationAccount>> =
+    OnceCell::new();
 
 #[get("/users/get/<id>")]
-pub fn users(id: UserAccountId) -> GetUserResponse {
-    GetUserResponse::new(
-        USERS_MAP
-            .get()
-            .unwrap()
-            .get(&UserAccountId(id))
-            .map(|a| a.clone()),
-    )
+pub fn users(id: Uuid) -> GetUserResponse {
+    GetUserResponse::new(USERS_MAP.get().unwrap().get(&id.into()).map(|a| a.clone()))
 }
 
 #[get("/users/get/all")]
@@ -36,60 +39,89 @@ pub fn all_users() -> GetAllUsersResponse {
 }
 
 #[get("/users/get/<id>/permissions")]
-pub fn user_permissions(id: UserAccountId) -> GetUserPermissionsResponse {
+pub fn user_permissions(id: Uuid) -> GetUserPermissionsResponse {
     GetUserPermissionsResponse::new(
-        ORGS_MAP
-        .get()
-        .unwrap()
-        .get(&UserAccountId(id))
-        .map(|user| user.get_current_permissions()),
+        USERS_MAP
+            .get()
+            .unwrap()
+            .get_mut(&id.into())
+            .map(|user| user.permissions),
     )
 }
 
 #[post("/users/update/<id>", format = "json", data = "<data>")]
-pub fn update_user_account(id: UserAccountId, data: Json<UpdateSquireAccountRequest>) -> UpdateSquireAccountResponse {
-    let mut user = ORGS_MAP.get().unwrap().get(&UserAccountId(id));
-    UpdateSquireAccountResponse::new(
-        if let Some(data.0.0.user_name) = user_name {
-            user.change_user_name(user_name);
-        }
+pub fn update_user_account(
+    id: Uuid,
+    data: Json<UpdateSquireAccountRequest>,
+) -> UpdateSquireAccountResponse {
+    let mut digest = USERS_MAP.get().unwrap().get_mut(&id.into());
 
-        if let Some(data.0.0.display_name) = display_name {
-            user.change_display_name(display_name);            
+    if let Some(user) = digest.as_mut() {
+        if let Some(name) = data.0.display_name {
+            user.change_display_name(name);
         }
+        for (platform, (action, tag)) in data.0.gamer_tags {
+            match action {
+                Action::Add => {
+                    user.add_tag(platform, tag);
+                }
+                Action::Delete => {
+                    user.delete_tag(&platform);
+                }
+            }
+        }
+    }
 
-    )
+    UpdateSquireAccountResponse::new(digest.map(|user| user.clone()))
 }
 
-#[post("/orgs/update/<id>", format - "json", data = "<data>")]
-pub fn update_org_account(id: OrganizationAccountId, data: Json<UpdateSquireAccountResponse>) -> UpdateSquireAccountResponse {
-    let mut org = ORGS_MAP.get().unwrap().get(&OrganizationAccountId(id));
-    UpdateSquireAccountResponse::new(
-        if let Some(data.0.user_name) = user_name {
-            org.change_user_name(user_name);
-        }
+#[post("/orgs/update/<id>", format = "json", data = "<data>")]
+pub fn update_org_account(
+    id: Uuid,
+    data: Json<UpdateOrgAccountRequest>,
+) -> UpdateOrgAccountResponse {
+    let mut digest = ORGS_MAP.get().unwrap().get_mut(&id.into());
 
-        if let Some(data.0.display_name) = display_name {
-            org.change_display_name(display_name);            
+    if let Some(org) = digest.as_mut() {
+        if let Some(name) = data.0.display_name {
+            org.update_display_name(name);
         }
+        if let Some(tree) = data.0.default_settings {
+            org.default_tournament_settings = tree;
+        }
+        for (judge, action) in data.0.judges {
+            match action {
+                Action::Add => {
+                    org.update_judges(judge);
+                }
+                Action::Delete => {
+                    org.delete_judge(judge.user_id);
+                }
+            }
+        }
+        for (admin, action) in data.0.admins {
+            match action {
+                Action::Add => {
+                    org.update_admins(admin);
+                }
+                Action::Delete => {
+                    org.delete_admin(admin.user_id);
+                }
+            }
+        }
+    }
 
-        if let Some(data.0.0.delete_admin) = delete_admin {
-            org.delete_admin(delete_admin);
-        }
-
-        if let Some(data.0.0.delete_judge) = delete_judge {
-            org.delete_judge(delete_judge);
-        }
-    )
+    UpdateOrgAccountResponse::new(digest.map(|org| org.clone()))
 }
 
 #[get("/orgs/get/<id>")]
-pub fn orgs(id: OrganizationAccountId) -> GetOrgResponse {
+pub fn orgs(id: Uuid) -> GetOrgResponse {
     GetOrgResponse::new(
         ORGS_MAP
             .get()
             .unwrap()
-            .get(&OrganizationAccountId(id))
+            .get(&id.into())
             .map(|a| a.clone()),
     )
 }
+
