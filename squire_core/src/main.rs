@@ -12,11 +12,11 @@ use tokio::sync::RwLock;
 mod tests;
 
 //mod accounts;
+mod accounts;
 mod cards;
 mod matches;
 mod players;
 mod tournaments;
-mod accounts;
 
 //use accounts::*;
 use cards::*;

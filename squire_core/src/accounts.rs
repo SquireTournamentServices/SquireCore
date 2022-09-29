@@ -116,12 +116,5 @@ pub fn update_org_account(
 
 #[get("/orgs/get/<id>")]
 pub fn orgs(id: Uuid) -> GetOrgResponse {
-    GetOrgResponse::new(
-        ORGS_MAP
-            .get()
-            .unwrap()
-            .get(&id.into())
-            .map(|a| a.clone()),
-    )
+    GetOrgResponse::new(ORGS_MAP.get().unwrap().get(&id.into()).map(|a| a.clone()))
 }
-

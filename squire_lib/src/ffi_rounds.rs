@@ -18,7 +18,13 @@ impl RoundId {
         unsafe {
             match FFI_TOURNAMENT_REGISTRY.get_mut().unwrap().get(&tid) {
                 Some(t) => {
-                    return t.round_reg.get_round(&self.into()).cloned();
+                    return match t.round_reg.get_round(&self.into()).cloned() {
+                        Ok(r) => Some(r),
+                        Err(e) => {
+                            println!("[FFI]: Cannot find tournament in get_tourn_round() {};", e);
+                            None
+                        }
+                    }
                 }
                 None => {
                     println!("[FFI]: Cannot find tournament in get_tourn_round();");
