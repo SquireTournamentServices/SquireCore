@@ -7,6 +7,7 @@ use crate::{
     settings::SwissPairingsSetting,
 };
 
+use cycle_map::GroupMap;
 use serde::{Deserialize, Serialize};
 
 use std::collections::HashSet;
@@ -80,23 +81,47 @@ impl SwissPairings {
         if !self.ready_to_pair(match_size, players, matches) {
             return None;
         }
-        let plyrs: Vec<PlayerId> = standings
+        let max_count = 100;
+        let mut count = 0;
+        let plyrs_and_scores: Vec<(PlayerId, u64)> = standings
             .scores
             .drain(0..)
-            .filter_map(|(p, _)| {
-                if players.get_player(&p.into())?.can_play() {
-                    Some(p)
-                } else {
-                    None
-                }
+            .filter_map(|(p, s)| {
+                players
+                    .get_player(&p.into())
+                    .ok()?
+                    .can_play()
+                    .then(|| (p, s.primary_score() as u64))
             })
             .rev()
             .collect();
-        Some((alg.as_alg())(
-            plyrs,
+        let mut plyrs: Vec<PlayerId> = plyrs_and_scores.iter().map(|(p, _)| p).cloned().collect();
+        let mut pairings = (alg.as_alg())(
+            plyrs.drain(0..).collect(),
             &matches.opponents,
             match_size,
             repair_tol,
-        ))
+        );
+        while count < max_count && pairings.rejected.len() != 0 {
+            count += 1;
+            let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
+            plyrs.extend(
+                grouped_plyrs
+                    .iter_right()
+                    .map(|r| grouped_plyrs.get_left_iter(r).unwrap())
+                    .flatten()
+                    .cloned(),
+            );
+            let buffer = (alg.as_alg())(
+                plyrs.drain(0..).collect(),
+                &matches.opponents,
+                match_size,
+                repair_tol,
+            );
+            if buffer.rejected.len() < pairings.rejected.len() {
+                pairings = buffer;
+            }
+        }
+        Some(pairings)
     }
 }

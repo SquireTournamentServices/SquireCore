@@ -16,6 +16,7 @@ mod cards;
 mod matches;
 mod players;
 mod tournaments;
+mod accounts;
 
 //use accounts::*;
 use cards::*;
@@ -50,7 +51,7 @@ pub fn init() -> Rocket<Build> {
                 get_latest_player_match,
             ],
         )
-        .mount("/api/v1/cards", routes![atomics, minimal, meta])
+        .mount("/api/v1/cards", routes![atomics, meta])
 }
 
 #[rocket::main]
@@ -67,7 +68,7 @@ async fn main() -> Result<(), rocket::Error> {
     USERS_MAP.get().unwrap().insert(id, account);
     */
     // Spawns an await task to update the card collection every week.
-    MINIMAL_CACHE.set(DashMap::new()).unwrap();
+    //MINIMAL_CACHE.set(DashMap::new()).unwrap();
     let atomics: Atomics = reqwest::get("https://mtgjson.com/api/v5/AtomicCards.json")
         .await
         .unwrap()

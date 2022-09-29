@@ -6,7 +6,7 @@ license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [features]
-deck_sites = ["mtgjson/hyper"]
+# deck_sites = ["mtgjson/hyper"]
 
 [build]
 target = "wasm32-unknown-unknown"
@@ -14,14 +14,16 @@ target = "wasm32-unknown-unknown"
 [dependencies]
 # In-House deps
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "84e46a03104b941f2132f9d6a5df3aa3ac4d3d10", default-features = false }
-squire_sdk = { path = "../squire_sdk", default-features = false }
-squire_lib = { path = "../squire_lib", default-features = false }
+squire_sdk = { path = "../squire_sdk", default-features = false, features = ["wasm"] }
+squire_lib = { path = "../squire_lib", default-features = false, features = ["wasm"] }
 
+yew = { version = "0.19.3" }
+once_cell = { version = "1.13.0" }
+uuid = { version = "1.1" }
+itertools = { version = "0.10.0" }
 
-yew = "0.19.3"
-serde_json = { version = "1.0.68" }
-reqwasm = { version = "0.4" }
-serde = { version = "1.0", features = ["derive"] }
-wasm-bindgen-futures = "0.4"
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
 getrandom = { version = "0.2", features = ["js"] }
+# serde_json = { version = "1.0.68" }
+# reqwasm = { version = "0.4" }
+# serde = { version = "1.0", features = ["derive"] }
+# wasm-bindgen-futures = "0.4"

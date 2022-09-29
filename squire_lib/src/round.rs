@@ -1,8 +1,10 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt,
-    time::{Duration, SystemTime},
+    time::Duration,
 };
+
+use chrono::{DateTime, Utc};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -70,7 +72,7 @@ pub struct Round {
     pub results: HashMap<PlayerId, u8>,
     /// The winner after certification, if one exists
     pub draws: u8,
-    pub(crate) timer: SystemTime,
+    pub(crate) timer: DateTime<Utc>,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
     pub(crate) is_bye: bool,
@@ -90,28 +92,27 @@ impl Round {
             status: RoundStatus::Open,
             drops: HashSet::new(),
             winner: None,
-            timer: SystemTime::now(),
+            timer: Utc::now(),
             length: len,
             extension: Duration::from_secs(0),
             is_bye: false,
         }
     }
 
-    // TODO: Find a better way to sync clocks if SystemTime::elapsed errors
     /// Calculates the time left in the round, factoring in time extenstions.
     pub fn time_left(&self) -> Duration {
         let length = self.length + self.extension;
-        let elapsed = match self.timer.elapsed() {
-            Ok(e) => e,
-            Err(_) => {
-                return Duration::from_secs(0);
-            }
-        };
-        if elapsed > length {
-            Duration::from_secs(0)
-        } else {
+        let elapsed = Duration::from_secs((Utc::now() - self.timer).num_seconds() as u64);
+        if elapsed < length {
             length - elapsed
+        } else {
+            Duration::default()
         }
+    }
+
+    /// Adds a time extension to the round
+    pub fn time_extension(&mut self, dur: Duration) {
+        self.extension += dur;
     }
 
     /// Adds a player to the round
@@ -162,7 +163,7 @@ impl Round {
     pub fn confirm_round(&mut self, player: PlayerId) -> Result<RoundStatus, TournamentError> {
         use RoundStatus::*;
         if self.status == Dead {
-            Err(TournamentError::NoActiveRound)
+            Err(TournamentError::IncorrectRoundStatus(self.status))
         } else if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
         } else if self.drops.contains(&player) {
@@ -196,6 +197,11 @@ impl Round {
     /// Calculates if the round is certified
     pub fn is_certified(&self) -> bool {
         self.status == RoundStatus::Certified
+    }
+
+    /// Removes a player's need to confirm the result
+    pub fn is_bye(&self) -> bool {
+        self.is_bye
     }
 
     /// Calculates if the round is certified

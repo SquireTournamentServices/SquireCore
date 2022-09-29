@@ -273,7 +273,11 @@ impl StandardScore {
     }
 }
 
-impl Score for StandardScore {}
+impl Score for StandardScore {
+    fn primary_score(&self) -> f64 {
+        self.match_points
+    }
+}
 
 impl Display for StandardScore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

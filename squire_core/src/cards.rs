@@ -1,14 +1,11 @@
 use dashmap::DashMap;
-use mtgjson::{
-    model::minimal_card::{MinimalCard, MinimalCardCollection},
-    mtgjson::{atomics::Atomics, meta::Meta},
-};
+use mtgjson::mtgjson::{atomics::Atomics, meta::Meta};
 use once_cell::sync::OnceCell;
 use rocket::{get, post, serde::json::Json};
 
 use cycle_map::cycle_map::CycleMap;
 use serde::{Deserialize, Serialize};
-use squire_sdk::cards::{AtomicCardsResponse, MetaResponse, MinimalCardsResponse};
+use squire_sdk::cards::{AtomicCardsResponse, MetaResponse};
 use tokio::sync::RwLock;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -22,8 +19,8 @@ pub struct MetaChecker {
 pub static META_CACHE: OnceCell<RwLock<Meta>> = OnceCell::new();
 /// The latest collection of atomic cards
 pub static ATOMICS_MAP: OnceCell<RwLock<Atomics>> = OnceCell::new();
-/// The cache of collections of minimal cards
-pub static MINIMAL_CACHE: OnceCell<DashMap<String, MinimalCardCollection>> = OnceCell::new();
+///// The cache of collections of minimal cards
+//pub static MINIMAL_CACHE: OnceCell<DashMap<String, MinimalCardCollection>> = OnceCell::new();
 
 #[get("/meta")]
 pub async fn meta() -> MetaResponse {
@@ -38,6 +35,7 @@ pub async fn atomics() -> AtomicCardsResponse {
     AtomicCardsResponse::new((meta, atomics))
 }
 
+/*
 #[get("/minimal/<lang>")]
 pub async fn minimal(lang: String) -> MinimalCardsResponse {
     let meta: Meta = META_CACHE.get().unwrap().read().await.clone();
@@ -62,3 +60,4 @@ pub async fn minimal(lang: String) -> MinimalCardsResponse {
         }
     }
 }
+*/

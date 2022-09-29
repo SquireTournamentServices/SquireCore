@@ -7,6 +7,8 @@ pub trait Score
 where
     Self: ToString,
 {
+    /// Returns the primary value of the score
+    fn primary_score(&self) -> f64;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

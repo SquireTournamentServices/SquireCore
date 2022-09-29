@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 use uuid::Uuid;
 
 use crate::{
@@ -10,9 +10,9 @@ use crate::{
     tournament_manager::TournamentManager,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 /// The platforms that we officially support (plus a wildcard)
-pub enum Platforms {
+pub enum Platform {
     /// The Cockatrice platform
     Cockatrice,
     /// The Magic: the Gathering Online platform
@@ -23,7 +23,7 @@ pub enum Platforms {
     Other(String),
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// An enum that encodes the amount of information that is shared about the player after a
 /// tournament is over
 pub enum SharingPermissions {
@@ -39,7 +39,7 @@ pub enum SharingPermissions {
     Nothing,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The core model for an account for a user
 pub struct SquireAccount {
     /// The user's name
@@ -47,7 +47,7 @@ pub struct SquireAccount {
     /// The name that's displayed on the user's account
     pub display_name: String,
     /// The name of the user on MTG Arena
-    pub gamer_tags: HashMap<Platforms, String>,
+    pub gamer_tags: HashMap<Platform, String>,
     /// The user's Id
     pub user_id: UserAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
@@ -70,7 +70,7 @@ pub struct OrganizationAccount {
     /// A list of accounts that will be added as tournament admins to new tournaments
     pub default_admins: HashMap<UserAccountId, SquireAccount>,
     /// The default settings for new tournaments
-    default_tournament_settings: TournamentSettingsTree,
+    pub default_tournament_settings: TournamentSettingsTree,
 }
 
 impl SquireAccount {
@@ -86,22 +86,22 @@ impl SquireAccount {
     }
 
     /// Adds a new gamer tag to internal hash map
-    pub fn add_tag(&mut self, platfrom: Platforms, user_name: String) {
+    pub fn add_tag(&mut self, platfrom: Platform, user_name: String) {
         self.gamer_tags.insert(platfrom, user_name);
     }
 
     /// Gets the gamer tag the user has for a specific platform
-    pub fn get_tag(&mut self, platform: Platforms) -> Option<String> {
+    pub fn get_tag(&mut self, platform: Platform) -> Option<String> {
         self.gamer_tags.get(&platform).cloned()
     }
 
     /// Gets all tags for a user
-    pub fn get_all_tags(&self) -> HashMap<Platforms, String> {
+    pub fn get_all_tags(&self) -> HashMap<Platform, String> {
         self.gamer_tags.clone()
     }
 
     /// Deletes a gamer tag for a platform
-    pub fn delete_tag(&mut self, platform: &Platforms) {
+    pub fn delete_tag(&mut self, platform: &Platform) {
         self.gamer_tags.remove(platform);
     }
 
@@ -223,5 +223,16 @@ impl OrganizationAccount {
     /// Update Display Name
     pub fn update_display_name(&mut self, display_name: String) {
         self.display_name = display_name
+    }
+
+    /// Get Org Name
+    pub fn get_org_name(&self) -> String {
+        self.org_name.clone()
+    }
+}
+
+impl Hash for SquireAccount {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.user_id.hash(state)
     }
 }

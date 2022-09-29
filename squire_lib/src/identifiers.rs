@@ -1,4 +1,4 @@
-use std::{hash::Hash, marker::PhantomData, ops::Deref};
+use std::{hash::Hash, marker::PhantomData, ops::Deref, fmt::Display};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
@@ -65,6 +65,12 @@ impl<T> TypeId<T> {
     /// Creates a new typed id from a Uuid
     pub fn new(id: Uuid) -> Self {
         Self(id, PhantomData)
+    }
+}
+
+impl<T> Default for TypeId<T> {
+    fn default() -> Self {
+        Self(Uuid::default(), PhantomData)
     }
 }
 
@@ -142,6 +148,12 @@ impl<T> Serialize for TypeId<T> {
         S: Serializer,
     {
         self.0.serialize(serializer)
+    }
+}
+
+impl<T> Display for TypeId<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

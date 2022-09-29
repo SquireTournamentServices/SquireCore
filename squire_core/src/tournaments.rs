@@ -4,25 +4,25 @@ use rocket::{get, post, serde::json::Json};
 
 use squire_lib::tournament::{Tournament, TournamentId};
 use squire_sdk::tournaments::{
-    self, AllTournamentsResponse, CreateResponse, OpSliceResponse, RollbackRequest,
-    RollbackResponse, StandingsResponse, SyncRequest, SyncResponse, TournamentCreateRequest,
-    TournamentGetResponse,
+    self, AllTournamentsResponse, CreateTournamentRequest, CreateTournamentResponse,
+    GetTournamentResponse, OpSliceResponse, RollbackRequest, RollbackResponse, StandingsResponse,
+    SyncRequest, SyncResponse,
 };
 use uuid::Uuid;
 
 pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
 
 #[post("/create", format = "json", data = "<data>")]
-pub fn create_tournament(data: Json<TournamentCreateRequest>) -> CreateResponse {
+pub fn create_tournament(data: Json<CreateTournamentRequest>) -> CreateTournamentResponse {
     let tourn = Tournament::from_preset(data.0.name, data.0.preset, data.0.format);
     let id = tourn.id.clone();
     TOURNS_MAP.get().unwrap().insert(id, tourn.clone());
-    tournaments::CreateResponse::new(tourn)
+    CreateTournamentResponse::new(tourn)
 }
 
 #[get("/<id>/get")]
-pub fn get_tournament(id: Uuid) -> TournamentGetResponse {
-    tournaments::TournamentGetResponse::new(
+pub fn get_tournament(id: Uuid) -> GetTournamentResponse {
+    GetTournamentResponse::new(
         TOURNS_MAP
             .get()
             .unwrap()

@@ -13,9 +13,10 @@
 )]
 #![warn(rust_2018_idioms)]
 
+use serde::{Deserialize, Serialize};
+
 pub use squire_lib;
 
-//pub mod accounts;
 /// Request/response structs for SquireCore card apis
 pub mod cards;
 /// The errors used by this library
@@ -26,3 +27,14 @@ pub mod players;
 pub mod response;
 /// Request/response structs for SquireCore tournament apis
 pub mod tournaments;
+/// Request/response structs for SquireCore account apis
+pub mod accounts;
+
+/// A general-purpose enum to encode what to do with an accompanying value
+#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Action {
+    /// Add the value to a collection
+    Add,
+    /// Remove the value from a collection
+    Delete,
+}
