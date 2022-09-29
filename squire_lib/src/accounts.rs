@@ -23,7 +23,9 @@ pub enum Platform {
     Other(String),
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 /// An enum that encodes the amount of information that is shared about the player after a
 /// tournament is over
 pub enum SharingPermissions {

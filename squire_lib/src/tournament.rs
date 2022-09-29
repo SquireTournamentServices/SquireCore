@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration, fmt::Display};
+use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -949,12 +949,16 @@ pub fn scoring_system_factory(preset: TournamentPreset) -> ScoringSystem {
 
 impl Display for TournamentStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            TournamentStatus::Planned => "Planned",
-            TournamentStatus::Started => "Started",
-            TournamentStatus::Frozen => "Frozen",
-            TournamentStatus::Ended => "Ended",
-            TournamentStatus::Cancelled => "Cancelled",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                TournamentStatus::Planned => "Planned",
+                TournamentStatus::Started => "Started",
+                TournamentStatus::Frozen => "Frozen",
+                TournamentStatus::Ended => "Ended",
+                TournamentStatus::Cancelled => "Cancelled",
+            }
+        )
     }
 }

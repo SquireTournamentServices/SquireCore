@@ -51,4 +51,3 @@ pub struct UpdateOrgAccountRequest {
 
 /// The response type used by the `accounts/user/<id>/update` SC POST API.
 pub type UpdateOrgAccountResponse = SquireResponse<Option<OrganizationAccount>>;
-

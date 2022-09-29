@@ -17,7 +17,18 @@ impl PlayerId {
         unsafe {
             match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
                 // TODO: Get rid of this extra clone
-                Some(t) => t.player_reg.get_player(&self.into()).cloned(),
+                Some(t) => {
+                    return match t.player_reg.get_player(&self.into()).cloned() {
+                        Ok(p) => Some(p),
+                        Err(e) => {
+                            println!(
+                                "[FFI]: Cannot find tournament '{}' during call from PlayerId, {}",
+                                *tid, e
+                            );
+                            None
+                        }
+                    }
+                }
                 None => {
                     println!(
                         "[FFI]: Cannot find tournament '{}' during call from PlayerId",
