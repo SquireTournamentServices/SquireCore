@@ -480,12 +480,12 @@ impl Tournament {
 
     /// Sets the tournament status to `Cancelled`.
     pub(crate) fn cancel(&mut self, _: AdminId) -> OpResult {
-        if !self.is_active() {
-            Err(TournamentError::IncorrectStatus(self.status))
-        } else {
+        if self.is_planned() {
             self.reg_open = false;
             self.status = TournamentStatus::Cancelled;
             Ok(OpData::Nothing)
+        } else {
+            Err(TournamentError::IncorrectStatus(self.status))
         }
     }
 
