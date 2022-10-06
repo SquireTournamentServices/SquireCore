@@ -151,12 +151,12 @@ impl RoundId {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminRecordResult(
-                    TournOfficialId::Admin(aid),
+                    TournOfficialId::from(aid),
                     RoundIdentifier::Id(self),
                     result,
                 )) {
                     Err(err) => {
-                        println!("[FFI]: {}", err);
+                        println!("[FFI]: ffi_record_result error {}", err);
                         false
                     }
                     Ok(_) => true,
