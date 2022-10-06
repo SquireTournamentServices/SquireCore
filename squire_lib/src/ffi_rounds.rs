@@ -1,6 +1,5 @@
 use crate::ffi::FFI_TOURNAMENT_REGISTRY;
 use crate::{
-    admin::TournOfficialId,
     identifiers::{AdminId, PlayerId, RoundId, RoundIdentifier, TournamentId},
     operations::TournOp,
     round::{Round, RoundResult, RoundStatus},
@@ -151,7 +150,7 @@ impl RoundId {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminRecordResult(
-                    TournOfficialId::from(aid),
+                    aid.into(),
                     RoundIdentifier::Id(self),
                     result,
                 )) {
