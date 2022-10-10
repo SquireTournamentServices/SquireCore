@@ -12,8 +12,9 @@ use uuid::Uuid;
 
 use crate::{
     accounts::SquireAccount,
+    admin::Admin,
     ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY},
-    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundId, TournamentId},
+    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundId, TournamentId, UserAccountId},
     operations::{
         OpData::{Pair, RegisterPlayer},
         TournOp,
@@ -121,6 +122,32 @@ impl TournamentId {
             None => {
                 println!("[FFI]: Cannot find tournament in tid_add_player");
                 Uuid::default().into()
+            }
+        }
+    }
+
+    /// Adds an admin to a local tournament in a way that is perfect for
+    /// adding the system user.
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_add_admin_local(
+        self: Self,
+        __name: *const c_char,
+        aid: UserAccountId,
+    ) -> bool {
+        let name: &str = CStr::from_ptr(__name).to_str().unwrap();
+        let mut account: SquireAccount = SquireAccount::new(name.to_string(), name.to_string());
+        account.user_id = aid;
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            // TODO: This looks sketchy.
+            Some(mut t) => {
+                let admin = Admin::new(account);
+                t.admins.insert(admin.id, admin.clone());
+                true
+            }
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_add_admin");
+                false
             }
         }
     }
