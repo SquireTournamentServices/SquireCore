@@ -132,17 +132,19 @@ impl TournamentId {
     pub unsafe extern "C" fn tid_add_admin_local(
         self: Self,
         __name: *const c_char,
-        aid: UserAccountId,
+        aid: AdminId,
+        uid: UserAccountId,
     ) -> bool {
         let name: &str = CStr::from_ptr(__name).to_str().unwrap();
         let mut account: SquireAccount = SquireAccount::new(name.to_string(), name.to_string());
-        account.user_id = aid;
+        account.user_id = uid;
 
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
             // TODO: This looks sketchy.
             Some(mut t) => {
                 let admin = Admin::new(account);
-                t.admins.insert(admin.id, admin.clone());
+                t.admins.insert(aid, admin.clone());
+                println!("[FFI]: {} is now an admin.", aid);
                 true
             }
             None => {
