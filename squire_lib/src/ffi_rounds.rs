@@ -165,6 +165,20 @@ impl RoundId {
         }
     }
 
+    /// Returns the draw count for a game
+    /// Returns -1 on error
+    #[no_mangle]
+    pub extern "C" fn rid_draws(self, tid: TournamentId) -> i32 {
+        match self.get_tourn_round(tid) {
+            Some(round) => round.draws as i32,
+            None => {
+                -1
+            }
+        }
+    }
+
+    /// Returns the results for a round; not draws though
+    /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn rid_results(self, tid: TournamentId) -> *const RoundResult {
         let mut r: Round = match self.get_tourn_round(tid) {
@@ -177,10 +191,6 @@ impl RoundId {
         let mut results: Vec<RoundResult> = Vec::<RoundResult>::new();
         for pid in r.results {
             results.push(RoundResult::Wins(pid.0, pid.1));
-        }
-
-        if r.draws > 0 {
-            results.push(RoundResult::Draw(r.draws));
         }
 
         let len: usize = (results.len() + 1) * std::mem::size_of::<RoundResult>();
