@@ -144,8 +144,8 @@ impl RoundId {
     pub unsafe extern "C" fn rid_record_result(
         self,
         tid: TournamentId,
-        result: RoundResult,
         aid: AdminId,
+        result: RoundResult,
     ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
