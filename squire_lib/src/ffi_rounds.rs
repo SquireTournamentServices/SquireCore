@@ -145,24 +145,15 @@ impl RoundId {
         self,
         tid: TournamentId,
         aid: AdminId,
-        result: RoundResult,
+        pid: PlayerId,
+        wins: u32
     ) -> bool {
-        match result {
-            RoundResult::Draw(_) => {
-                println!("[FFI]: rid_record_result DO NOT RECORD DRAWS THIS WAY");
-                return false;
-            }
-            _ => {
-                // nop
-            }
-        };
-
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminRecordResult(
                     aid.into(),
                     RoundIdentifier::Id(self),
-                    result,
+                    RoundResult::Wins(pid, wins),
                 )) {
                     Err(err) => {
                         println!("[FFI]: ffi_record_result error {}", err);
