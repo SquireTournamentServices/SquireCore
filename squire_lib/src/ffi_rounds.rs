@@ -139,7 +139,7 @@ impl RoundId {
         }
     }
 
-    /// Confirms a result
+    /// Records results for a round; DO NOT RECORD DRAWS HERE (it breaks :( )
     #[no_mangle]
     pub unsafe extern "C" fn rid_record_result(
         self,
@@ -147,6 +147,16 @@ impl RoundId {
         aid: AdminId,
         result: RoundResult,
     ) -> bool {
+        match result {
+            RoundResult::Draw(_) => {
+                println!("[FFI]: rid_record_result DO NOT RECORD DRAWS THIS WAY");
+                return false;
+            }
+            _ => {
+                // nop
+            }
+        };
+
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminRecordResult(
@@ -165,15 +175,34 @@ impl RoundId {
         }
     }
 
+    /// Records draws for a round
+    #[no_mangle]
+    pub unsafe extern "C" fn rid_record_draws(self, tid: TournamentId, aid: AdminId, draws: u32) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
+            Some(mut tournament) => {
+                match tournament.apply_op(TournOp::AdminRecordResult(
+                    aid.into(),
+                    RoundIdentifier::Id(self),
+                    RoundResult::Draw(draws),
+                )) {
+                    Err(err) => {
+                        println!("[FFI]: ffi_record_draw error {}", err);
+                        false
+                    }
+                    Ok(_) => true,
+                }
+            }
+            None => false,
+        }
+    }
+
     /// Returns the draw count for a game
     /// Returns -1 on error
     #[no_mangle]
     pub extern "C" fn rid_draws(self, tid: TournamentId) -> i32 {
         match self.get_tourn_round(tid) {
             Some(round) => round.draws as i32,
-            None => {
-                -1
-            }
+            None => -1,
         }
     }
 

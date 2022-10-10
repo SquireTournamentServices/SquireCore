@@ -33,9 +33,9 @@ pub enum RoundStatus {
 /// Encodes part of the final result of a round
 pub enum RoundResult {
     /// The specified player won N games
-    Wins(PlayerId, u8),
+    Wins(PlayerId, u32),
     /// There was a drawn game in the round
-    Draw(u8),
+    Draw(u32),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -69,9 +69,9 @@ pub struct Round {
     /// The winner after certification, if one exists
     pub drops: HashSet<PlayerId>,
     /// The winner after certification, if one exists
-    pub results: HashMap<PlayerId, u8>,
+    pub results: HashMap<PlayerId, u32>,
     /// The winner after certification, if one exists
-    pub draws: u8,
+    pub draws: u32,
     pub(crate) timer: DateTime<Utc>,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
