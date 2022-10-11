@@ -6,7 +6,6 @@ use crate::{
 };
 use std::alloc::{Allocator, Layout, System};
 use std::collections::HashSet;
-use std::mem;
 use std::option::Option;
 use std::ptr;
 use uuid::Uuid;
@@ -146,7 +145,7 @@ impl RoundId {
         tid: TournamentId,
         aid: AdminId,
         pid: PlayerId,
-        wins: u32
+        wins: u32,
     ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
@@ -168,7 +167,12 @@ impl RoundId {
 
     /// Records draws for a round
     #[no_mangle]
-    pub unsafe extern "C" fn rid_record_draws(self, tid: TournamentId, aid: AdminId, draws: u32) -> bool {
+    pub unsafe extern "C" fn rid_record_draws(
+        self,
+        tid: TournamentId,
+        aid: AdminId,
+        draws: u32,
+    ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminRecordResult(
@@ -197,36 +201,19 @@ impl RoundId {
         }
     }
 
-    /// Returns the results for a round; not draws though
-    /// Returns NULL on error
+    /// Returns the result for a player in a round
+    /// Returns -1 on error
     #[no_mangle]
-    pub extern "C" fn rid_results(self, tid: TournamentId) -> *const RoundResult {
-        let mut r: Round = match self.get_tourn_round(tid) {
-            Some(round) => round,
-            None => {
-                return std::ptr::null();
-            }
-        };
-
-        let mut results: Vec<RoundResult> = Vec::<RoundResult>::new();
-        for pid in r.results {
-            results.push(RoundResult::Wins(pid.0, pid.1));
+    pub extern "C" fn rid_result_for(self, tid: TournamentId, pid: PlayerId) -> i32 {
+        match self.get_tourn_round(tid) {
+            Some(round) => match round.results.get(&pid) {
+                Some(wins) => *wins as i32,
+                None => {
+                    println!("[FFI]: Cannot find player in rid_result_for");
+                    -1
+                }
+            },
+            None => -1,
         }
-
-        let len: usize = (results.len() + 1) * std::mem::size_of::<RoundResult>();
-
-        let ptr = System
-            .allocate(Layout::from_size_align(len, 1).unwrap())
-            .unwrap()
-            .as_mut_ptr() as *mut RoundResult;
-        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundResult]) };
-
-        let mut i: usize = 0;
-        for r in results {
-            slice[i] = r;
-            i += 1;
-        }
-        slice[i] = unsafe { mem::zeroed() };
-        return ptr;
     }
 }
