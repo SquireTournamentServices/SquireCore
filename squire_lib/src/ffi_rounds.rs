@@ -138,7 +138,30 @@ impl RoundId {
         }
     }
 
+    /// Confirms a player for the match result
+    /// false on error
+    #[no_mangle]
+    pub extern "C" fn rid_confirm_player(self, tid:TournamentId, aid: AdminId, pid: PlayerId) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
+            Some(mut tournament) => {
+                match tournament.apply_op(TournOp::AdminConfirmResult(
+                    aid.into(),
+                    RoundIdentifier::Id(self),
+                    pid.into()
+                )) {
+                    Err(err) => {
+                        println!("[FFI]: rid_confirm_play error {}", err);
+                        false
+                    }
+                    Ok(_) => true,
+                }
+            }
+            None => false,
+        }
+    }
+
     /// Records results for a round; DO NOT RECORD DRAWS HERE (it breaks :( )
+    /// false on error
     #[no_mangle]
     pub unsafe extern "C" fn rid_record_result(
         self,
@@ -155,7 +178,7 @@ impl RoundId {
                     RoundResult::Wins(pid, wins),
                 )) {
                     Err(err) => {
-                        println!("[FFI]: ffi_record_result error {}", err);
+                        println!("[FFI]: rid_record_result error {}", err);
                         false
                     }
                     Ok(_) => true,
