@@ -1,7 +1,7 @@
 use crate::ffi::FFI_TOURNAMENT_REGISTRY;
 use crate::{
     identifiers::{AdminId, PlayerId, RoundId, RoundIdentifier, TournamentId},
-    operations::{TournOp, OpData},
+    operations::{OpData, TournOp},
     round::{Round, RoundResult, RoundStatus},
 };
 use std::alloc::{Allocator, Layout, System};
@@ -141,13 +141,18 @@ impl RoundId {
     /// Confirms a player for the match result
     /// false on error
     #[no_mangle]
-    pub unsafe extern "C" fn rid_confirm_player(self, tid:TournamentId, aid: AdminId, pid: PlayerId) -> bool {
+    pub unsafe extern "C" fn rid_confirm_player(
+        self,
+        tid: TournamentId,
+        aid: AdminId,
+        pid: PlayerId,
+    ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminConfirmResult(
                     aid.into(),
                     RoundIdentifier::Id(self),
-                    pid.into()
+                    pid.into(),
                 )) {
                     Err(err) => {
                         println!("[FFI]: rid_confirm_player error {}", err);
@@ -241,6 +246,26 @@ impl RoundId {
                 }
             },
             None => -1,
+        }
+    }
+
+    /// Kills a match
+    /// false on error
+    #[no_mangle]
+    pub unsafe extern "C" fn rid_kill(self, tid: TournamentId, aid: AdminId) -> bool {
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
+            Some(mut tournament) => {
+                match tournament
+                    .apply_op(TournOp::RemoveRound(aid.into(), RoundIdentifier::Id(self)))
+                {
+                    Err(err) => {
+                        println!("[FFI]: rid_kill error {}", err);
+                        false
+                    }
+                    Ok(_) => true,
+                }
+            }
+            None => false,
         }
     }
 }
