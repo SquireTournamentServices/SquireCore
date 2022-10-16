@@ -72,6 +72,7 @@ style = "both"
 sort_by = "None"
 usize_is_size_t = true
 after_includes = "#define SQUIRE_LIB"
+cpp_compat = true
 \n"""
 out += """[export]
 prefix = "sc_"
