@@ -126,6 +126,29 @@ impl TournamentId {
         }
     }
 
+
+    #[no_mangle]
+    pub unsafe extern "C" fn tid_drop_player(self, pid: PlayerId, aid: AdminId) -> bool {
+        let op: TournOp =
+            TournOp::AdminDropPlayer(aid.into(), pid.into());
+
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
+            Some(mut t) => {
+                match t.apply_op(op) {
+                    Ok(_) => true,
+                    Err(t_err) => {
+                        println!("[FFI]: {t_err}");
+                        false
+                    }
+                }
+            }
+            None => {
+                println!("[FFI]: Cannot find tournament in tid_drop_player");
+                false
+            }
+        }
+    }
+
     /// Adds an admin to a local tournament in a way that is perfect for
     /// adding the system user.
     #[no_mangle]
