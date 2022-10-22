@@ -233,10 +233,16 @@ impl StandardScoring {
                 opp_gp += self.calculate_game_points(&counters[plyr]);
                 opp_games += counters[plyr].games;
             }
-            digest.get_mut(id).unwrap().opp_mwp =
-                opp_mp / (self.match_win_points * opp_matches as f64);
-            digest.get_mut(id).unwrap().opp_gwp =
-                opp_gp / (self.game_win_points * opp_games as f64);
+            digest.get_mut(id).unwrap().opp_mwp = if opp_matches == 0 {
+                0.0
+            } else {
+                opp_mp / (self.match_win_points * opp_matches as f64)
+            };
+            digest.get_mut(id).unwrap().opp_gwp = if opp_games == 0 {
+                0.0
+            } else {
+                opp_gp / (self.game_win_points * opp_games as f64)
+            };
         }
         let mut results: Vec<(PlayerId, StandardScore)> = digest
             .drain()
