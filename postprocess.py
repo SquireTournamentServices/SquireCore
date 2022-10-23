@@ -1,7 +1,7 @@
 import re
 
 # using sc_AdminId = sc_TypeId<sc_Admin>;
-HEADER = "./squire_core.h"
+HEADER = "squire_core.h"
 POLY_MORPHISM_RE = re.compile(
     "using (sc_[a-zA-Z]+Id) = sc_TypeId<(sc_[a-zA-Z]+)>;", re.I
 )
