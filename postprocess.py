@@ -22,7 +22,7 @@ def main() -> None:
                 type,
                 _,
             ) = mtchs.groups()
-            ret += f"using {type} = sc_Uuid;"
+            ret += f"using {type} = struct __{type}" + '{ sc_Uuid _0; };'
         else:
             ret += line
         ret += "\n"
