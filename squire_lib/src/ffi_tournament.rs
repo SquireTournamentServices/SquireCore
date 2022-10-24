@@ -23,14 +23,58 @@ use crate::{
     player_registry::PlayerRegistry,
     round_registry::RoundRegistry,
     settings::{PairingSetting, TournamentSetting},
+    standard_scoring::StandardScore,
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 
 const BACKUP_EXT: &str = ".bak";
 
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct PlayerScore<S> {
+    pid: PlayerId,
+    score: S,
+}
+
 /// TournamentIds can be used to get data safely from
 /// the Rust lib with these methods
 impl TournamentId {
+    /// Returns a raw pointer to a list of standings
+    /// This is an array, the last element has a NULL player id
+    /// This is heap allocated, please free it
+    /// Returns NULL on error
+    #[no_mangle]
+    pub extern "C" fn tid_standings(self: Self) -> *const PlayerScore<StandardScore> {
+        let tourn = unsafe {
+            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+                Some(t) => t,
+                None => {
+                    return std::ptr::null();
+                }
+            }
+        };
+
+        let mut scores = tourn.get_standings().scores;
+
+        let len = scores.len() * std::mem::size_of::<PlayerScore<StandardScore>>();
+
+        let ptr = System
+            .allocate(Layout::from_size_align(len, 1).unwrap())
+            .unwrap()
+            .as_mut_ptr() as *mut PlayerScore<StandardScore>;
+
+        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerScore<StandardScore>]) };
+
+        slice.iter_mut().zip(scores.iter()).for_each(|(dst, p)| {
+            let (pid, score) = p;
+            dst.pid = *pid;
+            dst.score = score.clone();
+        });
+        slice[len - 1].pid = Uuid::default().into();
+
+        ptr
+    }
+
     /// Returns a raw pointer to players
     /// This is an array that is terminated by the NULL UUID
     /// This is heap allocted, please free it
@@ -126,22 +170,18 @@ impl TournamentId {
         }
     }
 
-
     #[no_mangle]
     pub unsafe extern "C" fn tid_drop_player(self, pid: PlayerId, aid: AdminId) -> bool {
-        let op: TournOp =
-            TournOp::AdminDropPlayer(aid.into(), pid.into());
+        let op: TournOp = TournOp::AdminDropPlayer(aid.into(), pid.into());
 
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => {
-                match t.apply_op(op) {
-                    Ok(_) => true,
-                    Err(t_err) => {
-                        println!("[FFI]: {t_err}");
-                        false
-                    }
+            Some(mut t) => match t.apply_op(op) {
+                Ok(_) => true,
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    false
                 }
-            }
+            },
             None => {
                 println!("[FFI]: Cannot find tournament in tid_drop_player");
                 false
