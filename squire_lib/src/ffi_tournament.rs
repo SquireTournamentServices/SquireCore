@@ -56,7 +56,7 @@ impl TournamentId {
 
         let mut scores = tourn.get_standings().scores;
 
-        let len = scores.len() * std::mem::size_of::<PlayerScore<StandardScore>>();
+        let mut len = (1 + scores.len()) * std::mem::size_of::<PlayerScore<StandardScore>>();
 
         let ptr = System
             .allocate(Layout::from_size_align(len, 1).unwrap())
@@ -70,6 +70,7 @@ impl TournamentId {
             dst.pid = *pid;
             dst.score = score.clone();
         });
+
         slice[len - 1].pid = Uuid::default().into();
 
         ptr
