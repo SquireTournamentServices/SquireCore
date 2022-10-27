@@ -22,7 +22,7 @@ pub mod ffi_tournament;
 /// this is used for allocating ffi tournaments
 /// all ffi tournaments are always deeply copied
 /// at the lanuage barrier
-pub const FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
+pub static FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
 
 /// Call this in main()
 /// Inits the internal structs of squire lib for FFI.
@@ -35,11 +35,9 @@ pub extern "C" fn init_squire_ffi() {
 
 /// Helper function for cloning strings. Assumes that the given string is a Rust string, i.e. it
 /// does not end in a NULL char. Returns NULL on error
-pub fn clone_string_to_c_string(mut s: String) -> *mut c_char {
-    s.push(char::default());
-
+pub fn clone_string_to_c_string(s: &str) -> *mut c_char {
     let ptr = System
-        .allocate(Layout::from_size_align(s.len(), 1).unwrap())
+        .allocate(Layout::from_size_align(s.len() + 1, 1).unwrap())
         .unwrap()
         .as_mut_ptr() as *mut c_char;
 
@@ -47,6 +45,7 @@ pub fn clone_string_to_c_string(mut s: String) -> *mut c_char {
     slice.iter_mut().zip(s.chars()).for_each(|(dst, c)| {
         *dst = c as i8;
     });
+    slice[s.len()] = char::default() as i8;
 
     ptr
 }

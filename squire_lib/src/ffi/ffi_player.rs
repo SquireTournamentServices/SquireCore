@@ -2,7 +2,6 @@ use crate::{
     ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY},
     identifiers::{PlayerId, RoundId, TournamentId},
     player::{Player, PlayerStatus},
-    tournament::Tournament,
 };
 use std::{
     alloc::{Allocator, Layout, System},
@@ -15,7 +14,6 @@ impl PlayerId {
     /// Returns the player if it can be found in the tournament
     fn get_tourn_player(self, tid: TournamentId) -> Option<Player> {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
-            // TODO: Get rid of this extra clone
             Some(t) => t.player_reg.get_player(&self.into()).ok().cloned(),
             None => {
                 println!(
@@ -32,7 +30,7 @@ impl PlayerId {
     #[no_mangle]
     pub extern "C" fn pid_name(self, tid: TournamentId) -> *const c_char {
         self.get_tourn_player(tid)
-            .map(|p| clone_string_to_c_string(p.name.clone()))
+            .map(|p| clone_string_to_c_string(&p.name))
             .unwrap_or_else(|| std::ptr::null::<i8>() as *mut i8)
     }
 
@@ -40,11 +38,11 @@ impl PlayerId {
     /// NULL is returned on error or, failure to find
     #[no_mangle]
     pub extern "C" fn pid_game_name(self, tid: TournamentId) -> *const c_char {
-        if let Some(Some(name)) = self.get_tourn_player(tid).map(|p| p.game_name) {
-            clone_string_to_c_string(name)
-        } else {
-            std::ptr::null()
-        }
+        self.get_tourn_player(tid)
+            .map(|p| p.game_name)
+            .flatten()
+            .map(|n| clone_string_to_c_string(&n))
+            .unwrap_or_else(|| std::ptr::null::<i8>() as *mut i8)
     }
 
     /// Returns the player's status if they can be found
@@ -62,30 +60,26 @@ impl PlayerId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn pid_rounds(self: Self, tid: TournamentId) -> *const RoundId {
-        unsafe {
-            let tourn: Tournament;
-            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
-                Some(t) => tourn = t.value().clone(),
-                None => {
-                    return std::ptr::null();
-                }
+        let tourn = match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
+            Some(t) => t,
+            None => {
+                return std::ptr::null();
             }
+        };
 
-            let rounds: Vec<RoundId> = tourn.round_reg.get_round_ids_for_player(self);
+        let rounds = tourn.round_reg.get_round_ids_for_player(self);
+        let length = rounds.len();
 
-            let len: usize = (rounds.len() + 1) * std::mem::size_of::<RoundId>();
-            let ptr = System
-                .allocate(Layout::from_size_align(len, 1).unwrap())
-                .unwrap()
-                .as_mut_ptr() as *mut RoundId;
-            let slice = &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId]);
-            let mut i: usize = 0;
-            while i < rounds.len() {
-                slice[i] = rounds[i];
-                i += 1;
-            }
-            slice[i] = Uuid::default().into();
-            return ptr;
-        }
+        let len = (length + 1) * std::mem::size_of::<RoundId>();
+        let ptr = System
+            .allocate(Layout::from_size_align(len, 1).unwrap())
+            .unwrap()
+            .as_mut_ptr() as *mut RoundId;
+        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId]) };
+        slice.iter_mut().zip(rounds).for_each(|(dst, c)| {
+            *dst = c;
+        });
+        slice[length] = Uuid::default().into();
+        return ptr;
     }
 }
