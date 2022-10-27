@@ -8,17 +8,26 @@ use crate::{identifiers::TournamentId, tournament::Tournament};
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 
+/// Contains the ffi C bindings for players used in SquireDesktop
+#[cfg(feature = "ffi")]
+pub mod ffi_player;
+/// Contains the ffi C bindings for a tournament used in SquireDesktop
+#[cfg(feature = "ffi")]
+pub mod ffi_rounds;
+/// Contains the ffi C bindings for a tournament used in SquireDesktop
+#[cfg(feature = "ffi")]
+pub mod ffi_tournament;
+
 /// A map of tournament ids to tournaments
 /// this is used for allocating ffi tournaments
 /// all ffi tournaments are always deeply copied
 /// at the lanuage barrier
-pub static mut FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> =
-    OnceCell::new();
+pub const FFI_TOURNAMENT_REGISTRY: OnceCell<DashMap<TournamentId, Tournament>> = OnceCell::new();
 
 /// Call this in main()
 /// Inits the internal structs of squire lib for FFI.
 #[no_mangle]
-pub unsafe extern "C" fn init_squire_ffi() {
+pub extern "C" fn init_squire_ffi() {
     FFI_TOURNAMENT_REGISTRY
         .set(DashMap::<TournamentId, Tournament>::new())
         .unwrap();

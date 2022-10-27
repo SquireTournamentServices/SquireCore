@@ -26,19 +26,9 @@
 /// Contains the errors used throughout SquireLib
 pub mod error;
 
-// FFI
 /// Contains the ffi C bindings used in SquireDesktop
 #[cfg(feature = "ffi")]
 pub mod ffi;
-/// Contains the ffi C bindings for players used in SquireDesktop
-#[cfg(feature = "ffi")]
-pub mod ffi_player;
-/// Contains the ffi C bindings for a tournament used in SquireDesktop
-#[cfg(feature = "ffi")]
-pub mod ffi_rounds;
-/// Contains the ffi C bindings for a tournament used in SquireDesktop
-#[cfg(feature = "ffi")]
-pub mod ffi_tournament;
 
 /// Contains the models for user and organization accounts
 pub mod accounts;

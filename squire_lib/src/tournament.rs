@@ -189,8 +189,8 @@ impl Tournament {
     /// Calculates if someone is a judge
     pub fn is_judge(&self, id: &JudgeId) -> bool {
         let ret = self.judges.contains_key(id);
-        if (!ret) {
-            println!("[Squire Core]: {} is not a judge.", id);
+        if !ret {
+            println!("[Squire Core]: {id} is not a judge.");
         }
         ret
     }
@@ -198,8 +198,8 @@ impl Tournament {
     /// Calculates if someone is a tournament admin
     pub fn is_admin(&self, id: &AdminId) -> bool {
         let ret = self.admins.contains_key(id);
-        if (!ret) {
-            println!("[Squire Core]: {} is not an admin.", id);
+        if !ret {
+            println!("[Squire Core]: {id} is not an admin.");
         }
         ret
     }

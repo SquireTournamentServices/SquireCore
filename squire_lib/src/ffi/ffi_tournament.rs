@@ -45,25 +45,26 @@ impl TournamentId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn tid_standings(self: Self) -> *const PlayerScore<StandardScore> {
-        let tourn = unsafe {
-            match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-                Some(t) => t,
-                None => {
-                    return std::ptr::null();
-                }
+        let reg = FFI_TOURNAMENT_REGISTRY;
+        let tourn = match reg.get().unwrap().get(&self) {
+            Some(t) => t,
+            None => {
+                return std::ptr::null();
             }
         };
 
-        let mut scores = tourn.get_standings().scores;
+        let scores = tourn.get_standings().scores;
 
-        let mut len = (1 + scores.len()) * std::mem::size_of::<PlayerScore<StandardScore>>();
+        let len = (1 + scores.len()) * std::mem::size_of::<PlayerScore<StandardScore>>();
 
         let ptr = System
             .allocate(Layout::from_size_align(len, 1).unwrap())
             .unwrap()
             .as_mut_ptr() as *mut PlayerScore<StandardScore>;
 
-        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerScore<StandardScore>]) };
+        let slice = unsafe {
+            &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerScore<StandardScore>])
+        };
 
         slice.iter_mut().zip(scores.iter()).for_each(|(dst, p)| {
             let (pid, score) = p;
@@ -843,7 +844,7 @@ pub extern "C" fn new_tournament_from_settings(
         judges: HashMap::new(),
         admins: HashMap::new(),
     };
-    
+
     tournament.pairing_sys.match_size = game_size;
 
     unsafe {
