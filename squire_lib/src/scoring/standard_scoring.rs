@@ -7,9 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     identifiers::PlayerId,
-    player_registry::PlayerRegistry,
-    round::Round,
-    round_registry::RoundRegistry,
+    player::PlayerRegistry,
+    round::{Round, RoundRegistry},
     scoring::{Score, Standings},
     settings::StandardScoringSetting,
 };

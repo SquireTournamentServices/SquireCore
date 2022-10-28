@@ -6,10 +6,9 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         identifiers::UserAccountId,
         pairings::PairingSystem,
-        player_registry::PlayerRegistry,
-        round_registry::RoundRegistry,
-        scoring::Standings,
-        standard_scoring::StandardScore,
+        player::PlayerRegistry,
+        round::RoundRegistry,
+        scoring::{Standings, StandardScore},
         tournament::TournamentPreset,
     };
     use uuid::Uuid;

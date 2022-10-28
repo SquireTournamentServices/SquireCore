@@ -12,6 +12,9 @@ use uuid::Uuid;
 pub use crate::identifiers::RoundId;
 use crate::{error::TournamentError, identifiers::PlayerId};
 
+mod round_registry;
+pub use round_registry::RoundRegistry;
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 #[repr(C)]
 /// The status of a round has exactly four states. This enum encodes them

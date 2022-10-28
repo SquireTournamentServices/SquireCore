@@ -23,19 +23,17 @@
 // TODO: Once FFI is stablized, it too needs to be documented
 #![cfg_attr(feature = "ffi", allow(missing_docs))]
 
-/// Contains the errors used throughout SquireLib
-pub mod error;
 
 /// Contains the ffi C bindings used in SquireDesktop
 #[cfg(feature = "ffi")]
 pub mod ffi;
 
+/// Contains the errors used throughout SquireLib
+pub mod error;
 /// Contains the models for user and organization accounts
 pub mod accounts;
 /// Contains the models for judges and admins
 pub mod admin;
-/// Contains a queue-based pairings system model
-pub mod fluid_pairings;
 /// Contains identifiers for all major tournament types
 pub mod identifiers;
 /// Contains the client-server sync protocol
@@ -44,20 +42,12 @@ pub mod operations;
 pub mod pairings;
 /// Contains the player model
 pub mod player;
-/// Contains the model that manages players
-pub mod player_registry;
 /// Contains the round model
 pub mod round;
-/// Contains the model that manages rounds
-pub mod round_registry;
 /// Contains the model for communicating scores
 pub mod scoring;
 /// Contains the models for all the different tournament settings
 pub mod settings;
-/// Contains the models for the standard score
-pub mod standard_scoring;
-/// Contains swiss pairings system model
-pub mod swiss_pairings;
 /// Contains the core tournament model
 pub mod tournament;
 /// Contains the model for the tournament manager

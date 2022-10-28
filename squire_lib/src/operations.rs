@@ -3,8 +3,6 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-// use mtgjson::model::deck::Deck;
-
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},

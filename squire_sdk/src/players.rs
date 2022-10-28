@@ -3,7 +3,6 @@ use std::collections::HashMap;
 pub use squire_lib::{
     error::TournamentError,
     player::{Deck, Player, PlayerId},
-    player_registry::PlayerIdentifier,
     round::Round,
     tournament::TournamentIdentifier,
 };

@@ -4,11 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
 
-pub use crate::identifiers::PlayerIdentifier;
 use crate::{
     accounts::SquireAccount,
     error::TournamentError,
-    identifiers::{PlayerId, PlayerIdentifier::*},
+    identifiers::{PlayerId, PlayerIdentifier::{self, *}},
     player::{Player, PlayerStatus},
 };
 

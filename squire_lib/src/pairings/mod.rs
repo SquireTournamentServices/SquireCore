@@ -7,22 +7,28 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TournamentError,
-    fluid_pairings::FluidPairings,
     identifiers::PlayerId,
     operations::{OpData, OpResult},
-    player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
+    player::PlayerRegistry,
+    round::RoundRegistry,
     scoring::{Score, Standings},
     settings::PairingSetting,
-    swiss_pairings::SwissPairings,
     tournament::TournamentPreset,
 };
+
+
+/// The swiss pairing sytle
+pub mod swiss_pairings;
+/// The fluid pairing sytle
+pub mod fluid_pairings;
 
 /// The branching pairings module
 pub mod branching;
 /// The greedy pairings module
 pub mod greedy;
 
+pub use fluid_pairings::FluidPairings;
+pub use swiss_pairings::SwissPairings;
 pub use branching::branching_pairings;
 pub use greedy::greedy_pairings;
 

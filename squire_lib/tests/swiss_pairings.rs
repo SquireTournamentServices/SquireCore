@@ -7,11 +7,10 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         identifiers::{PlayerId, UserAccountId},
         pairings::PairingSystem,
-        player_registry::PlayerRegistry,
-        round::RoundResult,
-        round_registry::RoundRegistry,
+        player::PlayerRegistry,
+        round::{RoundRegistry, RoundResult},
         settings::SwissPairingsSetting,
-        standard_scoring::StandardScoring,
+        scoring::StandardScoring,
         tournament::TournamentPreset,
     };
 

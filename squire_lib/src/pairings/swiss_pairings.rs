@@ -1,16 +1,18 @@
+use std::collections::HashSet;
+
+use serde::{Deserialize, Serialize};
+
+use cycle_map::GroupMap;
+
 use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
-    player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
+    player::PlayerRegistry,
+    round::RoundRegistry,
     scoring::{Score, Standings},
     settings::SwissPairingsSetting,
 };
 
-use cycle_map::GroupMap;
-use serde::{Deserialize, Serialize};
-
-use std::collections::HashSet;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// Swiss pairings are the "traditional" pairings system for Magic tournaments

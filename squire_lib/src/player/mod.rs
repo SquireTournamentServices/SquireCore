@@ -8,6 +8,9 @@ pub use mtgjson::model::deck::Deck;
 pub use crate::identifiers::PlayerId;
 use crate::{accounts::SquireAccount, error::TournamentError};
 
+mod player_registry;
+pub use player_registry::PlayerRegistry;
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy, Hash)]
 #[repr(C)]
 /// The registration status of a player
@@ -44,7 +47,7 @@ impl Player {
     /// Creates a new player
     pub fn new(name: String) -> Self {
         Player {
-            id: PlayerId::new(Uuid::new_v4()),
+            id: Uuid::new_v4().into(),
             name,
             game_name: None,
             deck_ordering: Vec::new(),

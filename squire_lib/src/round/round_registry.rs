@@ -8,14 +8,11 @@ use serde::{Deserialize, Serialize};
 use cycle_map::CycleMap;
 
 use crate::{
-    error::TournamentError,
-    identifiers::{PlayerId, RoundId},
+    error::TournamentError::{self, NoActiveRound, RoundLookup},
+    identifiers::{RoundIdentifier, PlayerId, RoundId},
     round::Round,
 };
 
-use TournamentError::{NoActiveRound, RoundLookup};
-
-pub use crate::identifiers::RoundIdentifier;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all rounds.

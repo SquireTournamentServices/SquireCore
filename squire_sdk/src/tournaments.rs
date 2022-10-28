@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+
 pub use squire_lib::{
     error::TournamentError,
     identifiers::{TournamentId, TournamentIdentifier},
     operations::{OpResult, TournOp},
-    scoring::Standings,
-    standard_scoring::StandardScore,
+    scoring::{Standings, StandardScore},
     tournament::{Tournament, TournamentPreset},
 };
+
 use squire_lib::{
     identifiers::OpId,
     operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus},

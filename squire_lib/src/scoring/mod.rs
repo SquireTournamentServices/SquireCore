@@ -2,6 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::identifiers::PlayerId;
 
+/// Contains the models for the standard score
+pub mod standard_scoring;
+
+pub use standard_scoring::{StandardScore, StandardScoring};
+
 /// The trait the defines the interface for a score
 pub trait Score
 where

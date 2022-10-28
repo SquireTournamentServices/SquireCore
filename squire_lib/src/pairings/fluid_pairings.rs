@@ -1,14 +1,15 @@
-use crate::{
-    identifiers::PlayerId,
-    pairings::{PairingAlgorithm, Pairings},
-    player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
-    settings::FluidPairingsSetting,
-};
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashSet;
+use crate::{
+    identifiers::PlayerId,
+    pairings::{PairingAlgorithm, Pairings},
+    player::PlayerRegistry,
+    round::RoundRegistry,
+    settings::FluidPairingsSetting,
+};
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// Fluid pairings are also known as a looking-for-game queue and are used for on-the-fly pairings
