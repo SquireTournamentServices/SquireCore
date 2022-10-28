@@ -115,11 +115,11 @@ pub enum OpData {
     /// A round result was confirmed and this is the current status of that round
     ConfirmResult(RoundId, RoundStatus),
     /// A player was given a bye and this is the id of that round
-    GiveBye(RoundIdentifier),
+    GiveBye(RoundId),
     /// A round was manually created and this is that round's id
-    CreateRound(RoundIdentifier),
+    CreateRound(RoundId),
     /// The next set of rounds was paired and these are those round's ids
-    Pair(Vec<RoundIdentifier>),
+    Pair(Vec<RoundId>),
 }
 
 /// A shorthand for the outcome of attempting to apply an operation to a tournament

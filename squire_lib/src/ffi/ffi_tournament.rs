@@ -1,9 +1,7 @@
 use std::{
-    alloc::{Allocator, Layout, System},
     collections::HashMap,
     ffi::CStr,
     os::raw::c_char,
-    ptr,
     time::Duration,
 };
 
@@ -27,10 +25,12 @@ use crate::{
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 
+use super::copy_to_system_pointer;
+
 const BACKUP_EXT: &str = ".bak";
 
-#[derive(Debug, Clone)]
 #[repr(C)]
+#[derive(Debug, Default, Clone)]
 pub struct PlayerScore<S> {
     pid: PlayerId,
     score: S,
@@ -54,26 +54,13 @@ impl TournamentId {
 
         let scores = tourn.get_standings().scores;
 
-        let len = (1 + scores.len()) * std::mem::size_of::<PlayerScore<StandardScore>>();
-
-        let ptr = System
-            .allocate(Layout::from_size_align(len, 1).unwrap())
-            .unwrap()
-            .as_mut_ptr() as *mut PlayerScore<StandardScore>;
-
-        let slice = unsafe {
-            &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerScore<StandardScore>])
-        };
-
-        slice.iter_mut().zip(scores.iter()).for_each(|(dst, p)| {
-            let (pid, score) = p;
-            dst.pid = *pid;
-            dst.score = score.clone();
-        });
-
-        slice[len - 1].pid = Uuid::default().into();
-
-        ptr
+        unsafe {
+            copy_to_system_pointer(
+                scores
+                    .into_iter()
+                    .map(|(pid, score)| PlayerScore { pid, score }),
+            )
+        }
     }
 
     /// Returns a raw pointer to players
@@ -82,30 +69,10 @@ impl TournamentId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn tid_players(self: Self) -> *const PlayerId {
-        let tourn = match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(t) => t,
-            None => {
-                return std::ptr::null();
-            }
-        };
-
-        let mut players = tourn.player_reg.get_player_ids();
-        players.push(Uuid::default().into());
-
-        let len = players.len() * std::mem::size_of::<PlayerId>();
-
-        let ptr = System
-            .allocate(Layout::from_size_align(len, 1).unwrap())
-            .unwrap()
-            .as_mut_ptr() as *mut PlayerId;
-
-        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]) };
-
-        slice.iter_mut().zip(players.iter()).for_each(|(dst, p)| {
-            *dst = *p;
-        });
-
-        ptr
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(t) => unsafe { copy_to_system_pointer(t.player_reg.players.keys().cloned()) },
+            None => std::ptr::null(),
+        }
     }
 
     /// Returns a raw pointer to rounds
@@ -114,28 +81,12 @@ impl TournamentId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn tid_rounds(self: Self) -> *const RoundId {
-        let tourn = match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
-            Some(t) => t,
-            None => {
-                return std::ptr::null();
-            }
-        };
-
-        let rounds: Vec<RoundId> = tourn.round_reg.get_round_ids();
-
-        let len: usize = (rounds.len() + 1) * std::mem::size_of::<RoundId>();
-        let ptr = System
-            .allocate(Layout::from_size_align(len, 1).unwrap())
-            .unwrap()
-            .as_mut_ptr() as *mut RoundId;
-        let slice = unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId]) };
-        let mut i: usize = 0;
-        while i < rounds.len() {
-            slice[i] = rounds[i];
-            i += 1;
+        match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
+            Some(tourn) => unsafe {
+                copy_to_system_pointer(tourn.round_reg.num_and_id.iter_left().cloned())
+            },
+            None => std::ptr::null(),
         }
-        slice[i] = Uuid::default().into();
-        ptr
     }
 
     /// Adds a player to a tournament
@@ -442,38 +393,21 @@ impl TournamentId {
             Some(mut t) => {
                 match t.apply_op(op) {
                     Ok(Pair(ident_vec)) => {
-                        let len: usize = (ident_vec.len() + 1) * std::mem::size_of::<RoundId>();
-                        let ptr = System
-                            .allocate(Layout::from_size_align(len, 1).unwrap())
-                            .unwrap()
-                            .as_mut_ptr() as *mut RoundId;
-                        let slice = unsafe {
-                            &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [RoundId])
-                        };
-                        let mut i: usize = 0;
-
-                        for round_ident in ident_vec {
-                            let rid: RoundId = t.round_reg.get_round_id(&round_ident).unwrap();
-                            slice[i] = rid;
-                            i += 1;
-                        }
-                        slice[i] = Uuid::default().into();
-                        return ptr;
+                        unsafe { copy_to_system_pointer(ident_vec.into_iter()) }
                     }
                     Err(t_err) => {
                         println!("[FFI]: {t_err}");
-                        return std::ptr::null();
+                        std::ptr::null()
                     }
-                    // This is never called right, left with _ for gdb
-                    Ok(_opdata) => {
+                    Ok(_) => {
                         println!("[FFI]: Error in tid_pair_round");
-                        return std::ptr::null();
+                        std::ptr::null()
                     }
                 }
             }
             None => {
                 println!("[FFI]: Cannot find tournament");
-                return std::ptr::null();
+                std::ptr::null()
             }
         }
     }

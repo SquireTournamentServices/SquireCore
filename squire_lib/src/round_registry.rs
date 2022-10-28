@@ -110,22 +110,8 @@ impl RoundRegistry {
         self.rounds.iter().filter(|(_, r)| r.is_active()).count()
     }
 
-    /* TODO: Is this needed?
-    pub fn import_round(&mut self, rnd: Round) -> Result<(), TournamentError> {
-        if self.num_and_id.contains_left(&rnd.id)
-            || self.num_and_id.contains_right(&rnd.match_number)
-        {
-            Err(TournamentError::RoundLookup)
-        } else {
-            self.num_and_id.insert(rnd.id, rnd.match_number);
-            self.rounds.insert(rnd.match_number, rnd);
-            Ok(())
-        }
-    }
-    */
-
     /// Creates a new round with no players and returns its id
-    pub fn create_round(&mut self) -> RoundIdentifier {
+    pub fn create_round(&mut self) -> RoundId {
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
         let round = Round::new(match_num, table_number, self.length);
@@ -138,10 +124,11 @@ impl RoundRegistry {
     /// Adds a player to the specified round
     pub fn add_player_to_round(
         &mut self,
-        ident: &RoundIdentifier,
+        ident: &RoundId,
         plyr: PlayerId,
     ) -> Result<(), TournamentError> {
-        let round = self.get_mut_round(ident)?;
+        let ident = (*ident).into();
+        let round = self.get_mut_round(&ident)?;
         let players = round.players.clone();
         round.add_player(plyr);
         self.opponents.entry(plyr).or_insert_with(HashSet::new);

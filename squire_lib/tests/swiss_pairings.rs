@@ -197,7 +197,7 @@ mod tests {
             let mut match_nums: Vec<u64> = Vec::with_capacity(winners.len());
             for pairing in &pairings.paired {
                 let r_id = rnds.create_round();
-                match_nums.push(rnds.get_round_number(&r_id).unwrap());
+                match_nums.push(rnds.get_round_number(&(r_id.into())).unwrap());
                 for p in pairing {
                     rnds.add_player_to_round(&r_id, *p).unwrap();
                 }

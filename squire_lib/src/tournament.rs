@@ -358,7 +358,8 @@ impl Tournament {
             if let PairingStyle::Swiss(_) = &self.pairing_sys.style {
                 for plyr in pairings.rejected {
                     let r_id = self.round_reg.create_round();
-                    let rnd = self.round_reg.get_mut_round(&r_id).unwrap();
+                    let ident = r_id.into();
+                    let rnd = self.round_reg.get_mut_round(&ident).unwrap();
                     rnd.add_player(plyr);
                     let _ = rnd.record_bye();
                     rounds.push(r_id);
@@ -663,7 +664,7 @@ impl Tournament {
         let _ = self.round_reg.add_player_to_round(&r_id, id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
         // single player
-        let round = self.round_reg.get_mut_round(&r_id).unwrap();
+        let round = self.round_reg.get_mut_round(&(r_id.into())).unwrap();
         round.record_bye()?;
         Ok(OpData::GiveBye(r_id))
     }

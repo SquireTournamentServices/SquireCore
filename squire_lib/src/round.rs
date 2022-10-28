@@ -135,7 +135,9 @@ impl Round {
     /// Records part of the result of the round.
     pub fn record_result(&mut self, result: RoundResult) -> Result<(), TournamentError> {
         if self.verify_result(&result) {
-            self.confirmations.clear();
+            if self.is_active() {
+                self.confirmations.clear();
+            }
             match result {
                 RoundResult::Wins(p_id, count) => {
                     self.results.insert(p_id, count);
@@ -188,7 +190,9 @@ impl Round {
             Err(TournamentError::InvalidBye)
         } else {
             self.is_bye = true;
-            self.winner = Some(*self.players.iter().next().unwrap());
+            let plyr = *self.players.iter().next().unwrap();
+            self.confirmations.insert(plyr);
+            self.winner = Some(plyr);
             self.status = RoundStatus::Certified;
             Ok(())
         }

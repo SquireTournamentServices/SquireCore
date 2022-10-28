@@ -1,28 +1,21 @@
-use crate::ffi::FFI_TOURNAMENT_REGISTRY;
 use crate::{
+    ffi::{copy_to_system_pointer, FFI_TOURNAMENT_REGISTRY},
     identifiers::{AdminId, PlayerId, RoundId, RoundIdentifier, TournamentId},
     operations::{OpData, TournOp},
     round::{Round, RoundResult, RoundStatus},
 };
-use std::alloc::{Allocator, Layout, System};
-use std::collections::HashSet;
-use std::option::Option;
-use std::ptr;
-use uuid::Uuid;
 
 impl RoundId {
     /// Returns the round if it can be found in the tournament
     fn get_tourn_round(self, tid: TournamentId) -> Option<Round> {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&tid) {
-            Some(t) => {
-                match t.round_reg.get_round(&self.into()).cloned() {
-                    Ok(r) => Some(r),
-                    Err(e) => {
-                        println!("[FFI]: Cannot find tournament in get_tourn_round() {};", e);
-                        None
-                    }
+            Some(t) => match t.round_reg.get_round(&self.into()).cloned() {
+                Ok(r) => Some(r),
+                Err(e) => {
+                    println!("[FFI]: Cannot find round in get_tourn_round(): Error {e};");
+                    None
                 }
-            }
+            },
             None => {
                 println!("[FFI]: Cannot find tournament in get_tourn_round();");
                 None
@@ -81,28 +74,8 @@ impl RoundId {
     #[no_mangle]
     pub extern "C" fn rid_players(self, tid: TournamentId) -> *const PlayerId {
         match self.get_tourn_round(tid) {
-            Some(r) => {
-                let players: HashSet<PlayerId> = r.players;
-                let len: usize = (players.len() + 1) * std::mem::size_of::<PlayerId>();
-
-                let ptr = System
-                    .allocate(Layout::from_size_align(len, 1).unwrap())
-                    .unwrap()
-                    .as_mut_ptr() as *mut PlayerId;
-                let slice =
-                    unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]) };
-
-                let mut i: usize = 0;
-                for p in players {
-                    slice[i] = p;
-                    i += 1;
-                }
-                slice[i] = Uuid::default().into();
-                return ptr;
-            }
-            None => {
-                return std::ptr::null();
-            }
+            Some(r) => unsafe { copy_to_system_pointer(r.players.into_iter()) },
+            None => std::ptr::null(),
         }
     }
 
@@ -111,35 +84,15 @@ impl RoundId {
     #[no_mangle]
     pub extern "C" fn rid_confirmed_players(self, tid: TournamentId) -> *const PlayerId {
         match self.get_tourn_round(tid) {
-            Some(r) => {
-                let players: HashSet<PlayerId> = r.confirmations;
-                let len: usize = (players.len() + 1) * std::mem::size_of::<PlayerId>();
-
-                let ptr = System
-                    .allocate(Layout::from_size_align(len, 1).unwrap())
-                    .unwrap()
-                    .as_mut_ptr() as *mut PlayerId;
-                let slice =
-                    unsafe { &mut *(ptr::slice_from_raw_parts(ptr, len) as *mut [PlayerId]) };
-
-                let mut i: usize = 0;
-                for p in players {
-                    slice[i] = p;
-                    i += 1;
-                }
-                slice[i] = Uuid::default().into();
-                return ptr;
-            }
-            None => {
-                return std::ptr::null();
-            }
+            Some(r) => unsafe { copy_to_system_pointer(r.confirmations.into_iter()) },
+            None => std::ptr::null(),
         }
     }
 
     /// Confirms a player for the match result
     /// false on error
     #[no_mangle]
-    pub unsafe extern "C" fn rid_confirm_player(
+    pub extern "C" fn rid_confirm_player(
         self,
         tid: TournamentId,
         aid: AdminId,
@@ -170,7 +123,7 @@ impl RoundId {
     /// Records results for a round; DO NOT RECORD DRAWS HERE (it breaks :( )
     /// false on error
     #[no_mangle]
-    pub unsafe extern "C" fn rid_record_result(
+    pub extern "C" fn rid_record_result(
         self,
         tid: TournamentId,
         aid: AdminId,
@@ -197,12 +150,7 @@ impl RoundId {
 
     /// Records draws for a round
     #[no_mangle]
-    pub unsafe extern "C" fn rid_record_draws(
-        self,
-        tid: TournamentId,
-        aid: AdminId,
-        draws: u32,
-    ) -> bool {
+    pub extern "C" fn rid_record_draws(self, tid: TournamentId, aid: AdminId, draws: u32) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament.apply_op(TournOp::AdminRecordResult(
@@ -250,7 +198,7 @@ impl RoundId {
     /// Kills a match
     /// false on error
     #[no_mangle]
-    pub unsafe extern "C" fn rid_kill(self, tid: TournamentId, aid: AdminId) -> bool {
+    pub extern "C" fn rid_kill(self, tid: TournamentId, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
                 match tournament
