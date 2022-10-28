@@ -1,7 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::{players::Deck, rounds::RoundResult};
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// Operations that players can perform

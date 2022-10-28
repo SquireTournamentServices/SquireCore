@@ -789,11 +789,7 @@ impl Tournament {
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_overwrite_result(
-        &mut self,
-        id: RoundId,
-        result: RoundResult,
-    ) -> OpResult {
+    pub(crate) fn admin_overwrite_result(&mut self, id: RoundId, result: RoundResult) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }

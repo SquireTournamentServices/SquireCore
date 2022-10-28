@@ -77,7 +77,14 @@ impl RoundRegistry {
             .filter_map(|r| r.is_active().then(|| r.table_number))
             .sorted()
             .zip(self.starting_table..(self.rounds.len() as u64 + self.starting_table))
-            .find_map(|(active, new)| if active == new { tracker += 1; None } else { Some(new) })
+            .find_map(|(active, new)| {
+                if active == new {
+                    tracker += 1;
+                    None
+                } else {
+                    Some(new)
+                }
+            })
             .unwrap_or_else(|| tracker)
     }
 
@@ -142,10 +149,7 @@ impl RoundRegistry {
     }
 
     /// Given a round identifier, returns a mutable reference to the round if the round can be found
-    pub(crate) fn get_mut_round(
-        &mut self,
-        id: &RoundId,
-    ) -> Result<&mut Round, TournamentError> {
+    pub(crate) fn get_mut_round(&mut self, id: &RoundId) -> Result<&mut Round, TournamentError> {
         self.rounds.get_mut(&id).ok_or(RoundLookup)
     }
 
@@ -166,8 +170,7 @@ impl RoundRegistry {
         &mut self,
         id: &PlayerId,
     ) -> Result<&mut Round, TournamentError> {
-        self
-            .rounds
+        self.rounds
             .values_mut()
             .filter(|r| r.players.contains(id) && r.is_active())
             .sorted_by(|a, b| a.match_number.cmp(&b.match_number))
@@ -190,7 +193,6 @@ impl RoundRegistry {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
@@ -198,7 +200,7 @@ mod tests {
     use crate::rounds::RoundStatus;
 
     use super::RoundRegistry;
-    
+
     #[test]
     fn table_number_tests() {
         for start in 0..3 {

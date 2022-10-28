@@ -1,9 +1,13 @@
 use std::time::Duration;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{identifiers::{RoundId, PlayerId}, players::Deck, rounds::RoundResult, accounts::SquireAccount};
-
+use crate::{
+    accounts::SquireAccount,
+    identifiers::{PlayerId, RoundId},
+    players::Deck,
+    rounds::RoundResult,
+};
 
 /// Operations that judges and tournament admin can perform
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

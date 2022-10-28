@@ -1,6 +1,11 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{identifiers::{RoundId, PlayerId}, rounds::RoundResult, accounts::SquireAccount, settings::TournamentSetting};
+use crate::{
+    accounts::SquireAccount,
+    identifiers::{PlayerId, RoundId},
+    rounds::RoundResult,
+    settings::TournamentSetting,
+};
 
 /// Operations that only tournament admin can perform
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

@@ -178,12 +178,18 @@ fn round_printout(rnd: &Round) -> Html {
 fn load() -> Tournament {
     let mut tourn = spoof_data(20);
     let admin_id = *tourn.admins.keys().next().unwrap();
-    tourn.apply_op(TournOp::AdminOp(admin_id, AdminOp::Start)).unwrap();
+    tourn
+        .apply_op(TournOp::AdminOp(admin_id, AdminOp::Start))
+        .unwrap();
     let plyrs: Vec<_> = tourn.player_reg.players.keys().cloned().collect();
     for id in plyrs {
-        tourn.apply_op(TournOp::PlayerOp(id, PlayerOp::ReadyPlayer)).unwrap();
+        tourn
+            .apply_op(TournOp::PlayerOp(id, PlayerOp::ReadyPlayer))
+            .unwrap();
     }
-    tourn.apply_op(TournOp::AdminOp(admin_id, AdminOp::PairRound)).unwrap();
+    tourn
+        .apply_op(TournOp::AdminOp(admin_id, AdminOp::PairRound))
+        .unwrap();
     tourn
 }
 

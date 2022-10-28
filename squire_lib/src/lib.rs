@@ -12,12 +12,10 @@
     unused_import_braces,
     rustdoc::broken_intra_doc_links,
     missing_debug_implementations,
-    unreachable_pub,
+    unreachable_pub
 )]
-
 #![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
 #![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
-
 
 /// Contains the ffi C bindings used in SquireDesktop
 #[cfg(feature = "ffi")]
