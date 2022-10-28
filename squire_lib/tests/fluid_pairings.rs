@@ -8,7 +8,7 @@ mod tests {
         pairings::PairingSystem,
         players::PlayerRegistry,
         rounds::RoundRegistry,
-        scoring::{Standings, StandardScore},
+        scoring::{StandardScore, Standings},
         tournament::TournamentPreset,
     };
     use uuid::Uuid;

@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    ffi::CStr,
-    os::raw::c_char,
-    time::Duration,
-};
+use std::{collections::HashMap, ffi::CStr, os::raw::c_char, time::Duration};
 
 use serde_json;
 use uuid::Uuid;
@@ -20,8 +15,8 @@ use crate::{
     pairings::{PairingStyle, PairingSystem},
     players::PlayerRegistry,
     rounds::RoundRegistry,
-    settings::{PairingSetting, TournamentSetting},
     scoring::StandardScore,
+    settings::{PairingSetting, TournamentSetting},
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 
@@ -390,21 +385,17 @@ impl TournamentId {
         let admin_account = Uuid::default().into();
         let op = TournOp::PairRound(admin_account);
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => {
-                match t.apply_op(op) {
-                    Ok(Pair(ident_vec)) => {
-                        unsafe { copy_to_system_pointer(ident_vec.into_iter()) }
-                    }
-                    Err(t_err) => {
-                        println!("[FFI]: {t_err}");
-                        std::ptr::null()
-                    }
-                    Ok(_) => {
-                        println!("[FFI]: Error in tid_pair_round");
-                        std::ptr::null()
-                    }
+            Some(mut t) => match t.apply_op(op) {
+                Ok(Pair(ident_vec)) => unsafe { copy_to_system_pointer(ident_vec.into_iter()) },
+                Err(t_err) => {
+                    println!("[FFI]: {t_err}");
+                    std::ptr::null()
                 }
-            }
+                Ok(_) => {
+                    println!("[FFI]: Error in tid_pair_round");
+                    std::ptr::null()
+                }
+            },
             None => {
                 println!("[FFI]: Cannot find tournament");
                 std::ptr::null()

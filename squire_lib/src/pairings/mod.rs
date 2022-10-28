@@ -16,21 +16,20 @@ use crate::{
     tournament::TournamentPreset,
 };
 
-
-/// The swiss pairing sytle
-pub mod swiss_pairings;
 /// The fluid pairing sytle
 pub mod fluid_pairings;
+/// The swiss pairing sytle
+pub mod swiss_pairings;
 
 /// The branching pairings module
 pub mod branching;
 /// The greedy pairings module
 pub mod greedy;
 
-pub use fluid_pairings::FluidPairings;
-pub use swiss_pairings::SwissPairings;
 pub use branching::branching_pairings;
+pub use fluid_pairings::FluidPairings;
 pub use greedy::greedy_pairings;
+pub use swiss_pairings::SwissPairings;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 /// A struct for communicating new pairings information

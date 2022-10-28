@@ -70,7 +70,7 @@ pub fn clone_string_to_c_string(s: &str) -> *const c_char {
     slice.iter_mut().zip(s.chars()).for_each(|(dst, c)| {
         *dst = c as i8;
     });
-    
+
     slice[s.len()] = char::default() as i8;
 
     ptr

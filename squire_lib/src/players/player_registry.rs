@@ -7,7 +7,10 @@ use cycle_map::CycleMap;
 use crate::{
     accounts::SquireAccount,
     error::TournamentError,
-    identifiers::{PlayerId, PlayerIdentifier::{self, *}},
+    identifiers::{
+        PlayerId,
+        PlayerIdentifier::{self, *},
+    },
     players::{Player, PlayerStatus},
 };
 

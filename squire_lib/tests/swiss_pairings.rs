@@ -9,8 +9,8 @@ mod tests {
         pairings::PairingSystem,
         players::PlayerRegistry,
         rounds::{RoundRegistry, RoundResult},
-        settings::SwissPairingsSetting,
         scoring::StandardScoring,
+        settings::SwissPairingsSetting,
         tournament::TournamentPreset,
     };
 

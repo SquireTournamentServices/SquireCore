@@ -6,7 +6,7 @@ pub use squire_lib::{
     error::TournamentError,
     identifiers::{TournamentId, TournamentIdentifier},
     operations::{OpResult, TournOp},
-    scoring::{Standings, StandardScore},
+    scoring::{StandardScore, Standings},
     tournament::{Tournament, TournamentPreset},
 };
 

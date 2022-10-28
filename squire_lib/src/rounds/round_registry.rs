@@ -9,10 +9,9 @@ use cycle_map::CycleMap;
 
 use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
-    identifiers::{RoundIdentifier, PlayerId, RoundId},
+    identifiers::{PlayerId, RoundId, RoundIdentifier},
     rounds::Round,
 };
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all rounds.

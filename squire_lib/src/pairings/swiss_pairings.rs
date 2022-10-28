@@ -13,7 +13,6 @@ use crate::{
     settings::SwissPairingsSetting,
 };
 
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// Swiss pairings are the "traditional" pairings system for Magic tournaments
 pub struct SwissPairings {

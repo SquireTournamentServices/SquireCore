@@ -12,10 +12,10 @@ use crate::{
     identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::{PairingStyle, PairingSystem},
-    players::{PlayerRegistry, Deck, Player, PlayerStatus},
-    rounds::{RoundRegistry, Round, RoundResult},
+    players::{Deck, Player, PlayerRegistry, PlayerStatus},
+    rounds::{Round, RoundRegistry, RoundResult},
+    scoring::{StandardScore, StandardScoring, Standings},
     settings::{self, TournamentSetting},
-    scoring::{Standings, StandardScore, StandardScoring},
 };
 
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
