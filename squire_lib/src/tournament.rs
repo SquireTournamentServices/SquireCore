@@ -12,8 +12,8 @@ use crate::{
     identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundIdentifier},
     operations::{OpData, OpResult, TournOp},
     pairings::{PairingStyle, PairingSystem},
-    player::{PlayerRegistry, Deck, Player, PlayerStatus},
-    round::{RoundRegistry, Round, RoundResult},
+    players::{PlayerRegistry, Deck, Player, PlayerStatus},
+    rounds::{RoundRegistry, Round, RoundResult},
     settings::{self, TournamentSetting},
     scoring::{Standings, StandardScore, StandardScoring},
 };

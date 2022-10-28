@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{round::RoundStatus, tournament::TournamentStatus};
+use crate::{rounds::RoundStatus, tournament::TournamentStatus};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 /// An error that encodes problems that can occur during client-server syncing

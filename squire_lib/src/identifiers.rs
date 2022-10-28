@@ -7,8 +7,8 @@ use crate::{
     accounts::{OrganizationAccount, SquireAccount},
     admin::{Admin, Judge},
     operations::FullOp,
-    player::Player,
-    round::Round,
+    players::Player,
+    rounds::Round,
     tournament::Tournament,
 };
 

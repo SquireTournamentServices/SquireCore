@@ -40,10 +40,10 @@ pub mod identifiers;
 pub mod operations;
 /// Contains model for communicating info about new pairings
 pub mod pairings;
-/// Contains the player model
-pub mod player;
+/// Contains everything relating to the player model
+pub mod players;
 /// Contains the round model
-pub mod round;
+pub mod rounds;
 /// Contains the model for communicating scores
 pub mod scoring;
 /// Contains the models for all the different tournament settings

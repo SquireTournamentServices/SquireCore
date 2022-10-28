@@ -2,7 +2,7 @@ use crate::{
     ffi::{copy_to_system_pointer, FFI_TOURNAMENT_REGISTRY},
     identifiers::{AdminId, PlayerId, RoundId, RoundIdentifier, TournamentId},
     operations::{OpData, TournOp},
-    round::{Round, RoundResult, RoundStatus},
+    rounds::{Round, RoundResult, RoundStatus},
 };
 
 impl RoundId {

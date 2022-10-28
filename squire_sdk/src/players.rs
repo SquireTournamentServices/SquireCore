@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 pub use squire_lib::{
     error::TournamentError,
-    player::{Deck, Player, PlayerId},
-    round::Round,
+    players::{Deck, Player, PlayerId},
+    rounds::Round,
     tournament::TournamentIdentifier,
 };
 

@@ -6,8 +6,8 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         identifiers::UserAccountId,
         pairings::PairingSystem,
-        player::PlayerRegistry,
-        round::RoundRegistry,
+        players::PlayerRegistry,
+        rounds::RoundRegistry,
         scoring::{Standings, StandardScore},
         tournament::TournamentPreset,
     };

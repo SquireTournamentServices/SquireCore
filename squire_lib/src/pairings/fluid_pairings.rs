@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
-    player::PlayerRegistry,
-    round::RoundRegistry,
+    players::PlayerRegistry,
+    rounds::RoundRegistry,
     settings::FluidPairingsSetting,
 };
 

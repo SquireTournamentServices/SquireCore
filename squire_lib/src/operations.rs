@@ -8,8 +8,8 @@ use crate::{
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
     identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
-    player::Deck,
-    round::{RoundId, RoundResult, RoundStatus},
+    players::Deck,
+    rounds::{RoundId, RoundResult, RoundStatus},
     settings::TournamentSetting,
     tournament::TournamentPreset,
 };

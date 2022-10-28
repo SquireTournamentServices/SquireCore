@@ -4,9 +4,10 @@ use std::{
     ptr,
 };
 
-use crate::{identifiers::TournamentId, tournament::Tournament};
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
+
+use crate::{identifiers::TournamentId, tournament::Tournament};
 
 /// Contains the ffi C bindings for players used in SquireDesktop
 pub mod ffi_player;

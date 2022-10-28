@@ -11,8 +11,8 @@ use squire_lib::{
     admin::Admin,
     identifiers::{PlayerId, TournamentId, UserAccountId},
     operations::TournOp,
-    player::Player,
-    round::{Round, RoundId},
+    players::Player,
+    rounds::{Round, RoundId},
     settings::{PairingSetting, TournamentSetting},
     tournament::{Tournament, TournamentPreset},
 };

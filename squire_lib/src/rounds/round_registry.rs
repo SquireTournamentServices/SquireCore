@@ -10,7 +10,7 @@ use cycle_map::CycleMap;
 use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
     identifiers::{RoundIdentifier, PlayerId, RoundId},
-    round::Round,
+    rounds::Round,
 };
 
 

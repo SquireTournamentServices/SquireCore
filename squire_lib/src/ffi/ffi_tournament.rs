@@ -18,10 +18,10 @@ use crate::{
         TournOp,
     },
     pairings::{PairingStyle, PairingSystem},
-    player_registry::PlayerRegistry,
-    round_registry::RoundRegistry,
+    players::PlayerRegistry,
+    rounds::RoundRegistry,
     settings::{PairingSetting, TournamentSetting},
-    standard_scoring::StandardScore,
+    scoring::StandardScore,
     tournament::{scoring_system_factory, Tournament, TournamentPreset, TournamentStatus},
 };
 

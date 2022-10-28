@@ -7,8 +7,8 @@ use cycle_map::GroupMap;
 use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
-    player::PlayerRegistry,
-    round::RoundRegistry,
+    players::PlayerRegistry,
+    rounds::RoundRegistry,
     scoring::{Score, Standings},
     settings::SwissPairingsSetting,
 };

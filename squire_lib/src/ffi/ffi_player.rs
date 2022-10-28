@@ -3,7 +3,7 @@ use std::os::raw::c_char;
 use crate::{
     ffi::{clone_string_to_c_string, copy_to_system_pointer, FFI_TOURNAMENT_REGISTRY},
     identifiers::{PlayerId, RoundId, TournamentId},
-    player::{Player, PlayerStatus},
+    players::{Player, PlayerStatus},
 };
 
 impl PlayerId {

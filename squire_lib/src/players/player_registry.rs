@@ -8,7 +8,7 @@ use crate::{
     accounts::SquireAccount,
     error::TournamentError,
     identifiers::{PlayerId, PlayerIdentifier::{self, *}},
-    player::{Player, PlayerStatus},
+    players::{Player, PlayerStatus},
 };
 
 use TournamentError::PlayerLookup;
