@@ -5,7 +5,7 @@ mod tests {
 
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
-        identifiers::{PlayerId, UserAccountId},
+        identifiers::UserAccountId,
         pairings::PairingSystem,
         players::PlayerRegistry,
         rounds::{RoundRegistry, RoundResult},
@@ -121,46 +121,43 @@ mod tests {
         assert_eq!(pairings.paired[0].len(), 4);
         assert_eq!(pairings.rejected.len(), 0);
         assert!(sys.ready_to_pair(&plyrs, &rnds));
-        let winners: Vec<PlayerId> = pairings.paired.iter().map(|p| p[0]).collect();
-        for pairing in &pairings.paired {
-            let r_id = rnds.create_round();
-            for p in pairing {
-                rnds.add_player_to_round(&r_id, *p).unwrap();
-            }
-        }
+        let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
+        let matches: Vec<_> = pairings
+            .paired
+            .iter()
+            .map(|pairing| {
+                let r_id = rnds.create_round();
+                for p in pairing {
+                    rnds.add_player_to_round(&r_id, *p).unwrap();
+                }
+                r_id
+            })
+            .collect();
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
             .is_none());
-        for (num, winner) in winners.iter().enumerate() {
+        for (winner, rnd) in winners.iter().zip(matches.iter()) {
             assert!(rnds
                 .rounds
-                .get_mut(&(num as u64))
+                .get_mut(&rnd)
                 .unwrap()
                 .record_result(RoundResult::Wins(*winner, 1))
                 .is_ok());
-            assert_eq!(
-                rnds.rounds
-                    .get_mut(&(num as u64))
-                    .unwrap()
-                    .winner
-                    .as_ref()
-                    .unwrap(),
-                winner
-            )
+            assert_eq!(rnds.rounds.get_mut(&rnd).unwrap().winner.unwrap(), *winner);
         }
-        for (num, pairing) in pairings.paired.iter().enumerate() {
-            assert!(rnds.rounds.get(&(num as u64)).unwrap().is_active());
+        for (pairing, rnd) in pairings.paired.iter().zip(matches.iter()) {
+            assert!(rnds.rounds.get(rnd).unwrap().is_active());
             for plyr in pairing {
                 assert!(rnds
                     .rounds
-                    .get_mut(&(num as u64))
+                    .get_mut(rnd)
                     .unwrap()
                     .confirm_round((**plyr).into())
                     .is_ok());
             }
-            println!("\n{:?}", rnds.rounds.get(&(num as u64)).unwrap());
-            assert!(rnds.rounds.get(&(num as u64)).unwrap().is_certified());
+            println!("\n{:?}", rnds.rounds.get(rnd).unwrap());
+            assert!(rnds.rounds.get(rnd).unwrap().is_certified());
         }
         // Rounds are all certified, let's repair
         let pairings = sys
@@ -192,38 +189,38 @@ mod tests {
         while count < goal && pairings.rejected.len() < 3 {
             count += 1;
             println!("The current count is {count}");
-            let winners: Vec<PlayerId> = pairings.paired.iter().map(|p| p[0]).collect();
-            let mut match_nums: Vec<u64> = Vec::with_capacity(winners.len());
+            let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
+            let mut matches: Vec<_> = Vec::with_capacity(winners.len());
             for pairing in &pairings.paired {
                 let r_id = rnds.create_round();
-                match_nums.push(rnds.get_round_number(&(r_id.into())).unwrap());
+                matches.push(r_id);
                 for p in pairing {
                     rnds.add_player_to_round(&r_id, *p).unwrap();
                 }
             }
-            for (winner, num) in winners.iter().zip(match_nums.iter()) {
+            for (winner, rnd) in winners.iter().zip(matches.iter()) {
                 assert!(rnds
                     .rounds
-                    .get_mut(num)
+                    .get_mut(rnd)
                     .unwrap()
                     .record_result(RoundResult::Wins(*winner, 1))
                     .is_ok());
                 assert_eq!(
-                    rnds.rounds.get_mut(num).unwrap().winner.as_ref().unwrap(),
+                    rnds.rounds.get_mut(rnd).unwrap().winner.as_ref().unwrap(),
                     winner
                 )
             }
-            for (pairing, num) in pairings.paired.iter().zip(match_nums.iter()) {
-                assert!(rnds.rounds.get(num).unwrap().is_active());
+            for (pairing, rnd) in pairings.paired.iter().zip(matches.iter()) {
+                assert!(rnds.rounds.get(rnd).unwrap().is_active());
                 for plyr in pairing {
                     assert!(rnds
                         .rounds
-                        .get_mut(num)
+                        .get_mut(rnd)
                         .unwrap()
                         .confirm_round((**plyr).into())
                         .is_ok());
                 }
-                assert!(rnds.rounds.get(num).unwrap().is_certified());
+                assert!(rnds.rounds.get(rnd).unwrap().is_certified());
             }
             pairings = sys
                 .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))

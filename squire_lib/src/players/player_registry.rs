@@ -7,10 +7,7 @@ use cycle_map::CycleMap;
 use crate::{
     accounts::SquireAccount,
     error::TournamentError,
-    identifiers::{
-        PlayerId,
-        PlayerIdentifier::{self, *},
-    },
+    identifiers::PlayerId,
     players::{Player, PlayerStatus},
 };
 
@@ -47,6 +44,11 @@ impl PlayerRegistry {
     /// Checks in a player for registration
     pub fn check_in(&mut self, id: PlayerId) {
         self.check_ins.insert(id);
+    }
+
+    /// Calculates if a player is registered for the touranment
+    pub fn is_registered(&self, id: &PlayerId) -> bool {
+        self.players.contains_key(id)
     }
 
     /// Confirms that a player is checked in for registration
@@ -91,7 +93,9 @@ impl PlayerRegistry {
 
     /// Creates a new player
     pub fn add_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
-        if self.verify_identifier(&Name(account.get_user_name().clone())) {
+        if self.name_and_id.contains_left(&account.user_name)
+            || self.name_and_id.contains_right(&account.user_id.0.into())
+        {
             Err(PlayerLookup)
         } else {
             let name = account.get_user_name().clone();
@@ -105,7 +109,7 @@ impl PlayerRegistry {
 
     /// Creates a new player without an account
     pub fn add_guest(&mut self, name: String) -> Result<PlayerId, TournamentError> {
-        if self.verify_identifier(&Name(name.clone())) {
+        if self.name_and_id.contains_left(&name) {
             Err(PlayerLookup)
         } else {
             let plyr = Player::new(name.clone());
@@ -117,61 +121,47 @@ impl PlayerRegistry {
     }
 
     /// Sets the specified player's status to `Dropped`
-    pub fn drop_player(&mut self, ident: &PlayerIdentifier) -> Result<(), TournamentError> {
-        let plyr = self.get_mut_player(ident)?;
+    pub fn drop_player(&mut self, id: &PlayerId) -> Result<(), TournamentError> {
+        let plyr = self.get_mut_player(id)?;
         plyr.update_status(PlayerStatus::Dropped);
         Ok(())
     }
 
     /// Given a player identifier, returns a mutable reference to that player if found
-    pub fn get_mut_player(
-        &mut self,
-        ident: &PlayerIdentifier,
-    ) -> Result<&mut Player, TournamentError> {
-        let id = self.get_player_id(ident)?;
-        self.players.get_mut(&id).ok_or_else(|| PlayerLookup)
+    pub fn get_mut_player(&mut self, id: &PlayerId) -> Result<&mut Player, TournamentError> {
+        self.players.get_mut(id).ok_or_else(|| PlayerLookup)
     }
 
     /// Given a player identifier, returns a reference to that player if found
-    pub fn get_player(&self, ident: &PlayerIdentifier) -> Result<&Player, TournamentError> {
-        let id = self.get_player_id(ident)?;
-        self.players.get(&id).ok_or_else(|| PlayerLookup)
+    pub fn get_player(&self, id: &PlayerId) -> Result<&Player, TournamentError> {
+        self.players.get(id).ok_or_else(|| PlayerLookup)
+    }
+
+    /// Given a player identifier, returns a reference to that player if found
+    pub fn get_by_name(&self, name: &String) -> Result<&Player, TournamentError> {
+        self.name_and_id
+            .get_right(name)
+            .map(|id| self.players.get(id))
+            .flatten()
+            .ok_or_else(|| PlayerLookup)
     }
 
     /// Given a player identifier, returns that player's id if found
-    pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Result<PlayerId, TournamentError> {
-        match ident {
-            Id(id) => Ok(*id),
-            Name(name) => self
-                .name_and_id
-                .get_right(name)
-                .cloned()
-                .ok_or_else(|| PlayerLookup),
-        }
+    pub fn get_player_id(&self, name: &String) -> Result<PlayerId, TournamentError> {
+        self.name_and_id
+            .get_right(name)
+            .cloned()
+            .ok_or_else(|| PlayerLookup)
     }
 
     /// Given a player identifier, returns that player's name if found
-    pub fn get_player_name(&self, ident: &PlayerIdentifier) -> Option<String> {
-        match ident {
-            Name(name) => Some(name.clone()),
-            Id(id) => self.name_and_id.get_left(&id).cloned(),
-        }
+    pub fn get_player_name(&self, id: &PlayerId) -> Option<&String> {
+        self.name_and_id.get_left(id)
     }
 
     /// Given a player identifier, returns that player's status if found
-    pub fn get_player_status(
-        &self,
-        ident: &PlayerIdentifier,
-    ) -> Result<PlayerStatus, TournamentError> {
-        self.get_player(ident).map(|p| p.status)
-    }
-
-    /// Verfies that a player's identifier is valid
-    pub fn verify_identifier(&self, ident: &PlayerIdentifier) -> bool {
-        match ident {
-            Id(id) => self.name_and_id.contains_right(id),
-            Name(name) => self.name_and_id.contains_left(name),
-        }
+    pub fn get_player_status(&self, id: &PlayerId) -> Result<PlayerStatus, TournamentError> {
+        self.get_player(id).map(|p| p.status)
     }
 }
 

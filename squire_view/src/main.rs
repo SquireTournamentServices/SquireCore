@@ -10,7 +10,7 @@ use squire_lib::{
     accounts::{SharingPermissions, SquireAccount},
     admin::Admin,
     identifiers::{PlayerId, TournamentId, UserAccountId},
-    operations::TournOp,
+    operations::{AdminOp, PlayerOp, TournOp},
     players::Player,
     rounds::{Round, RoundId},
     settings::{PairingSetting, TournamentSetting},
@@ -178,17 +178,16 @@ fn round_printout(rnd: &Round) -> Html {
 fn load() -> Tournament {
     let mut tourn = spoof_data(20);
     let admin_id = *tourn.admins.keys().next().unwrap();
-    tourn.apply_op(TournOp::Start(admin_id)).unwrap();
+    tourn.apply_op(TournOp::AdminOp(admin_id, AdminOp::Start)).unwrap();
     let plyrs: Vec<_> = tourn.player_reg.players.keys().cloned().collect();
     for id in plyrs {
-        tourn.apply_op(TournOp::ReadyPlayer(id.into())).unwrap();
+        tourn.apply_op(TournOp::PlayerOp(id, PlayerOp::ReadyPlayer)).unwrap();
     }
-    tourn.apply_op(TournOp::PairRound(admin_id)).unwrap();
+    tourn.apply_op(TournOp::AdminOp(admin_id, AdminOp::PairRound)).unwrap();
     tourn
 }
 
 fn spoof_data(count: usize) -> Tournament {
-    use TournOp::*;
     let mut t = Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Pioneer".into());
     let account = spoof_account();
     let admin = Admin {
@@ -198,13 +197,16 @@ fn spoof_data(count: usize) -> Tournament {
     let admin_id = admin.id;
     t.admins.insert(admin_id, admin);
     for _ in 0..count {
-        let _ = t.apply_op(RegisterPlayer(spoof_account()));
+        let _ = t.apply_op(TournOp::RegisterPlayer(spoof_account()));
     }
 
-    let _ = t.apply_op(UpdateTournSetting(
+    t.apply_op(TournOp::AdminOp(
         admin_id,
-        TournamentSetting::PairingSetting(PairingSetting::MatchSize(4)),
-    ));
+        AdminOp::UpdateTournSetting(TournamentSetting::PairingSetting(
+            PairingSetting::MatchSize(4),
+        )),
+    ))
+    .unwrap();
     t
 }
 

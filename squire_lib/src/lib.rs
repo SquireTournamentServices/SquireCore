@@ -3,9 +3,9 @@
 //! sync protocol is also implemented here.
 
 #![allow(dead_code, irrefutable_let_patterns)]
+#![warn(rust_2018_idioms)]
 #![deny(
-    // TODO: Un-comment after tests are written
-    //dead_code,
+    dead_code,
     missing_docs,
     unused_variables,
     unused_imports,
@@ -14,14 +14,10 @@
     missing_debug_implementations,
     unreachable_pub,
 )]
-#![warn(rust_2018_idioms)]
-// Used in FFI for access to the allocator's api
-#![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
-// TODO: Once FFI has been stablized, we should deny unsafe FFI types in FFI signatures
-//#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 
-// TODO: Once FFI is stablized, it too needs to be documented
-#![cfg_attr(feature = "ffi", allow(missing_docs))]
+#![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
+#![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
+
 
 /// Contains the ffi C bindings used in SquireDesktop
 #[cfg(feature = "ffi")]

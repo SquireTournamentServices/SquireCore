@@ -3,13 +3,14 @@ use std::{
     time::Duration,
 };
 
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
 
 use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
-    identifiers::{PlayerId, RoundId, RoundIdentifier},
+    identifiers::{PlayerId, RoundId},
     rounds::Round,
 };
 
@@ -17,11 +18,9 @@ use crate::{
 /// The struct that creates and manages all rounds.
 pub struct RoundRegistry {
     /// A lookup table between round ids and match numbers
-    // TODO: We don't need this. A GroupMap between RoundIdentifiers and Rounds would suffice for
-    // the rounds field
-    pub num_and_id: CycleMap<RoundId, u64>,
+    pub num_and_id: CycleMap<u64, RoundId>,
     /// All the rounds in a tournament
-    pub rounds: HashMap<u64, Round>,
+    pub rounds: HashMap<RoundId, Round>,
     /// A lookup table between players and their opponents. This is duplicate data, but used
     /// heavily by scoring and pairings systems
     pub opponents: HashMap<PlayerId, HashSet<PlayerId>>,
@@ -61,33 +60,29 @@ impl RoundRegistry {
         ret
     }
 
+    pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {
+        self.num_and_id
+            .get_right(n)
+            .map(|id| self.rounds.get(id))
+            .flatten()
+            .ok_or_else(|| TournamentError::RoundLookup)
+    }
+
     /// Gets the next table number. Not all pairing systems force all matches to be over before
     /// pairing more players. This ensure new rounds don't the same table number as an active round
     pub(crate) fn get_table_number(&self) -> u64 {
-        let range = 0..(self.rounds.len());
-        let mut numbers: Vec<u64> = range
-            .rev()
-            .take_while(|n| !self.rounds.get(&(*n as u64)).unwrap().is_certified())
-            .map(|n| self.rounds.get(&(n as u64)).unwrap().table_number)
-            .collect();
-        if numbers.is_empty() {
-            self.starting_table
-        } else {
-            numbers.push(self.starting_table);
-            numbers.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let mut last = numbers[0];
-            for n in numbers {
-                if n - last > 1 {
-                    return last + 1;
-                }
-                last = n;
-            }
-            last + 1
-        }
+        let mut tracker = self.starting_table;
+        self.rounds
+            .values()
+            .filter_map(|r| r.is_active().then(|| r.table_number))
+            .sorted()
+            .zip(self.starting_table..(self.rounds.len() as u64 + self.starting_table))
+            .find_map(|(active, new)| if active == new { tracker += 1; None } else { Some(new) })
+            .unwrap_or_else(|| tracker)
     }
 
     /// Marks a round as dead
-    pub fn kill_round(&mut self, ident: &RoundIdentifier) -> Result<(), TournamentError> {
+    pub fn kill_round(&mut self, ident: &RoundId) -> Result<(), TournamentError> {
         let rnd = self.get_mut_round(ident)?;
         let players = rnd.players.clone();
         rnd.kill_round();
@@ -112,8 +107,8 @@ impl RoundRegistry {
         let table_number = self.get_table_number();
         let round = Round::new(match_num, table_number, self.length);
         let digest = round.id.into();
-        self.num_and_id.insert(round.id, match_num);
-        self.rounds.insert(match_num, round);
+        self.num_and_id.insert(match_num, round.id);
+        self.rounds.insert(round.id, round);
         digest
     }
 
@@ -141,40 +136,24 @@ impl RoundRegistry {
         Ok(())
     }
 
-    /// Given a round identifier, returns a round id if the round can be found
-    pub fn get_round_id(&self, ident: &RoundIdentifier) -> Result<RoundId, TournamentError> {
-        match ident {
-            RoundIdentifier::Id(id) => Ok(*id),
-            RoundIdentifier::Number(num) => {
-                self.num_and_id.get_left(num).cloned().ok_or(RoundLookup)
-            }
-        }
-    }
-
     /// Given a round identifier, returns a round's match number if the round can be found
-    pub fn get_round_number(&self, ident: &RoundIdentifier) -> Result<u64, TournamentError> {
-        match ident {
-            RoundIdentifier::Number(num) => Ok(*num),
-            RoundIdentifier::Id(id) => self.num_and_id.get_right(id).cloned().ok_or(RoundLookup),
-        }
+    pub fn get_round_number(&self, id: &RoundId) -> Result<u64, TournamentError> {
+        self.num_and_id.get_left(id).cloned().ok_or(RoundLookup)
     }
 
     /// Given a round identifier, returns a mutable reference to the round if the round can be found
     pub(crate) fn get_mut_round(
         &mut self,
-        ident: &RoundIdentifier,
+        id: &RoundId,
     ) -> Result<&mut Round, TournamentError> {
-        let num = self.get_round_number(ident)?;
-        self.rounds.get_mut(&num).ok_or(RoundLookup)
+        self.rounds.get_mut(&id).ok_or(RoundLookup)
     }
 
     /// Given a round identifier, returns a reference to the round if the round can be found
-    pub fn get_round(&self, ident: &RoundIdentifier) -> Result<&Round, TournamentError> {
-        let num = self.get_round_number(ident)?;
-        self.rounds.get(&num).ok_or(RoundLookup)
+    pub fn get_round(&self, id: &RoundId) -> Result<&Round, TournamentError> {
+        self.rounds.get(&id).ok_or(RoundLookup)
     }
 
-    // TODO: Rework
     /// This is a messy function... but the idea was ported directly from the Python version
     /// It is theoretically possible for a player to end up in more than one active match (unlikely,
     /// but we must prepare for the worst). Should this ever happen, we return the "oldest" active
@@ -187,21 +166,15 @@ impl RoundRegistry {
         &mut self,
         id: &PlayerId,
     ) -> Result<&mut Round, TournamentError> {
-        let mut nums: Vec<u64> = self
+        self
             .rounds
-            .iter()
-            .filter(|(_, r)| r.players.contains(id) && r.is_active())
-            .map(|(_, r)| r.match_number)
-            .collect();
-        nums.sort_unstable();
-        if nums.is_empty() {
-            Err(NoActiveRound)
-        } else {
-            Ok(self.rounds.get_mut(&nums[0]).unwrap())
-        }
+            .values_mut()
+            .filter(|r| r.players.contains(id) && r.is_active())
+            .sorted_by(|a, b| a.match_number.cmp(&b.match_number))
+            .next()
+            .ok_or_else(|| NoActiveRound)
     }
 
-    // TODO: Rework
     /// Gets a Vec of `&mut Round`
     pub fn get_player_active_rounds(&mut self, id: &PlayerId) -> Vec<&mut Round> {
         self.rounds
@@ -214,5 +187,34 @@ impl RoundRegistry {
     /// Sets the length for new rounds
     pub fn set_round_length(&mut self, length: Duration) {
         self.length = length;
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use crate::rounds::RoundStatus;
+
+    use super::RoundRegistry;
+    
+    #[test]
+    fn table_number_tests() {
+        for start in 0..3 {
+            let mut reg = RoundRegistry::new(start, Duration::from_secs(10));
+            assert_eq!(reg.get_table_number(), start);
+            let id_one = reg.create_round();
+            assert_eq!(reg.get_round(&id_one).unwrap().table_number, start);
+            assert_eq!(reg.get_table_number(), start + 1);
+            let id_two = reg.create_round();
+            assert_eq!(reg.get_round(&id_two).unwrap().table_number, start + 1);
+            assert_eq!(reg.get_table_number(), start + 2);
+            reg.get_mut_round(&id_one).unwrap().status = RoundStatus::Certified;
+            assert_eq!(reg.get_table_number(), start);
+            let id_three = reg.create_round();
+            assert_eq!(reg.get_round(&id_three).unwrap().table_number, start);
+            assert_eq!(reg.get_table_number(), start + 2);
+        }
     }
 }

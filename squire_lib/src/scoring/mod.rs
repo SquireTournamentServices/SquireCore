@@ -16,6 +16,14 @@ where
     fn primary_score(&self) -> f64;
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+/// An enum that encodes all the possible scoring systems a tournament can have.
+/// (So many, much wow)
+pub enum ScoringSystem {
+    /// The tournament has a standard scoring system
+    Standard(StandardScoring),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// An ordered collection of scores
 pub struct Standings<S> {

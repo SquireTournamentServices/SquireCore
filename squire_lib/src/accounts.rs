@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     identifiers::{AdminId, OrganizationAccountId, UserAccountId},
-    operations::TournOp,
+    operations::{TournOp, AdminOp},
     settings::TournamentSettingsTree,
     tournament::TournamentPreset,
     tournament_manager::TournamentManager,
@@ -188,16 +188,16 @@ impl OrganizationAccount {
         let owner_id: AdminId = self.owner.user_id.0.into();
         for judge in self.default_judges.values().cloned() {
             // Should never error
-            let _ = tourn.apply_op(TournOp::RegisterJudge(owner_id, judge));
+            let _ = tourn.apply_op(TournOp::AdminOp(owner_id, AdminOp::RegisterJudge(judge)));
         }
         for admin in self.default_admins.values().cloned() {
             // Should never error
-            let _ = tourn.apply_op(TournOp::RegisterJudge(owner_id, admin));
+            let _ = tourn.apply_op(TournOp::AdminOp(owner_id, AdminOp::RegisterAdmin(admin)));
         }
         for s in self.default_tournament_settings.as_settings(preset) {
             // TODO: Should we be returning this error??
             // Or maybe this should never error... The settings tree would have to enforce this.
-            let _ = tourn.apply_op(TournOp::UpdateTournSetting(owner_id, s));
+            let _ = tourn.apply_op(TournOp::AdminOp(owner_id, AdminOp::UpdateTournSetting(s)));
         }
         tourn
     }

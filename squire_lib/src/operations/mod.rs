@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -7,96 +5,32 @@ use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
-    identifiers::{AdminId, OpId, PlayerIdentifier, RoundIdentifier},
-    players::Deck,
-    rounds::{RoundId, RoundResult, RoundStatus},
-    settings::TournamentSetting,
+    identifiers::{AdminId, OpId, PlayerId},
+    rounds::{RoundId, RoundStatus},
     tournament::TournamentPreset,
 };
 
-/// This enum captures all ways in which a tournament can mutate.
+mod admin_ops;
+mod judge_ops;
+mod player_ops;
+
+pub use admin_ops::AdminOp;
+pub use judge_ops::JudgeOp;
+pub use player_ops::PlayerOp;
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+/// This enum captures all ways in which a tournament can mutate.
 pub enum TournOp {
-    // Top level operations
     /// Operation to mark the creation of a tournament
     Create(SquireAccount, String, TournamentPreset, String),
-    // Non-admin operations
-    /// Operation for a player check themself into a tournament
-    CheckIn(PlayerIdentifier),
     /// Operation for a player register themself for a tournament
     RegisterPlayer(SquireAccount),
-    /// Operation for a player drop themself from a tournament
-    DropPlayer(PlayerIdentifier),
-    /// Operation for a player record their round result
-    RecordResult(PlayerIdentifier, RoundResult),
-    /// Operation for a player confirm their round result
-    ConfirmResult(PlayerIdentifier),
-    /// Operation for a player add a deck to their registration information
-    AddDeck(PlayerIdentifier, String, Deck),
-    /// Operation for a player remove a deck to their registration information
-    RemoveDeck(PlayerIdentifier, String),
-    /// Operation for a player set their gamer tag
-    SetGamerTag(PlayerIdentifier, String),
-    /// Operation for a player to mark themself as ready for their next round
-    ReadyPlayer(PlayerIdentifier),
-    /// Operation for a player to mark themself as unready for their next round
-    UnReadyPlayer(PlayerIdentifier),
-    // Judge/Admin-level operations
-    /// Operation for adding a guest player to a tournament (i.e. someone without an account)
-    RegisterGuest(TournOfficialId, String),
-    /// Operation to register a player via an admin
-    AdminRegisterPlayer(TournOfficialId, SquireAccount),
-    /// Operation to record the result of a round via an admin
-    AdminRecordResult(TournOfficialId, RoundIdentifier, RoundResult),
-    /// Operation to confirm the result of a round via an admin
-    AdminConfirmResult(TournOfficialId, RoundIdentifier, PlayerIdentifier),
-    /// Operation to add a deck for a player via an admin
-    AdminAddDeck(TournOfficialId, PlayerIdentifier, String, Deck),
-    /// Operation to remove a deck for a player via an admin
-    AdminRemoveDeck(TournOfficialId, PlayerIdentifier, String),
-    /// Operation to mark a player as ready for their next round via an admin
-    AdminReadyPlayer(TournOfficialId, PlayerIdentifier),
-    /// Operation to mark a player as unready for their next round via an admin
-    AdminUnReadyPlayer(TournOfficialId, PlayerIdentifier),
-    /// Operation to give a round a time extension
-    TimeExtension(TournOfficialId, RoundIdentifier, Duration),
-    // Admin-level operations
-    /// Operation to check the registration status of the tournament
-    UpdateReg(AdminId, bool),
-    /// Operation to start a tournament
-    Start(AdminId),
-    /// Operation to freeze a tournament
-    Freeze(AdminId),
-    /// Operation to thaw a tournament
-    Thaw(AdminId),
-    /// Operation to end a tournament
-    End(AdminId),
-    /// Operation to cancel a tournament
-    Cancel(AdminId),
-    /// Operation to overwrite the result of a round via an admin (used after a confirmation)
-    AdminOverwriteResult(AdminId, RoundIdentifier, RoundResult),
-    /// Operation for adding a new judge to the tournament
-    RegisterJudge(AdminId, SquireAccount),
-    /// Operation for adding a new tournament admin
-    RegisterAdmin(AdminId, SquireAccount),
-    /// Operation to drop a player via an admin
-    AdminDropPlayer(AdminId, PlayerIdentifier),
-    /// Operation to kill a round
-    RemoveRound(AdminId, RoundIdentifier),
-    /// Operation to update a single tournament setting
-    UpdateTournSetting(AdminId, TournamentSetting),
-    /// Operation to give a player a bye
-    GiveBye(AdminId, PlayerIdentifier),
-    /// Operation to manually create a round
-    CreateRound(AdminId, Vec<PlayerIdentifier>),
-    /// Operation to attempt to pair the next set of rounds
-    PairRound(AdminId),
-    /// Operation to cut to the top N players (by standings)
-    Cut(AdminId, usize),
-    /// Operation to prune excess decks from players
-    PruneDecks(AdminId),
-    /// Operation to prune players that aren't fully registered
-    PrunePlayers(AdminId),
+    /// Opertions that a player can perform, after registering
+    PlayerOp(PlayerId, PlayerOp),
+    /// Opertions that a judges or admins can perform
+    JudgeOp(TournOfficialId, JudgeOp),
+    /// Opertions that a only admin can perform
+    AdminOp(AdminId, AdminOp),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -105,7 +39,7 @@ pub enum OpData {
     /// There is no data to be returned
     Nothing,
     /// A player was registerd and this is their id
-    RegisterPlayer(PlayerIdentifier),
+    RegisterPlayer(PlayerId),
     /// A player was registerd and this is their id
     RegisterJudge(Judge),
     /// A player was registerd and this is their id

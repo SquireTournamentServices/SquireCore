@@ -75,9 +75,8 @@ impl Player {
     }
 
     /// Gets a specific deck from the player
-    pub fn get_deck(&self, name: &String) -> Option<Deck> {
-        let deck = self.decks.get(name)?;
-        Some(deck.clone())
+    pub fn get_deck(&self, name: &String) -> Option<&Deck> {
+        self.decks.get(name)
     }
 
     /// Removes a deck from the player

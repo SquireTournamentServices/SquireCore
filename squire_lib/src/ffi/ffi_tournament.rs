@@ -7,8 +7,9 @@ use crate::{
     accounts::SquireAccount,
     admin::Admin,
     ffi::{clone_string_to_c_string, FFI_TOURNAMENT_REGISTRY},
-    identifiers::{AdminId, PlayerId, PlayerIdentifier, RoundId, TournamentId, UserAccountId},
+    identifiers::{AdminId, PlayerId, RoundId, TournamentId, UserAccountId},
     operations::{
+        AdminOp,
         OpData::{Pair, RegisterPlayer},
         TournOp,
     },
@@ -26,6 +27,7 @@ const BACKUP_EXT: &str = ".bak";
 
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
+/// A struct used to pass scores to scores across the language boundary
 pub struct PlayerScore<S> {
     pid: PlayerId,
     score: S,
@@ -78,7 +80,7 @@ impl TournamentId {
     pub extern "C" fn tid_rounds(self: Self) -> *const RoundId {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get(&self) {
             Some(tourn) => unsafe {
-                copy_to_system_pointer(tourn.round_reg.num_and_id.iter_left().cloned())
+                copy_to_system_pointer(tourn.round_reg.num_and_id.iter_right().cloned())
             },
             None => std::ptr::null(),
         }
@@ -94,7 +96,7 @@ impl TournamentId {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
             Some(mut t) => {
                 match t.apply_op(op) {
-                    Ok(RegisterPlayer(PlayerIdentifier::Id(id))) => id,
+                    Ok(RegisterPlayer(id)) => id,
                     Err(t_err) => {
                         println!("[FFI]: {t_err}");
                         Uuid::default().into()
@@ -112,15 +114,19 @@ impl TournamentId {
     }
 
     #[no_mangle]
+    /// Drops a player for the tournament
+    /// On error false is returned
     pub extern "C" fn tid_drop_player(self, pid: PlayerId, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::AdminDropPlayer(aid.into(), pid.into())) {
-                Ok(_) => true,
-                Err(t_err) => {
-                    println!("[FFI]: {t_err}");
-                    false
+            Some(mut t) => {
+                match t.apply_op(TournOp::AdminOp(aid, AdminOp::AdminDropPlayer(pid.into()))) {
+                    Ok(_) => true,
+                    Err(t_err) => {
+                        println!("[FFI]: {t_err}");
+                        false
+                    }
                 }
-            },
+            }
             None => {
                 println!("[FFI]: Cannot find tournament in tid_drop_player");
                 false
@@ -160,7 +166,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_thaw(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::Thaw(aid)) {
+            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Thaw)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -179,7 +185,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_freeze(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::Freeze(aid)) {
+            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Freeze)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -198,7 +204,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_end(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::End(aid)) {
+            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::End)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -217,7 +223,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_cancel(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::Cancel(aid)) {
+            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Cancel)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -236,7 +242,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_start(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::Start(aid)) {
+            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Start)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -291,45 +297,49 @@ impl TournamentId {
         // Init list of operations to execute
         let mut op_vect: Vec<TournOp> = Vec::<TournOp>::new();
         if format != tournament.format {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::Format(format),
+                AdminOp::UpdateTournSetting(TournamentSetting::Format(format)),
             ));
         }
 
         if starting_table_number != tournament.round_reg.starting_table {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::StartingTableNumber(starting_table_number),
+                AdminOp::UpdateTournSetting(TournamentSetting::StartingTableNumber(
+                    starting_table_number,
+                )),
             ));
         }
 
         if use_table_number != tournament.use_table_number {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::UseTableNumbers(use_table_number),
+                AdminOp::UpdateTournSetting(TournamentSetting::UseTableNumbers(use_table_number)),
             ));
         }
 
         if game_size != tournament.pairing_sys.match_size {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::PairingSetting(PairingSetting::MatchSize(game_size)),
+                AdminOp::UpdateTournSetting(TournamentSetting::PairingSetting(
+                    PairingSetting::MatchSize(game_size),
+                )),
             ));
         }
 
         let old_max_deck_count = tournament.max_deck_count;
         if min_deck_count != tournament.min_deck_count {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::MinDeckCount(min_deck_count),
+                AdminOp::UpdateTournSetting(TournamentSetting::MinDeckCount(min_deck_count)),
             ));
         }
 
         if max_deck_count != tournament.max_deck_count {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::MaxDeckCount(max_deck_count),
+                AdminOp::UpdateTournSetting(TournamentSetting::MaxDeckCount(max_deck_count)),
             ));
         }
 
@@ -342,27 +352,30 @@ impl TournamentId {
         }
 
         if match_length != tournament.round_reg.length.as_secs() {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::RoundLength(Duration::new(match_length, 0)),
+                AdminOp::UpdateTournSetting(TournamentSetting::RoundLength(Duration::new(
+                    match_length,
+                    0,
+                ))),
             ));
         }
 
         if reg_open != tournament.reg_open {
-            op_vect.push(TournOp::UpdateReg(aid, reg_open));
+            op_vect.push(TournOp::AdminOp(aid, AdminOp::UpdateReg(reg_open)));
         }
 
         if require_check_in != tournament.require_check_in {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::RequireCheckIn(require_check_in),
+                AdminOp::UpdateTournSetting(TournamentSetting::RequireCheckIn(require_check_in)),
             ));
         }
 
         if require_deck_reg != tournament.require_deck_reg {
-            op_vect.push(TournOp::UpdateTournSetting(
+            op_vect.push(TournOp::AdminOp(
                 aid,
-                TournamentSetting::RequireDeckReg(require_deck_reg),
+                AdminOp::UpdateTournSetting(TournamentSetting::RequireDeckReg(require_deck_reg)),
             ));
         }
 
@@ -381,9 +394,8 @@ impl TournamentId {
     /// Returns a null terminated list of the round ids
     /// Returns NULL on error
     #[no_mangle]
-    pub extern "C" fn tid_pair_round(self: Self) -> *const RoundId {
-        let admin_account = Uuid::default().into();
-        let op = TournOp::PairRound(admin_account);
+    pub extern "C" fn tid_pair_round(self: Self, aid: AdminId) -> *const RoundId {
+        let op = TournOp::AdminOp(aid, AdminOp::PairRound);
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
             Some(mut t) => match t.apply_op(op) {
                 Ok(Pair(ident_vec)) => unsafe { copy_to_system_pointer(ident_vec.into_iter()) },

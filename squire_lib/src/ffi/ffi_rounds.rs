@@ -1,7 +1,7 @@
 use crate::{
     ffi::{copy_to_system_pointer, FFI_TOURNAMENT_REGISTRY},
-    identifiers::{AdminId, PlayerId, RoundId, RoundIdentifier, TournamentId},
-    operations::{OpData, TournOp},
+    identifiers::{AdminId, PlayerId, RoundId, TournamentId},
+    operations::{AdminOp, JudgeOp, OpData, TournOp},
     rounds::{Round, RoundResult, RoundStatus},
 };
 
@@ -100,10 +100,9 @@ impl RoundId {
     ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::AdminConfirmResult(
+                match tournament.apply_op(TournOp::JudgeOp(
                     aid.into(),
-                    RoundIdentifier::Id(self),
-                    pid.into(),
+                    JudgeOp::AdminConfirmResult(self, pid.into()),
                 )) {
                     Err(err) => {
                         println!("[FFI]: rid_confirm_player error {}", err);
@@ -132,10 +131,9 @@ impl RoundId {
     ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::AdminRecordResult(
+                match tournament.apply_op(TournOp::JudgeOp(
                     aid.into(),
-                    RoundIdentifier::Id(self),
-                    RoundResult::Wins(pid, wins),
+                    JudgeOp::AdminRecordResult(self, RoundResult::Wins(pid, wins)),
                 )) {
                     Err(err) => {
                         println!("[FFI]: rid_record_result error {}", err);
@@ -153,10 +151,9 @@ impl RoundId {
     pub extern "C" fn rid_record_draws(self, tid: TournamentId, aid: AdminId, draws: u32) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::AdminRecordResult(
+                match tournament.apply_op(TournOp::JudgeOp(
                     aid.into(),
-                    RoundIdentifier::Id(self),
-                    RoundResult::Draw(draws),
+                    JudgeOp::AdminRecordResult(self, RoundResult::Draw(draws)),
                 )) {
                     Err(err) => {
                         println!("[FFI]: ffi_record_draw error {}", err);
@@ -201,9 +198,7 @@ impl RoundId {
     pub extern "C" fn rid_kill(self, tid: TournamentId, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament
-                    .apply_op(TournOp::RemoveRound(aid.into(), RoundIdentifier::Id(self)))
-                {
+                match tournament.apply_op(TournOp::AdminOp(aid, AdminOp::RemoveRound(self))) {
                     Err(err) => {
                         println!("[FFI]: rid_kill error {}", err);
                         false

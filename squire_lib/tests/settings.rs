@@ -6,7 +6,7 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         error::TournamentError,
         identifiers::AdminId,
-        operations::TournOp::*,
+        operations::{AdminOp::*, TournOp},
         settings::*,
         tournament::TournamentPreset,
     };
@@ -34,28 +34,28 @@ mod tests {
         );
         // Basic tournament deck count bounds checking
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                TournamentSetting::MinDeckCount(5)
+                UpdateTournSetting(TournamentSetting::MinDeckCount(5))
             ))
             .is_err());
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                TournamentSetting::MinDeckCount(2)
+                UpdateTournSetting(TournamentSetting::MinDeckCount(2))
             ))
             .is_ok());
         assert_eq!(2, tourn.get_state().min_deck_count);
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                TournamentSetting::MaxDeckCount(1)
+                UpdateTournSetting(TournamentSetting::MaxDeckCount(1))
             ))
             .is_err());
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                TournamentSetting::MaxDeckCount(42)
+                UpdateTournSetting(TournamentSetting::MaxDeckCount(42))
             ))
             .is_ok());
         assert_eq!(42, tourn.get_state().max_deck_count);
@@ -71,15 +71,17 @@ mod tests {
             "Pioneer".into(),
         );
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                TournamentSetting::PairingSetting(PairingSetting::MatchSize(10))
+                UpdateTournSetting(TournamentSetting::PairingSetting(
+                    PairingSetting::MatchSize(10)
+                ))
             ))
             .is_ok());
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                SwissPairingsSetting::DoCheckIns(true).into()
+                UpdateTournSetting(SwissPairingsSetting::DoCheckIns(true).into())
             ))
             .is_ok());
         let mut tourn = admin.create_tournament(
@@ -88,16 +90,18 @@ mod tests {
             "Pioneer".into(),
         );
         assert!(tourn
-            .apply_op(UpdateTournSetting(
+            .apply_op(TournOp::AdminOp(
                 admin_id,
-                TournamentSetting::PairingSetting(PairingSetting::MatchSize(10))
+                UpdateTournSetting(TournamentSetting::PairingSetting(
+                    PairingSetting::MatchSize(10)
+                ))
             ))
             .is_ok());
         assert_eq!(
             Err(TournamentError::IncompatiblePairingSystem),
-            tourn.apply_op(UpdateTournSetting(
+            tourn.apply_op(TournOp::AdminOp(
                 admin_id,
-                SwissPairingsSetting::DoCheckIns(true).into()
+                UpdateTournSetting(SwissPairingsSetting::DoCheckIns(true).into())
             ))
         );
     }

@@ -123,7 +123,7 @@ pub fn get_player_deck(t_id: Uuid, p_id: Uuid, name: String) -> GetDeckResponse 
         tourn
             .get_player(&(p_id.into()))
             .ok()
-            .map(|p| p.get_deck(&name))
+            .map(|p| p.get_deck(&name).cloned())
     }))
 }
 

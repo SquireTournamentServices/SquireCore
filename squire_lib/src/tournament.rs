@@ -9,12 +9,12 @@ use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
-    identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundIdentifier},
-    operations::{OpData, OpResult, TournOp},
+    identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundId, RoundIdentifier},
+    operations::{AdminOp, JudgeOp, OpData, OpResult, PlayerOp, TournOp},
     pairings::{PairingStyle, PairingSystem},
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundRegistry, RoundResult},
-    scoring::{StandardScore, StandardScoring, Standings},
+    scoring::{ScoringSystem, StandardScore, StandardScoring, Standings},
     settings::{self, TournamentSetting},
 };
 
@@ -28,14 +28,6 @@ pub enum TournamentPreset {
     Swiss,
     /// The tournament will have a fluid pairing system and a standard scoring system
     Fluid,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-/// An enum that encodes all the possible scoring systems a tournament can have.
-/// (So many, much wow)
-pub enum ScoringSystem {
-    /// The tournament has a standard scoring system
-    Standard(StandardScoring),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -119,47 +111,67 @@ impl Tournament {
         use TournOp::*;
         match op {
             Create(..) => OpResult::Ok(OpData::Nothing),
-            // Player ops
-            CheckIn(p_ident) => self.check_in(&p_ident),
             RegisterPlayer(account) => self.register_player(account),
-            RecordResult(p_ident, result) => self.record_result(&p_ident, result),
-            ConfirmResult(p_ident) => self.confirm_round(&p_ident),
-            DropPlayer(p_ident) => self.drop_player(&p_ident),
-            AddDeck(p_ident, name, deck) => self.player_add_deck(&p_ident, name, deck),
-            RemoveDeck(p_ident, name) => self.remove_player_deck(&p_ident, name),
-            SetGamerTag(p_ident, tag) => self.player_set_game_name(&p_ident, tag),
-            ReadyPlayer(p_ident) => self.ready_player(&p_ident),
-            UnReadyPlayer(p_ident) => self.unready_player(&p_ident),
-            // Judge/Admin ops
-            AdminDropPlayer(id, p_ident) => self.admin_drop_player(id, &p_ident),
-            RemoveRound(id, r_ident) => self.remove_round(id, &r_ident),
-            UpdateReg(id, b) => self.update_reg(id, b),
-            Start(id) => self.start(id),
-            Freeze(id) => self.freeze(id),
-            Thaw(id) => self.thaw(id),
-            End(id) => self.end(id),
-            Cancel(id) => self.cancel(id),
-            UpdateTournSetting(id, setting) => self.update_setting(id, setting),
-            GiveBye(id, p_ident) => self.give_bye(id, &p_ident),
-            CreateRound(id, p_idents) => self.create_round(id, p_idents),
-            PairRound(id) => self.pair(id),
-            TimeExtension(id, rnd, ext) => self.give_time_extension(id, &rnd, ext),
-            Cut(id, n) => self.cut_to_top(id, n),
-            PruneDecks(id) => self.prune_decks(id),
-            PrunePlayers(id) => self.prune_players(id),
-            AdminRegisterPlayer(id, account) => self.admin_register_player(id, account),
-            RegisterGuest(id, name) => self.register_guest(id, name),
-            RegisterJudge(id, account) => self.register_judge(id, account),
-            RegisterAdmin(id, account) => self.register_admin(id, account),
-            AdminRecordResult(id, rnd, result) => self.admin_record_result(id, rnd, result),
-            AdminConfirmResult(id, r_id, p_id) => self.admin_confirm_result(id, r_id, p_id),
-            AdminAddDeck(id, plyr, name, deck) => self.admin_add_deck(id, plyr, name, deck),
-            AdminRemoveDeck(id, plyr, name) => self.admin_remove_deck(id, plyr, name),
-            AdminReadyPlayer(id, ident) => self.admin_ready_player(id, ident),
-            AdminOverwriteResult(id, rnd, result) => self.admin_overwrite_result(id, rnd, result),
-            AdminUnReadyPlayer(id, ident) => self.admin_unready_player(id, ident),
-            //ImportPlayer(plyr) => self.import_player(plyr),
-            //ImportRound(rnd) => self.import_round(rnd),
+            PlayerOp(p_id, op) => self.apply_player_op(p_id, op),
+            JudgeOp(ta_id, op) => self.apply_judge_op(ta_id, op),
+            AdminOp(a_id, op) => self.apply_admin_op(a_id, op),
+        }
+    }
+
+    fn apply_player_op(&mut self, p_id: PlayerId, op: PlayerOp) -> OpResult {
+        match op {
+            PlayerOp::CheckIn => self.check_in(p_id),
+            PlayerOp::RecordResult(result) => self.record_result(&p_id, result),
+            PlayerOp::ConfirmResult => self.confirm_round(p_id),
+            PlayerOp::DropPlayer => self.drop_player(p_id),
+            PlayerOp::AddDeck(name, deck) => self.player_add_deck(&p_id, name, deck),
+            PlayerOp::RemoveDeck(name) => self.remove_player_deck(&p_id, name),
+            PlayerOp::SetGamerTag(tag) => self.player_set_game_name(&p_id, tag),
+            PlayerOp::ReadyPlayer => self.ready_player(&p_id),
+            PlayerOp::UnReadyPlayer => self.unready_player(p_id),
+        }
+    }
+
+    fn apply_judge_op(&mut self, ta_id: TournOfficialId, op: JudgeOp) -> OpResult {
+        if !self.is_official(&ta_id) {
+            return OpResult::Err(TournamentError::OfficalLookup);
+        }
+        match op {
+            JudgeOp::AdminRegisterPlayer(account) => self.admin_register_player(account),
+            JudgeOp::RegisterGuest(name) => self.register_guest(name),
+            JudgeOp::AdminAddDeck(plyr, name, deck) => self.admin_add_deck(plyr, name, deck),
+            JudgeOp::AdminRemoveDeck(plyr, name) => self.admin_remove_deck(plyr, name),
+            JudgeOp::AdminReadyPlayer(p_id) => self.admin_ready_player(p_id),
+            JudgeOp::AdminUnReadyPlayer(p_id) => self.admin_unready_player(p_id),
+            JudgeOp::AdminRecordResult(rnd, result) => self.admin_record_result(rnd, result),
+            JudgeOp::AdminConfirmResult(r_id, p_id) => self.admin_confirm_result(r_id, p_id),
+            JudgeOp::TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
+        }
+    }
+
+    fn apply_admin_op(&mut self, a_id: AdminId, op: AdminOp) -> OpResult {
+        if !self.is_admin(&a_id) {
+            return OpResult::Err(TournamentError::OfficalLookup);
+        }
+        match op {
+            AdminOp::RemoveRound(r_id) => self.remove_round(&r_id),
+            AdminOp::AdminOverwriteResult(rnd, result) => self.admin_overwrite_result(rnd, result),
+            AdminOp::AdminDropPlayer(p_id) => self.admin_drop_player(p_id),
+            AdminOp::UpdateReg(b) => self.update_reg(b),
+            AdminOp::Start => self.start(),
+            AdminOp::Freeze => self.freeze(),
+            AdminOp::Thaw => self.thaw(),
+            AdminOp::End => self.end(),
+            AdminOp::Cancel => self.cancel(),
+            AdminOp::UpdateTournSetting(setting) => self.update_setting(setting),
+            AdminOp::GiveBye(p_id) => self.give_bye(p_id),
+            AdminOp::CreateRound(p_ids) => self.create_round(p_ids),
+            AdminOp::PairRound => self.pair(),
+            AdminOp::Cut(n) => self.cut_to_top(n),
+            AdminOp::PruneDecks => self.prune_decks(),
+            AdminOp::PrunePlayers => self.prune_players(),
+            AdminOp::RegisterJudge(account) => self.register_judge(account),
+            AdminOp::RegisterAdmin(account) => self.register_admin(account),
         }
     }
 
@@ -185,20 +197,12 @@ impl Tournament {
 
     /// Calculates if someone is a judge
     pub fn is_judge(&self, id: &JudgeId) -> bool {
-        let ret = self.judges.contains_key(id);
-        if !ret {
-            println!("[Squire Core]: {id} is not a judge.");
-        }
-        ret
+        self.judges.contains_key(id)
     }
 
     /// Calculates if someone is a tournament admin
     pub fn is_admin(&self, id: &AdminId) -> bool {
-        let ret = self.admins.contains_key(id);
-        if !ret {
-            println!("[Squire Core]: {id} is not an admin.");
-        }
-        ret
+        self.admins.contains_key(id)
     }
 
     /// Calculates if someone is a tournament official
@@ -211,26 +215,35 @@ impl Tournament {
 
     /// Gets a copy of a player's registration data
     /// NOTE: This does not include their round data
-    pub fn get_player(&self, ident: &PlayerIdentifier) -> Result<Player, TournamentError> {
-        self.player_reg.get_player(ident).cloned()
+    pub fn get_player(&self, ident: &PlayerIdentifier) -> Result<&Player, TournamentError> {
+        match ident {
+            PlayerIdentifier::Id(id) => self.player_reg.get_player(id),
+            PlayerIdentifier::Name(name) => self.player_reg.get_by_name(name),
+        }
     }
 
     /// Gets a copy of a round's data
-    pub fn get_round(&self, ident: &RoundIdentifier) -> Result<Round, TournamentError> {
-        self.round_reg.get_round(ident).cloned()
+    pub fn get_round(&self, ident: &RoundIdentifier) -> Result<&Round, TournamentError> {
+        match ident {
+            RoundIdentifier::Id(id) => self.round_reg.get_round(id),
+            RoundIdentifier::Number(num) => self.round_reg.get_by_number(num),
+        }
     }
 
     /// Gets all the rounds a player is in
     pub fn get_player_rounds(
         &self,
         ident: &PlayerIdentifier,
-    ) -> Result<Vec<Round>, TournamentError> {
-        let id = self.player_reg.get_player_id(ident)?;
+    ) -> Result<Vec<&Round>, TournamentError> {
+        let id = match ident {
+            PlayerIdentifier::Id(id) => *id,
+            PlayerIdentifier::Name(name) => self.player_reg.get_player_id(name)?,
+        };
         Ok(self
             .round_reg
             .rounds
             .iter()
-            .filter_map(|(_, r)| r.players.get(&id).map(|_| r.clone()))
+            .filter_map(|(_, r)| r.players.get(&id).map(|_| r))
             .collect())
     }
 
@@ -239,21 +252,18 @@ impl Tournament {
         &self,
         ident: &PlayerIdentifier,
         name: &String,
-    ) -> Result<Deck, TournamentError> {
-        let plyr = self.player_reg.get_player(ident)?;
-        match plyr.get_deck(name) {
-            None => Err(TournamentError::DeckLookup),
-            Some(d) => Ok(d),
-        }
+    ) -> Result<&Deck, TournamentError> {
+        self.get_player(ident)?
+            .get_deck(name)
+            .ok_or_else(|| TournamentError::DeckLookup)
     }
 
     /// Gets a copy of all the decks a player has registered
     pub fn get_player_decks(
         &self,
         ident: &PlayerIdentifier,
-    ) -> Result<HashMap<String, Deck>, TournamentError> {
-        let plyr = self.player_reg.get_player(ident)?;
-        Ok(plyr.decks.clone())
+    ) -> Result<&HashMap<String, Deck>, TournamentError> {
+        self.get_player(ident).map(|p| &p.decks)
     }
 
     /// Gets the current standing of the tournament
@@ -264,7 +274,7 @@ impl Tournament {
 
     /// Removes excess decks for players (as defined by `max_deck_count`). The newest decks are
     /// kept.
-    pub(crate) fn prune_decks(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn prune_decks(&mut self) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -282,7 +292,7 @@ impl Tournament {
     /// Removes players from the tournament that did not complete registration.
     /// This include players that did not submit enough decks (defined by `require_deck_reg` and
     /// `min_deck_count`) and that didn't check in (defined by `require_check_in`).
-    pub(crate) fn prune_players(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn prune_players(&mut self) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -304,12 +314,7 @@ impl Tournament {
     }
 
     /// Adds a time extension to a round
-    pub(crate) fn give_time_extension(
-        &mut self,
-        _: TournOfficialId,
-        rnd: &RoundIdentifier,
-        ext: Duration,
-    ) -> OpResult {
+    pub(crate) fn give_time_extension(&mut self, rnd: &RoundId, ext: Duration) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -319,11 +324,10 @@ impl Tournament {
     }
 
     /// Checks in a player for the tournament.
-    pub(crate) fn check_in(&mut self, plyr: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn check_in(&mut self, id: PlayerId) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let id = self.player_reg.get_player_id(plyr)?;
         if self.is_planned() {
             self.player_reg.check_in(id);
             Ok(OpData::Nothing)
@@ -333,7 +337,7 @@ impl Tournament {
     }
 
     /// Attempts to create the next set of rounds for the tournament
-    pub(crate) fn pair(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn pair(&mut self) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -371,7 +375,7 @@ impl Tournament {
     /// Makes a round irrelevant to the tournament.
     /// NOTE: The round will still exist but will have a "dead" status and will be ignored by the
     /// tournament.
-    pub(crate) fn remove_round(&mut self, _: AdminId, ident: &RoundIdentifier) -> OpResult {
+    pub(crate) fn remove_round(&mut self, ident: &RoundId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -380,7 +384,7 @@ impl Tournament {
     }
 
     /// Updates a single tournament setting
-    pub(crate) fn update_setting(&mut self, _: AdminId, setting: TournamentSetting) -> OpResult {
+    pub(crate) fn update_setting(&mut self, setting: TournamentSetting) -> OpResult {
         use TournamentSetting::*;
         if self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -421,6 +425,7 @@ impl Tournament {
             }
             ScoringSetting(setting) => match setting {
                 settings::ScoringSetting::Standard(s) => {
+                    #[allow(irrefutable_let_patterns)]
                     if let ScoringSystem::Standard(sys) = &mut self.scoring_sys {
                         sys.update_setting(s);
                     } else {
@@ -433,7 +438,7 @@ impl Tournament {
     }
 
     /// Changes the registration status
-    pub(crate) fn update_reg(&mut self, _: AdminId, reg_status: bool) -> OpResult {
+    pub(crate) fn update_reg(&mut self, reg_status: bool) -> OpResult {
         if self.is_frozen() || self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -442,7 +447,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Active`.
-    pub(crate) fn start(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn start(&mut self) -> OpResult {
         if !self.is_planned() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -453,7 +458,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Frozen`.
-    pub(crate) fn freeze(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn freeze(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -464,7 +469,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Active` only if the current status is `Frozen`
-    pub(crate) fn thaw(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn thaw(&mut self) -> OpResult {
         if !self.is_frozen() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -474,7 +479,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Ended`.
-    pub(crate) fn end(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn end(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
@@ -485,7 +490,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Cancelled`.
-    pub(crate) fn cancel(&mut self, _: AdminId) -> OpResult {
+    pub(crate) fn cancel(&mut self) -> OpResult {
         if self.is_planned() {
             self.reg_open = false;
             self.status = TournamentStatus::Cancelled;
@@ -504,42 +509,35 @@ impl Tournament {
             return Err(TournamentError::RegClosed);
         }
         let id = self.player_reg.add_player(account)?;
-        Ok(OpData::RegisterPlayer(PlayerIdentifier::Id(id)))
+        Ok(OpData::RegisterPlayer(id))
     }
 
     /// Records part of the result of a round
-    pub(crate) fn record_result(
-        &mut self,
-        ident: &PlayerIdentifier,
-        result: RoundResult,
-    ) -> OpResult {
+    pub(crate) fn record_result(&mut self, id: &PlayerId, result: RoundResult) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let id = self.player_reg.get_player_id(ident)?;
-        let round = self.round_reg.get_player_active_round(&id)?;
+        let round = self.round_reg.get_player_active_round(id)?;
         round.record_result(result)?;
         Ok(OpData::Nothing)
     }
 
     /// A player confirms the round record
-    pub(crate) fn confirm_round(&mut self, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn confirm_round(&mut self, id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let id = self.player_reg.get_player_id(ident)?;
         let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
         Ok(OpData::ConfirmResult(round.id, status))
     }
 
     /// Dropps a player from the tournament
-    pub(crate) fn drop_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn drop_player(&mut self, id: PlayerId) -> OpResult {
         if self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        self.player_reg.drop_player(ident)?;
-        let id = self.player_reg.get_player_id(ident).unwrap();
+        self.player_reg.drop_player(&id)?;
         for rnd in self.round_reg.get_player_active_rounds(&id) {
             rnd.remove_player(id);
         }
@@ -547,12 +545,11 @@ impl Tournament {
     }
 
     /// An admin drops a player
-    pub(crate) fn admin_drop_player(&mut self, _: AdminId, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn admin_drop_player(&mut self, id: PlayerId) -> OpResult {
         if self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        self.player_reg.drop_player(ident)?;
-        let id = self.player_reg.get_player_id(ident).unwrap();
+        self.player_reg.drop_player(&id)?;
         for rnd in self.round_reg.get_player_active_rounds(&id) {
             rnd.remove_player(id);
         }
@@ -562,7 +559,7 @@ impl Tournament {
     /// Adds a deck to a player's registration data
     pub(crate) fn player_add_deck(
         &mut self,
-        ident: &PlayerIdentifier,
+        ident: &PlayerId,
         name: String,
         deck: Deck,
     ) -> OpResult {
@@ -578,11 +575,7 @@ impl Tournament {
     }
 
     /// Removes a player's deck from their registration data
-    pub(crate) fn remove_player_deck(
-        &mut self,
-        ident: &PlayerIdentifier,
-        name: String,
-    ) -> OpResult {
+    pub(crate) fn remove_player_deck(&mut self, ident: &PlayerId, name: String) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -592,11 +585,7 @@ impl Tournament {
     }
 
     /// Sets a player's gamer tag
-    pub(crate) fn player_set_game_name(
-        &mut self,
-        ident: &PlayerIdentifier,
-        name: String,
-    ) -> OpResult {
+    pub(crate) fn player_set_game_name(&mut self, ident: &PlayerId, name: String) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -606,7 +595,7 @@ impl Tournament {
     }
 
     /// Readies a player to play in their next round
-    pub(crate) fn ready_player(&mut self, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn ready_player(&mut self, ident: &PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -642,43 +631,36 @@ impl Tournament {
     }
 
     /// Marks a player has unready to player in their next round
-    pub(crate) fn unready_player(&mut self, plyr: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn unready_player(&mut self, plyr: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let plyr = self.player_reg.get_player_id(plyr)?;
         self.pairing_sys.unready_player(plyr);
         Ok(OpData::Nothing)
     }
 
     /// Gives a player a bye
-    pub(crate) fn give_bye(&mut self, _: AdminId, ident: &PlayerIdentifier) -> OpResult {
+    pub(crate) fn give_bye(&mut self, id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let id = self.player_reg.get_player_id(ident)?;
         let r_id = self.round_reg.create_round();
         let _ = self.round_reg.add_player_to_round(&r_id, id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
         // single player
-        let round = self.round_reg.get_mut_round(&(r_id.into())).unwrap();
+        let round = self.round_reg.get_mut_round(&r_id).unwrap();
         round.record_bye()?;
         Ok(OpData::GiveBye(r_id))
     }
 
     /// Creates a new round from a list of players
-    pub fn create_round(&mut self, _: AdminId, idents: Vec<PlayerIdentifier>) -> OpResult {
+    pub fn create_round(&mut self, ids: Vec<PlayerId>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if idents.len() == self.pairing_sys.match_size as usize
-            && idents.iter().all(|p| self.player_reg.verify_identifier(p))
+        if ids.len() == self.pairing_sys.match_size as usize
+            && ids.iter().all(|p| self.player_reg.is_registered(p))
         {
-            // Saftey check, we already checked that all the identifiers correspond to a player
-            let ids: Vec<PlayerId> = idents
-                .into_iter()
-                .map(|p| self.player_reg.get_player_id(&p).unwrap())
-                .collect();
             let r_id = self.round_reg.create_round();
             for id in ids {
                 let _ = self.round_reg.add_player_to_round(&r_id, id);
@@ -690,7 +672,7 @@ impl Tournament {
     }
 
     /// Drops all by the top N players (by standings)
-    pub(crate) fn cut_to_top(&mut self, _: AdminId, len: usize) -> OpResult {
+    pub(crate) fn cut_to_top(&mut self, len: usize) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -699,149 +681,84 @@ impl Tournament {
             .scores
             .into_iter()
             .skip(len)
-            .map(|(id, _)| PlayerIdentifier::Id(id));
+            .map(|(id, _)| id);
         for id in player_iter {
-            // This result doesn't matter
-            let _ = self.drop_player(&id);
+            let _ = self.drop_player(id);
         }
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_register_player(
-        &mut self,
-        id: TournOfficialId,
-        account: SquireAccount,
-    ) -> OpResult {
+    fn admin_register_player(&mut self, account: SquireAccount) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let id = self.player_reg.add_player(account)?;
-        Ok(OpData::RegisterPlayer(PlayerIdentifier::Id(id)))
+        Ok(OpData::RegisterPlayer(self.player_reg.add_player(account)?))
     }
 
-    pub(crate) fn register_guest(&mut self, id: TournOfficialId, name: String) -> OpResult {
+    fn register_guest(&mut self, name: String) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let id = self.player_reg.add_guest(name)?;
-        Ok(OpData::RegisterPlayer(PlayerIdentifier::Id(id)))
+        Ok(OpData::RegisterPlayer(self.player_reg.add_guest(name)?))
     }
 
-    pub(crate) fn register_judge(&mut self, id: AdminId, account: SquireAccount) -> OpResult {
+    fn register_judge(&mut self, account: SquireAccount) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        if !self.is_admin(&id) {
-            return Err(TournamentError::OfficalLookup);
         }
         let judge = Judge::new(account);
         self.judges.insert(judge.id, judge.clone());
         Ok(OpData::RegisterJudge(judge))
     }
 
-    pub(crate) fn register_admin(&mut self, id: AdminId, account: SquireAccount) -> OpResult {
+    fn register_admin(&mut self, account: SquireAccount) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        if !self.is_admin(&id) {
-            return Err(TournamentError::OfficalLookup);
         }
         let admin = Admin::new(account);
         self.admins.insert(admin.id, admin.clone());
         Ok(OpData::RegisterAdmin(admin))
     }
 
-    pub(crate) fn admin_add_deck(
-        &mut self,
-        id: TournOfficialId,
-        ident: PlayerIdentifier,
-        name: String,
-        deck: Deck,
-    ) -> OpResult {
+    fn admin_add_deck(&mut self, id: PlayerId, name: String, deck: Deck) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let plyr = self.player_reg.get_mut_player(&ident)?;
+        let plyr = self.player_reg.get_mut_player(&id)?;
         plyr.add_deck(name, deck);
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_remove_deck(
-        &mut self,
-        id: TournOfficialId,
-        ident: PlayerIdentifier,
-        name: String,
-    ) -> OpResult {
+    fn admin_remove_deck(&mut self, id: PlayerId, name: String) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let plyr = self.player_reg.get_mut_player(&ident)?;
-        plyr.remove_deck(name)?;
+        self.player_reg.get_mut_player(&id)?.remove_deck(name)?;
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_record_result(
-        &mut self,
-        id: TournOfficialId,
-        ident: RoundIdentifier,
-        result: RoundResult,
-    ) -> OpResult {
+    fn admin_record_result(&mut self, id: RoundId, result: RoundResult) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let round = self.round_reg.get_mut_round(&ident)?;
-        round.record_result(result)?;
+        self.round_reg.get_mut_round(&id)?.record_result(result)?;
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_confirm_result(
-        &mut self,
-        id: TournOfficialId,
-        r_ident: RoundIdentifier,
-        p_ident: PlayerIdentifier,
-    ) -> OpResult {
+    fn admin_confirm_result(&mut self, r_id: RoundId, p_id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let round = self.round_reg.get_mut_round(&r_ident)?;
-        let p_id = self.player_reg.get_player_id(&p_ident)?;
+        let round = self.round_reg.get_mut_round(&r_id)?;
         let status = round.confirm_round(p_id)?;
         Ok(OpData::ConfirmResult(round.id, status))
     }
 
-    pub(crate) fn admin_ready_player(
-        &mut self,
-        id: TournOfficialId,
-        ident: PlayerIdentifier,
-    ) -> OpResult {
+    fn admin_ready_player(&mut self, id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let plyr = self.player_reg.get_player(&ident)?;
+        let plyr = self.player_reg.get_player(&id)?;
         let mut should_pair = false;
         if plyr.can_play() {
             self.pairing_sys.ready_player(plyr.id);
@@ -874,34 +791,21 @@ impl Tournament {
 
     pub(crate) fn admin_overwrite_result(
         &mut self,
-        id: AdminId,
-        ident: RoundIdentifier,
+        id: RoundId,
         result: RoundResult,
     ) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_admin(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let round = self.round_reg.get_mut_round(&ident)?;
-        round.record_result(result)?;
+        self.round_reg.get_mut_round(&id)?.record_result(result)?;
         Ok(OpData::Nothing)
     }
 
-    pub(crate) fn admin_unready_player(
-        &mut self,
-        id: TournOfficialId,
-        ident: PlayerIdentifier,
-    ) -> OpResult {
+    pub(crate) fn admin_unready_player(&mut self, id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if !self.is_official(&id) {
-            return Err(TournamentError::OfficalLookup);
-        }
-        let plyr = self.player_reg.get_player_id(&ident)?;
-        self.pairing_sys.unready_player(plyr);
+        self.pairing_sys.unready_player(id);
         Ok(OpData::Nothing)
     }
 
