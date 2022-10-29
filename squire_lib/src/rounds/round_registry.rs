@@ -42,22 +42,25 @@ impl RoundRegistry {
         }
     }
 
-    /// Returns a list of copied round ids, this is used in FFI mostly.
-    pub fn get_round_ids(&self) -> Vec<RoundId> {
-        let mut ret: Vec<RoundId> = Vec::new();
-        self.rounds.iter().for_each(|(_, rnd)| ret.push(rnd.id));
-        ret
+    /// Determines if the given id corresponds to a round in this registry
+    pub fn validate_id(&self, r_id: &RoundId) -> bool {
+        self.rounds.contains_key(r_id)
     }
 
     /// Returns a list of copied round ids for a player, this is used in FFI mostly.
-    pub fn get_round_ids_for_player(&self, pid: PlayerId) -> Vec<RoundId> {
-        let mut ret: Vec<RoundId> = Vec::new();
-        self.rounds.iter().for_each(|(_, rnd)| {
-            if rnd.players.contains(&pid) {
-                ret.push(rnd.id)
-            }
-        });
-        ret
+    pub fn get_round_ids_for_player(&self, p_id: PlayerId) -> Vec<RoundId> {
+        self.rounds
+            .iter()
+            .filter_map(|(id, r)| r.contains_player(&p_id).then(|| *id))
+            .collect()
+    }
+
+    /// Gets a round's id by its match number
+    pub fn get_round_id(&self, n: &u64) -> Result<RoundId, TournamentError> {
+        self.num_and_id
+            .get_right(n)
+            .cloned()
+            .ok_or_else(|| TournamentError::RoundLookup)
     }
 
     pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {

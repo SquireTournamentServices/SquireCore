@@ -215,10 +215,36 @@ impl Tournament {
 
     /// Gets a copy of a player's registration data
     /// NOTE: This does not include their round data
+    pub fn get_player_id(&self, ident: &PlayerIdentifier) -> Result<PlayerId, TournamentError> {
+        match ident {
+            PlayerIdentifier::Id(id) => self
+                .player_reg
+                .is_registered(id)
+                .then(|| *id)
+                .ok_or_else(|| TournamentError::PlayerLookup),
+            PlayerIdentifier::Name(name) => self.player_reg.get_player_id(name),
+        }
+    }
+
+    /// Gets a copy of a player's registration data
+    /// NOTE: This does not include their round data
     pub fn get_player(&self, ident: &PlayerIdentifier) -> Result<&Player, TournamentError> {
         match ident {
             PlayerIdentifier::Id(id) => self.player_reg.get_player(id),
             PlayerIdentifier::Name(name) => self.player_reg.get_by_name(name),
+        }
+    }
+
+    /// Gets a copy of a player's registration data
+    /// NOTE: This does not include their round data
+    pub fn get_round_id(&self, ident: &RoundIdentifier) -> Result<RoundId, TournamentError> {
+        match ident {
+            RoundIdentifier::Id(id) => self
+                .round_reg
+                .validate_id(id)
+                .then(|| *id)
+                .ok_or_else(|| TournamentError::RoundLookup),
+            RoundIdentifier::Number(num) => self.round_reg.get_round_id(num),
         }
     }
 
