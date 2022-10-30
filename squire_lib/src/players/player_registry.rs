@@ -1,8 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet, hash_map::DefaultHasher}, hash::{Hash, Hasher}};
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
+use uuid::Uuid;
 
 use crate::{
     accounts::SquireAccount,
@@ -79,18 +81,6 @@ impl PlayerRegistry {
         self.players.iter().filter(|(_, p)| p.can_play()).count()
     }
 
-    /* TODO: Is this needed? Was added for sync protocol...
-    pub fn import_player(&mut self, plyr: Player) -> Result<(), TournamentError> {
-        if self.name_and_id.contains_left(&plyr.name) || self.name_and_id.contains_right(&plyr.id) {
-            Err(TournamentError::PlayerLookup)
-        } else {
-            self.name_and_id.insert(plyr.name.clone(), plyr.id.clone());
-            self.players.insert(plyr.id.clone(), plyr);
-            Ok(())
-        }
-    }
-    */
-
     /// Creates a new player
     pub fn add_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
         if self.name_and_id.contains_left(&account.user_name)
@@ -108,11 +98,18 @@ impl PlayerRegistry {
     }
 
     /// Creates a new player without an account
-    pub fn add_guest(&mut self, name: String) -> Result<PlayerId, TournamentError> {
+    pub fn add_guest(&mut self, salt: DateTime<Utc>, name: String) -> Result<PlayerId, TournamentError> {
         if self.name_and_id.contains_left(&name) {
             Err(PlayerLookup)
         } else {
-            let plyr = Player::new(name.clone());
+            let mut hasher = DefaultHasher::new();
+            salt.hash(&mut hasher);
+            let upper = hasher.finish();
+            name.hash(&mut hasher);
+            let lower = hasher.finish();
+            let id = Uuid::from_u64_pair(upper, lower);
+            let mut plyr = Player::new(name.clone());
+            plyr.id = id.into();
             let digest = Ok(plyr.id);
             self.name_and_id.insert(name, plyr.id);
             self.players.insert(plyr.id, plyr);

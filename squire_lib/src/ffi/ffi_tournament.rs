@@ -1,5 +1,6 @@
 use std::{collections::HashMap, ffi::CStr, os::raw::c_char, time::Duration};
 
+use chrono::Utc;
 use serde_json;
 use uuid::Uuid;
 
@@ -95,7 +96,7 @@ impl TournamentId {
 
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
             Some(mut t) => {
-                match t.apply_op(op) {
+                match t.apply_op(Utc::now(), op) {
                     Ok(RegisterPlayer(id)) => id,
                     Err(t_err) => {
                         println!("[FFI]: {t_err}");
@@ -119,7 +120,7 @@ impl TournamentId {
     pub extern "C" fn tid_drop_player(self, pid: PlayerId, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
             Some(mut t) => {
-                match t.apply_op(TournOp::AdminOp(aid, AdminOp::AdminDropPlayer(pid.into()))) {
+                match t.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::AdminDropPlayer(pid.into()))) {
                     Ok(_) => true,
                     Err(t_err) => {
                         println!("[FFI]: {t_err}");
@@ -166,7 +167,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_thaw(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Thaw)) {
+            Some(mut t) => match t.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::Thaw)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -185,7 +186,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_freeze(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Freeze)) {
+            Some(mut t) => match t.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::Freeze)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -204,7 +205,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_end(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::End)) {
+            Some(mut t) => match t.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::End)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -223,7 +224,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_cancel(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Cancel)) {
+            Some(mut t) => match t.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::Cancel)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -242,7 +243,7 @@ impl TournamentId {
     #[no_mangle]
     pub extern "C" fn tid_start(self: Self, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(TournOp::AdminOp(aid, AdminOp::Start)) {
+            Some(mut t) => match t.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::Start)) {
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");
                     false
@@ -382,7 +383,7 @@ impl TournamentId {
         // Apply all settings
         let opt_err = op_vect
             .into_iter()
-            .map(|op| tournament.apply_op(op))
+            .map(|op| tournament.apply_op(Utc::now(), op))
             .find(|res| res.is_err());
         if let Some(Err(t_err)) = &opt_err {
             println!("[FFI]: update_settings error: {t_err}");
@@ -397,7 +398,7 @@ impl TournamentId {
     pub extern "C" fn tid_pair_round(self: Self, aid: AdminId) -> *const RoundId {
         let op = TournOp::AdminOp(aid, AdminOp::PairRound);
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&self) {
-            Some(mut t) => match t.apply_op(op) {
+            Some(mut t) => match t.apply_op(Utc::now(), op) {
                 Ok(Pair(ident_vec)) => unsafe { copy_to_system_pointer(ident_vec.into_iter()) },
                 Err(t_err) => {
                     println!("[FFI]: {t_err}");

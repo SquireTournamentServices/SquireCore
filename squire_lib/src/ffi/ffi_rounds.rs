@@ -1,3 +1,5 @@
+use chrono::Utc;
+
 use crate::{
     ffi::{copy_to_system_pointer, FFI_TOURNAMENT_REGISTRY},
     identifiers::{AdminId, PlayerId, RoundId, TournamentId},
@@ -100,7 +102,7 @@ impl RoundId {
     ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::JudgeOp(
+                match tournament.apply_op(Utc::now(), TournOp::JudgeOp(
                     aid.into(),
                     JudgeOp::AdminConfirmResult(self, pid.into()),
                 )) {
@@ -131,7 +133,7 @@ impl RoundId {
     ) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::JudgeOp(
+                match tournament.apply_op(Utc::now(), TournOp::JudgeOp(
                     aid.into(),
                     JudgeOp::AdminRecordResult(self, RoundResult::Wins(pid, wins)),
                 )) {
@@ -151,7 +153,7 @@ impl RoundId {
     pub extern "C" fn rid_record_draws(self, tid: TournamentId, aid: AdminId, draws: u32) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::JudgeOp(
+                match tournament.apply_op(Utc::now(), TournOp::JudgeOp(
                     aid.into(),
                     JudgeOp::AdminRecordResult(self, RoundResult::Draw(draws)),
                 )) {
@@ -198,7 +200,7 @@ impl RoundId {
     pub extern "C" fn rid_kill(self, tid: TournamentId, aid: AdminId) -> bool {
         match FFI_TOURNAMENT_REGISTRY.get().unwrap().get_mut(&tid) {
             Some(mut tournament) => {
-                match tournament.apply_op(TournOp::AdminOp(aid, AdminOp::RemoveRound(self))) {
+                match tournament.apply_op(Utc::now(), TournOp::AdminOp(aid, AdminOp::RemoveRound(self))) {
                     Err(err) => {
                         println!("[FFI]: rid_kill error {}", err);
                         false

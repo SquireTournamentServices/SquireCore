@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -62,6 +63,7 @@ pub type OpResult = Result<OpData, TournamentError>;
 /// syncing
 pub struct FullOp {
     pub(crate) op: TournOp,
+    pub(crate) salt: DateTime<Utc>,
     pub(crate) id: OpId,
     pub(crate) active: bool,
 }
@@ -495,6 +497,7 @@ impl FullOp {
         Self {
             op,
             id: OpId::new(Uuid::new_v4()),
+            salt: Utc::now(),
             active: true,
         }
     }
@@ -569,5 +572,95 @@ impl TournOp {
             PrunePlayers => false,
         }
         */
+    }
+}
+
+impl OpData {
+    /// Calculates if the data is nothing
+    pub fn is_nothing(&self) -> bool {
+        match self {
+            Self::Nothing => true,
+            _ => false,
+        }
+    }
+    
+    /// Assumes contained data is `Nothing`
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_nothing(self) {
+        match self {
+            Self::Nothing => (),
+            _ => panic!("Assumed OpData nothing failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `RegisterPlayer` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_register_player(self) -> PlayerId {
+        match self {
+            Self::RegisterPlayer(id) => id,
+            _ => panic!("Assumed OpData was register player failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `RegisterJudge` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_register_judge(self) -> Judge {
+        match self {
+            Self::RegisterJudge(judge) => judge,
+            _ => panic!("Assumed OpData was register judge failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `RegisterAdmin` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_register_admin(self) -> Admin {
+        match self {
+            Self::RegisterAdmin(admin) => admin,
+            _ => panic!("Assumed OpData was register admin failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `ConfirmResult` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_confirm_result(self) -> (RoundId, RoundStatus) {
+        match self {
+            Self::ConfirmResult(r_id, status) => (r_id, status),
+            _ => panic!("Assumed OpData was confirm result failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `GiveBye` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_give_bye(self) -> RoundId {
+        match self {
+            Self::GiveBye(id) => id,
+            _ => panic!("Assumed OpData was give bye failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `CreateRound` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_create_round(self) -> RoundId {
+        match self {
+            Self::CreateRound(id) => id,
+            _ => panic!("Assumed OpData was create round failed"),
+        }
+    }
+    
+    /// Assumes contained data is from `Pair` and returns that id, analogous to `unwrap`.
+    /// 
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_pair(self) -> Vec<RoundId> {
+        match self {
+            Self::Pair(ids) => ids,
+            _ => panic!("Assumed OpData was pair round failed"),
+        }
     }
 }

@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fmt::Display, time::Duration};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Display, time::Duration, hash::{Hash, Hasher}};
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -107,18 +108,18 @@ impl Tournament {
     }
 
     /// Applies a tournament operation to the tournament
-    pub fn apply_op(&mut self, op: TournOp) -> OpResult {
+    pub fn apply_op(&mut self, salt: DateTime<Utc>, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
             Create(..) => OpResult::Ok(OpData::Nothing),
             RegisterPlayer(account) => self.register_player(account),
-            PlayerOp(p_id, op) => self.apply_player_op(p_id, op),
-            JudgeOp(ta_id, op) => self.apply_judge_op(ta_id, op),
-            AdminOp(a_id, op) => self.apply_admin_op(a_id, op),
+            PlayerOp(p_id, op) => self.apply_player_op(salt, p_id, op),
+            JudgeOp(ta_id, op) => self.apply_judge_op(salt, ta_id, op),
+            AdminOp(a_id, op) => self.apply_admin_op(salt, a_id, op),
         }
     }
 
-    fn apply_player_op(&mut self, p_id: PlayerId, op: PlayerOp) -> OpResult {
+    fn apply_player_op(&mut self, _: DateTime<Utc>, p_id: PlayerId, op: PlayerOp) -> OpResult {
         match op {
             PlayerOp::CheckIn => self.check_in(p_id),
             PlayerOp::RecordResult(result) => self.record_result(&p_id, result),
@@ -132,13 +133,18 @@ impl Tournament {
         }
     }
 
-    fn apply_judge_op(&mut self, ta_id: TournOfficialId, op: JudgeOp) -> OpResult {
+    fn apply_judge_op(
+        &mut self,
+        salt: DateTime<Utc>,
+        ta_id: TournOfficialId,
+        op: JudgeOp,
+    ) -> OpResult {
         if !self.is_official(&ta_id) {
             return OpResult::Err(TournamentError::OfficalLookup);
         }
         match op {
             JudgeOp::AdminRegisterPlayer(account) => self.admin_register_player(account),
-            JudgeOp::RegisterGuest(name) => self.register_guest(name),
+            JudgeOp::RegisterGuest(name) => self.register_guest(salt, name),
             JudgeOp::AdminAddDeck(plyr, name, deck) => self.admin_add_deck(plyr, name, deck),
             JudgeOp::AdminRemoveDeck(plyr, name) => self.admin_remove_deck(plyr, name),
             JudgeOp::AdminReadyPlayer(p_id) => self.admin_ready_player(p_id),
@@ -149,7 +155,7 @@ impl Tournament {
         }
     }
 
-    fn apply_admin_op(&mut self, a_id: AdminId, op: AdminOp) -> OpResult {
+    fn apply_admin_op(&mut self, salt: DateTime<Utc>, a_id: AdminId, op: AdminOp) -> OpResult {
         if !self.is_admin(&a_id) {
             return OpResult::Err(TournamentError::OfficalLookup);
         }
@@ -166,7 +172,7 @@ impl Tournament {
             AdminOp::UpdateTournSetting(setting) => self.update_setting(setting),
             AdminOp::GiveBye(p_id) => self.give_bye(p_id),
             AdminOp::CreateRound(p_ids) => self.create_round(p_ids),
-            AdminOp::PairRound => self.pair(),
+            AdminOp::PairRound => self.pair(salt),
             AdminOp::Cut(n) => self.cut_to_top(n),
             AdminOp::PruneDecks => self.prune_decks(),
             AdminOp::PrunePlayers => self.prune_players(),
@@ -363,7 +369,7 @@ impl Tournament {
     }
 
     /// Attempts to create the next set of rounds for the tournament
-    pub(crate) fn pair(&mut self) -> OpResult {
+    pub(crate) fn pair(&mut self, salt: DateTime<Utc>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -374,22 +380,34 @@ impl Tournament {
             .pairing_sys
             .pair(&self.player_reg, &self.round_reg, standings)
         {
+            let mut hasher = DefaultHasher::new();
+            salt.hash(&mut hasher);
+            let upper = hasher.finish();
             let mut rounds = Vec::with_capacity(pairings.paired.len());
             for pair in pairings.paired {
+                println!("Pairing: {pair:?}");
+                pair.hash(&mut hasher);
+                let lower = hasher.finish();
+                let id = Uuid::from_u64_pair(upper, lower).into();
                 let r_id = self.round_reg.create_round();
+                self.round_reg.update_id(r_id, id);
+                println!("Calculated id: {id}");
                 for plyr in pair {
                     let _ = self.round_reg.add_player_to_round(&r_id, plyr);
                 }
-                rounds.push(r_id);
+                rounds.push(id);
             }
             if let PairingStyle::Swiss(_) = &self.pairing_sys.style {
                 for plyr in pairings.rejected {
+                    plyr.hash(&mut hasher);
+                    let lower = hasher.finish();
+                    let id = Uuid::from_u64_pair(upper, lower).into();
                     let r_id = self.round_reg.create_round();
-                    let ident = r_id.into();
-                    let rnd = self.round_reg.get_mut_round(&ident).unwrap();
+                    self.round_reg.update_id(r_id, id);
+                    let rnd = self.round_reg.get_mut_round(&id).unwrap();
                     rnd.add_player(plyr);
                     let _ = rnd.record_bye();
-                    rounds.push(r_id);
+                    rounds.push(id);
                 }
             }
             Ok(OpData::Pair(rounds))
@@ -721,11 +739,11 @@ impl Tournament {
         Ok(OpData::RegisterPlayer(self.player_reg.add_player(account)?))
     }
 
-    fn register_guest(&mut self, name: String) -> OpResult {
+    fn register_guest(&mut self, salt: DateTime<Utc>, name: String) -> OpResult {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        Ok(OpData::RegisterPlayer(self.player_reg.add_guest(name)?))
+        Ok(OpData::RegisterPlayer(self.player_reg.add_guest(salt, name)?))
     }
 
     fn register_judge(&mut self, account: SquireAccount) -> OpResult {

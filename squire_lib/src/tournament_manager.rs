@@ -3,6 +3,7 @@ use std::{
     slice::Iter,
 };
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
@@ -42,6 +43,7 @@ impl TournamentManager {
         let admin = Admin::new(owner.clone());
         let first_op = FullOp {
             op: TournOp::Create(owner, name.clone(), preset, format.clone()),
+            salt: Utc::now(),
             id: Uuid::new_v4().into(),
             active: true,
         };
@@ -123,8 +125,9 @@ impl TournamentManager {
     /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         let f_op = FullOp::new(op.clone());
+        let salt = f_op.salt.clone();
         self.log.ops.push(f_op);
-        self.tourn.apply_op(op)
+        self.tourn.apply_op(salt, op)
     }
 
     /// Returns an iterator over all the states of a tournament
@@ -162,7 +165,7 @@ impl Iterator for StateIter<'_> {
         // TODO: This doesn't take rollbacks into account
         if self.shown_init {
             let op = self.ops.next()?;
-            let _ = self.state.apply_op(op.op.clone());
+            let _ = self.state.apply_op(op.salt, op.op.clone());
         } else {
             self.shown_init = true;
         }
