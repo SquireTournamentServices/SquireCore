@@ -243,6 +243,12 @@ impl Tournament {
 
     /// Gets a copy of a player's registration data
     /// NOTE: This does not include their round data
+    pub fn get_player_by_id(&self, id: &PlayerId) -> Result<&Player, TournamentError> {
+        self.player_reg.get_player(id)
+    }
+
+    /// Gets a copy of a player's registration data
+    /// NOTE: This does not include their round data
     pub fn get_round_id(&self, ident: &RoundIdentifier) -> Result<RoundId, TournamentError> {
         match ident {
             RoundIdentifier::Id(id) => self
@@ -260,6 +266,11 @@ impl Tournament {
             RoundIdentifier::Id(id) => self.round_reg.get_round(id),
             RoundIdentifier::Number(num) => self.round_reg.get_by_number(num),
         }
+    }
+
+    /// Gets a copy of a round's data
+    pub fn get_round_by_id(&self, id: &RoundId) -> Result<&Round, TournamentError> {
+        self.round_reg.get_round(id)
     }
 
     /// Gets all the rounds a player is in
