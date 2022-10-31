@@ -5,7 +5,6 @@ use crate::{
     rounds::{RoundResult, RoundStatus},
 };
 
-
 impl RoundId {
     /// Gets the round number
     /// -1 on error

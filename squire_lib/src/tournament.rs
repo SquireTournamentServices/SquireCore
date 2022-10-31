@@ -1,4 +1,9 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Display, time::Duration, hash::{Hash, Hasher}};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    fmt::Display,
+    hash::{Hash, Hasher},
+    time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -754,7 +759,9 @@ impl Tournament {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        Ok(OpData::RegisterPlayer(self.player_reg.add_guest(salt, name)?))
+        Ok(OpData::RegisterPlayer(
+            self.player_reg.add_guest(salt, name)?,
+        ))
     }
 
     fn register_judge(&mut self, account: SquireAccount) -> OpResult {

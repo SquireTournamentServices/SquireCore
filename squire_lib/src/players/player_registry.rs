@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet, hash_map::DefaultHasher}, hash::{Hash, Hasher}};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap, HashSet},
+    hash::{Hash, Hasher},
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -98,7 +101,11 @@ impl PlayerRegistry {
     }
 
     /// Creates a new player without an account
-    pub fn add_guest(&mut self, salt: DateTime<Utc>, name: String) -> Result<PlayerId, TournamentError> {
+    pub fn add_guest(
+        &mut self,
+        salt: DateTime<Utc>,
+        name: String,
+    ) -> Result<PlayerId, TournamentError> {
         if self.name_and_id.contains_left(&name) {
             Err(PlayerLookup)
         } else {

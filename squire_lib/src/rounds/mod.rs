@@ -218,7 +218,7 @@ impl Round {
             RoundStatus::Certified | RoundStatus::Dead => false,
         }
     }
-    
+
     /// Calcualtes if a player is in the round (active or dropped).
     pub fn contains_player(&self, p_id: &PlayerId) -> bool {
         self.players.contains(p_id) || self.drops.contains(p_id)

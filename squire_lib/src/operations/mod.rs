@@ -583,9 +583,9 @@ impl OpData {
             _ => false,
         }
     }
-    
+
     /// Assumes contained data is `Nothing`
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_nothing(self) {
         match self {
@@ -593,9 +593,9 @@ impl OpData {
             _ => panic!("Assumed OpData nothing failed"),
         }
     }
-    
+
     /// Assumes contained data is from `RegisterPlayer` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_register_player(self) -> PlayerId {
         match self {
@@ -603,9 +603,9 @@ impl OpData {
             _ => panic!("Assumed OpData was register player failed"),
         }
     }
-    
+
     /// Assumes contained data is from `RegisterJudge` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_register_judge(self) -> Judge {
         match self {
@@ -613,9 +613,9 @@ impl OpData {
             _ => panic!("Assumed OpData was register judge failed"),
         }
     }
-    
+
     /// Assumes contained data is from `RegisterAdmin` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_register_admin(self) -> Admin {
         match self {
@@ -623,9 +623,9 @@ impl OpData {
             _ => panic!("Assumed OpData was register admin failed"),
         }
     }
-    
+
     /// Assumes contained data is from `ConfirmResult` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_confirm_result(self) -> (RoundId, RoundStatus) {
         match self {
@@ -633,9 +633,9 @@ impl OpData {
             _ => panic!("Assumed OpData was confirm result failed"),
         }
     }
-    
+
     /// Assumes contained data is from `GiveBye` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_give_bye(self) -> RoundId {
         match self {
@@ -643,9 +643,9 @@ impl OpData {
             _ => panic!("Assumed OpData was give bye failed"),
         }
     }
-    
+
     /// Assumes contained data is from `CreateRound` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_create_round(self) -> RoundId {
         match self {
@@ -653,9 +653,9 @@ impl OpData {
             _ => panic!("Assumed OpData was create round failed"),
         }
     }
-    
+
     /// Assumes contained data is from `Pair` and returns that id, analogous to `unwrap`.
-    /// 
+    ///
     /// PANICS: If the data is anything else, this method panics.
     pub fn assume_pair(self) -> Vec<RoundId> {
         match self {

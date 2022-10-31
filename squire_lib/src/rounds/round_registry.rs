@@ -110,7 +110,7 @@ impl RoundRegistry {
     pub fn active_round_count(&self) -> usize {
         self.rounds.iter().filter(|(_, r)| r.is_active()).count()
     }
-    
+
     /// Updates a round's id
     pub(crate) fn update_id(&mut self, old_id: RoundId, new_id: RoundId) -> bool {
         match self.rounds.remove(&old_id) {

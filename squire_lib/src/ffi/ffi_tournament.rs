@@ -388,15 +388,17 @@ impl TournamentId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn tid_pair_round(self, aid: AdminId) -> *const RoundId {
-        match SQUIRE_RUNTIME.get().unwrap().apply_operation(self, TournOp::AdminOp(aid, AdminOp::PairRound)) {
+        match SQUIRE_RUNTIME
+            .get()
+            .unwrap()
+            .apply_operation(self, TournOp::AdminOp(aid, AdminOp::PairRound))
+        {
             Ok(OpData::Pair(rnds)) => unsafe { copy_to_system_pointer(rnds.into_iter()) },
             Err(err) => {
                 print_err(err, "pairing round.");
                 std::ptr::null()
             }
-            _ => {
-                std::ptr::null()
-            }
+            _ => std::ptr::null(),
         }
     }
 
@@ -408,7 +410,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| clone_string_to_c_string(&t.name)) {
+            .tournament_query(self, |t| clone_string_to_c_string(&t.name))
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting tournament name.");
@@ -425,7 +428,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| clone_string_to_c_string(&t.format)) {
+            .tournament_query(self, |t| clone_string_to_c_string(&t.format))
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting tournament format.");
@@ -441,7 +445,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.round_reg.starting_table as i32) {
+            .tournament_query(self, |t| t.round_reg.starting_table as i32)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting starting table number.");
@@ -457,7 +462,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.use_table_number) {
+            .tournament_query(self, |t| t.use_table_number)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting use table number.");
@@ -473,7 +479,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.pairing_sys.match_size as i32) {
+            .tournament_query(self, |t| t.pairing_sys.match_size as i32)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting match size.");
@@ -489,7 +496,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.min_deck_count as i32) {
+            .tournament_query(self, |t| t.min_deck_count as i32)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting min deck count.");
@@ -505,7 +513,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.max_deck_count as i32) {
+            .tournament_query(self, |t| t.max_deck_count as i32)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting max deck count.");
@@ -525,8 +534,7 @@ impl TournamentId {
             .tournament_query(self, |t| match t.pairing_sys.style {
                 PairingStyle::Swiss(_) => TournamentPreset::Swiss as i32,
                 PairingStyle::Fluid(_) => TournamentPreset::Fluid as i32,
-            }
-                    ) {
+            }) {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting pairing type.");
@@ -542,7 +550,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.round_reg.length.as_secs() as i64) {
+            .tournament_query(self, |t| t.round_reg.length.as_secs() as i64)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting round length.");
@@ -558,7 +567,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.reg_open) {
+            .tournament_query(self, |t| t.reg_open)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting reg status.");
@@ -574,7 +584,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.require_check_in) {
+            .tournament_query(self, |t| t.require_check_in)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting check in requirement.");
@@ -590,7 +601,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.require_check_in) {
+            .tournament_query(self, |t| t.require_check_in)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting deck reg requirement.");
@@ -606,7 +618,8 @@ impl TournamentId {
         match SQUIRE_RUNTIME
             .get()
             .unwrap()
-            .tournament_query(self, |t| t.status) {
+            .tournament_query(self, |t| t.status)
+        {
             Ok(data) => data,
             Err(err) => {
                 print_err(err, "getting tournament status.");
@@ -636,19 +649,19 @@ impl TournamentId {
         let file_backup = format!("{file}{BACKUP_EXT}");
         let _ = std::fs::remove_file(&file_backup);
         let _ = std::fs::rename(file, &file_backup);
-        
-        match SQUIRE_RUNTIME.get().unwrap().tournament_query(self, |t|
+
+        match SQUIRE_RUNTIME.get().unwrap().tournament_query(self, |t| {
             serde_json::to_string(&t).map(|json| std::fs::write(file, json))
-            ) {
+        }) {
             Ok(Ok(Ok(()))) => true,
             Ok(Ok(Err(e))) => {
                 println!("[FFI]: Tried to write to file {file} and got this error: {e}");
                 false
-            },
+            }
             Ok(Err(e)) => {
                 println!("[FFI]: Tried to convert tournament to json and for this error: {e}");
                 false
-            },
+            }
             Err(err) => {
                 print_err(err, "saving tournament to file.");
                 false
@@ -679,14 +692,14 @@ pub extern "C" fn load_tournament_from_file(__file: *const c_char) -> Tournament
             return Uuid::default().into();
         }
     };
-    
+
     let rt = SQUIRE_RUNTIME.get().unwrap();
-    
+
     if let Ok(()) = rt.tournament_query(tournament.id, |_| ()) {
         println!("[FFI]: Input tournament is already open");
         return Uuid::default().into();
     }
-    
+
     let t_id = rt.create_tournament("TEMP".into(), TournamentPreset::Swiss, "TEMP".into());
     let _ = rt.mutate_tournament(t_id, |t| *t = tournament);
     t_id

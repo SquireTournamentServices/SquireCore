@@ -1,7 +1,8 @@
 use std::{
     alloc::{Allocator, Layout, System},
+    borrow::Cow,
     os::raw::{c_char, c_void},
-    ptr, borrow::Cow,
+    ptr,
 };
 
 use chrono::Utc;
@@ -9,10 +10,12 @@ use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 
 use crate::{
+    error::TournamentError,
     identifiers::{PlayerId, RoundId, TournamentId},
+    operations::{OpData, TournOp},
     players::Player,
     rounds::Round,
-    tournament::{Tournament, TournamentPreset}, operations::{TournOp, OpData}, error::TournamentError,
+    tournament::{Tournament, TournamentPreset},
 };
 
 /// Contains the ffi C bindings for players used in SquireDesktop
@@ -121,26 +124,29 @@ impl SquireRuntime {
             .apply_op(Utc::now(), op)
             .map_err(|err| ActionError::OperationError(t_id, err))
     }
-    
+
     /// Creates a tournament, stores it in the runtime, and returns its id
-    pub fn create_tournament(&self, name: String, preset: TournamentPreset, format: String) -> TournamentId
-    {
+    pub fn create_tournament(
+        &self,
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> TournamentId {
         let tourn = Tournament::from_preset(name, preset, format);
         let id = tourn.id;
         self.tourns.insert(id, tourn);
         id
     }
-    
+
     /// Removes a tournament from the runtime and returns it, if found
-    pub fn remove_tournament(&self, t_id: TournamentId) -> Option<Tournament>
-    {
+    pub fn remove_tournament(&self, t_id: TournamentId) -> Option<Tournament> {
         self.tourns.remove(&t_id).map(|(_, t)| t)
     }
-    
+
     /// Looks up a tournament and performs the given tournament operation
     pub fn mutate_tournament<OP, OUT>(&self, t_id: TournamentId, op: OP) -> Result<OUT, ActionError>
-        where
-            OP: FnOnce(&mut Tournament) -> OUT,
+    where
+        OP: FnOnce(&mut Tournament) -> OUT,
     {
         self.tourns
             .get_mut(&t_id)
@@ -158,7 +164,7 @@ impl SquireRuntime {
             .map(|t| (query)(&t))
             .ok_or_else(|| ActionError::TournamentNotFound(t_id))
     }
-    
+
     /// Looks up a player and performs the given query
     pub fn round_query<Q, O>(
         &self,
@@ -176,7 +182,7 @@ impl SquireRuntime {
             .map(query)
             .map_err(|_| ActionError::RoundNotFound(t_id, r_id))
     }
-    
+
     /// Looks up a player and performs the given query
     pub fn player_query<Q, O>(
         &self,
@@ -212,7 +218,9 @@ pub fn print_err(err: ActionError, context: &str) {
         OperationError(t_id, err) => {
             use TournamentError::*;
             let content = match err {
-                IncorrectStatus(status) => Cow::Owned(format!("Incorrect tournament status '{status}'")),
+                IncorrectStatus(status) => {
+                    Cow::Owned(format!("Incorrect tournament status '{status}'"))
+                }
                 PlayerLookup => Cow::Borrowed("Could not find player"),
                 RoundLookup => Cow::Borrowed("Could not find round"),
                 OfficalLookup => Cow::Borrowed("Could not find offical"),
@@ -221,7 +229,9 @@ pub fn print_err(err: ActionError, context: &str) {
                 RegClosed => Cow::Borrowed("Registeration closed"),
                 PlayerNotInRound => Cow::Borrowed("Player not in round"),
                 NoActiveRound => Cow::Borrowed("Player has not active round"),
-                IncorrectRoundStatus(status) => Cow::Owned(format!("Incorrect round status '{status}'")),
+                IncorrectRoundStatus(status) => {
+                    Cow::Owned(format!("Incorrect round status '{status}'"))
+                }
                 InvalidBye => Cow::Borrowed("Tried to construct an invalid bye"),
                 ActiveMatches => Cow::Borrowed("Tournament currently has active matches"),
                 PlayerNotCheckedIn => Cow::Borrowed("Player not checked-in"),
