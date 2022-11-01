@@ -6,14 +6,14 @@ re_type = re.compile(".*pub (struct|enum) ([a-zA-Z0-9]+).*")
 re_impl = re.compile(".*impl ([a-zA-Z0-9_]+).*")
 re_func = re.compile(".*pub extern fn ([a-zA-Z0-9_]+).*")
 
-dirs = os.listdir("./src/")
+dirs = os.listdir("./squire_lib/src/")
 types = []
 funcs = []
 
 for dir in dirs:
     mtch = is_rust_src.match(dir)
     if mtch is not None:
-        f = open("./src/" + dir, "r")
+        f = open("./squire_lib/src/" + dir, "r")
         data = f.read()
         f.close()
 

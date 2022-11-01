@@ -4,5 +4,5 @@ echo "Exported to ./squire_core.h"
 cargo build --features ffi --package squire_lib
 
 echo "Removing polymorphism"
-python postprocess.py
+python squire_lib/postprocess.py
 

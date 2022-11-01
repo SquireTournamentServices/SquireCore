@@ -53,7 +53,8 @@ message(
 if(WIN32)
   add_custom_command(
     OUTPUT ${RUST_PART_H_FILE} ${RUST_PART_CXX_FILE}
-    COMMAND ${CMAKE_COMMAND} -E env RUSTFLAGS="${RUST_FLAGS}" "ffi_build.bat"
+    COMMAND ${CMAKE_COMMAND} -E env RUSTFLAGS="${RUST_FLAGS}"
+            "ffi_build.bat"
     COMMAND
       ${CMAKE_COMMAND} -E copy
       "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/squire_lib.${EXT}"
@@ -82,7 +83,7 @@ set(LIBS)
 if(UNIX)
   set(LIBS "dl" "pthread" "crypto" "ssl")
 elseif(WIN32)
-  set(LIBS "wsock32" "ws2_32" "bcrypt")
+  set(LIBS "wsock32" "ws2_32" "bcrypt" "win32")
 endif()
 
 add_library(squire_core INTERFACE)
