@@ -83,7 +83,7 @@ set(LIBS)
 if(UNIX)
   set(LIBS "dl" "pthread" "crypto" "ssl")
 elseif(WIN32)
-  set(LIBS "wsock32" "ws2_32" "bcrypt" "win32")
+  set(LIBS "wsock32" "ws2_32" "bcrypt" "win32" "ssl")
 endif()
 
 add_library(squire_core INTERFACE)
