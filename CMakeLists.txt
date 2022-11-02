@@ -83,7 +83,15 @@ set(LIBS)
 if(UNIX)
   set(LIBS "dl" "pthread" "crypto" "ssl")
 elseif(WIN32)
-  set(LIBS "wsock32" "ws2_32" "bcrypt" "wincrypt" "ssl")
+  add_link_options(
+      /SUBSYSTEM:WINDOWS
+      /DYNAMICBASE 
+      Version.lib
+      Comctl32.lib
+      /MACHINE:X64
+  )
+
+  set(LIBS "wsock32" "ws2_32" "bcrypt" "ssl")
 endif()
 
 add_library(squire_core INTERFACE)
