@@ -113,6 +113,7 @@ impl RoundRegistry {
 
     /// Updates a round's id
     pub(crate) fn update_id(&mut self, old_id: RoundId, new_id: RoundId) -> bool {
+        self.num_and_id.swap_right(&old_id, new_id);
         match self.rounds.remove(&old_id) {
             Some(mut rnd) => {
                 rnd.id = new_id;
@@ -212,6 +213,8 @@ impl RoundRegistry {
 mod tests {
     use std::time::Duration;
 
+    use uuid::Uuid;
+
     use crate::rounds::RoundStatus;
 
     use super::RoundRegistry;
@@ -233,5 +236,20 @@ mod tests {
             assert_eq!(reg.get_round(&id_three).unwrap().table_number, start);
             assert_eq!(reg.get_table_number(), start + 2);
         }
+    }
+
+    #[test]
+    fn update_id_correctly() {
+        let mut reg = RoundRegistry::new(0, Duration::from_secs(10));
+        let id_one = reg.create_round();
+        assert!(reg.num_and_id.contains_right(&id_one));
+        assert!(reg.rounds.contains_key(&id_one));
+        let id_two = Uuid::new_v4().into();
+        assert!(reg.update_id(id_one, id_two));
+        assert!(!reg.num_and_id.contains_right(&id_one));
+        assert!(!reg.rounds.contains_key(&id_one));
+        assert!(reg.num_and_id.contains_right(&id_two));
+        assert!(reg.rounds.contains_key(&id_two));
+        assert!(reg.get_round(&id_two).map(|r| r.id == id_two).unwrap());
     }
 }
