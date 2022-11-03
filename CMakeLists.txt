@@ -91,7 +91,7 @@ elseif(WIN32)
       /MACHINE:X64
   )
 
-  set(LIBS "wsock32" "ws2_32" "bcrypt" "ssl")
+  set(LIBS "wsock32" "ws2_32" "bcrypt" "libssl")
 endif()
 
 add_library(squire_core INTERFACE)
