@@ -8,7 +8,6 @@ use std::{
 use chrono::Utc;
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-
 use crate::{
     error::TournamentError,
     identifiers::{PlayerId, RoundId, TournamentId},
@@ -243,7 +242,8 @@ pub fn print_err(err: ActionError, context: &str) {
                 InvalidDeckCount => Cow::Borrowed("Invalid deck count"),
                 NoMatchResult => Cow::Borrowed("There is at one active match with no results."),
             };
-            println!("[FFI]: {content} in tournament '{t_id}' while {context}");
+            let time = Utc::now();
+            eprintln!("[FFI] {time}: {content} in tournament '{t_id}' while {context}");
         }
     }
 }
