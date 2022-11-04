@@ -315,25 +315,27 @@ impl TournamentId {
             return false;
         }
 
-        if let Err(err) = rt.apply_operation(
-            self,
-            TournOp::AdminOp(
-                aid,
+        let curr_max = rt.tournament_query(self, |t| t.max_deck_count).unwrap();
+
+        let (deck_op_one, deck_op_two) = if min_deck_count > curr_max {
+            (
+                AdminOp::UpdateTournSetting(TournamentSetting::MaxDeckCount(max_deck_count)),
                 AdminOp::UpdateTournSetting(TournamentSetting::MinDeckCount(min_deck_count)),
-            ),
-        ) {
-            print_err(err, "updating min deck count.");
+            )
+        } else {
+            (
+                AdminOp::UpdateTournSetting(TournamentSetting::MinDeckCount(min_deck_count)),
+                AdminOp::UpdateTournSetting(TournamentSetting::MaxDeckCount(max_deck_count)),
+            )
+        };
+
+        if let Err(err) = rt.apply_operation(self, TournOp::AdminOp(aid, deck_op_one)) {
+            print_err(err, "updating deck count.");
             return false;
         }
 
-        if let Err(err) = rt.apply_operation(
-            self,
-            TournOp::AdminOp(
-                aid,
-                AdminOp::UpdateTournSetting(TournamentSetting::MaxDeckCount(max_deck_count)),
-            ),
-        ) {
-            print_err(err, "updating max deck count.");
+        if let Err(err) = rt.apply_operation(self, TournOp::AdminOp(aid, deck_op_two)) {
+            print_err(err, "updating deck count.");
             return false;
         }
 
