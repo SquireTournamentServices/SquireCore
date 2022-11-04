@@ -175,8 +175,8 @@ impl Tournament {
             AdminOp::End => self.end(),
             AdminOp::Cancel => self.cancel(),
             AdminOp::UpdateTournSetting(setting) => self.update_setting(setting),
-            AdminOp::GiveBye(p_id) => self.give_bye(p_id),
-            AdminOp::CreateRound(p_ids) => self.create_round(p_ids),
+            AdminOp::GiveBye(p_id) => self.give_bye(salt, p_id),
+            AdminOp::CreateRound(p_ids) => self.create_round(salt, p_ids),
             AdminOp::PairRound => self.pair(salt),
             AdminOp::Cut(n) => self.cut_to_top(n),
             AdminOp::PruneDecks => self.prune_decks(),
@@ -401,16 +401,14 @@ impl Tournament {
             let upper = hasher.finish();
             let mut rounds = Vec::with_capacity(pairings.paired.len());
             for pair in pairings.paired {
-                println!("Pairing: {pair:?}");
                 pair.hash(&mut hasher);
-                let lower = hasher.finish();
-                let id = Uuid::from_u64_pair(upper, lower).into();
                 let r_id = self.round_reg.create_round();
-                self.round_reg.update_id(r_id, id);
-                println!("Calculated id: {id}");
                 for plyr in pair {
                     let _ = self.round_reg.add_player_to_round(&r_id, plyr);
                 }
+                let lower = hasher.finish();
+                let id = Uuid::from_u64_pair(upper, lower).into();
+                self.round_reg.update_id(r_id, id);
                 rounds.push(id);
             }
             if let PairingStyle::Swiss(_) = &self.pairing_sys.style {
@@ -700,32 +698,46 @@ impl Tournament {
     }
 
     /// Gives a player a bye
-    pub(crate) fn give_bye(&mut self, id: PlayerId) -> OpResult {
+    pub(crate) fn give_bye(&mut self, salt: DateTime<Utc>, id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
+        let mut hasher = DefaultHasher::new();
+        salt.hash(&mut hasher);
+        let upper = hasher.finish();
+        id.hash(&mut hasher);
+        let lower = hasher.finish();
         let r_id = self.round_reg.create_round();
         let _ = self.round_reg.add_player_to_round(&r_id, id);
         // Saftey check: This should never return an Err as we just created the round and gave it a
         // single player
         let round = self.round_reg.get_mut_round(&r_id).unwrap();
         round.record_bye()?;
+        let id = Uuid::from_u64_pair(upper, lower).into();
+        self.round_reg.update_id(r_id, id);
         Ok(OpData::GiveBye(r_id))
     }
 
     /// Creates a new round from a list of players
-    pub fn create_round(&mut self, ids: Vec<PlayerId>) -> OpResult {
+    pub fn create_round(&mut self, salt: DateTime<Utc>, ids: Vec<PlayerId>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if ids.len() == self.pairing_sys.match_size as usize
             && ids.iter().all(|p| self.player_reg.is_registered(p))
         {
+            let mut hasher = DefaultHasher::new();
+            salt.hash(&mut hasher);
+            let upper = hasher.finish();
+            ids.hash(&mut hasher);
+            let lower = hasher.finish();
             let r_id = self.round_reg.create_round();
             for id in ids {
                 let _ = self.round_reg.add_player_to_round(&r_id, id);
             }
-            Ok(OpData::CreateRound(r_id))
+            let id = Uuid::from_u64_pair(upper, lower).into();
+            self.round_reg.update_id(r_id, id);
+            Ok(OpData::CreateRound(id))
         } else {
             Err(TournamentError::PlayerLookup)
         }
@@ -928,5 +940,47 @@ impl Display for TournamentStatus {
                 TournamentStatus::Cancelled => "Cancelled",
             }
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    use crate::{operations::{TournOp, AdminOp}, accounts::{SquireAccount, SharingPermissions}, identifiers::UserAccountId, admin::Admin};
+
+    use super::{Tournament, TournamentPreset};
+    
+
+    fn spoof_account() -> SquireAccount {
+        let id: UserAccountId = Uuid::new_v4().into();
+        SquireAccount {
+            user_name: id.to_string(),
+            display_name: id.to_string(),
+            gamer_tags: HashMap::new(),
+            user_id: id,
+            permissions: SharingPermissions::Everything,
+        }
+    }
+    
+    #[test]
+    fn players_in_paired_rounds() {
+        let mut tourn = Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+        assert_eq!(tourn.pairing_sys.match_size, 2);
+        let acc = spoof_account();
+        let admin = Admin::new(acc);
+        tourn.admins.insert(admin.id, admin.clone());
+        let acc = spoof_account();
+        tourn.apply_op(Utc::now(), TournOp::RegisterPlayer(acc)).unwrap().assume_register_player();
+        let acc = spoof_account();
+        tourn.apply_op(Utc::now(), TournOp::RegisterPlayer(acc)).unwrap().assume_register_player();
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start)).unwrap().assume_nothing();
+        let r_ids = tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
+        assert_eq!(r_ids.len(), 1);
+        let rnd = tourn.get_round_by_id(&r_ids[0]).unwrap();
+        assert_eq!(rnd.players.len(), 2);
     }
 }
