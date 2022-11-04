@@ -246,10 +246,7 @@ pub fn count_opps(plyrs: &[PlayerId], opps: &HashMap<PlayerId, HashSet<PlayerId>
     for p in iter.clone() {
         let inner = iter.clone();
         for p_inner in inner {
-            digest += opps
-                .get(p)
-                .map(|o| o.contains(p_inner) as u64)
-                .unwrap_or(0);
+            digest += opps.get(p).map(|o| o.contains(p_inner) as u64).unwrap_or(0);
         }
     }
     digest
