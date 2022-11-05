@@ -390,12 +390,19 @@ impl TournamentId {
     /// Returns NULL on error
     #[no_mangle]
     pub extern "C" fn tid_pair_round(self, aid: AdminId) -> *const RoundId {
-        match SQUIRE_RUNTIME
-            .get()
-            .unwrap()
-            .apply_operation(self, TournOp::AdminOp(aid, AdminOp::PairRound))
-        {
-            Ok(OpData::Pair(rnds)) => unsafe { copy_to_system_pointer(rnds.into_iter()) },
+        let rt = SQUIRE_RUNTIME.get().unwrap();
+        match rt.apply_operation(self, TournOp::AdminOp(aid, AdminOp::CreatePairings)) {
+            Ok(OpData::CreatePairings(pairings)) => {
+                match rt.apply_operation(self, TournOp::AdminOp(aid, AdminOp::PairRound(pairings)))
+                {
+                    Ok(OpData::Pair(rnds)) => unsafe { copy_to_system_pointer(rnds.into_iter()) },
+                    Err(err) => {
+                        print_err(err, "pairing round.");
+                        std::ptr::null()
+                    }
+                    _ => std::ptr::null(),
+                }
+            }
             Err(err) => {
                 print_err(err, "pairing round.");
                 std::ptr::null()

@@ -8,7 +8,7 @@ use crate::{
     error::TournamentError,
     identifiers::{AdminId, OpId, PlayerId},
     rounds::{RoundId, RoundStatus},
-    tournament::TournamentPreset,
+    tournament::TournamentPreset, pairings::Pairings,
 };
 
 mod admin_ops;
@@ -51,6 +51,8 @@ pub enum OpData {
     GiveBye(RoundId),
     /// A round was manually created and this is that round's id
     CreateRound(RoundId),
+    /// The pairings for the next set of rounds
+    CreatePairings(Pairings),
     /// The next set of rounds was paired and these are those round's ids
     Pair(Vec<RoundId>),
 }
@@ -590,7 +592,7 @@ impl OpData {
     pub fn assume_nothing(self) {
         match self {
             Self::Nothing => (),
-            _ => panic!("Assumed OpData nothing failed"),
+            _ => panic!("Assumed OpData was nothing, failed"),
         }
     }
 
@@ -600,7 +602,7 @@ impl OpData {
     pub fn assume_register_player(self) -> PlayerId {
         match self {
             Self::RegisterPlayer(id) => id,
-            _ => panic!("Assumed OpData was register player failed"),
+            _ => panic!("Assumed OpData was register player, failed"),
         }
     }
 
@@ -610,7 +612,7 @@ impl OpData {
     pub fn assume_register_judge(self) -> Judge {
         match self {
             Self::RegisterJudge(judge) => judge,
-            _ => panic!("Assumed OpData was register judge failed"),
+            _ => panic!("Assumed OpData was register judge, failed"),
         }
     }
 
@@ -620,7 +622,7 @@ impl OpData {
     pub fn assume_register_admin(self) -> Admin {
         match self {
             Self::RegisterAdmin(admin) => admin,
-            _ => panic!("Assumed OpData was register admin failed"),
+            _ => panic!("Assumed OpData was register admin, failed"),
         }
     }
 
@@ -630,7 +632,7 @@ impl OpData {
     pub fn assume_confirm_result(self) -> (RoundId, RoundStatus) {
         match self {
             Self::ConfirmResult(r_id, status) => (r_id, status),
-            _ => panic!("Assumed OpData was confirm result failed"),
+            _ => panic!("Assumed OpData was confirm result, failed"),
         }
     }
 
@@ -640,7 +642,7 @@ impl OpData {
     pub fn assume_give_bye(self) -> RoundId {
         match self {
             Self::GiveBye(id) => id,
-            _ => panic!("Assumed OpData was give bye failed"),
+            _ => panic!("Assumed OpData was give bye, failed"),
         }
     }
 
@@ -650,7 +652,17 @@ impl OpData {
     pub fn assume_create_round(self) -> RoundId {
         match self {
             Self::CreateRound(id) => id,
-            _ => panic!("Assumed OpData was create round failed"),
+            _ => panic!("Assumed OpData was create round, failed"),
+        }
+    }
+
+    /// Assumes contained data is from `Pair` and returns that id, analogous to `unwrap`.
+    ///
+    /// PANICS: If the data is anything else, this method panics.
+    pub fn assume_create_pairings(self) -> Pairings {
+        match self {
+            Self::CreatePairings(pairings) => pairings,
+            _ => panic!("Assumed OpData was CreatePairings, failed."),
         }
     }
 
@@ -660,7 +672,7 @@ impl OpData {
     pub fn assume_pair(self) -> Vec<RoundId> {
         match self {
             Self::Pair(ids) => ids,
-            _ => panic!("Assumed OpData was pair round failed"),
+            _ => panic!("Assumed OpData was pair round, failed"),
         }
     }
 }

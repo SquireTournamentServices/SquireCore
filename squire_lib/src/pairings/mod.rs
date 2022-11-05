@@ -34,7 +34,7 @@ pub use greedy::greedy_pairings;
 pub use rotary::rotary_pairings;
 pub use swiss_pairings::SwissPairings;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A struct for communicating new pairings information
 pub struct Pairings {
     /// The players that are paired and their groupings

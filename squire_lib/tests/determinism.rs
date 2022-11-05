@@ -71,12 +71,18 @@ mod tests {
             .assume_nothing();
         tourn_two.apply_op(now, op).unwrap().assume_nothing();
         // Pair the first round
-        println!("Pairing first round");
+        println!("Creating first pairings");
         let now = Utc::now();
-        let op = TournOp::AdminOp(a_id, AdminOp::PairRound);
-        let r_id_one = tourn_one.apply_op(now, op.clone()).unwrap().assume_pair();
-        let r_id_two = tourn_two.apply_op(now, op).unwrap().assume_pair();
-        assert_eq!(r_id_one, r_id_two);
+        let op = TournOp::AdminOp(a_id, AdminOp::CreatePairings);
+        let pairings = tourn_one.apply_op(now, op.clone()).unwrap().assume_create_pairings();
+        let _ = tourn_two.apply_op(now, op).unwrap().assume_create_pairings();
+        assert_eq!(tourn_one, tourn_two);
+        println!("Creating rounds");
+        let now = Utc::now();
+        let op = TournOp::AdminOp(a_id, AdminOp::PairRound(pairings));
+        let rnds_one = tourn_one.apply_op(now, op.clone()).unwrap().assume_pair();
+        let rnds_two = tourn_two.apply_op(now, op).unwrap().assume_pair();
+        assert_eq!(rnds_one, rnds_two);
         assert_eq!(tourn_one, tourn_two);
     }
 }
