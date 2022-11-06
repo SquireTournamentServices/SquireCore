@@ -215,9 +215,8 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::rounds::RoundStatus;
+    use crate::rounds::{RoundRegistry, RoundStatus};
 
-    use super::RoundRegistry;
 
     #[test]
     fn table_number_tests() {

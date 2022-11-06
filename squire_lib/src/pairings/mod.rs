@@ -25,10 +25,13 @@ pub mod swiss_pairings;
 pub mod branching;
 /// The greedy pairings module
 pub mod greedy;
+/// The rotary pairings module
+pub mod rotary;
 
 pub use branching::branching_pairings;
 pub use fluid_pairings::FluidPairings;
 pub use greedy::greedy_pairings;
+pub use rotary::rotary_pairings;
 pub use swiss_pairings::SwissPairings;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -48,6 +51,8 @@ pub enum PairingAlgorithm {
     /// This variant corresponds to the `branching_pairings` function
     #[default]
     Branching,
+    /// This variant corresponds to the `rotary_pairings` function
+    Rotary,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -73,6 +78,24 @@ pub enum PairingStyle {
     Fluid(FluidPairings),
 }
 
+impl Pairings {
+    /// Creates empty pairings
+    pub fn new() -> Self {
+        Self {
+            paired: Vec::new(),
+            rejected: Vec::new(),
+        }
+    }
+
+    /// Calculates if the pairings are all valid
+    pub fn is_valid(&self, opps: &HashMap<PlayerId, HashSet<PlayerId>>, repair_tol: u64) -> bool {
+        self.paired
+            .iter()
+            .find(|p| count_opps(p, opps) > repair_tol)
+            .is_none()
+    }
+}
+
 impl PairingSystem {
     /// Creates a new pairing system
     pub fn new(preset: TournamentPreset) -> Self {
@@ -84,7 +107,7 @@ impl PairingSystem {
         PairingSystem {
             match_size: 2,
             repair_tolerance: 0,
-            alg: PairingAlgorithm::default(),
+            alg: PairingAlgorithm::Branching,
             style,
         }
     }
@@ -188,6 +211,7 @@ impl PairingAlgorithm {
         match self {
             Greedy => greedy_pairings,
             Branching => branching_pairings,
+            Rotary => rotary_pairings,
         }
     }
 }
@@ -198,6 +222,7 @@ impl Display for PairingAlgorithm {
         match self {
             Greedy => write!(f, "Greedy"),
             Branching => write!(f, "Branching"),
+            Rotary => write!(f, "Rotary"),
         }
     }
 }
@@ -212,4 +237,17 @@ impl From<FluidPairings> for PairingStyle {
     fn from(other: FluidPairings) -> Self {
         Self::Fluid(other)
     }
+}
+
+/// Calculates the number of repeat opponents there are in a set of players
+pub fn count_opps(plyrs: &[PlayerId], opps: &HashMap<PlayerId, HashSet<PlayerId>>) -> u64 {
+    let mut digest = 0;
+    let iter = plyrs.iter();
+    for p in iter.clone() {
+        let inner = iter.clone();
+        for p_inner in inner {
+            digest += opps.get(p).map(|o| o.contains(p_inner) as u64).unwrap_or(0);
+        }
+    }
+    digest
 }

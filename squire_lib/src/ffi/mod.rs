@@ -69,7 +69,7 @@ where
     slice.iter_mut().zip(iter).for_each(|(dst, p)| {
         *dst = p;
     });
-    slice[length] = T::default().into();
+    slice[length] = T::default();
     ptr
 }
 
@@ -94,11 +94,13 @@ pub fn clone_string_to_c_string(s: &str) -> *const c_char {
 /// Deallocates a block assigned in the FFI portion,
 /// use this when handling with squire strings
 #[no_mangle]
-pub unsafe extern "C" fn sq_free(pointer: *mut c_void, len: usize) {
-    System.deallocate(
-        ptr::NonNull::new(pointer as *mut u8).unwrap(),
-        Layout::from_size_align(len, 1).unwrap(),
-    );
+pub extern "C" fn sq_free(pointer: *mut c_void, len: usize) {
+    unsafe {
+        System.deallocate(
+            ptr::NonNull::new(pointer as *mut u8).unwrap(),
+            Layout::from_size_align(len, 1).unwrap(),
+        );
+    }
 }
 
 /// The enum that encodes what could go wrong while performing an action
