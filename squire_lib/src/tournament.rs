@@ -6,6 +6,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use deterministic_hash::DeterministicHasher;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -26,7 +27,7 @@ use crate::{
 
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 /// An enum that encode the initial values of a tournament
 pub enum TournamentPreset {
@@ -92,8 +93,13 @@ pub struct Tournament {
 impl Tournament {
     /// Creates a new tournament from the defaults established by the given preset
     pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        format.hash(&mut hasher);
+        let upper = hasher.finish();
+        name.hash(&mut hasher);
+        let lower = hasher.finish();
         Tournament {
-            id: TournamentId::new(Uuid::new_v4()),
+            id: TournamentId::new(Uuid::from_u64_pair(upper, lower)),
             name,
             use_table_number: true,
             format,
@@ -958,7 +964,7 @@ impl Display for TournamentStatus {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}};
 
     use chrono::Utc;
     use uuid::Uuid;
@@ -973,7 +979,10 @@ mod tests {
     use super::{Tournament, TournamentPreset};
 
     fn spoof_account() -> SquireAccount {
-        let id: UserAccountId = Uuid::new_v4().into();
+        let mut hasher = DefaultHasher::new();
+        let now = Utc::now();
+        now.hash(&mut hasher);
+        let id: UserAccountId = Uuid::from_u128(hasher.finish() as u128).into();
         SquireAccount {
             user_name: id.to_string(),
             display_name: id.to_string(),

@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, fmt::Display, hash::{Hash, Hasher}};
 
+use deterministic_hash::DeterministicHasher;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -46,8 +47,13 @@ pub struct Player {
 impl Player {
     /// Creates a new player
     pub fn new(name: String) -> Self {
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        name.hash(&mut hasher);
+        let upper = hasher.finish();
+        upper.hash(&mut hasher);
+        let lower = hasher.finish();
         Player {
-            id: Uuid::new_v4().into(),
+            id: Uuid::from_u64_pair(upper, lower).into(),
             name,
             game_name: None,
             deck_ordering: Vec::new(),

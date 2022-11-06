@@ -1,5 +1,6 @@
+use deterministic_hash::DeterministicHasher;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}};
 use uuid::Uuid;
 
 use crate::{
@@ -78,11 +79,16 @@ pub struct OrganizationAccount {
 impl SquireAccount {
     /// Creates a new SquireAccount with associated data
     pub fn new(user_name: String, display_name: String) -> Self {
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        user_name.hash(&mut hasher);
+        let upper = hasher.finish();
+        display_name.hash(&mut hasher);
+        let lower = hasher.finish();
         SquireAccount {
             display_name,
             user_name,
             gamer_tags: HashMap::new(),
-            user_id: Uuid::new_v4().into(),
+            user_id: Uuid::from_u64_pair(upper, lower).into(),
             permissions: SharingPermissions::default(),
         }
     }
@@ -166,11 +172,16 @@ impl SquireAccount {
 impl OrganizationAccount {
     /// Creates a new account object
     pub fn new(owner: SquireAccount, org_name: String, display_name: String) -> Self {
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        org_name.hash(&mut hasher);
+        let upper = hasher.finish();
+        display_name.hash(&mut hasher);
+        let lower = hasher.finish();
         Self {
             owner,
             org_name,
             display_name,
-            account_id: Uuid::new_v4().into(),
+            account_id: Uuid::from_u64_pair(upper, lower).into(),
             default_judges: HashMap::new(),
             default_admins: HashMap::new(),
             default_tournament_settings: TournamentSettingsTree::new(),

@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn basic_serde() {
-        let id = Uuid::new_v4();
+        let id = Uuid::default();
         let p_id: PlayerId = id.into();
         assert_eq!(
             serde_json::to_string(&id).unwrap(),
@@ -185,7 +185,7 @@ mod tests {
         let mut map: HashMap<AdminId, Admin> = HashMap::new();
         let admin = Admin {
             name: "Test".into(),
-            id: Uuid::new_v4().into(),
+            id: Uuid::default().into(),
         };
         let id = admin.id;
         map.insert(id, admin);

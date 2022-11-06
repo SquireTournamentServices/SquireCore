@@ -44,7 +44,7 @@ pub struct Pairings {
 }
 
 /// Encodes what algorithm will be used to pair players
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PairingAlgorithm {
     /// This variant corresponds to the `greedy_pairings` function
     Greedy,

@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}};
 
+    use chrono::Utc;
+    use deterministic_hash::DeterministicHasher;
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
         error::TournamentError,
@@ -13,7 +15,13 @@ mod tests {
     use uuid::Uuid;
 
     fn spoof_account() -> SquireAccount {
-        let id = Uuid::new_v4();
+        let now = Utc::now();
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        now.hash(&mut hasher);
+        let upper = hasher.finish();
+        upper.hash(&mut hasher);
+        let lower = hasher.finish();
+        let id = Uuid::from_u64_pair(upper, lower);
         SquireAccount {
             user_name: id.to_string(),
             display_name: id.to_string(),

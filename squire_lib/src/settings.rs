@@ -72,7 +72,7 @@ pub struct PairingSettingsTree {
     pub fluid: FluidPairingsSettingsTree,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, Debug, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of all pairing systems
 pub enum PairingSetting {
     /// Adjusts the number of players that will be in a match
@@ -109,19 +109,19 @@ pub struct SwissPairingsSettingsTree {
     pub do_check_ins: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
+#[derive(Serialize, Deserialize, Hash, Debug, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of swiss pairing systems
 pub enum SwissPairingsSetting {
     /// Whether or not player need to check in before a round is paired
     DoCheckIns(bool),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a fluid pairing system.
 pub struct FluidPairingsSettingsTree {}
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, Debug, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of fluid pairing systems
 pub enum FluidPairingsSetting {}
 
@@ -158,8 +158,8 @@ pub struct StandardScoringSettingsTree {
     pub include_opp_gwp: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[repr(C)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 /// An enum that encodes all the adjustable settings of standard scoring systems
 pub enum StandardScoringSetting {
     /// Adjusts the number of points a match win is worth

@@ -1,4 +1,7 @@
+use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}};
+
 use chrono::{DateTime, Utc};
+use deterministic_hash::DeterministicHasher;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -496,10 +499,16 @@ impl From<OpSync> for SyncStatus {
 impl FullOp {
     /// Creates a new FullOp from an existing TournOp
     pub fn new(op: TournOp) -> Self {
+        let now = Utc::now();
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        now.hash(&mut hasher);
+        let upper = hasher.finish();
+        upper.hash(&mut hasher);
+        let lower = hasher.finish();
         Self {
             op,
-            id: OpId::new(Uuid::new_v4()),
-            salt: Utc::now(),
+            id: OpId::new(Uuid::from_u64_pair(upper, lower)),
+            salt: now,
             active: true,
         }
     }

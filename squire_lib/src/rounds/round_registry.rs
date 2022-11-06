@@ -243,7 +243,7 @@ mod tests {
         let id_one = reg.create_round();
         assert!(reg.num_and_id.contains_right(&id_one));
         assert!(reg.rounds.contains_key(&id_one));
-        let id_two = Uuid::new_v4().into();
+        let id_two = Uuid::default().into();
         assert!(reg.update_id(id_one, id_two));
         assert!(!reg.num_and_id.contains_right(&id_one));
         assert!(!reg.rounds.contains_key(&id_one));

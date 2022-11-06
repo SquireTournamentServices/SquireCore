@@ -107,10 +107,10 @@ mod tests {
     #[test]
     fn simple_tree() {
         let ids = vec![
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
+            PlayerId::new(Uuid::from_u128(0)),
+            PlayerId::new(Uuid::from_u128(1)),
+            PlayerId::new(Uuid::from_u128(2)),
+            PlayerId::new(Uuid::from_u128(3)),
         ];
 
         let opps: HashMap<PlayerId, HashSet<PlayerId>> =
@@ -149,11 +149,11 @@ mod tests {
     #[test]
     fn single_branch() {
         let ids = vec![
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
+            PlayerId::new(Uuid::from_u128(0)),
+            PlayerId::new(Uuid::from_u128(1)),
+            PlayerId::new(Uuid::from_u128(2)),
+            PlayerId::new(Uuid::from_u128(3)),
+            PlayerId::new(Uuid::from_u128(4)),
         ];
 
         let mut opps: HashMap<PlayerId, HashSet<PlayerId>> =
@@ -205,11 +205,11 @@ mod tests {
     #[test]
     fn triple_branch() {
         let ids = vec![
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
-            PlayerId::new(Uuid::new_v4()),
+            PlayerId::new(Uuid::from_u128(0)),
+            PlayerId::new(Uuid::from_u128(1)),
+            PlayerId::new(Uuid::from_u128(2)),
+            PlayerId::new(Uuid::from_u128(3)),
+            PlayerId::new(Uuid::from_u128(4)),
         ];
 
         let mut opps: HashMap<PlayerId, HashSet<PlayerId>> =

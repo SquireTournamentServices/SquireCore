@@ -1,9 +1,10 @@
 use std::{
-    collections::{HashMap, HashSet},
-    slice::Iter,
+    collections::{HashMap, HashSet, hash_map::DefaultHasher},
+    slice::Iter, hash::{Hash, Hasher},
 };
 
 use chrono::Utc;
+use deterministic_hash::DeterministicHasher;
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
@@ -40,11 +41,16 @@ impl TournamentManager {
         preset: TournamentPreset,
         format: String,
     ) -> Self {
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        owner.hash(&mut hasher);
+        let upper = hasher.finish();
+        name.hash(&mut hasher);
+        let lower = hasher.finish();
         let admin = Admin::new(owner.clone());
         let first_op = FullOp {
             op: TournOp::Create(owner, name.clone(), preset, format.clone()),
             salt: Utc::now(),
-            id: Uuid::new_v4().into(),
+            id: Uuid::from_u64_pair(upper, lower).into(),
             active: true,
         };
         let last_sync = first_op.id;

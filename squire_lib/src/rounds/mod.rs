@@ -1,11 +1,12 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, hash_map::DefaultHasher},
     fmt,
-    time::Duration,
+    time::Duration, hash::{Hash, Hasher},
 };
 
 use chrono::{DateTime, Utc};
 
+use deterministic_hash::DeterministicHasher;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -84,8 +85,11 @@ pub struct Round {
 impl Round {
     /// Creates a new round
     pub fn new(match_num: u64, table_number: u64, len: Duration) -> Self {
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        len.hash(&mut hasher);
+        let lower = hasher.finish();
         Round {
-            id: RoundId::new(Uuid::new_v4()),
+            id: RoundId::new(Uuid::from_u64_pair(match_num, lower)),
             match_number: match_num,
             table_number,
             players: HashSet::with_capacity(4),

@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, time::Duration};
+    use std::{collections::{HashMap, hash_map::DefaultHasher}, time::Duration, hash::{Hash, Hasher}};
+    use chrono::Utc;
+    use deterministic_hash::DeterministicHasher;
     use uuid::Uuid;
 
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
-        identifiers::UserAccountId,
         pairings::PairingSystem,
         players::PlayerRegistry,
         rounds::{RoundRegistry, RoundResult},
@@ -15,12 +16,18 @@ mod tests {
     };
 
     fn spoof_account() -> SquireAccount {
-        let id: UserAccountId = Uuid::new_v4().into();
+        let now = Utc::now();
+        let mut hasher = DeterministicHasher::new(DefaultHasher::new());
+        now.hash(&mut hasher);
+        let upper = hasher.finish();
+        upper.hash(&mut hasher);
+        let lower = hasher.finish();
+        let id = Uuid::from_u64_pair(upper, lower);
         SquireAccount {
             user_name: id.to_string(),
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
-            user_id: id,
+            user_id: id.into(),
             permissions: SharingPermissions::Everything,
         }
     }
