@@ -5,9 +5,6 @@ use std::{
     ptr,
 };
 
-use chrono::Utc;
-use dashmap::DashMap;
-use once_cell::sync::OnceCell;
 use crate::{
     error::TournamentError,
     identifiers::{PlayerId, RoundId, TournamentId},
@@ -16,6 +13,9 @@ use crate::{
     rounds::Round,
     tournament::{Tournament, TournamentPreset},
 };
+use chrono::Utc;
+use dashmap::DashMap;
+use once_cell::sync::OnceCell;
 
 /// Contains the ffi C bindings for players used in SquireDesktop
 pub mod ffi_player;

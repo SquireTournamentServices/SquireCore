@@ -217,7 +217,6 @@ mod tests {
 
     use crate::rounds::{RoundRegistry, RoundStatus};
 
-
     #[test]
     fn table_number_tests() {
         for start in 0..3 {
