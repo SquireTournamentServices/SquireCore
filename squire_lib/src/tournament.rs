@@ -950,10 +950,14 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
 
-    use crate::{operations::{TournOp, AdminOp}, accounts::{SquireAccount, SharingPermissions}, identifiers::UserAccountId, admin::Admin};
+    use crate::{
+        accounts::{SharingPermissions, SquireAccount},
+        admin::Admin,
+        identifiers::UserAccountId,
+        operations::{AdminOp, TournOp},
+    };
 
     use super::{Tournament, TournamentPreset};
-    
 
     fn spoof_account() -> SquireAccount {
         let id: UserAccountId = Uuid::new_v4().into();
@@ -965,20 +969,33 @@ mod tests {
             permissions: SharingPermissions::Everything,
         }
     }
-    
+
     #[test]
     fn players_in_paired_rounds() {
-        let mut tourn = Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+        let mut tourn =
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
         assert_eq!(tourn.pairing_sys.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);
         tourn.admins.insert(admin.id, admin.clone());
         let acc = spoof_account();
-        tourn.apply_op(Utc::now(), TournOp::RegisterPlayer(acc)).unwrap().assume_register_player();
+        tourn
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+            .unwrap()
+            .assume_register_player();
         let acc = spoof_account();
-        tourn.apply_op(Utc::now(), TournOp::RegisterPlayer(acc)).unwrap().assume_register_player();
-        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start)).unwrap().assume_nothing();
-        let r_ids = tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
+        tourn
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+            .unwrap()
+            .assume_register_player();
+        tourn
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start))
+            .unwrap()
+            .assume_nothing();
+        let r_ids = tourn
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound))
+            .unwrap()
+            .assume_pair();
         assert_eq!(r_ids.len(), 1);
         let rnd = tourn.get_round_by_id(&r_ids[0]).unwrap();
         assert_eq!(rnd.players.len(), 2);

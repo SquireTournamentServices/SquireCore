@@ -4,6 +4,7 @@ use crate::{
     operations::{AdminOp, JudgeOp, TournOp},
     rounds::{RoundResult, RoundStatus},
 };
+use std::time::Duration;
 
 impl RoundId {
     /// Gets the round number
@@ -236,6 +237,25 @@ impl RoundId {
             Ok(_) => true,
             Err(err) => {
                 print_err(err, "killing the round.");
+                false
+            }
+        }
+    }
+
+    /// Grants a time extension of ext seconds to the round
+    /// false on error
+    #[no_mangle]
+    pub extern "C" fn rid_time_extend(self, tid: TournamentId, aid: AdminId, ext: u64) -> bool {
+        match SQUIRE_RUNTIME.get().unwrap().apply_operation(
+            tid,
+            TournOp::JudgeOp(
+                aid.into(),
+                JudgeOp::TimeExtension(self, Duration::from_secs(ext)),
+            ),
+        ) {
+            Ok(_) => true,
+            Err(err) => {
+                print_err(err, "extending the round.");
                 false
             }
         }
