@@ -37,6 +37,8 @@ add_definitions(
   "-DSQ_VERSION=\"${CMAKE_PROJECT_VERSION} (${SQ_GIT_COMMIT_HASH}@${SQ_GIT_BRANCH})\""
 )
 
+find_package(OpenSSL)
+
 if(WIN32)
   set(EXT "lib")
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Macos")
