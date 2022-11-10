@@ -83,7 +83,7 @@ add_custom_target(RUST_PART_H DEPENDS ${RUST_PART_H_FILE})
 
 set(LIBS)
 if(UNIX)
-  set(LIBS "dl" "pthread" "crypto" "ssl")
+  set(LIBS "dl" "pthread")
 elseif(WIN32)
   add_link_options(
       /SUBSYSTEM:WINDOWS
@@ -93,13 +93,13 @@ elseif(WIN32)
       /MACHINE:X64
   )
   
-  set(LIBS "wsock32" "ws2_32" "bcrypt" "libssl")
+  set(LIBS "wsock32" "ws2_32" "bcrypt")
 endif()
 
 add_library(squire_core INTERFACE)
 set_target_properties(squire_core PROPERTIES IMPORTED_LOCATION
                                              ${RUST_PART_CXX_FILE})
-target_link_libraries(squire_core INTERFACE ${RUST_PART_CXX_FILE} ${LIBS})
+                                           target_link_libraries(squire_core INTERFACE ${RUST_PART_CXX_FILE} ${LIBS} OpenSSL::SSL OpenSSL::Crypto)
 add_dependencies(squire_core RUST_PART_H)
 
 add_test(
