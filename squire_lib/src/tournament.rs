@@ -150,6 +150,7 @@ impl Tournament {
         match op {
             JudgeOp::AdminRegisterPlayer(account) => self.admin_register_player(account),
             JudgeOp::RegisterGuest(name) => self.register_guest(salt, name),
+            JudgeOp::ReRegisterGuest(name) => self.reregister_guest(name),
             JudgeOp::AdminAddDeck(plyr, name, deck) => self.admin_add_deck(plyr, name, deck),
             JudgeOp::AdminRemoveDeck(plyr, name) => self.admin_remove_deck(plyr, name),
             JudgeOp::AdminReadyPlayer(p_id) => self.admin_ready_player(p_id),
@@ -774,6 +775,14 @@ impl Tournament {
         Ok(OpData::RegisterPlayer(
             self.player_reg.add_guest(salt, name)?,
         ))
+    }
+
+    fn reregister_guest(&mut self, name: String) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        self.player_reg.reregister_guest(name)?;
+        Ok(OpData::Nothing)
     }
 
     fn register_judge(&mut self, account: SquireAccount) -> OpResult {

@@ -124,6 +124,17 @@ impl PlayerRegistry {
         }
     }
 
+    /// Creates a new player without an account
+    pub fn reregister_guest(&mut self, name: String) -> Result<(), TournamentError> {
+        self.name_and_id
+            .get_right(&name)
+            .map(|id| self.players.get_mut(id))
+            .flatten()
+            .ok_or(PlayerLookup)?
+            .status = PlayerStatus::Registered;
+        Ok(())
+    }
+
     /// Sets the specified player's status to `Dropped`
     pub fn drop_player(&mut self, id: &PlayerId) -> Result<(), TournamentError> {
         let plyr = self.get_mut_player(id)?;
