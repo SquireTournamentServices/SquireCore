@@ -85,18 +85,27 @@ impl PlayerRegistry {
     }
 
     /// Creates a new player
-    pub fn add_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
-        if self.name_and_id.contains_left(&account.user_name)
-            || self.name_and_id.contains_right(&account.user_id.0.into())
-        {
-            Err(PlayerLookup)
-        } else {
-            let name = account.get_user_name().clone();
-            let plyr = Player::from_account(account);
-            let digest = Ok(plyr.id);
-            self.name_and_id.insert(name, plyr.id);
-            self.players.insert(plyr.id, plyr);
-            digest
+    pub fn register_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
+        match self.players.contains_key(&(account.user_id.0.into())) {
+            true => { // Re-registering
+                self.players.get_mut(&(account.user_id.0.into())).unwrap().status = PlayerStatus::Registered;
+                Ok(account.user_id.0.into())
+            },
+            false => { // Not re-registering
+                match self.name_and_id.contains_left(&account.user_name) {
+                    true => {
+                        Err(PlayerLookup)
+                    },
+                    false => {
+                        let name = account.get_user_name().clone();
+                        let plyr = Player::from_account(account);
+                        let digest = Ok(plyr.id);
+                        self.name_and_id.insert(name, plyr.id);
+                        self.players.insert(plyr.id, plyr);
+                        digest
+                    }
+                }
+            },
         }
     }
 

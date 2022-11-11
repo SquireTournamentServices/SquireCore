@@ -27,7 +27,7 @@ mod tests {
     fn spoof_data(count: usize) -> (PairingSystem, PlayerRegistry, RoundRegistry) {
         let mut plyrs = PlayerRegistry::new();
         for _ in 0..count {
-            let _ = plyrs.add_player(spoof_account());
+            let _ = plyrs.register_player(spoof_account());
         }
 
         let mut sys = PairingSystem::new(TournamentPreset::Fluid);
@@ -70,7 +70,7 @@ mod tests {
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys.pair(&plyrs, &rnds, standings.clone()).is_none());
         // Adding a 5th player
-        let _ = plyrs.add_player(spoof_account());
+        let _ = plyrs.register_player(spoof_account());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }
@@ -83,13 +83,13 @@ mod tests {
         // There should be one player in the queue, so three more players should make this ready to
         // pair
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
-        let id = plyrs.add_player(spoof_account()).unwrap();
+        let id = plyrs.register_player(spoof_account()).unwrap();
         sys.ready_player(id);
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
-        let id = plyrs.add_player(spoof_account()).unwrap();
+        let id = plyrs.register_player(spoof_account()).unwrap();
         sys.ready_player(id);
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
-        let id = plyrs.add_player(spoof_account()).unwrap();
+        let id = plyrs.register_player(spoof_account()).unwrap();
         sys.ready_player(id);
         println!("{:?}", sys);
         assert!(sys.ready_to_pair(&plyrs, &rnds));
