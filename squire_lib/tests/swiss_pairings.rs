@@ -35,7 +35,7 @@ mod tests {
     ) {
         let mut plyrs = PlayerRegistry::new();
         for _ in 0..count {
-            let _ = plyrs.add_player(spoof_account());
+            let _ = plyrs.register_player(spoof_account());
         }
 
         let mut sys = PairingSystem::new(TournamentPreset::Swiss);

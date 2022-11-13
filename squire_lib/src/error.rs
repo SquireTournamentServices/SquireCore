@@ -46,6 +46,8 @@ pub enum TournamentError {
     IncompatibleScoringSystem,
     /// The specified min deck count was greater than the max count or visa versa
     InvalidDeckCount,
+    /// There is at least one active match without a result
+    NoMatchResult,
 }
 
 impl fmt::Display for TournamentError {
@@ -68,6 +70,7 @@ impl fmt::Display for TournamentError {
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
             InvalidDeckCount => "InvalidDeckCount",
             RoundConfirmed => "RoundConfirmed",
+            NoMatchResult => "NoMatchResult",
         };
         write!(f, "{}", s)
     }

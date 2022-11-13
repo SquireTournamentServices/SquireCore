@@ -127,6 +127,11 @@ impl Round {
     pub fn remove_player(&mut self, player: PlayerId) {
         self.drops.insert(player);
     }
+    
+    /// Calculates if there is a result recorded for the match
+    pub fn has_result(&self) -> bool {
+        self.draws != 0 || self.results.values().sum::<u32>() != 0
+    }
 
     fn verify_result(&self, result: &RoundResult) -> bool {
         match result {

@@ -240,6 +240,7 @@ pub fn print_err(err: ActionError, context: &str) {
                 IncompatiblePairingSystem => Cow::Borrowed("Incompatible pairing system"),
                 IncompatibleScoringSystem => Cow::Borrowed("Incompatible scoring system"),
                 InvalidDeckCount => Cow::Borrowed("Invalid deck count"),
+                NoMatchResult => Cow::Borrowed("There is at one active match with no results."),
             };
             println!("[FFI]: {content} in tournament '{t_id}' while {context}");
         }

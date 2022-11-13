@@ -19,7 +19,7 @@ use crate::{
     operations::{AdminOp, JudgeOp, OpData, OpResult, PlayerOp, TournOp},
     pairings::{PairingStyle, PairingSystem},
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
-    rounds::{Round, RoundRegistry, RoundResult},
+    rounds::{Round, RoundRegistry, RoundResult, RoundStatus},
     scoring::{ScoringSystem, StandardScore, StandardScoring, Standings},
     settings::{self, TournamentSetting},
 };
@@ -184,6 +184,7 @@ impl Tournament {
             AdminOp::PrunePlayers => self.prune_players(),
             AdminOp::RegisterJudge(account) => self.register_judge(account),
             AdminOp::RegisterAdmin(account) => self.register_admin(account),
+            AdminOp::ConfirmAllRounds => self.confirm_all_rounds(),
         }
     }
 
@@ -589,6 +590,26 @@ impl Tournament {
         let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
         Ok(OpData::ConfirmResult(round.id, status))
+    }
+
+    /// Confirms all active rounds in the tournament. If there is at least one active round without
+    /// a result, this operations fails atomically.
+    pub(crate) fn confirm_all_rounds(&mut self) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        self.round_reg
+            .rounds
+            .values()
+            .filter(|r| r.is_active())
+            .find(|r| !r.has_result())
+            .ok_or(TournamentError::NoMatchResult)?;
+        self.round_reg
+            .rounds
+            .values_mut()
+            .filter(|r| r.is_active())
+            .for_each(|r| { r.status = RoundStatus::Certified; });
+        Ok(OpData::Nothing)
     }
 
     /// Dropps a player from the tournament
