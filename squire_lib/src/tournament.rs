@@ -598,12 +598,13 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        self.round_reg
+        if let Some(_) = self.round_reg
             .rounds
             .values()
             .filter(|r| r.is_active())
-            .find(|r| !r.has_result())
-            .ok_or(TournamentError::NoMatchResult)?;
+            .find(|r| !r.has_result()) {
+                return Err(TournamentError::NoMatchResult);
+        }
         self.round_reg
             .rounds
             .values_mut()
@@ -986,7 +987,7 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
         identifiers::UserAccountId,
-        operations::{AdminOp, TournOp},
+        operations::{AdminOp, TournOp, PlayerOp}, rounds::RoundResult,
     };
 
     use super::{Tournament, TournamentPreset};
@@ -1031,5 +1032,36 @@ mod tests {
         assert_eq!(r_ids.len(), 1);
         let rnd = tourn.get_round_by_id(&r_ids[0]).unwrap();
         assert_eq!(rnd.players.len(), 2);
+    }
+    
+    #[test]
+    fn confirm_all_rounds_test() {
+        let mut tourn =
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+        assert_eq!(tourn.pairing_sys.match_size, 2);
+        let acc = spoof_account();
+        let admin = Admin::new(acc);
+        tourn.admins.insert(admin.id, admin.clone());
+        let mut plyrs = Vec::with_capacity(4);
+        for _ in 0..4 {
+            let acc = spoof_account();
+            let id = tourn
+                .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+                .unwrap()
+                .assume_register_player();
+            plyrs.push(id);
+        }
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start)).unwrap().assume_nothing();
+        // Pair the first round
+        let rnds = tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
+        assert_eq!(rnds.len(), 2);
+        tourn.apply_op(Utc::now(), TournOp::PlayerOp(plyrs[0], PlayerOp::RecordResult(RoundResult::Wins(plyrs[0], 1)))).unwrap().assume_nothing();
+        assert!(tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)).is_err());
+        for p in plyrs {
+            tourn.apply_op(Utc::now(), TournOp::PlayerOp(p, PlayerOp::RecordResult(RoundResult::Wins(p, 1)))).unwrap().assume_nothing();
+        }
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)).unwrap().assume_nothing();
+        // Pair the second round
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
     }
 }
