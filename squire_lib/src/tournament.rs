@@ -234,7 +234,7 @@ impl Tournament {
                 .player_reg
                 .is_registered(id)
                 .then(|| *id)
-                .ok_or_else(|| TournamentError::PlayerLookup),
+                .ok_or_else(|| TournamentError::PlayerNotFound),
             PlayerIdentifier::Name(name) => self.player_reg.get_player_id(name),
         }
     }
@@ -762,7 +762,7 @@ impl Tournament {
             self.round_reg.update_id(r_id, id);
             Ok(OpData::CreateRound(id))
         } else {
-            Err(TournamentError::PlayerLookup)
+            Err(TournamentError::PlayerNotFound)
         }
     }
 

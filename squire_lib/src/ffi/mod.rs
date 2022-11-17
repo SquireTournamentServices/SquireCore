@@ -223,7 +223,8 @@ pub fn print_err(err: ActionError, context: &str) {
                 IncorrectStatus(status) => {
                     Cow::Owned(format!("Incorrect tournament status '{status}'"))
                 }
-                PlayerLookup => Cow::Borrowed("Could not find player"),
+                PlayerNotFound => Cow::Borrowed("Could not find player"),
+                PlayerAlreadyRegistered => Cow::Borrowed("Player is already registered"),
                 RoundLookup => Cow::Borrowed("Could not find round"),
                 OfficalLookup => Cow::Borrowed("Could not find offical"),
                 DeckLookup => Cow::Borrowed("Could not find deck"),

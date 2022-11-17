@@ -17,7 +17,9 @@ pub enum TournamentError {
     /// The tournament has the wrong status
     IncorrectStatus(TournamentStatus),
     /// The specified player couldn't be found
-    PlayerLookup,
+    PlayerNotFound,
+    /// The specified player couldn't be found
+    PlayerAlreadyRegistered,
     /// The specified round couldn't be found
     RoundLookup,
     /// The specified tournament official couldn't be found
@@ -56,7 +58,8 @@ impl fmt::Display for TournamentError {
         let s = match &self {
             IncorrectStatus(_) => "IncorrectStatus",
             IncorrectRoundStatus(_) => "IncorrectRoundStatus",
-            PlayerLookup => "PlayerLookup",
+            PlayerNotFound => "PlayerNotFound",
+            PlayerAlreadyRegistered => "PlayerAlreadyRegistered",
             RoundLookup => "RoundLookup",
             OfficalLookup => "OfficalLookup",
             DeckLookup => "DeckLookup",
