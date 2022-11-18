@@ -176,6 +176,8 @@ impl Round {
             Err(TournamentError::IncorrectRoundStatus(self.status))
         } else if !self.players.contains(&player) {
             Err(TournamentError::PlayerNotInRound)
+        } else if !self.has_result() {
+            Err(TournamentError::NoMatchResult)
         } else if self.drops.contains(&player) {
             Ok(self.status)
         } else {
