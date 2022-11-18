@@ -181,6 +181,7 @@ mod tests {
         }
         let mut count = 0;
         let goal = 15;
+        let mut last_opps = rnds.opponents.clone();
         // Pairings should exist
         let mut pairings = sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
@@ -198,6 +199,16 @@ mod tests {
                     rnds.add_player_to_round(&r_id, *p).unwrap();
                 }
             }
+            assert!(!rnds.opponents.is_empty());
+            assert!(rnds.opponents
+                .iter()
+                .map(
+                    |(id, new)| last_opps.get(id).map(|o| o.len()).unwrap_or(0) + 3
+                        == new.len()
+                )
+                .reduce(|a, b| a && b)
+                .unwrap());
+            last_opps = rnds.opponents.clone();
             for (winner, rnd) in winners.iter().zip(matches.iter()) {
                 assert!(rnds
                     .rounds
