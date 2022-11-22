@@ -70,8 +70,9 @@ impl Player {
 
     /// Adds a deck to the player
     pub fn add_deck(&mut self, name: String, deck: Deck) {
-        self.deck_ordering.push(name.clone());
-        self.decks.insert(name, deck);
+        if self.decks.insert(name.clone(), deck).is_none() {
+            self.deck_ordering.push(name);
+        }
     }
 
     /// Gets a specific deck from the player
