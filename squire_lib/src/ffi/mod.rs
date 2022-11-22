@@ -222,7 +222,8 @@ pub fn print_err(err: ActionError, context: &str) {
                 IncorrectStatus(status) => {
                     Cow::Owned(format!("Incorrect tournament status '{status}'"))
                 }
-                PlayerLookup => Cow::Borrowed("Could not find player"),
+                PlayerNotFound => Cow::Borrowed("Could not find player"),
+                PlayerAlreadyRegistered => Cow::Borrowed("Player is already registered"),
                 RoundLookup => Cow::Borrowed("Could not find round"),
                 OfficalLookup => Cow::Borrowed("Could not find offical"),
                 DeckLookup => Cow::Borrowed("Could not find deck"),
@@ -239,6 +240,7 @@ pub fn print_err(err: ActionError, context: &str) {
                 IncompatiblePairingSystem => Cow::Borrowed("Incompatible pairing system"),
                 IncompatibleScoringSystem => Cow::Borrowed("Incompatible scoring system"),
                 InvalidDeckCount => Cow::Borrowed("Invalid deck count"),
+                NoMatchResult => Cow::Borrowed("There is at one active match with no results."),
             };
             let time = Utc::now();
             eprintln!("[FFI] {time}: {content} in tournament '{t_id}' while {context}");

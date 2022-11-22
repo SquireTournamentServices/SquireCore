@@ -16,7 +16,7 @@ use crate::{
     players::{Player, PlayerStatus},
 };
 
-use TournamentError::PlayerLookup;
+use TournamentError::{PlayerAlreadyRegistered, PlayerNotFound};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all players.
@@ -85,18 +85,27 @@ impl PlayerRegistry {
     }
 
     /// Creates a new player
-    pub fn add_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
-        if self.name_and_id.contains_left(&account.user_name)
-            || self.name_and_id.contains_right(&account.user_id.0.into())
-        {
-            Err(PlayerLookup)
-        } else {
-            let name = account.get_user_name().clone();
-            let plyr = Player::from_account(account);
-            let digest = Ok(plyr.id);
-            self.name_and_id.insert(name, plyr.id);
-            self.players.insert(plyr.id, plyr);
-            digest
+    pub fn register_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
+        match self.players.contains_key(&(account.user_id.0.into())) {
+            true => { // Re-registering
+                self.players.get_mut(&(account.user_id.0.into())).unwrap().status = PlayerStatus::Registered;
+                Ok(account.user_id.0.into())
+            },
+            false => { // Not re-registering
+                match self.name_and_id.contains_left(&account.user_name) {
+                    true => {
+                        Err(PlayerAlreadyRegistered)
+                    },
+                    false => {
+                        let name = account.get_user_name().clone();
+                        let plyr = Player::from_account(account);
+                        let digest = Ok(plyr.id);
+                        self.name_and_id.insert(name, plyr.id);
+                        self.players.insert(plyr.id, plyr);
+                        digest
+                    }
+                }
+            },
         }
     }
 
@@ -107,7 +116,7 @@ impl PlayerRegistry {
         name: String,
     ) -> Result<PlayerId, TournamentError> {
         if self.name_and_id.contains_left(&name) {
-            Err(PlayerLookup)
+            Err(PlayerAlreadyRegistered)
         } else {
             let mut hasher = DefaultHasher::new();
             salt.hash(&mut hasher);
@@ -124,6 +133,17 @@ impl PlayerRegistry {
         }
     }
 
+    /// Creates a new player without an account
+    pub fn reregister_guest(&mut self, name: String) -> Result<(), TournamentError> {
+        self.name_and_id
+            .get_right(&name)
+            .map(|id| self.players.get_mut(id))
+            .flatten()
+            .ok_or(PlayerNotFound)?
+            .status = PlayerStatus::Registered;
+        Ok(())
+    }
+
     /// Sets the specified player's status to `Dropped`
     pub fn drop_player(&mut self, id: &PlayerId) -> Result<(), TournamentError> {
         let plyr = self.get_mut_player(id)?;
@@ -133,12 +153,12 @@ impl PlayerRegistry {
 
     /// Given a player identifier, returns a mutable reference to that player if found
     pub fn get_mut_player(&mut self, id: &PlayerId) -> Result<&mut Player, TournamentError> {
-        self.players.get_mut(id).ok_or_else(|| PlayerLookup)
+        self.players.get_mut(id).ok_or_else(|| PlayerNotFound)
     }
 
     /// Given a player identifier, returns a reference to that player if found
     pub fn get_player(&self, id: &PlayerId) -> Result<&Player, TournamentError> {
-        self.players.get(id).ok_or_else(|| PlayerLookup)
+        self.players.get(id).ok_or_else(|| PlayerNotFound)
     }
 
     /// Given a player identifier, returns a reference to that player if found
@@ -147,7 +167,7 @@ impl PlayerRegistry {
             .get_right(name)
             .map(|id| self.players.get(id))
             .flatten()
-            .ok_or_else(|| PlayerLookup)
+            .ok_or_else(|| PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's id if found
@@ -155,7 +175,7 @@ impl PlayerRegistry {
         self.name_and_id
             .get_right(name)
             .cloned()
-            .ok_or_else(|| PlayerLookup)
+            .ok_or_else(|| PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's name if found

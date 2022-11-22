@@ -14,6 +14,8 @@ use crate::{
 pub enum JudgeOp {
     /// Operation for adding a guest player to a tournament (i.e. someone without an account)
     RegisterGuest(String),
+    /// Operation for re-registering a guest
+    ReRegisterGuest(String),
     /// Operation to register a player via an admin
     AdminRegisterPlayer(SquireAccount),
     /// Operation to record the result of a round via an admin

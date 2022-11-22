@@ -17,7 +17,9 @@ pub enum TournamentError {
     /// The tournament has the wrong status
     IncorrectStatus(TournamentStatus),
     /// The specified player couldn't be found
-    PlayerLookup,
+    PlayerNotFound,
+    /// The specified player couldn't be found
+    PlayerAlreadyRegistered,
     /// The specified round couldn't be found
     RoundLookup,
     /// The specified tournament official couldn't be found
@@ -46,6 +48,8 @@ pub enum TournamentError {
     IncompatibleScoringSystem,
     /// The specified min deck count was greater than the max count or visa versa
     InvalidDeckCount,
+    /// There is at least one active match without a result
+    NoMatchResult,
 }
 
 impl fmt::Display for TournamentError {
@@ -54,7 +58,8 @@ impl fmt::Display for TournamentError {
         let s = match &self {
             IncorrectStatus(_) => "IncorrectStatus",
             IncorrectRoundStatus(_) => "IncorrectRoundStatus",
-            PlayerLookup => "PlayerLookup",
+            PlayerNotFound => "PlayerNotFound",
+            PlayerAlreadyRegistered => "PlayerAlreadyRegistered",
             RoundLookup => "RoundLookup",
             OfficalLookup => "OfficalLookup",
             DeckLookup => "DeckLookup",
@@ -68,6 +73,7 @@ impl fmt::Display for TournamentError {
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
             InvalidDeckCount => "InvalidDeckCount",
             RoundConfirmed => "RoundConfirmed",
+            NoMatchResult => "NoMatchResult",
         };
         write!(f, "{}", s)
     }

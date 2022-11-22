@@ -19,7 +19,7 @@ use crate::{
     operations::{AdminOp, JudgeOp, OpData, OpResult, PlayerOp, TournOp},
     pairings::{PairingStyle, PairingSystem},
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
-    rounds::{Round, RoundRegistry, RoundResult},
+    rounds::{Round, RoundRegistry, RoundResult, RoundStatus},
     scoring::{ScoringSystem, StandardScore, StandardScoring, Standings},
     settings::{self, TournamentSetting},
 };
@@ -150,6 +150,7 @@ impl Tournament {
         match op {
             JudgeOp::AdminRegisterPlayer(account) => self.admin_register_player(account),
             JudgeOp::RegisterGuest(name) => self.register_guest(salt, name),
+            JudgeOp::ReRegisterGuest(name) => self.reregister_guest(name),
             JudgeOp::AdminAddDeck(plyr, name, deck) => self.admin_add_deck(plyr, name, deck),
             JudgeOp::AdminRemoveDeck(plyr, name) => self.admin_remove_deck(plyr, name),
             JudgeOp::AdminReadyPlayer(p_id) => self.admin_ready_player(p_id),
@@ -183,6 +184,7 @@ impl Tournament {
             AdminOp::PrunePlayers => self.prune_players(),
             AdminOp::RegisterJudge(account) => self.register_judge(account),
             AdminOp::RegisterAdmin(account) => self.register_admin(account),
+            AdminOp::ConfirmAllRounds => self.confirm_all_rounds(),
         }
     }
 
@@ -232,7 +234,7 @@ impl Tournament {
                 .player_reg
                 .is_registered(id)
                 .then(|| *id)
-                .ok_or_else(|| TournamentError::PlayerLookup),
+                .ok_or_else(|| TournamentError::PlayerNotFound),
             PlayerIdentifier::Name(name) => self.player_reg.get_player_id(name),
         }
     }
@@ -566,7 +568,7 @@ impl Tournament {
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        let id = self.player_reg.add_player(account)?;
+        let id = self.player_reg.register_player(account)?;
         Ok(OpData::RegisterPlayer(id))
     }
 
@@ -588,6 +590,27 @@ impl Tournament {
         let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
         Ok(OpData::ConfirmResult(round.id, status))
+    }
+
+    /// Confirms all active rounds in the tournament. If there is at least one active round without
+    /// a result, this operations fails atomically.
+    pub(crate) fn confirm_all_rounds(&mut self) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        if let Some(_) = self.round_reg
+            .rounds
+            .values()
+            .filter(|r| r.is_active())
+            .find(|r| !r.has_result()) {
+                return Err(TournamentError::NoMatchResult);
+        }
+        self.round_reg
+            .rounds
+            .values_mut()
+            .filter(|r| r.is_active())
+            .for_each(|r| { r.status = RoundStatus::Certified; });
+        Ok(OpData::Nothing)
     }
 
     /// Dropps a player from the tournament
@@ -739,7 +762,7 @@ impl Tournament {
             self.round_reg.update_id(r_id, id);
             Ok(OpData::CreateRound(id))
         } else {
-            Err(TournamentError::PlayerLookup)
+            Err(TournamentError::PlayerNotFound)
         }
     }
 
@@ -764,7 +787,9 @@ impl Tournament {
         if !(self.is_planned() || self.is_active()) {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        Ok(OpData::RegisterPlayer(self.player_reg.add_player(account)?))
+        Ok(OpData::RegisterPlayer(
+            self.player_reg.register_player(account)?,
+        ))
     }
 
     fn register_guest(&mut self, salt: DateTime<Utc>, name: String) -> OpResult {
@@ -774,6 +799,14 @@ impl Tournament {
         Ok(OpData::RegisterPlayer(
             self.player_reg.add_guest(salt, name)?,
         ))
+    }
+
+    fn reregister_guest(&mut self, name: String) -> OpResult {
+        if !(self.is_planned() || self.is_active()) {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        self.player_reg.reregister_guest(name)?;
+        Ok(OpData::Nothing)
     }
 
     fn register_judge(&mut self, account: SquireAccount) -> OpResult {
@@ -954,7 +987,7 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
         identifiers::UserAccountId,
-        operations::{AdminOp, TournOp},
+        operations::{AdminOp, TournOp, PlayerOp}, rounds::RoundResult,
     };
 
     use super::{Tournament, TournamentPreset};
@@ -999,5 +1032,36 @@ mod tests {
         assert_eq!(r_ids.len(), 1);
         let rnd = tourn.get_round_by_id(&r_ids[0]).unwrap();
         assert_eq!(rnd.players.len(), 2);
+    }
+    
+    #[test]
+    fn confirm_all_rounds_test() {
+        let mut tourn =
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+        assert_eq!(tourn.pairing_sys.match_size, 2);
+        let acc = spoof_account();
+        let admin = Admin::new(acc);
+        tourn.admins.insert(admin.id, admin.clone());
+        let mut plyrs = Vec::with_capacity(4);
+        for _ in 0..4 {
+            let acc = spoof_account();
+            let id = tourn
+                .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+                .unwrap()
+                .assume_register_player();
+            plyrs.push(id);
+        }
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start)).unwrap().assume_nothing();
+        // Pair the first round
+        let rnds = tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
+        assert_eq!(rnds.len(), 2);
+        tourn.apply_op(Utc::now(), TournOp::PlayerOp(plyrs[0], PlayerOp::RecordResult(RoundResult::Wins(plyrs[0], 1)))).unwrap().assume_nothing();
+        assert!(tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)).is_err());
+        for p in plyrs {
+            tourn.apply_op(Utc::now(), TournOp::PlayerOp(p, PlayerOp::RecordResult(RoundResult::Wins(p, 1)))).unwrap().assume_nothing();
+        }
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)).unwrap().assume_nothing();
+        // Pair the second round
+        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
     }
 }
