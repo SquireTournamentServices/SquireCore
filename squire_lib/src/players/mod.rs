@@ -70,9 +70,9 @@ impl Player {
 
     /// Adds a deck to the player
     pub fn add_deck(&mut self, name: String, deck: Deck) {
-        if self.decks.insert(name.clone(), deck).is_none() {
-            self.deck_ordering.push(name);
-        }
+        self.decks.insert(name.clone(), deck);
+        self.deck_ordering.retain(|n| n != &name);
+        self.deck_ordering.push(name);
     }
 
     /// Gets a specific deck from the player
@@ -82,14 +82,9 @@ impl Player {
 
     /// Removes a deck from the player
     pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
-        if self.decks.contains_key(&name) {
-            let index = self.deck_ordering.iter().position(|n| n == &name).unwrap();
-            self.deck_ordering.remove(index);
-            self.decks.remove(&name);
-            Ok(())
-        } else {
-            Err(TournamentError::DeckLookup)
-        }
+        self.decks.remove(&name).ok_or(TournamentError::DeckLookup)?;
+        self.deck_ordering.retain(|n| n != &name);
+        Ok(())
     }
 
     /// Sets the status of the player

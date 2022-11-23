@@ -2,6 +2,7 @@
 mod tests {
     use std::{collections::HashMap, time::Duration};
 
+    use chrono::Utc;
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
         identifiers::UserAccountId,
@@ -158,10 +159,7 @@ mod tests {
             sys.ready_player(*id);
         }
         let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
-        let id = rnds.create_round();
-        for p in &pairings.paired[0] {
-            rnds.add_player_to_round(&id, *p).unwrap();
-        }
+        let _id = rnds.create_round(Utc::now(), pairings.paired[0].clone());
         // Everyone is paired, so there should be no round
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
@@ -182,10 +180,7 @@ mod tests {
         let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
         assert_eq!(pairings.paired.len(), 1);
         assert_eq!(pairings.rejected.len(), 0);
-        let id = rnds.create_round();
-        for p in &pairings.paired[0] {
-            rnds.add_player_to_round(&id, *p).unwrap();
-        }
+        let _id = rnds.create_round(Utc::now(), pairings.paired[0].clone());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }

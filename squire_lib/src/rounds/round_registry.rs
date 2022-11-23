@@ -3,6 +3,7 @@ use std::{
     time::Duration,
 };
 
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +12,7 @@ use cycle_map::CycleMap;
 use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
     identifiers::{PlayerId, RoundId},
+    pairings::Pairings,
     rounds::Round,
 };
 
@@ -28,6 +30,8 @@ pub struct RoundRegistry {
     pub starting_table: u64,
     /// The length of new round
     pub length: Duration,
+    /// The players' seating scores, for seeded table ordering
+    seat_scores: HashMap<PlayerId, u32>,
 }
 
 impl RoundRegistry {
@@ -39,6 +43,7 @@ impl RoundRegistry {
             opponents: HashMap::new(),
             starting_table,
             length: len,
+            seat_scores: HashMap::new(),
         }
     }
 
@@ -111,52 +116,42 @@ impl RoundRegistry {
         self.rounds.iter().filter(|(_, r)| r.is_active()).count()
     }
 
-    /// Updates a round's id
-    pub(crate) fn update_id(&mut self, old_id: RoundId, new_id: RoundId) -> bool {
-        self.num_and_id.swap_right(&old_id, new_id);
-        match self.rounds.remove(&old_id) {
-            Some(mut rnd) => {
-                rnd.id = new_id;
-                self.rounds.insert(new_id, rnd);
-                true
-            }
-            None => false,
-        }
-    }
-
-    /// Creates a new round with no players and returns its id
-    pub fn create_round(&mut self) -> RoundId {
-        let match_num = self.rounds.len() as u64;
-        let table_number = self.get_table_number();
-        let round = Round::new(match_num, table_number, self.length);
-        let digest = round.id.into();
-        self.num_and_id.insert(match_num, round.id);
-        self.rounds.insert(round.id, round);
+    /// Creates a series of matches from pairings
+    pub fn rounds_from_pairings(
+        &mut self,
+        salt: DateTime<Utc>,
+        pairings: Pairings,
+    ) -> Vec<RoundId> {
+        let mut digest = Vec::with_capacity(pairings.len());
+        digest.extend(
+            pairings
+                .paired
+                .into_iter()
+                .map(|p| self.create_round(salt, p)),
+        );
+        digest.extend(pairings.rejected.into_iter().map(|p| self.give_bye(salt, p)));
         digest
     }
 
-    /// Adds a player to the specified round
-    pub fn add_player_to_round(
-        &mut self,
-        ident: &RoundId,
-        plyr: PlayerId,
-    ) -> Result<(), TournamentError> {
-        let ident = (*ident).into();
-        let round = self.get_mut_round(&ident)?;
-        let players = round.players.clone();
-        round.add_player(plyr);
-        self.opponents.entry(plyr).or_insert_with(HashSet::new);
-        for p in players {
-            self.opponents
-                .get_mut(&p)
-                .expect("Player should already be in the opponents map.")
-                .insert(plyr);
-            self.opponents
-                .get_mut(&plyr)
-                .expect("Player should already be in the opponents map.")
-                .insert(p);
-        }
-        Ok(())
+    /// Creates a bye and gives it to a player
+    pub fn give_bye(&mut self, salt: DateTime<Utc>, plyr: PlayerId) -> RoundId {
+        let match_num = self.rounds.len() as u64;
+        let round = Round::new_bye(salt, plyr, match_num, self.length);
+        let id = round.id;
+        self.num_and_id.insert(match_num, id);
+        self.rounds.insert(id, round);
+        id
+    }
+
+    /// Creates a new round, fills it with players, and returns its id
+    pub fn create_round(&mut self, salt: DateTime<Utc>, plyrs: Vec<PlayerId>) -> RoundId {
+        let match_num = self.rounds.len() as u64;
+        let table_number = self.get_table_number();
+        let round = Round::new(salt, plyrs, match_num, table_number, self.length);
+        let id = round.id;
+        self.num_and_id.insert(match_num, id);
+        self.rounds.insert(id, round);
+        id
     }
 
     /// Given a round identifier, returns a round's match number if the round can be found
@@ -213,7 +208,7 @@ impl RoundRegistry {
 mod tests {
     use std::time::Duration;
 
-    use uuid::Uuid;
+    use chrono::Utc;
 
     use crate::rounds::{RoundRegistry, RoundStatus};
 
@@ -222,32 +217,17 @@ mod tests {
         for start in 0..3 {
             let mut reg = RoundRegistry::new(start, Duration::from_secs(10));
             assert_eq!(reg.get_table_number(), start);
-            let id_one = reg.create_round();
+            let id_one = reg.create_round(Utc::now(), vec![]);
             assert_eq!(reg.get_round(&id_one).unwrap().table_number, start);
             assert_eq!(reg.get_table_number(), start + 1);
-            let id_two = reg.create_round();
+            let id_two = reg.create_round(Utc::now(), vec![]);
             assert_eq!(reg.get_round(&id_two).unwrap().table_number, start + 1);
             assert_eq!(reg.get_table_number(), start + 2);
             reg.get_mut_round(&id_one).unwrap().status = RoundStatus::Certified;
             assert_eq!(reg.get_table_number(), start);
-            let id_three = reg.create_round();
+            let id_three = reg.create_round(Utc::now(), vec![]);
             assert_eq!(reg.get_round(&id_three).unwrap().table_number, start);
             assert_eq!(reg.get_table_number(), start + 2);
         }
-    }
-
-    #[test]
-    fn update_id_correctly() {
-        let mut reg = RoundRegistry::new(0, Duration::from_secs(10));
-        let id_one = reg.create_round();
-        assert!(reg.num_and_id.contains_right(&id_one));
-        assert!(reg.rounds.contains_key(&id_one));
-        let id_two = Uuid::new_v4().into();
-        assert!(reg.update_id(id_one, id_two));
-        assert!(!reg.num_and_id.contains_right(&id_one));
-        assert!(!reg.rounds.contains_key(&id_one));
-        assert!(reg.num_and_id.contains_right(&id_two));
-        assert!(reg.rounds.contains_key(&id_two));
-        assert!(reg.get_round(&id_two).map(|r| r.id == id_two).unwrap());
     }
 }

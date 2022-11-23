@@ -86,6 +86,11 @@ impl Pairings {
             rejected: Vec::new(),
         }
     }
+    
+    /// Calculates the length of the paired and rejected players
+    pub fn len(&self) -> usize {
+        self.paired.len() + self.rejected.len()
+    }
 
     /// Calculates if the pairings are all valid
     pub fn is_valid(&self, opps: &HashMap<PlayerId, HashSet<PlayerId>>, repair_tol: u64) -> bool {

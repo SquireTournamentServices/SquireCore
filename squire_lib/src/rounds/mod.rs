@@ -7,10 +7,9 @@ use std::{
 use chrono::{DateTime, Utc};
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 pub use crate::identifiers::RoundId;
-use crate::{error::TournamentError, identifiers::PlayerId};
+use crate::{error::TournamentError, identifiers::{PlayerId, id_from_item, id_from_list}};
 
 mod round_registry;
 pub use round_registry::RoundRegistry;
@@ -83,14 +82,18 @@ pub struct Round {
 
 impl Round {
     /// Creates a new round
-    pub fn new(match_num: u64, table_number: u64, len: Duration) -> Self {
+    pub fn new(salt: DateTime<Utc>, plyrs: Vec<PlayerId>, match_num: u64, table_number: u64, len: Duration) -> Self {
+        let id = id_from_list(salt, plyrs.iter());
+        let confirmations = HashSet::with_capacity(plyrs.len());
+        let results = HashMap::with_capacity(plyrs.len());
+        let players = plyrs.into_iter().collect();
         Round {
-            id: RoundId::new(Uuid::new_v4()),
+            id,
             match_number: match_num,
             table_number,
-            players: HashSet::with_capacity(4),
-            confirmations: HashSet::with_capacity(4),
-            results: HashMap::with_capacity(3),
+            players,
+            confirmations,
+            results,
             draws: 0,
             status: RoundStatus::Open,
             drops: HashSet::new(),
@@ -99,6 +102,28 @@ impl Round {
             length: len,
             extension: Duration::from_secs(0),
             is_bye: false,
+        }
+    }
+    
+    /// Creates a new bye round
+    pub fn new_bye(salt: DateTime<Utc>, plyr: PlayerId, match_num: u64, len: Duration) -> Self {
+        let mut players = HashSet::with_capacity(1);
+        players.insert(plyr);
+        Round {
+            id: id_from_item(salt, plyr),
+            match_number: match_num,
+            table_number: 0,
+            players,
+            confirmations: HashSet::new(),
+            results: HashMap::new(),
+            draws: 0,
+            status: RoundStatus::Certified,
+            drops: HashSet::new(),
+            winner: Some(plyr),
+            timer: Utc::now(),
+            length: len,
+            extension: Duration::from_secs(0),
+            is_bye: true,
         }
     }
 

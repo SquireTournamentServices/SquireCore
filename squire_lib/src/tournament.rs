@@ -1,9 +1,4 @@
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    fmt::Display,
-    hash::{Hash, Hasher},
-    time::Duration,
-};
+use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -124,7 +119,7 @@ impl Tournament {
         }
     }
 
-    fn apply_player_op(&mut self, _: DateTime<Utc>, p_id: PlayerId, op: PlayerOp) -> OpResult {
+    fn apply_player_op(&mut self, salt: DateTime<Utc>, p_id: PlayerId, op: PlayerOp) -> OpResult {
         match op {
             PlayerOp::CheckIn => self.check_in(p_id),
             PlayerOp::RecordResult(result) => self.record_result(&p_id, result),
@@ -133,7 +128,7 @@ impl Tournament {
             PlayerOp::AddDeck(name, deck) => self.player_add_deck(&p_id, name, deck),
             PlayerOp::RemoveDeck(name) => self.remove_player_deck(&p_id, name),
             PlayerOp::SetGamerTag(tag) => self.player_set_game_name(&p_id, tag),
-            PlayerOp::ReadyPlayer => self.ready_player(&p_id),
+            PlayerOp::ReadyPlayer => self.ready_player(salt, &p_id),
             PlayerOp::UnReadyPlayer => self.unready_player(p_id),
         }
     }
@@ -153,7 +148,7 @@ impl Tournament {
             JudgeOp::ReRegisterGuest(name) => self.reregister_guest(name),
             JudgeOp::AdminAddDeck(plyr, name, deck) => self.admin_add_deck(plyr, name, deck),
             JudgeOp::AdminRemoveDeck(plyr, name) => self.admin_remove_deck(plyr, name),
-            JudgeOp::AdminReadyPlayer(p_id) => self.admin_ready_player(p_id),
+            JudgeOp::AdminReadyPlayer(p_id) => self.admin_ready_player(salt, p_id),
             JudgeOp::AdminUnReadyPlayer(p_id) => self.admin_unready_player(p_id),
             JudgeOp::AdminRecordResult(rnd, result) => self.admin_record_result(rnd, result),
             JudgeOp::AdminConfirmResult(r_id, p_id) => self.admin_confirm_result(r_id, p_id),
@@ -394,41 +389,14 @@ impl Tournament {
         let standings = self
             .scoring_sys
             .get_standings(&self.player_reg, &self.round_reg);
-        if let Some(pairings) = self
+        match self
             .pairing_sys
             .pair(&self.player_reg, &self.round_reg, standings)
         {
-            let mut hasher = DefaultHasher::new();
-            salt.hash(&mut hasher);
-            let upper = hasher.finish();
-            let mut rounds = Vec::with_capacity(pairings.paired.len());
-            for pair in pairings.paired {
-                pair.hash(&mut hasher);
-                let r_id = self.round_reg.create_round();
-                for plyr in pair {
-                    let _ = self.round_reg.add_player_to_round(&r_id, plyr);
-                }
-                let lower = hasher.finish();
-                let id = Uuid::from_u64_pair(upper, lower).into();
-                self.round_reg.update_id(r_id, id);
-                rounds.push(id);
-            }
-            if let PairingStyle::Swiss(_) = &self.pairing_sys.style {
-                for plyr in pairings.rejected {
-                    plyr.hash(&mut hasher);
-                    let lower = hasher.finish();
-                    let id = Uuid::from_u64_pair(upper, lower).into();
-                    let r_id = self.round_reg.create_round();
-                    self.round_reg.update_id(r_id, id);
-                    let rnd = self.round_reg.get_mut_round(&id).unwrap();
-                    rnd.add_player(plyr);
-                    let _ = rnd.record_bye();
-                    rounds.push(id);
-                }
-            }
-            Ok(OpData::Pair(rounds))
-        } else {
-            Ok(OpData::Nothing)
+            Some(pairings) => Ok(OpData::Pair(
+                self.round_reg.rounds_from_pairings(salt, pairings),
+            )),
+            None => Ok(OpData::Nothing),
         }
     }
 
@@ -598,18 +566,22 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if let Some(_) = self.round_reg
+        if let Some(_) = self
+            .round_reg
             .rounds
             .values()
             .filter(|r| r.is_active())
-            .find(|r| !r.has_result()) {
-                return Err(TournamentError::NoMatchResult);
+            .find(|r| !r.has_result())
+        {
+            return Err(TournamentError::NoMatchResult);
         }
         self.round_reg
             .rounds
             .values_mut()
             .filter(|r| r.is_active())
-            .for_each(|r| { r.status = RoundStatus::Certified; });
+            .for_each(|r| {
+                r.status = RoundStatus::Certified;
+            });
         Ok(OpData::Nothing)
     }
 
@@ -676,7 +648,7 @@ impl Tournament {
     }
 
     /// Readies a player to play in their next round
-    pub(crate) fn ready_player(&mut self, ident: &PlayerId) -> OpResult {
+    pub(crate) fn ready_player(&mut self, salt: DateTime<Utc>, ident: &PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -691,24 +663,22 @@ impl Tournament {
                 PairingStyle::Swiss(_) => false,
             };
         }
-        if should_pair {
-            let standings = self.get_standings();
-            if let Some(pairings) =
-                self.pairing_sys
+        match should_pair {
+            true => {
+                let standings = self.get_standings();
+                match self
+                    .pairing_sys
                     .pair(&self.player_reg, &self.round_reg, standings)
-            {
-                let mut rounds = Vec::with_capacity(pairings.paired.len());
-                for p in pairings.paired {
-                    let r_id = self.round_reg.create_round();
-                    for plyr in p {
-                        let _ = self.round_reg.add_player_to_round(&r_id, plyr);
+                {
+                    Some(pairings) => {
+                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings);
+                        Ok(OpData::Pair(rounds))
                     }
-                    rounds.push(r_id);
+                    None => Ok(OpData::Nothing),
                 }
-                return Ok(OpData::Pair(rounds));
             }
+            false => Ok(OpData::Nothing),
         }
-        Ok(OpData::Nothing)
     }
 
     /// Marks a player has unready to player in their next round
@@ -721,46 +691,24 @@ impl Tournament {
     }
 
     /// Gives a player a bye
-    pub(crate) fn give_bye(&mut self, salt: DateTime<Utc>, id: PlayerId) -> OpResult {
+    pub(crate) fn give_bye(&mut self, salt: DateTime<Utc>, plyr: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let mut hasher = DefaultHasher::new();
-        salt.hash(&mut hasher);
-        let upper = hasher.finish();
-        id.hash(&mut hasher);
-        let lower = hasher.finish();
-        let r_id = self.round_reg.create_round();
-        let _ = self.round_reg.add_player_to_round(&r_id, id);
-        // Saftey check: This should never return an Err as we just created the round and gave it a
-        // single player
-        let round = self.round_reg.get_mut_round(&r_id).unwrap();
-        round.record_bye()?;
-        let id = Uuid::from_u64_pair(upper, lower).into();
-        self.round_reg.update_id(r_id, id);
-        Ok(OpData::GiveBye(r_id))
+        Ok(OpData::GiveBye(self.round_reg.give_bye(salt, plyr)))
     }
 
     /// Creates a new round from a list of players
-    pub fn create_round(&mut self, salt: DateTime<Utc>, ids: Vec<PlayerId>) -> OpResult {
+    pub fn create_round(&mut self, salt: DateTime<Utc>, plyrs: Vec<PlayerId>) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if ids.len() == self.pairing_sys.match_size as usize
-            && ids.iter().all(|p| self.player_reg.is_registered(p))
+        if plyrs.len() == self.pairing_sys.match_size as usize
+            && plyrs.iter().all(|p| self.player_reg.is_registered(p))
         {
-            let mut hasher = DefaultHasher::new();
-            salt.hash(&mut hasher);
-            let upper = hasher.finish();
-            ids.hash(&mut hasher);
-            let lower = hasher.finish();
-            let r_id = self.round_reg.create_round();
-            for id in ids {
-                let _ = self.round_reg.add_player_to_round(&r_id, id);
-            }
-            let id = Uuid::from_u64_pair(upper, lower).into();
-            self.round_reg.update_id(r_id, id);
-            Ok(OpData::CreateRound(id))
+            Ok(OpData::CreateRound(
+                self.round_reg.create_round(salt, plyrs),
+            ))
         } else {
             Err(TournamentError::PlayerNotFound)
         }
@@ -861,7 +809,7 @@ impl Tournament {
         Ok(OpData::ConfirmResult(round.id, status))
     }
 
-    fn admin_ready_player(&mut self, id: PlayerId) -> OpResult {
+    fn admin_ready_player(&mut self, salt: DateTime<Utc>, id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
@@ -876,24 +824,22 @@ impl Tournament {
                 PairingStyle::Swiss(_) => false,
             };
         }
-        if should_pair {
-            let standings = self.get_standings();
-            if let Some(pairings) =
-                self.pairing_sys
+        match should_pair {
+            true => {
+                let standings = self.get_standings();
+                match self
+                    .pairing_sys
                     .pair(&self.player_reg, &self.round_reg, standings)
-            {
-                let mut rounds = Vec::with_capacity(pairings.paired.len());
-                for p in pairings.paired {
-                    let r_id = self.round_reg.create_round();
-                    for plyr in p {
-                        let _ = self.round_reg.add_player_to_round(&r_id, plyr);
+                {
+                    Some(pairings) => {
+                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings);
+                        Ok(OpData::Pair(rounds))
                     }
-                    rounds.push(r_id);
+                    None => Ok(OpData::Nothing),
                 }
-                return Ok(OpData::Pair(rounds));
             }
+            false => Ok(OpData::Nothing),
         }
-        Ok(OpData::Nothing)
     }
 
     pub(crate) fn admin_overwrite_result(&mut self, id: RoundId, result: RoundResult) -> OpResult {
@@ -987,7 +933,8 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
         identifiers::UserAccountId,
-        operations::{AdminOp, TournOp, PlayerOp}, rounds::RoundResult,
+        operations::{AdminOp, PlayerOp, TournOp},
+        rounds::RoundResult,
     };
 
     use super::{Tournament, TournamentPreset};
@@ -1033,7 +980,7 @@ mod tests {
         let rnd = tourn.get_round_by_id(&r_ids[0]).unwrap();
         assert_eq!(rnd.players.len(), 2);
     }
-    
+
     #[test]
     fn confirm_all_rounds_test() {
         let mut tourn =
@@ -1051,17 +998,52 @@ mod tests {
                 .assume_register_player();
             plyrs.push(id);
         }
-        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start)).unwrap().assume_nothing();
+        tourn
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start))
+            .unwrap()
+            .assume_nothing();
         // Pair the first round
-        let rnds = tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
+        let rnds = tourn
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound))
+            .unwrap()
+            .assume_pair();
         assert_eq!(rnds.len(), 2);
-        tourn.apply_op(Utc::now(), TournOp::PlayerOp(plyrs[0], PlayerOp::RecordResult(RoundResult::Wins(plyrs[0], 1)))).unwrap().assume_nothing();
-        assert!(tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)).is_err());
+        tourn
+            .apply_op(
+                Utc::now(),
+                TournOp::PlayerOp(
+                    plyrs[0],
+                    PlayerOp::RecordResult(RoundResult::Wins(plyrs[0], 1)),
+                ),
+            )
+            .unwrap()
+            .assume_nothing();
+        assert!(tourn
+            .apply_op(
+                Utc::now(),
+                TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)
+            )
+            .is_err());
         for p in plyrs {
-            tourn.apply_op(Utc::now(), TournOp::PlayerOp(p, PlayerOp::RecordResult(RoundResult::Wins(p, 1)))).unwrap().assume_nothing();
+            tourn
+                .apply_op(
+                    Utc::now(),
+                    TournOp::PlayerOp(p, PlayerOp::RecordResult(RoundResult::Wins(p, 1))),
+                )
+                .unwrap()
+                .assume_nothing();
         }
-        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)).unwrap().assume_nothing();
+        tourn
+            .apply_op(
+                Utc::now(),
+                TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds),
+            )
+            .unwrap()
+            .assume_nothing();
         // Pair the second round
-        tourn.apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound)).unwrap().assume_pair();
+        tourn
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound))
+            .unwrap()
+            .assume_pair();
     }
 }
