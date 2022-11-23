@@ -363,19 +363,19 @@ impl ScoreCounter {
         }
     }
 
-    fn add_win(&mut self, players: &HashSet<PlayerId>) {
+    fn add_win(&mut self, players: &Vec<PlayerId>) {
         self.wins += 1;
         self.games += 1;
         self.opponents.extend(players.clone());
     }
 
-    fn add_loss(&mut self, players: &HashSet<PlayerId>) {
+    fn add_loss(&mut self, players: &Vec<PlayerId>) {
         self.losses += 1;
         self.games += 1;
         self.opponents.extend(players.clone());
     }
 
-    fn add_draw(&mut self, players: &HashSet<PlayerId>) {
+    fn add_draw(&mut self, players: &Vec<PlayerId>) {
         self.draws += 1;
         self.games += 1;
         self.opponents.extend(players.clone());

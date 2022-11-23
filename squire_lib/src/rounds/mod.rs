@@ -61,7 +61,7 @@ pub struct Round {
     /// The table number the round is assigned to (for paper tournaments)
     pub table_number: u64,
     /// The set of players playing against each other
-    pub players: HashSet<PlayerId>,
+    pub players: Vec<PlayerId>,
     /// The status of the round
     pub status: RoundStatus,
     /// The winner after certification, if one exists
@@ -82,11 +82,10 @@ pub struct Round {
 
 impl Round {
     /// Creates a new round
-    pub fn new(salt: DateTime<Utc>, plyrs: Vec<PlayerId>, match_num: u64, table_number: u64, len: Duration) -> Self {
-        let id = id_from_list(salt, plyrs.iter());
-        let confirmations = HashSet::with_capacity(plyrs.len());
-        let results = HashMap::with_capacity(plyrs.len());
-        let players = plyrs.into_iter().collect();
+    pub fn new(salt: DateTime<Utc>, players: Vec<PlayerId>, match_num: u64, table_number: u64, len: Duration) -> Self {
+        let id = id_from_list(salt, players.iter());
+        let confirmations = HashSet::with_capacity(players.len());
+        let results = HashMap::with_capacity(players.len());
         Round {
             id,
             match_number: match_num,
@@ -107,13 +106,11 @@ impl Round {
     
     /// Creates a new bye round
     pub fn new_bye(salt: DateTime<Utc>, plyr: PlayerId, match_num: u64, len: Duration) -> Self {
-        let mut players = HashSet::with_capacity(1);
-        players.insert(plyr);
         Round {
             id: id_from_item(salt, plyr),
             match_number: match_num,
             table_number: 0,
-            players,
+            players: vec![plyr],
             confirmations: HashSet::new(),
             results: HashMap::new(),
             draws: 0,
@@ -144,13 +141,15 @@ impl Round {
     }
 
     /// Adds a player to the round
-    pub fn add_player(&mut self, player: PlayerId) {
-        self.players.insert(player);
+    pub fn add_player(&mut self, plyr: PlayerId) {
+        if self.players.iter().find(|p| *p == &plyr).is_none() {
+            self.players.push(plyr);
+        }
     }
 
     /// Removes a player's need to confirm the result
-    pub fn remove_player(&mut self, player: PlayerId) {
-        self.drops.insert(player);
+    pub fn drop_player(&mut self, plyr: &PlayerId) {
+        self.drops.retain(|p| p != plyr);
     }
     
     /// Calculates if there is a result recorded for the match

@@ -288,7 +288,7 @@ impl Tournament {
             .round_reg
             .rounds
             .iter()
-            .filter_map(|(_, r)| r.players.get(&id).map(|_| r))
+            .filter_map(|(_, r)| r.players.contains(&id).then_some(r))
             .collect())
     }
 
@@ -592,7 +592,7 @@ impl Tournament {
         }
         self.player_reg.drop_player(&id)?;
         for rnd in self.round_reg.get_player_active_rounds(&id) {
-            rnd.remove_player(id);
+            rnd.drop_player(&id);
         }
         Ok(OpData::Nothing)
     }
@@ -604,7 +604,7 @@ impl Tournament {
         }
         self.player_reg.drop_player(&id)?;
         for rnd in self.round_reg.get_player_active_rounds(&id) {
-            rnd.remove_player(id);
+            rnd.drop_player(&id);
         }
         Ok(OpData::Nothing)
     }
