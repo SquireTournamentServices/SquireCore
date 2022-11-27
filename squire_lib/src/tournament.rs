@@ -387,7 +387,9 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         self.pairing_sys.update(&pairings);
-        Ok(OpData::Pair(self.round_reg.rounds_from_pairings(salt, pairings)))
+        Ok(OpData::Pair(
+            self.round_reg.rounds_from_pairings(salt, pairings),
+        ))
     }
 
     /// Attempts to create the next set of rounds for the tournament
@@ -398,8 +400,7 @@ impl Tournament {
         let standings = self
             .scoring_sys
             .get_standings(&self.player_reg, &self.round_reg);
-        self
-            .pairing_sys
+        self.pairing_sys
             .pair(&self.player_reg, &self.round_reg, standings)
     }
 
@@ -977,7 +978,10 @@ mod tests {
             .assume_nothing();
         let pairings = tourn.create_pairings().unwrap();
         let r_ids = tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)))
+            .apply_op(
+                Utc::now(),
+                TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)),
+            )
             .unwrap()
             .assume_pair();
         assert_eq!(r_ids.len(), 1);
@@ -1009,7 +1013,10 @@ mod tests {
         // Pair the first round
         let pairings = tourn.create_pairings().unwrap();
         let rnds = tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)))
+            .apply_op(
+                Utc::now(),
+                TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)),
+            )
             .unwrap()
             .assume_pair();
         assert_eq!(rnds.len(), 2);
@@ -1048,7 +1055,10 @@ mod tests {
         // Pair the second round
         let pairings = tourn.create_pairings().unwrap();
         tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)))
+            .apply_op(
+                Utc::now(),
+                TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)),
+            )
             .unwrap()
             .assume_pair();
     }

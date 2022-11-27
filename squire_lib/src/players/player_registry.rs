@@ -87,15 +87,18 @@ impl PlayerRegistry {
     /// Creates a new player
     pub fn register_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
         match self.players.contains_key(&(account.user_id.0.into())) {
-            true => { // Re-registering
-                self.players.get_mut(&(account.user_id.0.into())).unwrap().status = PlayerStatus::Registered;
+            true => {
+                // Re-registering
+                self.players
+                    .get_mut(&(account.user_id.0.into()))
+                    .unwrap()
+                    .status = PlayerStatus::Registered;
                 Ok(account.user_id.0.into())
-            },
-            false => { // Not re-registering
+            }
+            false => {
+                // Not re-registering
                 match self.name_and_id.contains_left(&account.user_name) {
-                    true => {
-                        Err(PlayerAlreadyRegistered)
-                    },
+                    true => Err(PlayerAlreadyRegistered),
                     false => {
                         let name = account.get_user_name().clone();
                         let plyr = Player::from_account(account);
@@ -105,7 +108,7 @@ impl PlayerRegistry {
                         digest
                     }
                 }
-            },
+            }
         }
     }
 

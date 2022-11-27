@@ -64,10 +64,15 @@ impl SwissPairings {
         }
         digest
     }
-    
+
     /// Updates with incoming pairings.
     pub fn update(&mut self, pairings: &Pairings) {
-        for p in pairings.paired.iter().flatten().chain(pairings.rejected.iter()) {
+        for p in pairings
+            .paired
+            .iter()
+            .flatten()
+            .chain(pairings.rejected.iter())
+        {
             self.check_ins.remove(p);
         }
     }

@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     accounts::SquireAccount,
     identifiers::{PlayerId, RoundId},
+    pairings::Pairings,
     rounds::RoundResult,
-    settings::TournamentSetting, pairings::Pairings,
+    settings::TournamentSetting,
 };
 
 /// Operations that only tournament admin can perform

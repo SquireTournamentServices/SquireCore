@@ -9,7 +9,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 pub use crate::identifiers::RoundId;
-use crate::{error::TournamentError, identifiers::{PlayerId, id_from_item, id_from_list}};
+use crate::{
+    error::TournamentError,
+    identifiers::{id_from_item, id_from_list, PlayerId},
+};
 
 mod round_registry;
 pub use round_registry::RoundRegistry;
@@ -82,7 +85,13 @@ pub struct Round {
 
 impl Round {
     /// Creates a new round
-    pub fn new(salt: DateTime<Utc>, players: Vec<PlayerId>, match_num: u64, table_number: u64, len: Duration) -> Self {
+    pub fn new(
+        salt: DateTime<Utc>,
+        players: Vec<PlayerId>,
+        match_num: u64,
+        table_number: u64,
+        len: Duration,
+    ) -> Self {
         let id = id_from_list(salt, players.iter());
         let confirmations = HashSet::with_capacity(players.len());
         let results = HashMap::with_capacity(players.len());
@@ -103,7 +112,7 @@ impl Round {
             is_bye: false,
         }
     }
-    
+
     /// Creates a new bye round
     pub fn new_bye(salt: DateTime<Utc>, plyr: PlayerId, match_num: u64, len: Duration) -> Self {
         Round {
@@ -144,7 +153,7 @@ impl Round {
     pub fn drop_player(&mut self, plyr: &PlayerId) {
         self.drops.retain(|p| p != plyr);
     }
-    
+
     /// Calculates if there is a result recorded for the match
     pub fn has_result(&self) -> bool {
         self.draws != 0 || self.results.values().sum::<u32>() != 0

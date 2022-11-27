@@ -86,7 +86,7 @@ impl Pairings {
             rejected: Vec::new(),
         }
     }
-    
+
     /// Calculates the length of the paired and rejected players
     pub fn len(&self) -> usize {
         self.paired.len() + self.rejected.len()
@@ -143,7 +143,7 @@ impl PairingSystem {
             Fluid(sys) => sys.ready_to_pair(self.match_size as usize),
         }
     }
-    
+
     /// Updates the inner pairing style with incoming pairings.
     pub fn update(&mut self, pairings: &Pairings) {
         use PairingStyle::*;

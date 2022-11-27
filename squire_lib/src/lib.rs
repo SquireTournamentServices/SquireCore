@@ -17,7 +17,6 @@
 #![cfg_attr(feature = "ffi", feature(allocator_api, slice_ptr_get))]
 #![cfg_attr(feature = "ffi", deny(improper_ctypes_definitions))]
 
-
 /// Contains the ffi C bindings used in SquireDesktop
 #[cfg(feature = "ffi")]
 pub mod ffi;

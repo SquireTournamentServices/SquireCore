@@ -58,7 +58,7 @@ impl FluidPairings {
     pub fn ready_to_pair(&self, match_size: usize) -> bool {
         !self.check_ins.is_empty() && self.check_ins.len() + self.queue.len() >= match_size
     }
-    
+
     /// Updates with incoming pairings.
     pub fn update(&mut self, pairings: &Pairings) {
         self.queue.extend(self.check_ins.drain());
@@ -79,7 +79,12 @@ impl FluidPairings {
         if !self.ready_to_pair(match_size) {
             return None;
         }
-        let plyrs = self.queue.iter().chain(self.check_ins.iter()).cloned().collect();
+        let plyrs = self
+            .queue
+            .iter()
+            .chain(self.check_ins.iter())
+            .cloned()
+            .collect();
         let mut digest = (alg.as_alg())(plyrs, &matches.opponents, match_size, repair_tolerance);
         digest.rejected.drain(0..);
         Some(digest)
