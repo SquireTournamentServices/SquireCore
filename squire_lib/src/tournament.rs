@@ -153,6 +153,7 @@ impl Tournament {
             JudgeOp::AdminRecordResult(rnd, result) => self.admin_record_result(rnd, result),
             JudgeOp::AdminConfirmResult(r_id, p_id) => self.admin_confirm_result(r_id, p_id),
             JudgeOp::TimeExtension(rnd, ext) => self.give_time_extension(&rnd, ext),
+            JudgeOp::ConfirmRound(rnd) => self.confirm_single_round(&rnd),
         }
     }
 
@@ -564,6 +565,22 @@ impl Tournament {
         let round = self.round_reg.get_player_active_round(&id)?;
         let status = round.confirm_round(id)?;
         Ok(OpData::ConfirmResult(round.id, status))
+    }
+
+    /// A judge or admin confirms the result of a match
+    pub(crate) fn confirm_single_round(&mut self, id: &RoundId) -> OpResult {
+        if !self.is_active() {
+            return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        let round = self.round_reg.get_mut_round(&id)?;
+        match round.status {
+            RoundStatus::Open if round.has_result() => {
+                round.status = RoundStatus::Certified;
+                Ok(OpData::Nothing)
+            },
+            RoundStatus::Open => Err(TournamentError::NoMatchResult),
+            RoundStatus::Certified | RoundStatus::Dead => Err(TournamentError::RoundConfirmed),
+        }
     }
 
     /// Confirms all active rounds in the tournament. If there is at least one active round without

@@ -32,4 +32,6 @@ pub enum JudgeOp {
     AdminUnReadyPlayer(PlayerId),
     /// Operation to give a round a time extension
     TimeExtension(RoundId, Duration),
+    /// Confirms the round result for all players
+    ConfirmRound(RoundId),
 }

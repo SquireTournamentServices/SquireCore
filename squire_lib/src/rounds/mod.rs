@@ -23,9 +23,6 @@ pub use round_registry::RoundRegistry;
 pub enum RoundStatus {
     /// The round is still active and nothing has been recorded
     Open,
-    /// At least one result has been recorded, but there are players that have yet to certify the
-    /// result
-    Uncertified,
     /// All results are in and all players have certified the result
     Certified,
     /// The round is no long consider to be part of the tournament, but is not deleted to prevent
@@ -247,7 +244,7 @@ impl Round {
     /// Calculates if the round is certified
     pub fn is_active(&self) -> bool {
         match self.status {
-            RoundStatus::Open | RoundStatus::Uncertified => true,
+            RoundStatus::Open => true,
             RoundStatus::Certified | RoundStatus::Dead => false,
         }
     }
@@ -265,7 +262,6 @@ impl fmt::Display for RoundStatus {
             "{}",
             match self {
                 Self::Open => "Open",
-                Self::Uncertified => "Uncertified",
                 Self::Certified => "Certified",
                 Self::Dead => "Dead",
             }
