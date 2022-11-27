@@ -259,6 +259,7 @@ impl Tournament {
                 .then(|| *id)
                 .ok_or_else(|| TournamentError::RoundLookup),
             RoundIdentifier::Number(num) => self.round_reg.get_round_id(num),
+            RoundIdentifier::Table(num) => self.round_reg.round_from_table_number(*num).map(|r| r.id),
         }
     }
 
@@ -267,6 +268,7 @@ impl Tournament {
         match ident {
             RoundIdentifier::Id(id) => self.round_reg.get_round(id),
             RoundIdentifier::Number(num) => self.round_reg.get_by_number(num),
+            RoundIdentifier::Table(num) => self.round_reg.round_from_table_number(*num),
         }
     }
 

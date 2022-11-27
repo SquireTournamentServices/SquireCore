@@ -68,6 +68,14 @@ impl RoundRegistry {
             .ok_or_else(|| TournamentError::RoundLookup)
     }
 
+    /// Gets a round's id by its match number
+    pub fn round_from_table_number(&self, n: u64) -> Result<&Round, TournamentError> {
+        self.rounds
+            .values()
+            .find(|r| r.table_number == n && r.is_active())
+            .ok_or(TournamentError::RoundLookup)
+    }
+
     pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {
         self.num_and_id
             .get_right(n)
@@ -244,14 +252,18 @@ mod tests {
             assert_eq!(reg.get_table_number(), start);
             let id_one = reg.create_round(Utc::now(), vec![]);
             assert_eq!(reg.get_round(&id_one).unwrap().table_number, start);
+            assert_eq!(reg.round_from_table_number(start).unwrap().id, id_one);
             assert_eq!(reg.get_table_number(), start + 1);
             let id_two = reg.create_round(Utc::now(), vec![]);
             assert_eq!(reg.get_round(&id_two).unwrap().table_number, start + 1);
+            assert_eq!(reg.round_from_table_number(start + 1).unwrap().id, id_two);
             assert_eq!(reg.get_table_number(), start + 2);
             reg.get_mut_round(&id_one).unwrap().status = RoundStatus::Certified;
             assert_eq!(reg.get_table_number(), start);
+            assert!(reg.round_from_table_number(start).is_err());
             let id_three = reg.create_round(Utc::now(), vec![]);
             assert_eq!(reg.get_round(&id_three).unwrap().table_number, start);
+            assert_eq!(reg.round_from_table_number(start).unwrap().id, id_three);
             assert_eq!(reg.get_table_number(), start + 2);
         }
     }

@@ -84,6 +84,8 @@ pub enum RoundIdentifier {
     Id(RoundId),
     /// The round's match number
     Number(u64),
+    /// The table number of an active match
+    Table(u64),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
