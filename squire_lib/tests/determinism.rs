@@ -73,7 +73,8 @@ mod tests {
         // Pair the first round
         println!("Pairing first round");
         let now = Utc::now();
-        let op = TournOp::AdminOp(a_id, AdminOp::PairRound);
+        let pairings = tourn_one.create_pairings().unwrap();
+        let op = TournOp::AdminOp(a_id, AdminOp::PairRound(pairings));
         let r_id_one = tourn_one.apply_op(now, op.clone()).unwrap().assume_pair();
         let r_id_two = tourn_two.apply_op(now, op).unwrap().assume_pair();
         assert_eq!(r_id_one, r_id_two);

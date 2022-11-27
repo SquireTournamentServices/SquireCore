@@ -97,7 +97,7 @@ impl Round {
             status: RoundStatus::Open,
             drops: HashSet::new(),
             winner: None,
-            timer: Utc::now(),
+            timer: salt,
             length: len,
             extension: Duration::from_secs(0),
             is_bye: false,
@@ -117,7 +117,7 @@ impl Round {
             status: RoundStatus::Certified,
             drops: HashSet::new(),
             winner: Some(plyr),
-            timer: Utc::now(),
+            timer: salt,
             length: len,
             extension: Duration::from_secs(0),
             is_bye: true,
@@ -138,13 +138,6 @@ impl Round {
     /// Adds a time extension to the round
     pub fn time_extension(&mut self, dur: Duration) {
         self.extension += dur;
-    }
-
-    /// Adds a player to the round
-    pub fn add_player(&mut self, plyr: PlayerId) {
-        if self.players.iter().find(|p| *p == &plyr).is_none() {
-            self.players.push(plyr);
-        }
     }
 
     /// Removes a player's need to confirm the result

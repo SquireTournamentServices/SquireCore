@@ -156,10 +156,16 @@ impl RoundRegistry {
             .into_iter()
             .map(|p| (p, *self.seat_scores.entry(p).or_default()))
             .sorted_by(|a, b| a.1.cmp(&b.1).reverse())
-            .map(|(p,_)| p)
+            .map(|(p, _)| p)
             .collect();
         for (i, p) in plyrs.iter().enumerate() {
             *self.seat_scores.get_mut(p).unwrap() += i;
+        }
+        for plyr in &plyrs {
+            self.opponents
+                .entry(*plyr)
+                .or_default()
+                .extend(plyrs.iter().filter(|p| *p != plyr));
         }
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
@@ -226,7 +232,10 @@ mod tests {
 
     use chrono::Utc;
 
-    use crate::{rounds::{RoundRegistry, RoundStatus}, identifiers::id_from_item};
+    use crate::{
+        identifiers::id_from_item,
+        rounds::{RoundRegistry, RoundStatus},
+    };
 
     #[test]
     fn table_number_tests() {
@@ -246,10 +255,13 @@ mod tests {
             assert_eq!(reg.get_table_number(), start + 2);
         }
     }
-    
+
     #[test]
     fn simple_seating_scores_test() {
-        let plyrs = vec![id_from_item(Utc::now(), Utc::now()), id_from_item(Utc::now(), Utc::now())];
+        let plyrs = vec![
+            id_from_item(Utc::now(), Utc::now()),
+            id_from_item(Utc::now(), Utc::now()),
+        ];
         assert!(plyrs[0] != plyrs[1]);
         let mut reg = RoundRegistry::new(1, Duration::from_secs(10));
         let id = reg.create_round(Utc::now(), plyrs.clone());

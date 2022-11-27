@@ -58,11 +58,18 @@ impl FluidPairings {
     pub fn ready_to_pair(&self, match_size: usize) -> bool {
         !self.check_ins.is_empty() && self.check_ins.len() + self.queue.len() >= match_size
     }
+    
+    /// Updates with incoming pairings.
+    pub fn update(&mut self, pairings: &Pairings) {
+        self.queue.extend(self.check_ins.drain());
+        let plyrs: HashSet<_> = pairings.paired.iter().flatten().collect();
+        self.queue.retain(|p| !plyrs.contains(p));
+    }
 
     /// Attempts to pair all players in the queue.
     /// NOTE: This does not create any round, only pairings.
     pub fn pair(
-        &mut self,
+        &self,
         alg: PairingAlgorithm,
         _players: &PlayerRegistry,
         matches: &RoundRegistry,
@@ -72,10 +79,9 @@ impl FluidPairings {
         if !self.ready_to_pair(match_size) {
             return None;
         }
-        let mut plyrs: Vec<PlayerId> = self.queue.drain(0..).rev().collect();
-        plyrs.extend(self.check_ins.drain());
+        let plyrs = self.queue.iter().chain(self.check_ins.iter()).cloned().collect();
         let mut digest = (alg.as_alg())(plyrs, &matches.opponents, match_size, repair_tolerance);
-        self.queue.extend(digest.rejected.drain(0..).rev());
+        digest.rejected.drain(0..);
         Some(digest)
     }
 }

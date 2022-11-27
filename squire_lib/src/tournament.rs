@@ -12,7 +12,7 @@ use crate::{
     error::TournamentError,
     identifiers::{AdminId, JudgeId, PlayerId, PlayerIdentifier, RoundId, RoundIdentifier},
     operations::{AdminOp, JudgeOp, OpData, OpResult, PlayerOp, TournOp},
-    pairings::{PairingStyle, PairingSystem},
+    pairings::{PairingStyle, PairingSystem, Pairings},
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundRegistry, RoundResult, RoundStatus},
     scoring::{ScoringSystem, StandardScore, StandardScoring, Standings},
@@ -173,7 +173,7 @@ impl Tournament {
             AdminOp::UpdateTournSetting(setting) => self.update_setting(setting),
             AdminOp::GiveBye(p_id) => self.give_bye(salt, p_id),
             AdminOp::CreateRound(p_ids) => self.create_round(salt, p_ids),
-            AdminOp::PairRound => self.pair(salt),
+            AdminOp::PairRound(pairings) => self.pair(salt, pairings),
             AdminOp::Cut(n) => self.cut_to_top(n),
             AdminOp::PruneDecks => self.prune_decks(),
             AdminOp::PrunePlayers => self.prune_players(),
@@ -382,22 +382,25 @@ impl Tournament {
     }
 
     /// Attempts to create the next set of rounds for the tournament
-    pub(crate) fn pair(&mut self, salt: DateTime<Utc>) -> OpResult {
+    pub(crate) fn pair(&mut self, salt: DateTime<Utc>, pairings: Pairings) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
+        }
+        self.pairing_sys.update(&pairings);
+        Ok(OpData::Pair(self.round_reg.rounds_from_pairings(salt, pairings)))
+    }
+
+    /// Attempts to create the next set of rounds for the tournament
+    pub fn create_pairings(&self) -> Option<Pairings> {
+        if !self.is_active() {
+            return None;
         }
         let standings = self
             .scoring_sys
             .get_standings(&self.player_reg, &self.round_reg);
-        match self
+        self
             .pairing_sys
             .pair(&self.player_reg, &self.round_reg, standings)
-        {
-            Some(pairings) => Ok(OpData::Pair(
-                self.round_reg.rounds_from_pairings(salt, pairings),
-            )),
-            None => Ok(OpData::Nothing),
-        }
     }
 
     /// Makes a round irrelevant to the tournament.
@@ -972,8 +975,9 @@ mod tests {
             .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::Start))
             .unwrap()
             .assume_nothing();
+        let pairings = tourn.create_pairings().unwrap();
         let r_ids = tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound))
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)))
             .unwrap()
             .assume_pair();
         assert_eq!(r_ids.len(), 1);
@@ -1003,8 +1007,9 @@ mod tests {
             .unwrap()
             .assume_nothing();
         // Pair the first round
+        let pairings = tourn.create_pairings().unwrap();
         let rnds = tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound))
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)))
             .unwrap()
             .assume_pair();
         assert_eq!(rnds.len(), 2);
@@ -1041,8 +1046,9 @@ mod tests {
             .unwrap()
             .assume_nothing();
         // Pair the second round
+        let pairings = tourn.create_pairings().unwrap();
         tourn
-            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound))
+            .apply_op(Utc::now(), TournOp::AdminOp(admin.id, AdminOp::PairRound(pairings)))
             .unwrap()
             .assume_pair();
     }

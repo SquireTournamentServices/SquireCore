@@ -64,11 +64,18 @@ impl SwissPairings {
         }
         digest
     }
+    
+    /// Updates with incoming pairings.
+    pub fn update(&mut self, pairings: &Pairings) {
+        for p in pairings.paired.iter().flatten().chain(pairings.rejected.iter()) {
+            self.check_ins.remove(p);
+        }
+    }
 
     /// Attempts to create the next set of pairings.
     /// NOTE: This does not create new rounds, only pairings
     pub fn pair<S>(
-        &mut self,
+        &self,
         alg: PairingAlgorithm,
         players: &PlayerRegistry,
         matches: &RoundRegistry,

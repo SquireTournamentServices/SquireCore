@@ -4,7 +4,7 @@ use crate::{
     accounts::SquireAccount,
     identifiers::{PlayerId, RoundId},
     rounds::RoundResult,
-    settings::TournamentSetting,
+    settings::TournamentSetting, pairings::Pairings,
 };
 
 /// Operations that only tournament admin can perform
@@ -39,7 +39,7 @@ pub enum AdminOp {
     /// Operation to manually create a round
     CreateRound(Vec<PlayerId>),
     /// Operation to attempt to pair the next set of rounds
-    PairRound,
+    PairRound(Pairings),
     /// Operation to cut to the top N players (by standings)
     Cut(usize),
     /// Operation to prune excess decks from players
