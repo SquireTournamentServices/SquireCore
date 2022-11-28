@@ -149,7 +149,12 @@ impl RoundRegistry {
     }
 
     /// Creates a bye and gives it to a player
-    pub fn give_bye(&mut self, salt: DateTime<Utc>, plyr: PlayerId, context: RoundContext) -> RoundId {
+    pub fn give_bye(
+        &mut self,
+        salt: DateTime<Utc>,
+        plyr: PlayerId,
+        context: RoundContext,
+    ) -> RoundId {
         let match_num = self.rounds.len() as u64;
         let round = Round::new_bye(salt, plyr, match_num, self.length, context);
         let id = round.id;
@@ -159,7 +164,12 @@ impl RoundRegistry {
     }
 
     /// Creates a new round, fills it with players, and returns its id
-    pub fn create_round(&mut self, salt: DateTime<Utc>, plyrs: Vec<PlayerId>, context: RoundContext) -> RoundId {
+    pub fn create_round(
+        &mut self,
+        salt: DateTime<Utc>,
+        plyrs: Vec<PlayerId>,
+        context: RoundContext,
+    ) -> RoundId {
         // Sort players by their prior seating order. Lower seating order is means you last
         let plyrs: Vec<_> = plyrs
             .into_iter()
@@ -241,7 +251,7 @@ mod tests {
 
     use crate::{
         identifiers::id_from_item,
-        rounds::{RoundRegistry, RoundStatus, RoundContext},
+        rounds::{RoundContext, RoundRegistry, RoundStatus},
     };
 
     #[test]

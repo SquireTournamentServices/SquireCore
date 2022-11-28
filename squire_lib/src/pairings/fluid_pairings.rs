@@ -6,7 +6,7 @@ use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
     players::PlayerRegistry,
-    rounds::{RoundRegistry, RoundContext},
+    rounds::{RoundContext, RoundRegistry},
     settings::FluidPairingsSetting,
 };
 

@@ -9,7 +9,7 @@ mod tests {
         identifiers::UserAccountId,
         pairings::PairingSystem,
         players::PlayerRegistry,
-        rounds::{RoundRegistry, RoundResult, RoundContext},
+        rounds::{RoundContext, RoundRegistry, RoundResult},
         scoring::StandardScoring,
         settings::SwissPairingsSetting,
         tournament::TournamentPreset,
@@ -96,7 +96,11 @@ mod tests {
         assert_eq!(pairings.paired[0].len(), 4);
         assert_eq!(pairings.rejected.len(), 0);
         assert!(sys.ready_to_pair(&plyrs, &rnds));
-        let _id = rnds.create_round(Utc::now(), pairings.paired[0].clone(), RoundContext::Contextless);
+        let _id = rnds.create_round(
+            Utc::now(),
+            pairings.paired[0].clone(),
+            RoundContext::Contextless,
+        );
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
@@ -120,7 +124,8 @@ mod tests {
         assert_eq!(pairings.rejected.len(), 0);
         assert!(sys.ready_to_pair(&plyrs, &rnds));
         let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
-        let matches = rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
+        let matches =
+            rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
@@ -179,7 +184,8 @@ mod tests {
             count += 1;
             println!("The current count is {count}");
             let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
-            let matches = rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
+            let matches =
+                rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
             assert!(!rnds.opponents.is_empty());
             assert!(rnds
                 .opponents

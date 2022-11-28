@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 pub use crate::identifiers::RoundId;
 use crate::{
     error::TournamentError,
-    identifiers::{id_from_item, id_from_list, PlayerId}, pairings::swiss_pairings::SwissContext,
+    identifiers::{id_from_item, id_from_list, PlayerId},
+    pairings::swiss_pairings::SwissContext,
 };
 
 mod round_registry;
@@ -292,11 +293,11 @@ impl RoundContext {
                 }
             },
             Multiple(mut ctx) => match other {
-                Contextless => Multiple(ctx), 
+                Contextless => Multiple(ctx),
                 Swiss(context) => {
                     ctx.push(Swiss(context));
                     Multiple(ctx)
-                },
+                }
                 Multiple(context) => {
                     ctx.extend(context);
                     Multiple(ctx)

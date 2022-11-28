@@ -8,7 +8,7 @@ mod tests {
         identifiers::UserAccountId,
         pairings::PairingSystem,
         players::PlayerRegistry,
-        rounds::{RoundRegistry, RoundContext},
+        rounds::{RoundContext, RoundRegistry},
         scoring::{StandardScore, Standings},
         tournament::TournamentPreset,
     };
@@ -164,7 +164,11 @@ mod tests {
             sys.ready_player(*id);
         }
         let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
-        let id = rnds.create_round(Utc::now(), pairings.paired[0].clone(), RoundContext::Contextless);
+        let id = rnds.create_round(
+            Utc::now(),
+            pairings.paired[0].clone(),
+            RoundContext::Contextless,
+        );
         assert_eq!(rnds.opponents.len(), 4);
         println!("{:?}", rnds.get_round(&id).unwrap());
         // Everyone is paired, so there should be no round
@@ -188,7 +192,11 @@ mod tests {
         sys.update(&pairings);
         assert_eq!(pairings.paired.len(), 1);
         assert_eq!(pairings.rejected.len(), 0);
-        let _id = rnds.create_round(Utc::now(), pairings.paired[0].clone(), RoundContext::Contextless);
+        let _id = rnds.create_round(
+            Utc::now(),
+            pairings.paired[0].clone(),
+            RoundContext::Contextless,
+        );
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }

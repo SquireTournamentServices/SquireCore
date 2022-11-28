@@ -260,7 +260,9 @@ impl Tournament {
                 .then(|| *id)
                 .ok_or_else(|| TournamentError::RoundLookup),
             RoundIdentifier::Number(num) => self.round_reg.get_round_id(num),
-            RoundIdentifier::Table(num) => self.round_reg.round_from_table_number(*num).map(|r| r.id),
+            RoundIdentifier::Table(num) => {
+                self.round_reg.round_from_table_number(*num).map(|r| r.id)
+            }
         }
     }
 
@@ -578,7 +580,7 @@ impl Tournament {
             RoundStatus::Open if round.has_result() => {
                 round.status = RoundStatus::Certified;
                 Ok(OpData::Nothing)
-            },
+            }
             RoundStatus::Open => Err(TournamentError::NoMatchResult),
             RoundStatus::Certified | RoundStatus::Dead => Err(TournamentError::RoundConfirmed),
         }
@@ -722,7 +724,9 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let context = self.pairing_sys.get_context();
-        Ok(OpData::GiveBye(self.round_reg.give_bye(salt, plyr, context)))
+        Ok(OpData::GiveBye(
+            self.round_reg.give_bye(salt, plyr, context),
+        ))
     }
 
     /// Creates a new round from a list of players
