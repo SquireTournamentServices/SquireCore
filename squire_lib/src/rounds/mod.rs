@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub use crate::identifiers::RoundId;
 use crate::{
     error::TournamentError,
-    identifiers::{id_from_item, id_from_list, PlayerId},
+    identifiers::{id_from_item, id_from_list, PlayerId}, pairings::swiss_pairings::SwissContext,
 };
 
 mod round_registry;
@@ -38,6 +38,18 @@ pub enum RoundResult {
     Wins(PlayerId, u32),
     /// There was a drawn game in the round
     Draw(u32),
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Hash, PartialEq, Eq)]
+/// The context in which the round was created
+pub enum RoundContext {
+    /// No additional context available
+    #[default]
+    Contextless,
+    /// The context from the swiss pairings
+    Swiss(SwissContext),
+    /// The context from multiple sources
+    Multiple(Vec<RoundContext>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -74,6 +86,8 @@ pub struct Round {
     pub results: HashMap<PlayerId, u32>,
     /// The winner after certification, if one exists
     pub draws: u32,
+    /// The round context that the round was created in
+    pub context: RoundContext,
     pub(crate) timer: DateTime<Utc>,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
@@ -88,6 +102,7 @@ impl Round {
         match_num: u64,
         table_number: u64,
         len: Duration,
+        context: RoundContext,
     ) -> Self {
         let id = id_from_list(salt, players.iter());
         let confirmations = HashSet::with_capacity(players.len());
@@ -99,19 +114,26 @@ impl Round {
             players,
             confirmations,
             results,
+            context,
             draws: 0,
+            timer: salt,
+            length: len,
             status: RoundStatus::Open,
             drops: HashSet::new(),
             winner: None,
-            timer: salt,
-            length: len,
             extension: Duration::from_secs(0),
             is_bye: false,
         }
     }
 
     /// Creates a new bye round
-    pub fn new_bye(salt: DateTime<Utc>, plyr: PlayerId, match_num: u64, len: Duration) -> Self {
+    pub fn new_bye(
+        salt: DateTime<Utc>,
+        plyr: PlayerId,
+        match_num: u64,
+        len: Duration,
+        context: RoundContext,
+    ) -> Self {
         Round {
             id: id_from_item(salt, plyr),
             match_number: match_num,
@@ -127,6 +149,7 @@ impl Round {
             length: len,
             extension: Duration::from_secs(0),
             is_bye: true,
+            context,
         }
     }
 
@@ -217,20 +240,6 @@ impl Round {
         self.status = RoundStatus::Dead;
     }
 
-    /// Record the round as a bye. Only works if exactly one player is in the round.
-    pub fn record_bye(&mut self) -> Result<(), TournamentError> {
-        if self.players.len() != 1 {
-            Err(TournamentError::InvalidBye)
-        } else {
-            self.is_bye = true;
-            let plyr = *self.players.iter().next().unwrap();
-            self.confirmations.insert(plyr);
-            self.winner = Some(plyr);
-            self.status = RoundStatus::Certified;
-            Ok(())
-        }
-    }
-
     /// Calculates if the round is certified
     pub fn is_certified(&self) -> bool {
         self.status == RoundStatus::Certified
@@ -266,5 +275,33 @@ impl fmt::Display for RoundStatus {
                 Self::Dead => "Dead",
             }
         )
+    }
+}
+
+impl RoundContext {
+    /// Combines two round contexts
+    pub fn combine(self, other: Self) -> Self {
+        use RoundContext::*;
+        match self {
+            Contextless => other,
+            Swiss(ctx) => match other {
+                Contextless | Swiss(_) => Swiss(ctx),
+                Multiple(mut context) => {
+                    context.push(Swiss(ctx));
+                    Multiple(context)
+                }
+            },
+            Multiple(mut ctx) => match other {
+                Contextless => Multiple(ctx), 
+                Swiss(context) => {
+                    ctx.push(Swiss(context));
+                    Multiple(ctx)
+                },
+                Multiple(context) => {
+                    ctx.extend(context);
+                    Multiple(ctx)
+                }
+            },
+        }
     }
 }

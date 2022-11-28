@@ -6,7 +6,7 @@ use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
     players::PlayerRegistry,
-    rounds::RoundRegistry,
+    rounds::{RoundRegistry, RoundContext},
     settings::FluidPairingsSetting,
 };
 
@@ -46,6 +46,11 @@ impl FluidPairings {
         {
             self.queue.remove(index);
         }
+    }
+
+    /// Gets the round context for the system
+    pub fn get_context(&self) -> RoundContext {
+        RoundContext::Contextless
     }
 
     /// Updates a pairing setting

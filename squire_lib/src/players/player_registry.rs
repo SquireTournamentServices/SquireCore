@@ -149,8 +149,7 @@ impl PlayerRegistry {
 
     /// Sets the specified player's status to `Dropped`
     pub fn drop_player(&mut self, id: &PlayerId) -> Result<(), TournamentError> {
-        let plyr = self.get_mut_player(id)?;
-        plyr.update_status(PlayerStatus::Dropped);
+        self.get_mut_player(id)?.update_status(PlayerStatus::Dropped);
         Ok(())
     }
 

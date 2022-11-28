@@ -10,7 +10,7 @@ use crate::{
     identifiers::PlayerId,
     operations::{OpData, OpResult},
     players::PlayerRegistry,
-    rounds::RoundRegistry,
+    rounds::{RoundRegistry, RoundContext},
     scoring::{Score, Standings},
     settings::PairingSetting,
     tournament::TournamentPreset,
@@ -141,6 +141,15 @@ impl PairingSystem {
         match &self.style {
             Swiss(sys) => sys.ready_to_pair(self.match_size as usize, plyr_reg, rnd_reg),
             Fluid(sys) => sys.ready_to_pair(self.match_size as usize),
+        }
+    }
+    
+    /// Gets the round context for the system
+    pub fn get_context(&self) -> RoundContext {
+        use PairingStyle::*;
+        match &self.style {
+            Swiss(sys) => sys.get_context(),
+            Fluid(sys) => sys.get_context(),
         }
     }
 

@@ -8,16 +8,23 @@ use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
     players::PlayerRegistry,
-    rounds::RoundRegistry,
+    rounds::{RoundContext, RoundRegistry},
     scoring::{Score, Standings},
     settings::SwissPairingsSetting,
 };
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Hash, PartialEq, Eq)]
+/// The round context for swiss rounds
+pub struct SwissContext {
+    swiss_round_number: u8,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// Swiss pairings are the "traditional" pairings system for Magic tournaments
 pub struct SwissPairings {
     do_check_ins: bool,
     check_ins: HashSet<PlayerId>,
+    swiss_round_number: u8,
 }
 
 impl SwissPairings {
@@ -26,6 +33,7 @@ impl SwissPairings {
         SwissPairings {
             do_check_ins: false,
             check_ins: HashSet::new(),
+            swiss_round_number: 0,
         }
     }
 
@@ -65,8 +73,16 @@ impl SwissPairings {
         digest
     }
 
+    /// Gets the round context for the system
+    pub fn get_context(&self) -> RoundContext {
+        RoundContext::Swiss(SwissContext {
+            swiss_round_number: self.swiss_round_number,
+        })
+    }
+
     /// Updates with incoming pairings.
     pub fn update(&mut self, pairings: &Pairings) {
+        self.swiss_round_number += 1;
         for p in pairings
             .paired
             .iter()

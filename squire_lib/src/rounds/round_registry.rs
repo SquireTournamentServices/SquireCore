@@ -16,6 +16,8 @@ use crate::{
     rounds::Round,
 };
 
+use super::RoundContext;
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all rounds.
 pub struct RoundRegistry {
@@ -110,12 +112,10 @@ impl RoundRegistry {
         let players = rnd.players.clone();
         rnd.kill_round();
         for (i, plyr) in players.iter().enumerate() {
-            *self.seat_scores.get_mut(plyr).unwrap() -= i;
-            for p in &players {
-                if let Some(opps) = self.opponents.get_mut(plyr) {
-                    opps.remove(p);
-                }
-            }
+            self.seat_scores.entry(*plyr).and_modify(|n| *n -= i);
+            self.opponents
+                .entry(*plyr)
+                .and_modify(|opps| opps.retain(|o| !players.contains(o)));
         }
         Ok(())
     }
@@ -130,27 +130,28 @@ impl RoundRegistry {
         &mut self,
         salt: DateTime<Utc>,
         pairings: Pairings,
+        context: RoundContext,
     ) -> Vec<RoundId> {
         let mut digest = Vec::with_capacity(pairings.len());
         digest.extend(
             pairings
                 .paired
                 .into_iter()
-                .map(|p| self.create_round(salt, p)),
+                .map(|p| self.create_round(salt, p, context.clone())),
         );
         digest.extend(
             pairings
                 .rejected
                 .into_iter()
-                .map(|p| self.give_bye(salt, p)),
+                .map(|p| self.give_bye(salt, p, context.clone())),
         );
         digest
     }
 
     /// Creates a bye and gives it to a player
-    pub fn give_bye(&mut self, salt: DateTime<Utc>, plyr: PlayerId) -> RoundId {
+    pub fn give_bye(&mut self, salt: DateTime<Utc>, plyr: PlayerId, context: RoundContext) -> RoundId {
         let match_num = self.rounds.len() as u64;
-        let round = Round::new_bye(salt, plyr, match_num, self.length);
+        let round = Round::new_bye(salt, plyr, match_num, self.length, context);
         let id = round.id;
         self.num_and_id.insert(match_num, id);
         self.rounds.insert(id, round);
@@ -158,7 +159,7 @@ impl RoundRegistry {
     }
 
     /// Creates a new round, fills it with players, and returns its id
-    pub fn create_round(&mut self, salt: DateTime<Utc>, plyrs: Vec<PlayerId>) -> RoundId {
+    pub fn create_round(&mut self, salt: DateTime<Utc>, plyrs: Vec<PlayerId>, context: RoundContext) -> RoundId {
         // Sort players by their prior seating order. Lower seating order is means you last
         let plyrs: Vec<_> = plyrs
             .into_iter()
@@ -166,10 +167,8 @@ impl RoundRegistry {
             .sorted_by(|a, b| a.1.cmp(&b.1).reverse())
             .map(|(p, _)| p)
             .collect();
-        for (i, p) in plyrs.iter().enumerate() {
-            *self.seat_scores.get_mut(p).unwrap() += i;
-        }
-        for plyr in &plyrs {
+        for (i, plyr) in plyrs.iter().enumerate() {
+            self.seat_scores.entry(*plyr).and_modify(|n| *n += i);
             self.opponents
                 .entry(*plyr)
                 .or_default()
@@ -177,7 +176,7 @@ impl RoundRegistry {
         }
         let match_num = self.rounds.len() as u64;
         let table_number = self.get_table_number();
-        let round = Round::new(salt, plyrs, match_num, table_number, self.length);
+        let round = Round::new(salt, plyrs, match_num, table_number, self.length, context);
         let id = round.id;
         self.num_and_id.insert(match_num, id);
         self.rounds.insert(id, round);
@@ -242,7 +241,7 @@ mod tests {
 
     use crate::{
         identifiers::id_from_item,
-        rounds::{RoundRegistry, RoundStatus},
+        rounds::{RoundRegistry, RoundStatus, RoundContext},
     };
 
     #[test]
@@ -250,18 +249,18 @@ mod tests {
         for start in 0..3 {
             let mut reg = RoundRegistry::new(start, Duration::from_secs(10));
             assert_eq!(reg.get_table_number(), start);
-            let id_one = reg.create_round(Utc::now(), vec![]);
+            let id_one = reg.create_round(Utc::now(), vec![], RoundContext::Contextless);
             assert_eq!(reg.get_round(&id_one).unwrap().table_number, start);
             assert_eq!(reg.round_from_table_number(start).unwrap().id, id_one);
             assert_eq!(reg.get_table_number(), start + 1);
-            let id_two = reg.create_round(Utc::now(), vec![]);
+            let id_two = reg.create_round(Utc::now(), vec![], RoundContext::Contextless);
             assert_eq!(reg.get_round(&id_two).unwrap().table_number, start + 1);
             assert_eq!(reg.round_from_table_number(start + 1).unwrap().id, id_two);
             assert_eq!(reg.get_table_number(), start + 2);
             reg.get_mut_round(&id_one).unwrap().status = RoundStatus::Certified;
             assert_eq!(reg.get_table_number(), start);
             assert!(reg.round_from_table_number(start).is_err());
-            let id_three = reg.create_round(Utc::now(), vec![]);
+            let id_three = reg.create_round(Utc::now(), vec![], RoundContext::Contextless);
             assert_eq!(reg.get_round(&id_three).unwrap().table_number, start);
             assert_eq!(reg.round_from_table_number(start).unwrap().id, id_three);
             assert_eq!(reg.get_table_number(), start + 2);
@@ -276,12 +275,12 @@ mod tests {
         ];
         assert!(plyrs[0] != plyrs[1]);
         let mut reg = RoundRegistry::new(1, Duration::from_secs(10));
-        let id = reg.create_round(Utc::now(), plyrs.clone());
+        let id = reg.create_round(Utc::now(), plyrs.clone(), RoundContext::Contextless);
         let first_order = reg.get_round(&id).unwrap().players.clone();
         assert_eq!(plyrs, first_order);
         assert_eq!(0, *reg.seat_scores.get(&plyrs[0]).unwrap());
         assert_eq!(1, *reg.seat_scores.get(&plyrs[1]).unwrap());
-        let id = reg.create_round(Utc::now(), plyrs.clone());
+        let id = reg.create_round(Utc::now(), plyrs.clone(), RoundContext::Contextless);
         let second_order = reg.get_round(&id).unwrap().players.clone();
         assert!(plyrs != second_order);
         assert_eq!(1, *reg.seat_scores.get(&plyrs[0]).unwrap());

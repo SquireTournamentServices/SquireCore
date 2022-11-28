@@ -390,8 +390,9 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         self.pairing_sys.update(&pairings);
+        let context = self.pairing_sys.get_context();
         Ok(OpData::Pair(
-            self.round_reg.rounds_from_pairings(salt, pairings),
+            self.round_reg.rounds_from_pairings(salt, pairings, context),
         ))
     }
 
@@ -686,6 +687,7 @@ impl Tournament {
                 PairingStyle::Swiss(_) => false,
             };
         }
+        // FIXME: Pairings should be returned. Matches should not be created
         match should_pair {
             true => {
                 let standings = self.get_standings();
@@ -694,7 +696,8 @@ impl Tournament {
                     .pair(&self.player_reg, &self.round_reg, standings)
                 {
                     Some(pairings) => {
-                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings);
+                        let context = self.pairing_sys.get_context();
+                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings, context);
                         Ok(OpData::Pair(rounds))
                     }
                     None => Ok(OpData::Nothing),
@@ -718,7 +721,8 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        Ok(OpData::GiveBye(self.round_reg.give_bye(salt, plyr)))
+        let context = self.pairing_sys.get_context();
+        Ok(OpData::GiveBye(self.round_reg.give_bye(salt, plyr, context)))
     }
 
     /// Creates a new round from a list of players
@@ -729,8 +733,9 @@ impl Tournament {
         if plyrs.len() == self.pairing_sys.match_size as usize
             && plyrs.iter().all(|p| self.player_reg.is_registered(p))
         {
+            let context = self.pairing_sys.get_context();
             Ok(OpData::CreateRound(
-                self.round_reg.create_round(salt, plyrs),
+                self.round_reg.create_round(salt, plyrs, context),
             ))
         } else {
             Err(TournamentError::PlayerNotFound)
@@ -847,6 +852,7 @@ impl Tournament {
                 PairingStyle::Swiss(_) => false,
             };
         }
+        // FIXME: Pairings should be returned. Matches should not be created
         match should_pair {
             true => {
                 let standings = self.get_standings();
@@ -855,7 +861,8 @@ impl Tournament {
                     .pair(&self.player_reg, &self.round_reg, standings)
                 {
                     Some(pairings) => {
-                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings);
+                        let context = self.pairing_sys.get_context();
+                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings, context);
                         Ok(OpData::Pair(rounds))
                     }
                     None => Ok(OpData::Nothing),

@@ -190,18 +190,13 @@ impl StandardScoring {
             .iter()
             .map(|(id, _)| (*id, ScoreCounter::new(*id)))
             .collect();
-        for (_, round) in round_reg.rounds.iter() {
-            if !round.is_certified() {
-                continue;
-            }
-            if round.is_bye && !self.include_byes {
-                continue;
-            }
-            for p in round.players.iter() {
-                let counter = counters.get_mut(p).unwrap();
-                counter.add_round(round)
-            }
-        }
+        round_reg
+            .rounds
+            .values()
+            .filter(|r| r.is_certified())
+            .filter(|r| !r.is_bye() || self.include_byes)
+            .flat_map(|r| r.players.iter().map(move |p| (p, r)))
+            .for_each(|(p, r)| { counters.entry(*p).and_modify(|c| c.add_round(r)); });
         // We have tallied everyone's round results. Time to calculate everyone's scores
         let mut digest: HashMap<PlayerId, StandardScore> = HashMap::with_capacity(counters.len());
         for (id, counter) in &counters {
