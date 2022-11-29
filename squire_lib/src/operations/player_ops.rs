@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{players::Deck, rounds::RoundResult};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// Operations that players can perform
 pub enum PlayerOp {
     /// Operation for a player check themself into a tournament

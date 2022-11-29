@@ -21,7 +21,7 @@ use crate::{
 
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(C)]
 /// An enum that encode the initial values of a tournament
 pub enum TournamentPreset {
@@ -47,7 +47,7 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The core tournament structure
 pub struct Tournament {
     /// The tournament's id

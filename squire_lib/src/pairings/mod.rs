@@ -34,7 +34,7 @@ pub use greedy::greedy_pairings;
 pub use rotary::rotary_pairings;
 pub use swiss_pairings::SwissPairings;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A struct for communicating new pairings information
 pub struct Pairings {
     /// The players that are paired and their groupings
@@ -44,7 +44,7 @@ pub struct Pairings {
 }
 
 /// Encodes what algorithm will be used to pair players
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Hash, Copy, PartialEq, Eq)]
 pub enum PairingAlgorithm {
     /// This variant corresponds to the `greedy_pairings` function
     Greedy,

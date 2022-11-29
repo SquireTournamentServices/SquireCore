@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Operations that judges and tournament admin can perform
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
 pub enum JudgeOp {
     /// Operation for adding a guest player to a tournament (i.e. someone without an account)
     RegisterGuest(String),

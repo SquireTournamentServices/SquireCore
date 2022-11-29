@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use cycle_map::GroupMap;
 
 use crate::{
+    r64,
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
     players::PlayerRegistry,
@@ -113,7 +114,7 @@ impl SwissPairings {
         }
         let max_count = 100;
         let mut count = 0;
-        let plyrs_and_scores: Vec<(PlayerId, u64)> = standings
+        let plyrs_and_scores: Vec<(PlayerId, r64)> = standings
             .scores
             .drain(0..)
             .filter_map(|(p, s)| {
@@ -121,7 +122,7 @@ impl SwissPairings {
                     .get_player(&p.into())
                     .ok()?
                     .can_play()
-                    .then(|| (p, s.primary_score() as u64))
+                    .then(|| (p, s.primary_score()))
             })
             .rev()
             .collect();

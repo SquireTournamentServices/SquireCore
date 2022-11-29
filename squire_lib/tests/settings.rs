@@ -45,7 +45,7 @@ mod tests {
                 UpdateTournSetting(TournamentSetting::MinDeckCount(2))
             ))
             .is_ok());
-        assert_eq!(2, tourn.get_state().min_deck_count);
+        assert_eq!(2, tourn.tourn().min_deck_count);
         assert!(tourn
             .apply_op(TournOp::AdminOp(
                 admin_id,
@@ -58,7 +58,7 @@ mod tests {
                 UpdateTournSetting(TournamentSetting::MaxDeckCount(42))
             ))
             .is_ok());
-        assert_eq!(42, tourn.get_state().max_deck_count);
+        assert_eq!(42, tourn.tourn().max_deck_count);
     }
 
     #[test]

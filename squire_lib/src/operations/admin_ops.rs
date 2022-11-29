@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Operations that only tournament admin can perform
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
 pub enum AdminOp {
     /// Operation to check the registration status of the tournament
     UpdateReg(bool),

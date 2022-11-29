@@ -1,12 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
-    identifiers::{AdminId, OpId, PlayerId},
+    identifiers::{AdminId, OpId, PlayerId, id_from_item},
     rounds::{RoundId, RoundStatus},
     tournament::TournamentPreset,
 };
@@ -19,7 +18,7 @@ pub use admin_ops::AdminOp;
 pub use judge_ops::JudgeOp;
 pub use player_ops::PlayerOp;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
 /// This enum captures all ways in which a tournament can mutate.
 pub enum TournOp {
     /// Operation to mark the creation of a tournament
@@ -93,7 +92,7 @@ pub enum SyncStatus {
     SyncError(SyncError),
     /// There are discrepancies in between the two logs that are being synced
     InProgress(Blockage),
-    /// The logs have been successfully syncs
+    /// The logs have been successfully synced
     Completed(OpSync),
 }
 
@@ -285,6 +284,7 @@ impl OpLog {
     /// Removes all elements in the log starting at the first index of the given slice. All
     /// operations in the slice are then appended to the end of the log.
     pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
+        // TODO: Reject empty op slices
         let slice = self.slice_from_slice(&ops)?;
         let id = slice.start_id().unwrap();
         let index = self.ops.iter().position(|o| o.id == id).unwrap();
@@ -341,6 +341,7 @@ impl OpLog {
     /// Returns Err if the starting op id of the given log can't be found in this log.
     /// Otherwise, Ok is returned and contains a SyncStatus
     pub fn sync(&mut self, other: OpSync) -> SyncStatus {
+        // TODO: Reject empty op syncs
         let slice = match self.slice_from_slice(&other.ops) {
             Ok(s) => s,
             Err(e) => {
@@ -494,10 +495,12 @@ impl From<OpSync> for SyncStatus {
 impl FullOp {
     /// Creates a new FullOp from an existing TournOp
     pub fn new(op: TournOp) -> Self {
+        let salt = Utc::now();
+        let id = id_from_item(salt, &op);
         Self {
             op,
-            id: OpId::new(Uuid::new_v4()),
-            salt: Utc::now(),
+            id,
+            salt,
             active: true,
         }
     }

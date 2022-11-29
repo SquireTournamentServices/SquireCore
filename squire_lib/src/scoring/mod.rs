@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::identifiers::PlayerId;
+use crate::{r64, identifiers::PlayerId};
 
 /// Contains the models for the standard score
 pub mod standard_scoring;
@@ -13,10 +13,10 @@ where
     Self: ToString,
 {
     /// Returns the primary value of the score
-    fn primary_score(&self) -> f64;
+    fn primary_score(&self) -> r64;
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An enum that encodes all the possible scoring systems a tournament can have.
 /// (So many, much wow)
 pub enum ScoringSystem {
