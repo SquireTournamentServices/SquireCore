@@ -184,7 +184,7 @@ impl RoundRegistry {
                 .or_default()
                 .extend(plyrs.iter().filter(|p| *p != plyr));
         }
-        let match_num = self.rounds.len() as u64;
+        let match_num = 1 + self.rounds.len() as u64;
         let table_number = self.get_table_number();
         let round = Round::new(salt, plyrs, match_num, table_number, self.length, context);
         let id = round.id;
