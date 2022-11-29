@@ -33,6 +33,7 @@ pub struct RoundRegistry {
     /// The length of new round
     pub length: Duration,
     /// The players' seating scores, for seeded table ordering
+    #[serde(default)]
     seat_scores: HashMap<PlayerId, usize>,
 }
 

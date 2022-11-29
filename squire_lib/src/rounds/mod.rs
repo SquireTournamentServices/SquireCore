@@ -88,6 +88,7 @@ pub struct Round {
     /// The winner after certification, if one exists
     pub draws: u32,
     /// The round context that the round was created in
+    #[serde(default)]
     pub context: RoundContext,
     pub(crate) timer: DateTime<Utc>,
     pub(crate) length: Duration,

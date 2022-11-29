@@ -24,6 +24,7 @@ pub struct SwissContext {
 pub struct SwissPairings {
     do_check_ins: bool,
     check_ins: HashSet<PlayerId>,
+    #[serde(default)]
     swiss_round_number: u8,
 }
 
