@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{players::Deck, rounds::RoundResult};
+use crate::{players::Deck, rounds::RoundResult, identifiers::PlayerId};
+
+use super::OpGroup;
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// Operations that players can perform
@@ -23,4 +25,14 @@ pub enum PlayerOp {
     ReadyPlayer,
     /// Operation for a player to mark themself as unready for their next round
     UnReadyPlayer,
+}
+
+impl PlayerOp {
+    pub(crate) fn affects(&self, id: PlayerId) -> OpGroup {
+        todo!()
+    }
+    
+    pub(crate) fn requires(&self, id: PlayerId) -> OpGroup {
+        todo!()
+    }
 }

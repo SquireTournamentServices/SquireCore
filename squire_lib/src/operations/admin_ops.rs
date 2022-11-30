@@ -2,10 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     accounts::SquireAccount,
-    identifiers::{PlayerId, RoundId},
+    identifiers::{PlayerId, RoundId, AdminId},
     pairings::Pairings,
     rounds::RoundResult,
     settings::TournamentSetting,
+    operations::OpGroup
 };
 
 /// Operations that only tournament admin can perform
@@ -49,4 +50,14 @@ pub enum AdminOp {
     PrunePlayers,
     /// Operation to confirm the results of all active rounds
     ConfirmAllRounds,
+}
+
+impl AdminOp {
+    pub(crate) fn affects(&self, id: AdminId) -> OpGroup {
+        todo!()
+    }
+    
+    pub(crate) fn requires(&self, id: AdminId) -> OpGroup {
+        todo!()
+    }
 }

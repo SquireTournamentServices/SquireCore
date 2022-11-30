@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     accounts::SquireAccount,
+    admin::TournOfficialId,
     identifiers::{PlayerId, RoundId},
+    operations::OpGroup,
     players::Deck,
     rounds::RoundResult,
 };
@@ -34,4 +36,14 @@ pub enum JudgeOp {
     TimeExtension(RoundId, Duration),
     /// Confirms the round result for all players
     ConfirmRound(RoundId),
+}
+
+impl JudgeOp {
+    pub(crate) fn affects(&self) -> OpGroup {
+        todo!()
+    }
+
+    pub(crate) fn requires(&self, id: TournOfficialId) -> OpGroup {
+        todo!()
+    }
 }

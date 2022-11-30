@@ -77,7 +77,7 @@ pub enum PlayerIdentifier {
     Name(String),
 }
 
-#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 /// An enum for identifying a round
 pub enum RoundIdentifier {
     /// The round's id

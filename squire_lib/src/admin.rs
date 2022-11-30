@@ -5,7 +5,7 @@ use crate::{
     identifiers::{AdminId, JudgeId},
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// An enum that encodes the ids of tournaments officials
 pub enum TournOfficialId {
     /// A judge's id
