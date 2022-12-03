@@ -193,6 +193,12 @@ impl<T> Display for TypeId<T> {
     }
 }
 
+impl Default for RoundIdentifier {
+    fn default() -> Self {
+        RoundIdentifier::Number(Default::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

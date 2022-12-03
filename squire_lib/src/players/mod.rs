@@ -11,11 +11,12 @@ use crate::{accounts::SquireAccount, error::TournamentError};
 mod player_registry;
 pub use player_registry::PlayerRegistry;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 #[repr(C)]
 /// The registration status of a player
 pub enum PlayerStatus {
     /// The player is registered for the tournament
+    #[default]
     Registered,
     /// The player has been dropped from the tournament
     Dropped,

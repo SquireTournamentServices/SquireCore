@@ -31,7 +31,7 @@ pub enum TournamentPreset {
     Fluid,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 /// An enum that encodes all the statuses of a tournament
 pub enum TournamentStatus {
@@ -122,8 +122,8 @@ impl Tournament {
     fn apply_player_op(&mut self, salt: DateTime<Utc>, p_id: PlayerId, op: PlayerOp) -> OpResult {
         match op {
             PlayerOp::CheckIn => self.check_in(p_id),
-            PlayerOp::RecordResult(result) => self.record_result(&p_id, result),
-            PlayerOp::ConfirmResult => self.confirm_round(p_id),
+            PlayerOp::RecordResult(r_id, result) => self.record_result(&r_id, result),
+            PlayerOp::ConfirmResult(r_id) => self.confirm_round(r_id, p_id),
             PlayerOp::DropPlayer => self.drop_player(p_id),
             PlayerOp::AddDeck(name, deck) => self.player_add_deck(&p_id, name, deck),
             PlayerOp::RemoveDeck(name) => self.remove_player_deck(&p_id, name),
@@ -220,6 +220,16 @@ impl Tournament {
             TournOfficialId::Judge(id) => self.is_judge(id),
             TournOfficialId::Admin(id) => self.is_admin(id),
         }
+    }
+    
+    /// Calculates the number of players in the tournament, regardless of status
+    pub fn get_player_count(&self) -> usize {
+        self.player_reg.players.len()
+    }
+    
+    /// Calculates the number of rounds in the tournament, regardless of status
+    pub fn get_round_count(&self) -> usize {
+        self.round_reg.rounds.len()
     }
 
     /// Gets a copy of a player's registration data
@@ -551,23 +561,21 @@ impl Tournament {
     }
 
     /// Records part of the result of a round
-    pub(crate) fn record_result(&mut self, id: &PlayerId, result: RoundResult) -> OpResult {
+    pub(crate) fn record_result(&mut self, r_id: &RoundId, result: RoundResult) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let round = self.round_reg.get_player_active_round(id)?;
-        round.record_result(result)?;
+        self.round_reg.get_mut_round(r_id)?.record_result(result)?;
         Ok(OpData::Nothing)
     }
 
     /// A player confirms the round record
-    pub(crate) fn confirm_round(&mut self, id: PlayerId) -> OpResult {
+    pub(crate) fn confirm_round(&mut self, r_id: RoundId, p_id: PlayerId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let round = self.round_reg.get_player_active_round(&id)?;
-        let status = round.confirm_round(id)?;
-        Ok(OpData::ConfirmResult(round.id, status))
+        let status = self.round_reg.get_mut_round(&r_id)?.confirm_round(p_id)?;
+        Ok(OpData::ConfirmResult(r_id, status))
     }
 
     /// A judge or admin confirms the result of a match
@@ -1055,7 +1063,7 @@ mod tests {
                 Utc::now(),
                 TournOp::PlayerOp(
                     plyrs[0],
-                    PlayerOp::RecordResult(RoundResult::Wins(plyrs[0], 1)),
+                    PlayerOp::RecordResult(rnds[0], RoundResult::Wins(plyrs[0], 1)),
                 ),
             )
             .unwrap()
@@ -1070,7 +1078,7 @@ mod tests {
             tourn
                 .apply_op(
                     Utc::now(),
-                    TournOp::PlayerOp(p, PlayerOp::RecordResult(RoundResult::Wins(p, 1))),
+                    TournOp::PlayerOp(p, PlayerOp::RecordResult(rnds[1], RoundResult::Wins(p, 1))),
                 )
                 .unwrap()
                 .assume_nothing();

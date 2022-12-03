@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+#![allow(dead_code, unused_variables)]
+use std::borrow::Cow;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -197,19 +198,37 @@ pub(crate) enum OpEffects {
 /// Encodes the ways in which an operation can affect players
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub(crate) enum OpPlayerEffects {
-    Single(PlayerId),
-    SingleActive(PlayerId),
-    Multiple,
-    MultipleActive,
+    Single(PlayerId, PlayerEffectComponent),
+    SingleActive(PlayerId, PlayerEffectComponent),
+    All(PlayerEffectComponent),
+    AllActive(PlayerEffectComponent),
+}
+
+/// Encodes the what an operation affects about a player
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub(crate) enum PlayerEffectComponent {
+    Nothing,
+    Deck(String),
+    Status,
+    CheckIn,
 }
 
 /// Encodes the ways in which an operation can affect rounds
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub(crate) enum OpRoundEffects {
-    Single(RoundId),
-    SingleActive(RoundId),
-    Multiple,
-    MultipleActive,
+    Single(RoundId, RoundEffectComponent),
+    SingleActive(RoundId, RoundEffectComponent),
+    All(RoundEffectComponent),
+    AllActive(RoundEffectComponent),
+}
+
+/// Encodes the what an operation affects about a player
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub(crate) enum RoundEffectComponent {
+    Nothing,
+    Result(Option<PlayerId>),
+    Confirmation,
+    Status,
 }
 
 /// Encodes the ways in which an operation can affect rounds
@@ -220,7 +239,7 @@ pub(crate) enum OpAdminEffects {
 }
 
 pub(crate) struct OpGroup {
-    pub(crate) effects: HashSet<OpEffects>,
+    pub(crate) effects: Cow<'static, [OpEffects]>,
 }
 
 impl TournOp {
@@ -232,10 +251,10 @@ impl TournOp {
     fn affects(&self) -> OpGroup {
         match self {
             TournOp::Create(..) => OpGroup {
-                effects: HashSet::new(),
+                effects: Cow::Borrowed(&[]),
             },
             TournOp::RegisterPlayer(..) => OpGroup {
-                effects: HashSet::new(),
+                effects: Cow::Borrowed(&[]),
             },
             TournOp::PlayerOp(p_id, op) => op.affects(*p_id),
             TournOp::JudgeOp(_, op) => op.affects(),
@@ -246,15 +265,11 @@ impl TournOp {
     fn requires(&self) -> OpGroup {
         match self {
             TournOp::Create(..) => OpGroup {
-                effects: HashSet::new(),
+                effects: Cow::Borrowed(&[]),
             },
-            TournOp::RegisterPlayer(account) => {
-                let mut effects = HashSet::with_capacity(1);
-                effects.insert(OpEffects::Player(OpPlayerEffects::Single(
-                    (*account.user_id).into(),
-                )));
-                OpGroup { effects }
-            }
+            TournOp::RegisterPlayer(account) => OpGroup {
+                effects: Cow::Borrowed(&[]),
+            },
             TournOp::PlayerOp(p_id, op) => op.requires(*p_id),
             TournOp::JudgeOp(to_id, op) => op.requires(*to_id),
             TournOp::AdminOp(a_id, op) => op.requires(*a_id),

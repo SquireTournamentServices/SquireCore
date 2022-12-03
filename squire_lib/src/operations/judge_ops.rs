@@ -40,10 +40,46 @@ pub enum JudgeOp {
 
 impl JudgeOp {
     pub(crate) fn affects(&self) -> OpGroup {
-        todo!()
+        match self {
+            JudgeOp::RegisterGuest(name) => {
+                todo!()
+            },
+            JudgeOp::ReRegisterGuest(name) => {
+                todo!()
+            },
+            JudgeOp::AdminRegisterPlayer(account) => {
+                todo!()
+            },
+            JudgeOp::AdminRecordResult(r_id, result) => {
+                todo!()
+            },
+            JudgeOp::AdminConfirmResult(r_id, p_id) => {
+                todo!()
+            },
+            JudgeOp::AdminAddDeck(p_id, name, deck) => {
+                todo!()
+            },
+            JudgeOp::AdminRemoveDeck(p_id, name) => {
+                todo!()
+            },
+            JudgeOp::AdminReadyPlayer(p_id) => {
+                todo!()
+            },
+            JudgeOp::AdminUnReadyPlayer(p_id) => {
+                todo!()
+            },
+            JudgeOp::TimeExtension(r_id, dur) => {
+                todo!()
+            },
+            JudgeOp::ConfirmRound(r_id) => {
+                todo!()
+            },
+        }
     }
 
     pub(crate) fn requires(&self, id: TournOfficialId) -> OpGroup {
-        todo!()
+        match self {
+            _ => todo!()
+        }
     }
 }

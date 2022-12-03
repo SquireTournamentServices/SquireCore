@@ -11,18 +11,19 @@ use serde::{Deserialize, Serialize};
 pub use crate::identifiers::RoundId;
 use crate::{
     error::TournamentError,
-    identifiers::{id_from_item, id_from_list, PlayerId},
+    identifiers::{id_from_item, id_from_list, PlayerId, RoundIdentifier},
     pairings::swiss_pairings::SwissContext,
 };
 
 mod round_registry;
 pub use round_registry::RoundRegistry;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
 #[repr(C)]
 /// The status of a round has exactly four states. This enum encodes them
 pub enum RoundStatus {
     /// The round is still active and nothing has been recorded
+    #[default]
     Open,
     /// All results are in and all players have certified the result
     Certified,
@@ -152,6 +153,15 @@ impl Round {
             extension: Duration::from_secs(0),
             is_bye: true,
             context,
+        }
+    }
+    
+    /// Calculates if an identifier matches data in this round
+    pub fn match_ident(&self, ident: RoundIdentifier) -> bool {
+        match ident {
+            RoundIdentifier::Id(id) => self.id == id,
+            RoundIdentifier::Number(num) => self.match_number == num,
+            RoundIdentifier::Table(num) => self.table_number == num,
         }
     }
 
