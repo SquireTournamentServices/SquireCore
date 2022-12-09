@@ -15,12 +15,26 @@
 
 use serde::{Deserialize, Serialize};
 
-pub use squire_lib;
+/// The module wraps and re-exports the squire_lib crate
+pub mod model {
+    pub use squire_lib::*;
+}
+
+mod card_requests;
+
+/// The module wraps and re-exports key parts of the mtgjson crate
+pub mod cards {
+    pub use squire_lib::players::Deck;
+
+    pub use mtgjson as model;
+    
+    pub use mtgjson::mtgjson::{atomics, meta};
+
+    pub use crate::card_requests::*;
+}
 
 /// Request/response structs for SquireCore account apis
 pub mod accounts;
-/// Request/response structs for SquireCore card apis
-pub mod cards;
 /// The errors used by this library
 pub mod error;
 /// Request/response structs for SquireCore tournament player apis

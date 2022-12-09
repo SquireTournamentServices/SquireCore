@@ -1,33 +1,41 @@
+use axum::Json;
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
-use rocket::{get, post, serde::json::Json};
 
-use uuid::Uuid;
-
-use squire_lib::{
+use squire_sdk::model::{
     accounts::{OrganizationAccount, SquireAccount},
-    identifiers::{AdminId, OrganizationAccountId, UserAccountId},
+    identifiers::{AdminId, OrganizationAccountId as OrgId, UserAccountId},
 };
 
 use squire_sdk::{
     accounts::{
         GetAllUsersResponse, GetOrgResponse, GetUserPermissionsResponse, GetUserResponse,
         UpdateOrgAccountRequest, UpdateOrgAccountResponse, UpdateSquireAccountRequest,
-        UpdateSquireAccountResponse,
+        UpdateSquireAccountResponse, CreateAccountRequest, CreateAccountResponse,
     },
     Action,
 };
 
 pub static USERS_MAP: OnceCell<DashMap<UserAccountId, SquireAccount>> = OnceCell::new();
-pub static ORGS_MAP: OnceCell<DashMap<OrganizationAccountId, OrganizationAccount>> =
-    OnceCell::new();
+pub static ORGS_MAP: OnceCell<DashMap<OrgId, OrganizationAccount>> = OnceCell::new();
 
-#[get("/users/get/<id>")]
-pub fn users(id: Uuid) -> GetUserResponse {
-    GetUserResponse::new(USERS_MAP.get().unwrap().get(&id.into()).map(|a| a.clone()))
+pub async fn register(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
+    todo!()
 }
 
-#[get("/users/get/all")]
+pub async fn login(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
+    todo!()
+}
+
+pub async fn logout(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
+    todo!()
+}
+
+pub fn users(id: UserAccountId) -> GetUserResponse {
+    GetUserResponse::new(USERS_MAP.get().unwrap().get(&id).map(|a| a.clone()))
+}
+
+//#[get("/users/get/all")]
 pub fn all_users() -> GetAllUsersResponse {
     let map = USERS_MAP
         .get()
@@ -38,20 +46,20 @@ pub fn all_users() -> GetAllUsersResponse {
     GetAllUsersResponse::new(map)
 }
 
-#[get("/users/get/<id>/permissions")]
-pub fn user_permissions(id: Uuid) -> GetUserPermissionsResponse {
+//#[get("/users/get/<id>/permissions")]
+pub fn user_permissions(id: UserAccountId) -> GetUserPermissionsResponse {
     GetUserPermissionsResponse::new(
         USERS_MAP
             .get()
             .unwrap()
-            .get_mut(&id.into())
+            .get_mut(&id)
             .map(|user| user.permissions),
     )
 }
 
-#[post("/users/update/<id>", format = "json", data = "<data>")]
+//#[post("/users/update/<id>", format = "json", data = "<data>")]
 pub fn update_user_account(
-    id: Uuid,
+    id: UserAccountId,
     data: Json<UpdateSquireAccountRequest>,
 ) -> UpdateSquireAccountResponse {
     let mut digest = USERS_MAP.get().unwrap().get_mut(&id.into());
@@ -75,12 +83,12 @@ pub fn update_user_account(
     UpdateSquireAccountResponse::new(digest.map(|user| user.clone()))
 }
 
-#[post("/orgs/update/<id>", format = "json", data = "<data>")]
+//#[post("/orgs/update/<id>", format = "json", data = "<data>")]
 pub fn update_org_account(
-    id: Uuid,
+    id: OrgId,
     data: Json<UpdateOrgAccountRequest>,
 ) -> UpdateOrgAccountResponse {
-    let mut digest = ORGS_MAP.get().unwrap().get_mut(&id.into());
+    let mut digest = ORGS_MAP.get().unwrap().get_mut(&id);
 
     if let Some(org) = digest.as_mut() {
         if let Some(name) = data.0.display_name {
@@ -114,7 +122,7 @@ pub fn update_org_account(
     UpdateOrgAccountResponse::new(digest.map(|org| org.clone()))
 }
 
-#[get("/orgs/get/<id>")]
-pub fn orgs(id: Uuid) -> GetOrgResponse {
-    GetOrgResponse::new(ORGS_MAP.get().unwrap().get(&id.into()).map(|a| a.clone()))
+//#[get("/orgs/get/<id>")]
+pub fn orgs(id: OrgId) -> GetOrgResponse {
+    GetOrgResponse::new(ORGS_MAP.get().unwrap().get(&id).map(|a| a.clone()))
 }

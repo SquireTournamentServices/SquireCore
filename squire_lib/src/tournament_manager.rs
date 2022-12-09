@@ -22,7 +22,7 @@ use crate::{
 /// The manager holds the current tournament and can recreate any meaningful prior state.
 ///
 /// This is the primary synchronization primative between tournaments.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TournamentManager {
     tourn: Tournament,
     log: OpLog,

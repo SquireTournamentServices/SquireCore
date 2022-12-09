@@ -1058,12 +1058,13 @@ mod tests {
             .unwrap()
             .assume_pair();
         assert_eq!(rnds.len(), 2);
+        let r_id = tourn.round_reg.get_player_active_round(&plyrs[0]).unwrap().id;
         tourn
             .apply_op(
                 Utc::now(),
                 TournOp::PlayerOp(
                     plyrs[0],
-                    PlayerOp::RecordResult(rnds[0], RoundResult::Wins(plyrs[0], 1)),
+                    PlayerOp::RecordResult(r_id, RoundResult::Wins(plyrs[0], 1)),
                 ),
             )
             .unwrap()
@@ -1075,10 +1076,11 @@ mod tests {
             )
             .is_err());
         for p in plyrs {
+            let r_id = tourn.round_reg.get_player_active_round(&p).unwrap().id;
             tourn
                 .apply_op(
                     Utc::now(),
-                    TournOp::PlayerOp(p, PlayerOp::RecordResult(rnds[1], RoundResult::Wins(p, 1))),
+                    TournOp::PlayerOp(p, PlayerOp::RecordResult(r_id, RoundResult::Wins(p, 1))),
                 )
                 .unwrap()
                 .assume_nothing();

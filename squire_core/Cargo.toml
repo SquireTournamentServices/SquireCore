@@ -8,30 +8,19 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [dependencies]
 # In-House deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
-squire_lib = { path = "../squire_lib" }
-squire_sdk = { path = "../squire_sdk" }
+squire_sdk = { path = "../squire_sdk", features = ["server"] }
 cycle_map = { version = "0.1.1", features = ["serde"] }
 
-rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "tls", "json"] }
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
+axum = { version = "0.6.1", features = ["json", "macros", "headers"]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.68" }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 once_cell = { version = "1.13.0" }
 dashmap = { version = "5.0", features = ["serde"] }
-reqwest = { version = "0.11.10", features = ["json"] }
-#hyper = { version = "0.14.20" }
-#hyper-tls = { version = "0.5" }
-
-# For future use
-#anyhow = { version = "1.0" }
-#juniper = { version = "0.15.7" }
-#juniper_rocket = { version = "0.8.0" }
-#serde_derive = { version = "1.0" }
-#actix-web = { version = "1.0.0" }
-#diesel = { version = "1.0.0", features = ["postgres"] }
-#dotenv = { version = "0.9.0" }
-#env_logger = { version = "0.6" }
-#futures = { version = "0.1" }
-#tricebot = { git = "https://github.com/TylerBloom/tricebot-sdk", branch = "main" }
+reqwest = { version = "0.11", features = ["json"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+async-session = "3.0.0"
+headers = "0.3"
+http = "0.2"
+# oauth2 = "4.1"

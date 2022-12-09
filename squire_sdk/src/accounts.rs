@@ -12,10 +12,23 @@ pub use squire_lib::{
     identifiers::{OrganizationAccountId, UserAccountId},
 };
 
-/// The response type used by the `accounts/users/` SC GET API.
+/// The response type used by the `accounts/register`
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateAccountRequest {
+    /// The name that's displayed on the user's account
+    pub user_name: String,
+    /// The name that's displayed on the user's account
+    pub display_name: String,
+}
+
+/// The response type returned by the `account/register`
+pub type CreateAccountResponse = SquireResponse<SquireAccount>;
+
+
+/// The response type returned by the `accounts/users/` SC GET API.
 pub type GetAllUsersResponse = SquireResponse<HashMap<UserAccountId, SquireAccount>>;
 
-/// The response type used by the `accounts/users/<id>` SC GET API.
+/// The response type returned by the `accounts/users/<id>` SC GET API.
 pub type GetUserResponse = SquireResponse<Option<SquireAccount>>;
 
 /// The response type used by the `accounts/users/perms` SC GET API.

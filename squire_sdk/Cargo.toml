@@ -6,16 +6,17 @@ license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [features]
-default = ["rocket", "mtgjson/hyper", "mtgjson/hyper-tls", "squire_lib/deck_sites"]
+default = ["server", "mtgjson/hyper", "mtgjson/hyper-tls", "squire_lib/deck_sites"]
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
 wasm = ["squire_lib/wasm"]
+server = ["axum", "serde_json"]
 
 [dependencies]
 # In-House deps
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
 squire_lib = { path = "../squire_lib", default-features = false }
 
-rocket = { version = "0.5.0-rc.1", optional = true }
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0.68" }
+
+serde_json = { version = "1.0.68", optional = true }
+axum = { version = "0.6.1", default-features = false, optional = true }

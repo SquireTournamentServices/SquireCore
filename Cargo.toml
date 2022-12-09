@@ -4,5 +4,4 @@ members = [
     "squire_lib",
     "squire_core",
     "squire_sdk",
-    "squire_view",
 ]
