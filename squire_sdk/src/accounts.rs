@@ -9,7 +9,7 @@ use crate::Action;
 
 pub use squire_lib::{
     accounts::{OrganizationAccount, Platform, SharingPermissions, SquireAccount},
-    identifiers::{OrganizationAccountId, UserAccountId},
+    identifiers::{OrganizationAccountId, SquireAccountId},
 };
 
 /// The response type used by the `accounts/register`
@@ -24,9 +24,18 @@ pub struct CreateAccountRequest {
 /// The response type returned by the `account/register`
 pub type CreateAccountResponse = SquireResponse<SquireAccount>;
 
+/// The response type used by the `accounts/register`
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginRequest {
+    /// The name that's displayed on the user's account
+    pub id: SquireAccountId,
+}
+
+/// The response type returned by the `account/register`
+pub type LoginResponse = SquireResponse<Option<SquireAccount>>;
 
 /// The response type returned by the `accounts/users/` SC GET API.
-pub type GetAllUsersResponse = SquireResponse<HashMap<UserAccountId, SquireAccount>>;
+pub type GetAllUsersResponse = SquireResponse<HashMap<SquireAccountId, SquireAccount>>;
 
 /// The response type returned by the `accounts/users/<id>` SC GET API.
 pub type GetUserResponse = SquireResponse<Option<SquireAccount>>;

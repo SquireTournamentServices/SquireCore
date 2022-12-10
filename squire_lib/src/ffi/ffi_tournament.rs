@@ -7,7 +7,7 @@ use crate::{
     accounts::SquireAccount,
     admin::Admin,
     ffi::{clone_string_to_c_string, copy_to_system_pointer, print_err, SQUIRE_RUNTIME},
-    identifiers::{AdminId, PlayerId, RoundId, TournamentId, UserAccountId},
+    identifiers::{AdminId, PlayerId, RoundId, TournamentId, SquireAccountId},
     operations::{AdminOp, OpData, TournOp},
     pairings::PairingStyle,
     scoring::StandardScore,
@@ -132,11 +132,11 @@ impl TournamentId {
         self,
         __name: *const c_char,
         aid: AdminId,
-        uid: UserAccountId,
+        uid: SquireAccountId,
     ) -> bool {
         let name = unsafe { CStr::from_ptr(__name).to_str().unwrap() };
         let mut account = SquireAccount::new(name.to_string(), name.to_string());
-        account.user_id = uid;
+        account.id = uid;
         let admin = Admin::new(account);
 
         match SQUIRE_RUNTIME.get().unwrap().mutate_tournament(self, |t| {

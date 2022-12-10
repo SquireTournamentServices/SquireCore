@@ -37,7 +37,7 @@ impl Judge {
     pub fn new(account: SquireAccount) -> Self {
         Self {
             name: account.get_user_name(),
-            id: account.get_user_id().0.into(),
+            id: account.id.0.into(),
         }
     }
 }
@@ -47,7 +47,7 @@ impl Admin {
     pub fn new(account: SquireAccount) -> Self {
         Self {
             name: account.get_user_name(),
-            id: account.get_user_id().0.into(),
+            id: account.id.0.into(),
         }
     }
 }

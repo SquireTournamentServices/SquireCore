@@ -20,11 +20,13 @@ pub static META_CACHE: OnceCell<RwLock<Meta>> = OnceCell::new();
 /// The latest collection of atomic cards
 pub static ATOMICS_MAP: OnceCell<RwLock<Atomics>> = OnceCell::new();
 
+#[axum::debug_handler]
 pub async fn meta() -> MetaResponse {
     let meta: Meta = META_CACHE.get().unwrap().read().await.clone();
     MetaResponse::new(meta)
 }
 
+#[axum::debug_handler]
 pub async fn atomics() -> AtomicCardsResponse {
     let meta: Meta = META_CACHE.get().unwrap().read().await.clone();
     let atomics: Atomics = ATOMICS_MAP.get().unwrap().read().await.clone();

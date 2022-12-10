@@ -58,7 +58,7 @@ pub type RoundId = TypeId<Round>;
 /// A type-checked Uuid for tournaments
 pub type TournamentId = TypeId<Tournament>;
 /// A type-checked Uuid for user accounts
-pub type UserAccountId = TypeId<SquireAccount>;
+pub type SquireAccountId = TypeId<SquireAccount>;
 /// A type-checked Uuid for org accounts
 pub type OrganizationAccountId = TypeId<OrganizationAccount>;
 /// A type-checked Uuid for tournament operations

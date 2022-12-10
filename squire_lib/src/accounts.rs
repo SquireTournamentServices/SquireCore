@@ -3,7 +3,7 @@ use std::{collections::HashMap, hash::Hash};
 use uuid::Uuid;
 
 use crate::{
-    identifiers::{AdminId, OrganizationAccountId, UserAccountId},
+    identifiers::{AdminId, OrganizationAccountId, SquireAccountId},
     operations::{AdminOp, TournOp},
     settings::TournamentSettingsTree,
     tournament::TournamentPreset,
@@ -51,7 +51,7 @@ pub struct SquireAccount {
     /// The name of the user on MTG Arena
     pub gamer_tags: HashMap<Platform, String>,
     /// The user's Id
-    pub user_id: UserAccountId,
+    pub id: SquireAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
     pub permissions: SharingPermissions,
 }
@@ -68,9 +68,9 @@ pub struct OrganizationAccount {
     /// The owner of the account
     pub owner: SquireAccount,
     /// A list of accounts that will be added as judges to new tournaments
-    pub default_judges: HashMap<UserAccountId, SquireAccount>,
+    pub default_judges: HashMap<SquireAccountId, SquireAccount>,
     /// A list of accounts that will be added as tournament admins to new tournaments
-    pub default_admins: HashMap<UserAccountId, SquireAccount>,
+    pub default_admins: HashMap<SquireAccountId, SquireAccount>,
     /// The default settings for new tournaments
     pub default_tournament_settings: TournamentSettingsTree,
 }
@@ -82,7 +82,7 @@ impl SquireAccount {
             display_name,
             user_name,
             gamer_tags: HashMap::new(),
-            user_id: Uuid::new_v4().into(),
+            id: SquireAccountId::new(Uuid::new_v4()),
             permissions: SharingPermissions::default(),
         }
     }
@@ -137,11 +137,6 @@ impl SquireAccount {
         self.display_name.clear()
     }
 
-    /// Gets the user ID
-    pub fn get_user_id(&self) -> UserAccountId {
-        self.user_id
-    }
-
     /// Gets the Sharing Permissions
     pub fn get_current_permissions(&self) -> SharingPermissions {
         self.permissions.clone()
@@ -185,7 +180,7 @@ impl OrganizationAccount {
         format: String,
     ) -> TournamentManager {
         let mut tourn = TournamentManager::new(self.owner.clone(), name, preset, format);
-        let owner_id: AdminId = self.owner.user_id.0.into();
+        let owner_id: AdminId = self.owner.id.0.into();
         for judge in self.default_judges.values().cloned() {
             // Should never error
             let _ = tourn.apply_op(TournOp::AdminOp(owner_id, AdminOp::RegisterJudge(judge)));
@@ -204,21 +199,21 @@ impl OrganizationAccount {
 
     /// Update judges
     pub fn update_judges(&mut self, judge: SquireAccount) {
-        self.default_judges.insert(judge.user_id, judge);
+        self.default_judges.insert(judge.id, judge);
     }
 
     /// Update admins
     pub fn update_admins(&mut self, admin: SquireAccount) {
-        self.default_admins.insert(admin.user_id, admin);
+        self.default_admins.insert(admin.id, admin);
     }
 
     /// Remove an Admin
-    pub fn delete_admin(&mut self, id: UserAccountId) {
+    pub fn delete_admin(&mut self, id: SquireAccountId) {
         self.default_admins.remove(&id);
     }
 
     /// Remove a Judge
-    pub fn delete_judge(&mut self, id: UserAccountId) {
+    pub fn delete_judge(&mut self, id: SquireAccountId) {
         self.default_judges.remove(&id);
     }
 
@@ -235,6 +230,6 @@ impl OrganizationAccount {
 
 impl Hash for SquireAccount {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.user_id.hash(state)
+        self.id.hash(state)
     }
 }

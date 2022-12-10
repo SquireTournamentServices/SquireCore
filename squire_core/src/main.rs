@@ -1,3 +1,4 @@
+#![feature(trivial_bounds)]
 #![allow(unused)]
 
 use std::{env, net::SocketAddr, time::Duration};
@@ -17,64 +18,52 @@ use dashmap::DashMap;
 use http::{header, request::Parts};
 use tokio::sync::RwLock;
 
-use squire_sdk::{accounts::SquireAccount, cards::atomics::Atomics, tournaments::{CreateTournamentResponse, CreateTournamentRequest}};
+use squire_sdk::{
+    accounts::SquireAccount,
+    cards::atomics::Atomics,
+    tournaments::{CreateTournamentRequest, CreateTournamentResponse},
+};
 
 static COOKIE_NAME: &str = "SESSION";
 
 #[cfg(test)]
 mod tests;
 
-//mod accounts;
-//mod matches;
-//mod players;
 mod accounts;
 mod cards;
 mod tournaments;
 
-//use players::*;
 use accounts::*;
-use cards::*;
+use cards::MetaChecker;
 use tournaments::*;
 
-pub async fn init() -> Router {
+pub async fn init() {
     let atomics: Atomics = reqwest::get("https://mtgjson.com/api/v5/AtomicCards.json")
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    ATOMICS_MAP.set(RwLock::new(atomics)).unwrap();
+    cards::ATOMICS_MAP.set(RwLock::new(atomics)).unwrap();
     let meta: MetaChecker = reqwest::get("https://mtgjson.com/api/v5/Meta.json")
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    META_CACHE.set(RwLock::new(meta.meta)).unwrap();
+    cards::META_CACHE.set(RwLock::new(meta.meta)).unwrap();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(1800));
         interval.tick().await;
         loop {
             interval.tick().await;
-            update_cards().await;
+            cards::update_cards().await;
         }
     });
-    // `MemoryStore` is just used as an example. Don't use this in production.
-    let app_state = AppState {
-        store: MemoryStore::new(),
-    };
 
-    //let _ = USERS_MAP.set(DashMap::new());
-    //let _ = ORGS_MAP.set(DashMap::new());
-    let _ = TOURNS_MAP.set(DashMap::new());
-    Router::new()
-        .route("/api/v1/tournaments/create", post(create_tournament))
-        .route("/api/v1/tournaments/:t_id", get(get_tournament))
-        .route("/api/v1/tournaments/:t_id/sync", post(sync))
-        .route("/api/v1/tournaments/:t_id/rollback", post(rollback))
-        .route("/api/v1/cards", get(atomics))
-        .route("/api/v1/meta", get(meta))
-        .with_state(app_state)
+    accounts::USERS_MAP.set(DashMap::new()).unwrap();
+
+    TOURNS_MAP.set(DashMap::new()).unwrap();
 }
 
 #[tokio::main]
@@ -87,23 +76,23 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let _ = init().await;
+    init().await;
+
     // `MemoryStore` is just used as an example. Don't use this in production.
     let app_state = AppState {
         store: MemoryStore::new(),
     };
 
-    //let _ = USERS_MAP.set(DashMap::new());
-    //let _ = ORGS_MAP.set(DashMap::new());
-    let _ = TOURNS_MAP.set(DashMap::new());
     let app = Router::new()
         .route("/api/v1/tournaments/create", post(create_tournament))
         .route("/api/v1/tournaments/:t_id", get(get_tournament))
         .route("/api/v1/tournaments/:t_id/sync", post(sync))
         .route("/api/v1/tournaments/:t_id/rollback", post(rollback))
-        .route("/api/v1/cards", get(atomics))
-        .route("/api/v1/meta", get(meta))
+        .route("/api/v1/register", post(accounts::register))
+        .route("/api/v1/cards", get(cards::atomics))
+        .route("/api/v1/meta", get(cards::meta))
         .with_state(app_state);
+
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     println!("Starting server!!");
     axum::Server::bind(&addr)
@@ -123,7 +112,7 @@ impl FromRef<AppState> for MemoryStore {
     }
 }
 
-struct AuthRedirect;
+pub struct AuthRedirect;
 
 impl IntoResponse for AuthRedirect {
     fn into_response(self) -> Response {
@@ -131,8 +120,8 @@ impl IntoResponse for AuthRedirect {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct User {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct User {
     account: SquireAccount,
 }
 
@@ -171,12 +160,3 @@ where
         Ok(user)
     }
 }
-
-#[axum::debug_handler]
-pub async fn create_tournament(user: User, Json(data): Json<CreateTournamentRequest>) -> CreateTournamentResponse {
-    let tourn = user.account.create_tournament(data.name, data.preset, data.format);
-    let id = tourn.id;
-    TOURNS_MAP.get().unwrap().insert(id, tourn.clone());
-    CreateTournamentResponse::new(tourn)
-}
-
