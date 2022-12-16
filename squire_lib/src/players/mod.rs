@@ -11,11 +11,12 @@ use crate::{accounts::SquireAccount, error::TournamentError};
 mod player_registry;
 pub use player_registry::PlayerRegistry;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 #[repr(C)]
 /// The registration status of a player
 pub enum PlayerStatus {
     /// The player is registered for the tournament
+    #[default]
     Registered,
     /// The player has been dropped from the tournament
     Dropped,
@@ -59,7 +60,7 @@ impl Player {
     /// Creates a new player
     pub fn from_account(account: SquireAccount) -> Self {
         Player {
-            id: account.get_user_id().0.into(),
+            id: account.id.0.into(),
             name: account.get_user_name(),
             game_name: Some(account.get_display_name()),
             deck_ordering: Vec::new(),
@@ -70,8 +71,9 @@ impl Player {
 
     /// Adds a deck to the player
     pub fn add_deck(&mut self, name: String, deck: Deck) {
-        self.deck_ordering.push(name.clone());
-        self.decks.insert(name, deck);
+        self.decks.insert(name.clone(), deck);
+        self.deck_ordering.retain(|n| n != &name);
+        self.deck_ordering.push(name);
     }
 
     /// Gets a specific deck from the player
@@ -81,14 +83,11 @@ impl Player {
 
     /// Removes a deck from the player
     pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
-        if self.decks.contains_key(&name) {
-            let index = self.deck_ordering.iter().position(|n| n == &name).unwrap();
-            self.deck_ordering.remove(index);
-            self.decks.remove(&name);
-            Ok(())
-        } else {
-            Err(TournamentError::DeckLookup)
-        }
+        self.decks
+            .remove(&name)
+            .ok_or(TournamentError::DeckLookup)?;
+        self.deck_ordering.retain(|n| n != &name);
+        Ok(())
     }
 
     /// Sets the status of the player

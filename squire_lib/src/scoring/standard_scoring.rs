@@ -6,6 +6,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    r64,
     identifiers::PlayerId,
     players::PlayerRegistry,
     rounds::{Round, RoundRegistry},
@@ -18,17 +19,17 @@ use crate::{
 /// The score type used by the standard scoring system
 pub struct StandardScore {
     /// The number of match points a player has
-    pub match_points: f64,
+    pub match_points: r64,
     /// The number of game points a player has
-    pub game_points: f64,
+    pub game_points: r64,
     /// The match win percentage of a player
-    pub mwp: f64,
+    pub mwp: r64,
     /// The game win percentage of a player
-    pub gwp: f64,
+    pub gwp: r64,
     /// The average match win percentage of a player's opponents
-    pub opp_mwp: f64,
+    pub opp_mwp: r64,
     /// The average game win percentage of a player's opponents
-    pub opp_gwp: f64,
+    pub opp_gwp: r64,
     /// Whether or not match points should be considered
     pub include_match_points: bool,
     /// Whether or not game points should be considered
@@ -47,29 +48,29 @@ pub struct StandardScore {
 /// A counter used to track player info while calculating scores
 struct ScoreCounter {
     pub(crate) player: PlayerId,
-    pub(crate) games: u64,
-    pub(crate) game_wins: u64,
-    pub(crate) game_losses: u64,
-    pub(crate) game_draws: u64,
-    pub(crate) rounds: u64,
-    pub(crate) wins: u64,
-    pub(crate) losses: u64,
-    pub(crate) draws: u64,
-    pub(crate) byes: u64,
+    pub(crate) games: i32,
+    pub(crate) game_wins: i32,
+    pub(crate) game_losses: i32,
+    pub(crate) game_draws: i32,
+    pub(crate) rounds: i32,
+    pub(crate) wins: i32,
+    pub(crate) losses: i32,
+    pub(crate) draws: i32,
+    pub(crate) byes: i32,
     pub(crate) opponents: HashSet<PlayerId>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 /// The scoring stuct that uses the standard match point model
 pub struct StandardScoring {
-    match_win_points: f64,
-    match_draw_points: f64,
-    match_loss_points: f64,
-    game_win_points: f64,
-    game_draw_points: f64,
-    game_loss_points: f64,
-    bye_points: f64,
+    match_win_points: r64,
+    match_draw_points: r64,
+    match_loss_points: r64,
+    game_win_points: r64,
+    game_draw_points: r64,
+    game_loss_points: r64,
+    bye_points: r64,
     include_byes: bool,
     include_match_points: bool,
     include_game_points: bool,
@@ -83,13 +84,13 @@ impl StandardScoring {
     /// Creates a new standard scorig system
     pub fn new() -> Self {
         StandardScoring {
-            match_win_points: 3.0,
-            match_draw_points: 1.0,
-            match_loss_points: 0.0,
-            game_win_points: 3.0,
-            game_draw_points: 1.0,
-            game_loss_points: 0.0,
-            bye_points: 3.0,
+            match_win_points: r64::from_integer(3),
+            match_draw_points: r64::from_integer(1),
+            match_loss_points: r64::from_integer(0),
+            game_win_points: r64::from_integer(3),
+            game_draw_points: r64::from_integer(1),
+            game_loss_points: r64::from_integer(0),
+            bye_points: r64::from_integer(3),
             include_byes: true,
             include_match_points: true,
             include_game_points: true,
@@ -111,23 +112,23 @@ impl StandardScoring {
         )
     }
 
-    fn calculate_match_points_with_byes(&self, counter: &ScoreCounter) -> f64 {
-        self.match_win_points * (counter.wins as f64)
-            + self.match_draw_points * (counter.draws as f64)
-            + self.match_loss_points * (counter.losses as f64)
-            + self.bye_points * (counter.byes as f64)
+    fn calculate_match_points_with_byes(&self, counter: &ScoreCounter) -> r64 {
+        self.match_win_points * counter.wins
+            + self.match_draw_points * counter.draws
+            + self.match_loss_points * counter.losses
+            + self.bye_points * counter.byes
     }
 
-    fn calculate_match_points_without_byes(&self, counter: &ScoreCounter) -> f64 {
-        self.match_win_points * (counter.wins as f64)
-            + self.match_draw_points * (counter.draws as f64)
-            + self.match_loss_points * (counter.losses as f64)
+    fn calculate_match_points_without_byes(&self, counter: &ScoreCounter) -> r64 {
+        self.match_win_points * counter.wins
+            + self.match_draw_points * counter.draws
+            + self.match_loss_points * counter.losses
     }
 
-    fn calculate_game_points(&self, counter: &ScoreCounter) -> f64 {
-        self.game_win_points * (counter.game_wins as f64)
-            + self.game_draw_points * (counter.game_draws as f64)
-            + self.game_loss_points * (counter.game_losses as f64)
+    fn calculate_game_points(&self, counter: &ScoreCounter) -> r64 {
+        self.game_win_points * counter.game_wins
+            + self.game_draw_points * counter.game_draws
+            + self.game_loss_points * counter.game_losses
     }
 
     /// Updates a single scoring setting
@@ -190,18 +191,15 @@ impl StandardScoring {
             .iter()
             .map(|(id, _)| (*id, ScoreCounter::new(*id)))
             .collect();
-        for (_, round) in round_reg.rounds.iter() {
-            if !round.is_certified() {
-                continue;
-            }
-            if round.is_bye && !self.include_byes {
-                continue;
-            }
-            for p in round.players.iter() {
-                let counter = counters.get_mut(p).unwrap();
-                counter.add_round(round)
-            }
-        }
+        round_reg
+            .rounds
+            .values()
+            .filter(|r| r.is_certified())
+            .filter(|r| !r.is_bye() || self.include_byes)
+            .flat_map(|r| r.players.iter().map(move |p| (p, r)))
+            .for_each(|(p, r)| {
+                counters.entry(*p).and_modify(|c| c.add_round(r));
+            });
         // We have tallied everyone's round results. Time to calculate everyone's scores
         let mut digest: HashMap<PlayerId, StandardScore> = HashMap::with_capacity(counters.len());
         for (id, counter) in &counters {
@@ -211,8 +209,8 @@ impl StandardScoring {
             // If your only round was a bye, your percentages stay at 0
             // This also filters out folks that haven't played a match yet
             if counter.rounds != counter.byes {
-                score.mwp = score.match_points / (self.match_win_points * (counter.rounds as f64));
-                score.gwp = score.game_points / (self.game_win_points * (counter.games as f64));
+                score.mwp = score.match_points / (self.match_win_points * counter.rounds);
+                score.gwp = score.game_points / (self.game_win_points * counter.games);
             }
             digest.insert(*id, score);
         }
@@ -222,10 +220,10 @@ impl StandardScoring {
             if counter.rounds == counter.byes {
                 continue;
             }
-            let mut opp_mp: f64 = 0.0;
-            let mut opp_matches: u64 = 0;
-            let mut opp_gp: f64 = 0.0;
-            let mut opp_games: u64 = 0;
+            let mut opp_mp: r64 = Default::default();
+            let mut opp_matches: i32 = 0;
+            let mut opp_gp: r64 = Default::default();
+            let mut opp_games: i32 = 0;
             for plyr in counter.opponents.iter().filter(|i| *i != id) {
                 opp_mp += self.calculate_match_points_without_byes(&counters[plyr]);
                 opp_matches += counters[plyr].rounds - counters[plyr].byes;
@@ -233,14 +231,14 @@ impl StandardScoring {
                 opp_games += counters[plyr].games;
             }
             digest.get_mut(id).unwrap().opp_mwp = if opp_matches == 0 {
-                0.0
+                Default::default()
             } else {
-                opp_mp / (self.match_win_points * opp_matches as f64)
+                opp_mp / (self.match_win_points * opp_matches)
             };
             digest.get_mut(id).unwrap().opp_gwp = if opp_games == 0 {
-                0.0
+                Default::default()
             } else {
-                opp_gp / (self.game_win_points * opp_games as f64)
+                opp_gp / (self.game_win_points * opp_games)
             };
         }
         let mut results: Vec<(PlayerId, StandardScore)> = digest
@@ -262,12 +260,12 @@ impl StandardScore {
         include_opp_gwp: bool,
     ) -> Self {
         StandardScore {
-            match_points: 0.0,
-            game_points: 0.0,
-            mwp: 0.0,
-            gwp: 0.0,
-            opp_mwp: 0.0,
-            opp_gwp: 0.0,
+            match_points: Default::default(),
+            game_points: Default::default(),
+            mwp: Default::default(),
+            gwp: Default::default(),
+            opp_mwp: Default::default(),
+            opp_gwp: Default::default(),
             include_match_points,
             include_game_points,
             include_mwp,
@@ -279,7 +277,7 @@ impl StandardScore {
 }
 
 impl Score for StandardScore {
-    fn primary_score(&self) -> f64 {
+    fn primary_score(&self) -> r64 {
         self.match_points
     }
 }
@@ -356,26 +354,26 @@ impl ScoreCounter {
         }
         for (p_id, count) in &round.results {
             if p_id == &self.player {
-                self.game_wins += *count as u64;
+                self.game_wins += *count as i32;
             } else {
-                self.game_losses += *count as u64;
+                self.game_losses += *count as i32;
             }
         }
     }
 
-    fn add_win(&mut self, players: &HashSet<PlayerId>) {
+    fn add_win(&mut self, players: &Vec<PlayerId>) {
         self.wins += 1;
         self.games += 1;
         self.opponents.extend(players.clone());
     }
 
-    fn add_loss(&mut self, players: &HashSet<PlayerId>) {
+    fn add_loss(&mut self, players: &Vec<PlayerId>) {
         self.losses += 1;
         self.games += 1;
         self.opponents.extend(players.clone());
     }
 
-    fn add_draw(&mut self, players: &HashSet<PlayerId>) {
+    fn add_draw(&mut self, players: &Vec<PlayerId>) {
         self.draws += 1;
         self.games += 1;
         self.opponents.extend(players.clone());

@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
     use std::{collections::HashMap, time::Duration};
     use uuid::Uuid;
 
@@ -8,7 +9,7 @@ mod tests {
         identifiers::UserAccountId,
         pairings::PairingSystem,
         players::PlayerRegistry,
-        rounds::{RoundRegistry, RoundResult},
+        rounds::{RoundContext, RoundRegistry, RoundResult},
         scoring::StandardScoring,
         settings::SwissPairingsSetting,
         tournament::TournamentPreset,
@@ -95,10 +96,11 @@ mod tests {
         assert_eq!(pairings.paired[0].len(), 4);
         assert_eq!(pairings.rejected.len(), 0);
         assert!(sys.ready_to_pair(&plyrs, &rnds));
-        let id = rnds.create_round();
-        for p in &pairings.paired[0] {
-            rnds.add_player_to_round(&id, *p).unwrap();
-        }
+        let _id = rnds.create_round(
+            Utc::now(),
+            pairings.paired[0].clone(),
+            RoundContext::Contextless,
+        );
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
@@ -122,17 +124,8 @@ mod tests {
         assert_eq!(pairings.rejected.len(), 0);
         assert!(sys.ready_to_pair(&plyrs, &rnds));
         let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
-        let matches: Vec<_> = pairings
-            .paired
-            .iter()
-            .map(|pairing| {
-                let r_id = rnds.create_round();
-                for p in pairing {
-                    rnds.add_player_to_round(&r_id, *p).unwrap();
-                }
-                r_id
-            })
-            .collect();
+        let matches =
+            rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
@@ -191,21 +184,13 @@ mod tests {
             count += 1;
             println!("The current count is {count}");
             let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
-            let mut matches: Vec<_> = Vec::with_capacity(winners.len());
-            for pairing in &pairings.paired {
-                let r_id = rnds.create_round();
-                matches.push(r_id);
-                for p in pairing {
-                    rnds.add_player_to_round(&r_id, *p).unwrap();
-                }
-            }
+            let matches =
+                rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
             assert!(!rnds.opponents.is_empty());
-            assert!(rnds.opponents
+            assert!(rnds
+                .opponents
                 .iter()
-                .map(
-                    |(id, new)| last_opps.get(id).map(|o| o.len()).unwrap_or(0) + 3
-                        == new.len()
-                )
+                .map(|(id, new)| last_opps.get(id).map(|o| o.len()).unwrap_or(0) + 3 == new.len())
                 .reduce(|a, b| a && b)
                 .unwrap());
             last_opps = rnds.opponents.clone();

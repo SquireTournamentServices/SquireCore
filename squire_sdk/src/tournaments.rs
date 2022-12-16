@@ -12,14 +12,14 @@ pub use squire_lib::{
 
 use squire_lib::{
     identifiers::OpId,
-    operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus},
+    operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus}, tournament_manager::TournamentManager,
 };
 
 use crate::response::SquireResponse;
 
 /// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
 /// requested tournament might not be found.
-pub type GetTournamentResponse = SquireResponse<Option<Tournament>>;
+pub type GetTournamentResponse = SquireResponse<Option<TournamentManager>>;
 
 /// The response type used by the `tournaments/all` SC API. The inner data is a map between
 /// tournament id and tournament objects.
@@ -39,7 +39,7 @@ pub struct CreateTournamentRequest {
 
 /// The response type used by the `tournaments/all` SC API. The inner data is the newly created
 /// tournament object.
-pub type CreateTournamentResponse = SquireResponse<Tournament>;
+pub type CreateTournamentResponse = SquireResponse<TournamentManager>;
 
 /// The response type used by the `tournaments/<id>/standings` SC API. The option encodes that the
 /// requested tournament might not be found. The inner data is the sorted standings from the

@@ -5,7 +5,7 @@ use crate::{
     identifiers::{AdminId, JudgeId},
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// An enum that encodes the ids of tournaments officials
 pub enum TournOfficialId {
     /// A judge's id
@@ -37,7 +37,7 @@ impl Judge {
     pub fn new(account: SquireAccount) -> Self {
         Self {
             name: account.get_user_name(),
-            id: account.get_user_id().0.into(),
+            id: account.id.0.into(),
         }
     }
 }
@@ -47,7 +47,7 @@ impl Admin {
     pub fn new(account: SquireAccount) -> Self {
         Self {
             name: account.get_user_name(),
-            id: account.get_user_id().0.into(),
+            id: account.id.0.into(),
         }
     }
 }

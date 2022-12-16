@@ -7,23 +7,24 @@ use std::{
 use chrono::{DateTime, Utc};
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 pub use crate::identifiers::RoundId;
-use crate::{error::TournamentError, identifiers::PlayerId};
+use crate::{
+    error::TournamentError,
+    identifiers::{id_from_item, id_from_list, PlayerId, RoundIdentifier},
+    pairings::swiss_pairings::SwissContext,
+};
 
 mod round_registry;
 pub use round_registry::RoundRegistry;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
 #[repr(C)]
 /// The status of a round has exactly four states. This enum encodes them
 pub enum RoundStatus {
     /// The round is still active and nothing has been recorded
+    #[default]
     Open,
-    /// At least one result has been recorded, but there are players that have yet to certify the
-    /// result
-    Uncertified,
     /// All results are in and all players have certified the result
     Certified,
     /// The round is no long consider to be part of the tournament, but is not deleted to prevent
@@ -39,6 +40,18 @@ pub enum RoundResult {
     Wins(PlayerId, u32),
     /// There was a drawn game in the round
     Draw(u32),
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Hash, PartialEq, Eq)]
+/// The context in which the round was created
+pub enum RoundContext {
+    /// No additional context available
+    #[default]
+    Contextless,
+    /// The context from the swiss pairings
+    Swiss(SwissContext),
+    /// The context from multiple sources
+    Multiple(Vec<RoundContext>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -62,7 +75,7 @@ pub struct Round {
     /// The table number the round is assigned to (for paper tournaments)
     pub table_number: u64,
     /// The set of players playing against each other
-    pub players: HashSet<PlayerId>,
+    pub players: Vec<PlayerId>,
     /// The status of the round
     pub status: RoundStatus,
     /// The winner after certification, if one exists
@@ -75,6 +88,9 @@ pub struct Round {
     pub results: HashMap<PlayerId, u32>,
     /// The winner after certification, if one exists
     pub draws: u32,
+    /// The round context that the round was created in
+    #[serde(default)]
+    pub context: RoundContext,
     pub(crate) timer: DateTime<Utc>,
     pub(crate) length: Duration,
     pub(crate) extension: Duration,
@@ -83,22 +99,69 @@ pub struct Round {
 
 impl Round {
     /// Creates a new round
-    pub fn new(match_num: u64, table_number: u64, len: Duration) -> Self {
+    pub fn new(
+        salt: DateTime<Utc>,
+        players: Vec<PlayerId>,
+        match_num: u64,
+        table_number: u64,
+        len: Duration,
+        context: RoundContext,
+    ) -> Self {
+        let id = id_from_list(salt, players.iter());
+        let confirmations = HashSet::with_capacity(players.len());
+        let results = HashMap::with_capacity(players.len());
         Round {
-            id: RoundId::new(Uuid::new_v4()),
+            id,
             match_number: match_num,
             table_number,
-            players: HashSet::with_capacity(4),
-            confirmations: HashSet::with_capacity(4),
-            results: HashMap::with_capacity(3),
+            players,
+            confirmations,
+            results,
+            context,
             draws: 0,
+            timer: salt,
+            length: len,
             status: RoundStatus::Open,
             drops: HashSet::new(),
             winner: None,
-            timer: Utc::now(),
-            length: len,
             extension: Duration::from_secs(0),
             is_bye: false,
+        }
+    }
+
+    /// Creates a new bye round
+    pub fn new_bye(
+        salt: DateTime<Utc>,
+        plyr: PlayerId,
+        match_num: u64,
+        len: Duration,
+        context: RoundContext,
+    ) -> Self {
+        Round {
+            id: id_from_item(salt, plyr),
+            match_number: match_num,
+            table_number: 0,
+            players: vec![plyr],
+            confirmations: HashSet::new(),
+            results: HashMap::new(),
+            draws: 0,
+            status: RoundStatus::Certified,
+            drops: HashSet::new(),
+            winner: Some(plyr),
+            timer: salt,
+            length: len,
+            extension: Duration::from_secs(0),
+            is_bye: true,
+            context,
+        }
+    }
+    
+    /// Calculates if an identifier matches data in this round
+    pub fn match_ident(&self, ident: RoundIdentifier) -> bool {
+        match ident {
+            RoundIdentifier::Id(id) => self.id == id,
+            RoundIdentifier::Number(num) => self.match_number == num,
+            RoundIdentifier::Table(num) => self.table_number == num,
         }
     }
 
@@ -118,16 +181,11 @@ impl Round {
         self.extension += dur;
     }
 
-    /// Adds a player to the round
-    pub fn add_player(&mut self, player: PlayerId) {
-        self.players.insert(player);
+    /// Removes a player's need to confirm the result
+    pub fn drop_player(&mut self, plyr: &PlayerId) {
+        self.drops.retain(|p| p != plyr);
     }
 
-    /// Removes a player's need to confirm the result
-    pub fn remove_player(&mut self, player: PlayerId) {
-        self.drops.insert(player);
-    }
-    
     /// Calculates if there is a result recorded for the match
     pub fn has_result(&self) -> bool {
         self.draws != 0 || self.results.values().sum::<u32>() != 0
@@ -194,20 +252,6 @@ impl Round {
         self.status = RoundStatus::Dead;
     }
 
-    /// Record the round as a bye. Only works if exactly one player is in the round.
-    pub fn record_bye(&mut self) -> Result<(), TournamentError> {
-        if self.players.len() != 1 {
-            Err(TournamentError::InvalidBye)
-        } else {
-            self.is_bye = true;
-            let plyr = *self.players.iter().next().unwrap();
-            self.confirmations.insert(plyr);
-            self.winner = Some(plyr);
-            self.status = RoundStatus::Certified;
-            Ok(())
-        }
-    }
-
     /// Calculates if the round is certified
     pub fn is_certified(&self) -> bool {
         self.status == RoundStatus::Certified
@@ -221,7 +265,7 @@ impl Round {
     /// Calculates if the round is certified
     pub fn is_active(&self) -> bool {
         match self.status {
-            RoundStatus::Open | RoundStatus::Uncertified => true,
+            RoundStatus::Open => true,
             RoundStatus::Certified | RoundStatus::Dead => false,
         }
     }
@@ -239,10 +283,37 @@ impl fmt::Display for RoundStatus {
             "{}",
             match self {
                 Self::Open => "Open",
-                Self::Uncertified => "Uncertified",
                 Self::Certified => "Certified",
                 Self::Dead => "Dead",
             }
         )
+    }
+}
+
+impl RoundContext {
+    /// Combines two round contexts
+    pub fn combine(self, other: Self) -> Self {
+        use RoundContext::*;
+        match self {
+            Contextless => other,
+            Swiss(ctx) => match other {
+                Contextless | Swiss(_) => Swiss(ctx),
+                Multiple(mut context) => {
+                    context.push(Swiss(ctx));
+                    Multiple(context)
+                }
+            },
+            Multiple(mut ctx) => match other {
+                Contextless => Multiple(ctx),
+                Swiss(context) => {
+                    ctx.push(Swiss(context));
+                    Multiple(ctx)
+                }
+                Multiple(context) => {
+                    ctx.extend(context);
+                    Multiple(ctx)
+                }
+            },
+        }
     }
 }

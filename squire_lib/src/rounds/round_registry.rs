@@ -3,6 +3,7 @@ use std::{
     time::Duration,
 };
 
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -11,8 +12,11 @@ use cycle_map::CycleMap;
 use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
     identifiers::{PlayerId, RoundId},
+    pairings::Pairings,
     rounds::Round,
 };
+
+use super::RoundContext;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all rounds.
@@ -28,6 +32,9 @@ pub struct RoundRegistry {
     pub starting_table: u64,
     /// The length of new round
     pub length: Duration,
+    /// The players' seating scores, for seeded table ordering
+    #[serde(default)]
+    seat_scores: HashMap<PlayerId, usize>,
 }
 
 impl RoundRegistry {
@@ -39,6 +46,7 @@ impl RoundRegistry {
             opponents: HashMap::new(),
             starting_table,
             length: len,
+            seat_scores: HashMap::new(),
         }
     }
 
@@ -61,6 +69,14 @@ impl RoundRegistry {
             .get_right(n)
             .cloned()
             .ok_or_else(|| TournamentError::RoundLookup)
+    }
+
+    /// Gets a round's id by its match number
+    pub fn round_from_table_number(&self, n: u64) -> Result<&Round, TournamentError> {
+        self.rounds
+            .values()
+            .find(|r| r.table_number == n && r.is_active())
+            .ok_or(TournamentError::RoundLookup)
     }
 
     pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {
@@ -96,12 +112,11 @@ impl RoundRegistry {
         let rnd = self.get_mut_round(ident)?;
         let players = rnd.players.clone();
         rnd.kill_round();
-        for plyr in &players {
-            for p in &players {
-                if let Some(opps) = self.opponents.get_mut(plyr) {
-                    opps.remove(p);
-                }
-            }
+        for (i, plyr) in players.iter().enumerate() {
+            self.seat_scores.entry(*plyr).and_modify(|n| *n -= i);
+            self.opponents
+                .entry(*plyr)
+                .and_modify(|opps| opps.retain(|o| !players.contains(o)));
         }
         Ok(())
     }
@@ -111,52 +126,72 @@ impl RoundRegistry {
         self.rounds.iter().filter(|(_, r)| r.is_active()).count()
     }
 
-    /// Updates a round's id
-    pub(crate) fn update_id(&mut self, old_id: RoundId, new_id: RoundId) -> bool {
-        self.num_and_id.swap_right(&old_id, new_id);
-        match self.rounds.remove(&old_id) {
-            Some(mut rnd) => {
-                rnd.id = new_id;
-                self.rounds.insert(new_id, rnd);
-                true
-            }
-            None => false,
-        }
-    }
-
-    /// Creates a new round with no players and returns its id
-    pub fn create_round(&mut self) -> RoundId {
-        let match_num = self.rounds.len() as u64;
-        let table_number = self.get_table_number();
-        let round = Round::new(match_num, table_number, self.length);
-        let digest = round.id.into();
-        self.num_and_id.insert(match_num, round.id);
-        self.rounds.insert(round.id, round);
+    /// Creates a series of matches from pairings
+    pub fn rounds_from_pairings(
+        &mut self,
+        salt: DateTime<Utc>,
+        pairings: Pairings,
+        context: RoundContext,
+    ) -> Vec<RoundId> {
+        let mut digest = Vec::with_capacity(pairings.len());
+        digest.extend(
+            pairings
+                .paired
+                .into_iter()
+                .map(|p| self.create_round(salt, p, context.clone())),
+        );
+        digest.extend(
+            pairings
+                .rejected
+                .into_iter()
+                .map(|p| self.give_bye(salt, p, context.clone())),
+        );
         digest
     }
 
-    /// Adds a player to the specified round
-    pub fn add_player_to_round(
+    /// Creates a bye and gives it to a player
+    pub fn give_bye(
         &mut self,
-        ident: &RoundId,
+        salt: DateTime<Utc>,
         plyr: PlayerId,
-    ) -> Result<(), TournamentError> {
-        let ident = (*ident).into();
-        let round = self.get_mut_round(&ident)?;
-        let players = round.players.clone();
-        round.add_player(plyr);
-        self.opponents.entry(plyr).or_insert_with(HashSet::new);
-        for p in players {
+        context: RoundContext,
+    ) -> RoundId {
+        let match_num = self.rounds.len() as u64;
+        let round = Round::new_bye(salt, plyr, match_num, self.length, context);
+        let id = round.id;
+        self.num_and_id.insert(match_num, id);
+        self.rounds.insert(id, round);
+        id
+    }
+
+    /// Creates a new round, fills it with players, and returns its id
+    pub fn create_round(
+        &mut self,
+        salt: DateTime<Utc>,
+        plyrs: Vec<PlayerId>,
+        context: RoundContext,
+    ) -> RoundId {
+        // Sort players by their prior seating order. Lower seating order is means you last
+        let plyrs: Vec<_> = plyrs
+            .into_iter()
+            .map(|p| (p, *self.seat_scores.entry(p).or_default()))
+            .sorted_by(|a, b| a.1.cmp(&b.1).reverse())
+            .map(|(p, _)| p)
+            .collect();
+        for (i, plyr) in plyrs.iter().enumerate() {
+            self.seat_scores.entry(*plyr).and_modify(|n| *n += i);
             self.opponents
-                .get_mut(&p)
-                .expect("Player should already be in the opponents map.")
-                .insert(plyr);
-            self.opponents
-                .get_mut(&plyr)
-                .expect("Player should already be in the opponents map.")
-                .insert(p);
+                .entry(*plyr)
+                .or_default()
+                .extend(plyrs.iter().filter(|p| *p != plyr));
         }
-        Ok(())
+        let match_num = 1 + self.rounds.len() as u64;
+        let table_number = self.get_table_number();
+        let round = Round::new(salt, plyrs, match_num, table_number, self.length, context);
+        let id = round.id;
+        self.num_and_id.insert(match_num, id);
+        self.rounds.insert(id, round);
+        id
     }
 
     /// Given a round identifier, returns a round's match number if the round can be found
@@ -213,41 +248,53 @@ impl RoundRegistry {
 mod tests {
     use std::time::Duration;
 
-    use uuid::Uuid;
+    use chrono::Utc;
 
-    use crate::rounds::{RoundRegistry, RoundStatus};
+    use crate::{
+        identifiers::id_from_item,
+        rounds::{RoundContext, RoundRegistry, RoundStatus},
+    };
 
     #[test]
     fn table_number_tests() {
         for start in 0..3 {
             let mut reg = RoundRegistry::new(start, Duration::from_secs(10));
             assert_eq!(reg.get_table_number(), start);
-            let id_one = reg.create_round();
+            let id_one = reg.create_round(Utc::now(), vec![], RoundContext::Contextless);
             assert_eq!(reg.get_round(&id_one).unwrap().table_number, start);
+            assert_eq!(reg.round_from_table_number(start).unwrap().id, id_one);
             assert_eq!(reg.get_table_number(), start + 1);
-            let id_two = reg.create_round();
+            let id_two = reg.create_round(Utc::now(), vec![], RoundContext::Contextless);
             assert_eq!(reg.get_round(&id_two).unwrap().table_number, start + 1);
+            assert_eq!(reg.round_from_table_number(start + 1).unwrap().id, id_two);
             assert_eq!(reg.get_table_number(), start + 2);
             reg.get_mut_round(&id_one).unwrap().status = RoundStatus::Certified;
             assert_eq!(reg.get_table_number(), start);
-            let id_three = reg.create_round();
+            assert!(reg.round_from_table_number(start).is_err());
+            let id_three = reg.create_round(Utc::now(), vec![], RoundContext::Contextless);
             assert_eq!(reg.get_round(&id_three).unwrap().table_number, start);
+            assert_eq!(reg.round_from_table_number(start).unwrap().id, id_three);
             assert_eq!(reg.get_table_number(), start + 2);
         }
     }
 
     #[test]
-    fn update_id_correctly() {
-        let mut reg = RoundRegistry::new(0, Duration::from_secs(10));
-        let id_one = reg.create_round();
-        assert!(reg.num_and_id.contains_right(&id_one));
-        assert!(reg.rounds.contains_key(&id_one));
-        let id_two = Uuid::new_v4().into();
-        assert!(reg.update_id(id_one, id_two));
-        assert!(!reg.num_and_id.contains_right(&id_one));
-        assert!(!reg.rounds.contains_key(&id_one));
-        assert!(reg.num_and_id.contains_right(&id_two));
-        assert!(reg.rounds.contains_key(&id_two));
-        assert!(reg.get_round(&id_two).map(|r| r.id == id_two).unwrap());
+    fn simple_seating_scores_test() {
+        let plyrs = vec![
+            id_from_item(Utc::now(), Utc::now()),
+            id_from_item(Utc::now(), Utc::now()),
+        ];
+        assert!(plyrs[0] != plyrs[1]);
+        let mut reg = RoundRegistry::new(1, Duration::from_secs(10));
+        let id = reg.create_round(Utc::now(), plyrs.clone(), RoundContext::Contextless);
+        let first_order = reg.get_round(&id).unwrap().players.clone();
+        assert_eq!(plyrs, first_order);
+        assert_eq!(0, *reg.seat_scores.get(&plyrs[0]).unwrap());
+        assert_eq!(1, *reg.seat_scores.get(&plyrs[1]).unwrap());
+        let id = reg.create_round(Utc::now(), plyrs.clone(), RoundContext::Contextless);
+        let second_order = reg.get_round(&id).unwrap().players.clone();
+        assert!(plyrs != second_order);
+        assert_eq!(1, *reg.seat_scores.get(&plyrs[0]).unwrap());
+        assert_eq!(1, *reg.seat_scores.get(&plyrs[1]).unwrap());
     }
 }

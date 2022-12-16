@@ -3,9 +3,9 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{pairings::PairingAlgorithm, tournament::TournamentPreset};
+use crate::{r64, pairings::PairingAlgorithm, tournament::TournamentPreset};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a tournament.
 pub struct TournamentSettingsTree {
     /// The default format
@@ -31,7 +31,7 @@ pub struct TournamentSettingsTree {
     pub scoring_settings: ScoringSettingsTree,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of a tournament
 pub enum TournamentSetting {
     /// Adjusts the format of the tournament
@@ -56,7 +56,7 @@ pub enum TournamentSetting {
     ScoringSetting(ScoringSetting),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a pairings system.
 pub struct PairingSettingsTree {
     /// The number of players that will be in a match
@@ -72,7 +72,7 @@ pub struct PairingSettingsTree {
     pub fluid: FluidPairingsSettingsTree,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of all pairing systems
 pub enum PairingSetting {
     /// Adjusts the number of players that will be in a match
@@ -88,28 +88,28 @@ pub enum PairingSetting {
     Fluid(FluidPairingsSetting),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a scoring system.
 pub struct ScoringSettingsTree {
     /// The settings tree for standard scoring
     pub standard: StandardScoringSettingsTree,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of all scoring systems
 pub enum ScoringSetting {
     /// Settings for the standard scoring system
     Standard(StandardScoringSetting),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a swiss pairing system.
 pub struct SwissPairingsSettingsTree {
     /// The default on the check in strategy
     pub do_check_ins: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 #[repr(C)]
 /// An enum that encodes all the adjustable settings of swiss pairing systems
 pub enum SwissPairingsSetting {
@@ -117,31 +117,31 @@ pub enum SwissPairingsSetting {
     DoCheckIns(bool),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a fluid pairing system.
 pub struct FluidPairingsSettingsTree {}
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// An enum that encodes all the adjustable settings of fluid pairing systems
 pub enum FluidPairingsSetting {}
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a standard scoring system.
 pub struct StandardScoringSettingsTree {
     /// The default number of points a match win is worth
-    pub match_win_points: f64,
+    pub match_win_points: r64,
     /// The default number of points a match draw is worth
-    pub match_draw_points: f64,
+    pub match_draw_points: r64,
     /// The default number of points a match loss is worth
-    pub match_loss_points: f64,
+    pub match_loss_points: r64,
     /// The default number of points a game win is worth
-    pub game_win_points: f64,
+    pub game_win_points: r64,
     /// The default number of points a game draw is worth
-    pub game_draw_points: f64,
+    pub game_draw_points: r64,
     /// The default number of points a game loss is worth
-    pub game_loss_points: f64,
+    pub game_loss_points: r64,
     /// The default number of points a bye is worth
-    pub bye_points: f64,
+    pub bye_points: r64,
     /// The default on if byes are used in scoring
     pub include_byes: bool,
     /// The default on if match points are used in scoring
@@ -158,24 +158,24 @@ pub struct StandardScoringSettingsTree {
     pub include_opp_gwp: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 #[repr(C)]
 /// An enum that encodes all the adjustable settings of standard scoring systems
 pub enum StandardScoringSetting {
     /// Adjusts the number of points a match win is worth
-    MatchWinPoints(f64),
+    MatchWinPoints(r64),
     /// Adjusts the number of points a match draw is worth
-    MatchDrawPoints(f64),
+    MatchDrawPoints(r64),
     /// Adjusts the number of points a match loss is worth
-    MatchLossPoints(f64),
+    MatchLossPoints(r64),
     /// Adjusts the number of points a game win is worth
-    GameWinPoints(f64),
+    GameWinPoints(r64),
     /// Adjusts the number of points a game draw is worth
-    GameDrawPoints(f64),
+    GameDrawPoints(r64),
     /// Adjusts the number of points a game loss is worth
-    GameLossPoints(f64),
+    GameLossPoints(r64),
     /// Adjusts the number of points a bye is worth
-    ByePoints(f64),
+    ByePoints(r64),
     /// Adjusts if byes are used in scoring
     IncludeByes(bool),
     /// Adjusts if match points are used in scoring
@@ -407,13 +407,13 @@ impl StandardScoringSettingsTree {
     /// Creates a settings tree for standard scoring systems
     pub fn new() -> StandardScoringSettingsTree {
         StandardScoringSettingsTree {
-            match_win_points: 3.0,
-            match_draw_points: 1.0,
-            match_loss_points: 0.0,
-            game_win_points: 3.0,
-            game_draw_points: 1.0,
-            game_loss_points: 0.0,
-            bye_points: 3.0,
+            match_win_points: r64::from_integer(3),
+            match_draw_points: r64::from_integer(1),
+            match_loss_points: r64::from_integer(0),
+            game_win_points: r64::from_integer(3),
+            game_draw_points: r64::from_integer(1),
+            game_loss_points: r64::from_integer(0),
+            bye_points: r64::from_integer(3),
             include_byes: true,
             include_match_points: true,
             include_game_points: true,
@@ -528,54 +528,6 @@ impl Default for ScoringSettingsTree {
 impl Default for StandardScoringSettingsTree {
     fn default() -> StandardScoringSettingsTree {
         StandardScoringSettingsTree::new()
-    }
-}
-
-impl From<PairingSetting> for TournamentSetting {
-    fn from(other: PairingSetting) -> TournamentSetting {
-        TournamentSetting::PairingSetting(other)
-    }
-}
-
-impl From<ScoringSetting> for TournamentSetting {
-    fn from(other: ScoringSetting) -> TournamentSetting {
-        TournamentSetting::ScoringSetting(other)
-    }
-}
-
-impl From<SwissPairingsSetting> for PairingSetting {
-    fn from(other: SwissPairingsSetting) -> PairingSetting {
-        PairingSetting::Swiss(other)
-    }
-}
-
-impl From<FluidPairingsSetting> for PairingSetting {
-    fn from(other: FluidPairingsSetting) -> PairingSetting {
-        PairingSetting::Fluid(other)
-    }
-}
-
-impl From<StandardScoringSetting> for ScoringSetting {
-    fn from(other: StandardScoringSetting) -> ScoringSetting {
-        ScoringSetting::Standard(other)
-    }
-}
-
-impl From<SwissPairingsSetting> for TournamentSetting {
-    fn from(other: SwissPairingsSetting) -> TournamentSetting {
-        TournamentSetting::PairingSetting(other.into())
-    }
-}
-
-impl From<FluidPairingsSetting> for TournamentSetting {
-    fn from(other: FluidPairingsSetting) -> TournamentSetting {
-        TournamentSetting::PairingSetting(other.into())
-    }
-}
-
-impl From<StandardScoringSetting> for TournamentSetting {
-    fn from(other: StandardScoringSetting) -> TournamentSetting {
-        TournamentSetting::ScoringSetting(other.into())
     }
 }
 

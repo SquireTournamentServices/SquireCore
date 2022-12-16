@@ -1,125 +1,162 @@
+#![feature(trivial_bounds)]
 #![allow(unused)]
 
+use std::{env, net::SocketAddr, time::Duration};
+
+use async_session::{async_trait, MemoryStore, SessionStore};
+use axum::{
+    extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
+    http::StatusCode,
+    response::{IntoResponse, Redirect, Response},
+    routing::{get, post},
+    Json, RequestPartsExt, Router, TypedHeader,
+};
+use serde::{Deserialize, Serialize};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 use dashmap::DashMap;
-use mtgjson::mtgjson::atomics::Atomics;
-use rocket::{data::DataStream, routes, Build, Rocket};
-use std::time::Duration;
+use http::{header, request::Parts};
 use tokio::sync::RwLock;
-//use squire_sdk::accounts::{AccountId, UserAccount};
-//use uuid::Uuid;
+
+use squire_sdk::{
+    accounts::SquireAccount,
+    cards::atomics::Atomics,
+    tournaments::{CreateTournamentRequest, CreateTournamentResponse},
+};
+
+static COOKIE_NAME: &str = "SESSION";
 
 #[cfg(test)]
 mod tests;
 
-//mod accounts;
 mod accounts;
 mod cards;
-mod matches;
-mod players;
 mod tournaments;
 
-//use accounts::*;
-use cards::*;
-use players::*;
+use accounts::*;
+use cards::MetaChecker;
 use tournaments::*;
 
-pub fn init() -> Rocket<Build> {
-    //let _ = USERS_MAP.set(DashMap::new());
-    //let _ = ORGS_MAP.set(DashMap::new());
-    let _ = TOURNS_MAP.set(DashMap::new());
-    rocket::build()
-        //.mount("/api/v1/accounts", routes![users, all_users, orgs])
-        .mount(
-            "/api/v1/tournaments",
-            routes![
-                create_tournament,
-                get_tournament,
-                get_all_tournaments,
-                get_standings,
-                slice_ops,
-                sync,
-                rollback,
-                get_player,
-                get_all_players,
-                get_active_players,
-                get_player_count,
-                get_active_player_count,
-                get_player_deck,
-                get_all_decks,
-                get_all_player_decks,
-                get_player_matches,
-                get_latest_player_match,
-            ],
-        )
-        .mount("/api/v1/cards", routes![atomics, meta])
-}
-
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
-    let client = init();
-    /*
-    let id = AccountId(Uuid::new_v4());
-    let account = UserAccount {
-        external_id: id.clone(),
-        display_name: "Tyler Bloom".to_string(),
-        account_name: "TylerBloom".to_string(),
-    };
-    println!("{account:?}");
-    USERS_MAP.get().unwrap().insert(id, account);
-    */
-    // Spawns an await task to update the card collection every week.
-    //MINIMAL_CACHE.set(DashMap::new()).unwrap();
+pub async fn init() {
     let atomics: Atomics = reqwest::get("https://mtgjson.com/api/v5/AtomicCards.json")
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    ATOMICS_MAP.set(RwLock::new(atomics)).unwrap();
+    cards::ATOMICS_MAP.set(RwLock::new(atomics)).unwrap();
     let meta: MetaChecker = reqwest::get("https://mtgjson.com/api/v5/Meta.json")
         .await
         .unwrap()
         .json()
         .await
         .unwrap();
-    META_CACHE.set(RwLock::new(meta.meta)).unwrap();
+    cards::META_CACHE.set(RwLock::new(meta.meta)).unwrap();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(1800));
         interval.tick().await;
         loop {
             interval.tick().await;
-            let meta_data: MetaChecker =
-                if let Ok(data) = reqwest::get("https://mtgjson.com/api/v5/Meta.json").await {
-                    if let Ok(data) = data.json().await {
-                        data
-                    } else {
-                        continue;
-                    }
-                } else {
-                    continue;
-                };
-            let meta = META_CACHE.get().unwrap().read().await;
-            if meta_data.meta == *meta {
-                continue;
-            }
-            let atomics: Atomics = if let Ok(data) =
-                reqwest::get("https://mtgjson.com/api/v5/AtomicCards.json").await
-            {
-                if let Ok(data) = data.json().await {
-                    data
-                } else {
-                    continue;
-                }
-            } else {
-                continue;
-            };
-            let mut cards = ATOMICS_MAP.get().unwrap().write().await;
-            *cards = atomics;
-            let mut meta = META_CACHE.get().unwrap().write().await;
-            *meta = meta_data.meta;
+            cards::update_cards().await;
         }
     });
-    client.launch().await?;
 
-    Ok(())
+    accounts::USERS_MAP.set(DashMap::new()).unwrap();
+
+    TOURNS_MAP.set(DashMap::new()).unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "example_oauth=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    init().await;
+
+    // `MemoryStore` is just used as an example. Don't use this in production.
+    let app_state = AppState {
+        store: MemoryStore::new(),
+    };
+
+    let app = Router::new()
+        .route("/api/v1/tournaments/create", post(create_tournament))
+        .route("/api/v1/tournaments/:t_id", get(get_tournament))
+        .route("/api/v1/tournaments/:t_id/sync", post(sync))
+        .route("/api/v1/tournaments/:t_id/rollback", post(rollback))
+        .route("/api/v1/register", post(accounts::register))
+        .route("/api/v1/cards", get(cards::atomics))
+        .route("/api/v1/meta", get(cards::meta))
+        .with_state(app_state);
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    println!("Starting server!!");
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap()
+}
+
+#[derive(Clone)]
+struct AppState {
+    store: MemoryStore,
+}
+
+impl FromRef<AppState> for MemoryStore {
+    fn from_ref(state: &AppState) -> Self {
+        state.store.clone()
+    }
+}
+
+pub struct AuthRedirect;
+
+impl IntoResponse for AuthRedirect {
+    fn into_response(self) -> Response {
+        Redirect::temporary("/auth/discord").into_response()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct User {
+    account: SquireAccount,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for User
+where
+    MemoryStore: FromRef<S>,
+    S: Send + Sync,
+{
+    // If anything goes wrong or no session is found, redirect to the auth page
+    type Rejection = AuthRedirect;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let store = MemoryStore::from_ref(state);
+
+        let cookies = parts
+            .extract::<TypedHeader<headers::Cookie>>()
+            .await
+            .map_err(|e| match *e.name() {
+                header::COOKIE => match e.reason() {
+                    TypedHeaderRejectionReason::Missing => AuthRedirect,
+                    _ => panic!("unexpected error getting Cookie header(s): {}", e),
+                },
+                _ => panic!("unexpected error getting cookies: {}", e),
+            })?;
+        let session_cookie = cookies.get(COOKIE_NAME).ok_or(AuthRedirect)?;
+
+        let session = store
+            .load_session(session_cookie.to_string())
+            .await
+            .unwrap()
+            .ok_or(AuthRedirect)?;
+
+        let user = session.get::<User>("user").ok_or(AuthRedirect)?;
+
+        Ok(user)
+    }
 }

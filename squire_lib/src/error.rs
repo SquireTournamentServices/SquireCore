@@ -5,13 +5,6 @@ use serde::{Deserialize, Serialize};
 use crate::{rounds::RoundStatus, tournament::TournamentStatus};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-/// An error that encodes problems that can occur during client-server syncing
-pub enum SyncError {
-    /// The starting operation of the outside log isn't in the local log
-    IdNotFound,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 /// All the errors that can occur when apply a tournament operation
 pub enum TournamentError {
     /// The tournament has the wrong status

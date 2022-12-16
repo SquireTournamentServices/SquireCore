@@ -1,5 +1,12 @@
-use std::{fmt::Display, hash::Hash, marker::PhantomData, ops::Deref};
+use std::{
+    collections::hash_map::DefaultHasher,
+    fmt::Display,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    ops::Deref,
+};
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
@@ -11,6 +18,33 @@ use crate::{
     rounds::Round,
     tournament::Tournament,
 };
+
+pub(crate) fn id_from_item<T, ID>(salt: DateTime<Utc>, item: T) -> TypeId<ID>
+where
+    T: Hash,
+{
+    let mut hasher = DefaultHasher::new();
+    salt.hash(&mut hasher);
+    let upper = hasher.finish();
+    item.hash(&mut hasher);
+    let lower = hasher.finish();
+    Uuid::from_u64_pair(upper, lower).into()
+}
+
+pub(crate) fn id_from_list<I, T, ID>(salt: DateTime<Utc>, vals: I) -> TypeId<ID>
+where
+    I: Iterator<Item = T>,
+    T: Hash,
+{
+    let mut hasher = DefaultHasher::new();
+    salt.hash(&mut hasher);
+    let upper = hasher.finish();
+    for item in vals {
+        item.hash(&mut hasher);
+    }
+    let lower = hasher.finish();
+    Uuid::from_u64_pair(upper, lower).into()
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -24,7 +58,7 @@ pub type RoundId = TypeId<Round>;
 /// A type-checked Uuid for tournaments
 pub type TournamentId = TypeId<Tournament>;
 /// A type-checked Uuid for user accounts
-pub type UserAccountId = TypeId<SquireAccount>;
+pub type SquireAccountId = TypeId<SquireAccount>;
 /// A type-checked Uuid for org accounts
 pub type OrganizationAccountId = TypeId<OrganizationAccount>;
 /// A type-checked Uuid for tournament operations
@@ -43,13 +77,15 @@ pub enum PlayerIdentifier {
     Name(String),
 }
 
-#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 /// An enum for identifying a round
 pub enum RoundIdentifier {
     /// The round's id
     Id(RoundId),
     /// The round's match number
     Number(u64),
+    /// The table number of an active match
+    Table(u64),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
@@ -154,6 +190,12 @@ impl<T> Serialize for TypeId<T> {
 impl<T> Display for TypeId<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Default for RoundIdentifier {
+    fn default() -> Self {
+        RoundIdentifier::Number(Default::default())
     }
 }
 

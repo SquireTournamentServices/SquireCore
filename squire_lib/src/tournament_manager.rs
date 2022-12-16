@@ -1,12 +1,10 @@
 use std::{
-    collections::{HashMap, HashSet},
+    ops::Deref,
     slice::Iter,
 };
 
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
-
-use cycle_map::CycleMap;
+use chrono::Utc;
 use uuid::Uuid;
 
 use crate::{
@@ -24,7 +22,7 @@ use crate::{
 /// The manager holds the current tournament and can recreate any meaningful prior state.
 ///
 /// This is the primary synchronization primative between tournaments.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TournamentManager {
     tourn: Tournament,
     log: OpLog,
@@ -59,7 +57,7 @@ impl TournamentManager {
 
     /// Read only accesses to tournaments don't need to be wrapped, so we can freely provide
     /// references to them
-    pub fn get_state(&self) -> &Tournament {
+    pub fn tourn(&self) -> &Tournament {
         &self.tourn
     }
 
@@ -69,23 +67,13 @@ impl TournamentManager {
             .ops
             .iter()
             .rev()
-            .find_map(|op| if op.active { Some(op.id) } else { None })
+            .find_map(|op| op.active.then_some(op.id))
             .unwrap()
     }
 
     /// Takes the manager, removes all unnecessary data for storage, and return the underlying
     /// tournament, consuming the manager in the process.
-    pub fn extract(mut self) -> Tournament {
-        self.tourn.player_reg.check_ins = HashSet::new();
-        self.tourn.player_reg.name_and_id = CycleMap::new();
-        for (_, plyr) in self.tourn.player_reg.players.iter_mut() {
-            plyr.deck_ordering = Vec::new();
-        }
-        self.tourn.round_reg.num_and_id = CycleMap::new();
-        self.tourn.round_reg.opponents = HashMap::new();
-        for (_, rnd) in self.tourn.round_reg.rounds.iter_mut() {
-            rnd.confirmations = HashSet::new();
-        }
+    pub fn extract(self) -> Tournament {
         self.tourn
     }
 
@@ -103,17 +91,29 @@ impl TournamentManager {
     /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op
     /// logs are merged and SyncStatus::Completed is returned.
     pub fn attempt_sync(&mut self, sy: OpSync) -> SyncStatus {
-        // TODO: This should move the last_sync id forward
-        self.log.sync(sy)
+        let sync = self.log.sync(sy);
+        if let SyncStatus::Completed(c) = &sync {
+            let id = c.ops.ops.last().unwrap().id;
+            // Can this error? No...
+            let _ = self.overwrite(c.ops.clone());
+            self.last_sync = id;
+        }
+        sync
     }
 
     /// TODO:
     pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
-        // TODO: This should set the last_sync id back
-        self.log.overwrite(ops)
+        let id = ops.ops.first().map(|op| op.id);
+        let digest = self.log.overwrite(ops);
+        if digest.is_ok() {
+            self.last_sync = id.unwrap();
+        }
+        digest
     }
 
     // TODO: Should proposing a rollback lock the tournament manager?
+    // No... that seems like it would get complicated as you would need to implement a TTL
+    // system...
     /// Creates a rollback proposal but leaves the operations log unaffected.
     /// `id` should be the id of the last operation that is **removed**
     pub fn propose_rollback(&self, id: OpId) -> Option<Rollback> {
@@ -122,12 +122,14 @@ impl TournamentManager {
 
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
     /// it to the tournament, and returns the result.
-    /// NOTE: That an operation is always stored, regardless of the outcome
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         let f_op = FullOp::new(op.clone());
         let salt = f_op.salt.clone();
-        self.log.ops.push(f_op);
-        self.tourn.apply_op(salt, op)
+        let digest = self.tourn.apply_op(salt, op);
+        if digest.is_ok() {
+            self.log.ops.push(f_op);
+        }
+        digest
     }
 
     /// Returns an iterator over all the states of a tournament
@@ -147,6 +149,14 @@ impl TournamentManager {
             ops: iter,
             shown_init: false,
         }
+    }
+}
+
+impl Deref for TournamentManager {
+    type Target = Tournament;
+
+    fn deref(&self) -> &Self::Target {
+        &self.tourn
     }
 }
 

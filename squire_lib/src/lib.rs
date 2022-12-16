@@ -21,6 +21,11 @@
 #[cfg(feature = "ffi")]
 pub mod ffi;
 
+#[allow(non_camel_case_types)]
+pub(crate) type r64 = num_rational::Rational32;
+
+mod utils;
+
 /// Contains the models for user and organization accounts
 pub mod accounts;
 /// Contains the models for judges and admins

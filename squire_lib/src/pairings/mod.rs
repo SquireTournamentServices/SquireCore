@@ -10,7 +10,7 @@ use crate::{
     identifiers::PlayerId,
     operations::{OpData, OpResult},
     players::PlayerRegistry,
-    rounds::RoundRegistry,
+    rounds::{RoundContext, RoundRegistry},
     scoring::{Score, Standings},
     settings::PairingSetting,
     tournament::TournamentPreset,
@@ -34,7 +34,7 @@ pub use greedy::greedy_pairings;
 pub use rotary::rotary_pairings;
 pub use swiss_pairings::SwissPairings;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A struct for communicating new pairings information
 pub struct Pairings {
     /// The players that are paired and their groupings
@@ -44,7 +44,7 @@ pub struct Pairings {
 }
 
 /// Encodes what algorithm will be used to pair players
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Hash, Copy, PartialEq, Eq)]
 pub enum PairingAlgorithm {
     /// This variant corresponds to the `greedy_pairings` function
     Greedy,
@@ -85,6 +85,11 @@ impl Pairings {
             paired: Vec::new(),
             rejected: Vec::new(),
         }
+    }
+
+    /// Calculates the length of the paired and rejected players
+    pub fn len(&self) -> usize {
+        self.paired.len() + self.rejected.len()
     }
 
     /// Calculates if the pairings are all valid
@@ -139,9 +144,27 @@ impl PairingSystem {
         }
     }
 
+    /// Gets the round context for the system
+    pub fn get_context(&self) -> RoundContext {
+        use PairingStyle::*;
+        match &self.style {
+            Swiss(sys) => sys.get_context(),
+            Fluid(sys) => sys.get_context(),
+        }
+    }
+
+    /// Updates the inner pairing style with incoming pairings.
+    pub fn update(&mut self, pairings: &Pairings) {
+        use PairingStyle::*;
+        match &mut self.style {
+            Swiss(sys) => sys.update(pairings),
+            Fluid(sys) => sys.update(pairings),
+        }
+    }
+
     /// Attempts to create the next set of pairings
     pub fn pair<S>(
-        &mut self,
+        &self,
         plyr_reg: &PlayerRegistry,
         rnd_reg: &RoundRegistry,
         standings: Standings<S>,
@@ -150,7 +173,7 @@ impl PairingSystem {
         S: Score,
     {
         use PairingStyle::*;
-        match &mut self.style {
+        match &self.style {
             Swiss(sys) => sys.pair(
                 self.alg,
                 plyr_reg,

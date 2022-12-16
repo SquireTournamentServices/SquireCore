@@ -2,13 +2,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     accounts::SquireAccount,
-    identifiers::{PlayerId, RoundId},
+    identifiers::{PlayerId, RoundId, AdminId},
+    pairings::Pairings,
     rounds::RoundResult,
     settings::TournamentSetting,
+    operations::OpGroup
 };
 
 /// Operations that only tournament admin can perform
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
 pub enum AdminOp {
     /// Operation to check the registration status of the tournament
     UpdateReg(bool),
@@ -39,7 +41,7 @@ pub enum AdminOp {
     /// Operation to manually create a round
     CreateRound(Vec<PlayerId>),
     /// Operation to attempt to pair the next set of rounds
-    PairRound,
+    PairRound(Pairings),
     /// Operation to cut to the top N players (by standings)
     Cut(usize),
     /// Operation to prune excess decks from players
@@ -48,4 +50,14 @@ pub enum AdminOp {
     PrunePlayers,
     /// Operation to confirm the results of all active rounds
     ConfirmAllRounds,
+}
+
+impl AdminOp {
+    pub(crate) fn affects(&self, id: AdminId) -> OpGroup {
+        todo!()
+    }
+    
+    pub(crate) fn requires(&self, id: AdminId) -> OpGroup {
+        todo!()
+    }
 }
