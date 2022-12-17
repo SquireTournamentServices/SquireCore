@@ -969,7 +969,7 @@ impl Tournament {
         }
         ret += "</body>";
 
-        return ret;
+        ret
     }
 }
 
