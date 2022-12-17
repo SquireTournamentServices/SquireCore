@@ -19,7 +19,10 @@ use crate::User;
 pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, TournamentManager>> = OnceCell::new();
 
 
-//#[axum::debug_handler]
+pub fn init() {
+    TOURNS_MAP.set(DashMap::new()).unwrap();
+}
+
 pub async fn create_tournament(user: User, Json(data): Json<CreateTournamentRequest>) -> CreateTournamentResponse {
     let tourn = user.account.create_tournament(data.name, data.preset, data.format);
     let id = tourn.id;

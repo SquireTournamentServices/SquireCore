@@ -61,9 +61,27 @@ pub async fn init() {
         }
     });
 
-    accounts::USERS_MAP.set(DashMap::new()).unwrap();
+    accounts::init();
 
-    TOURNS_MAP.set(DashMap::new()).unwrap();
+    tournaments::init();
+}
+
+pub fn create_router<S>(state: S) -> Router
+where
+    MemoryStore: FromRef<S>,
+    S: 'static + Send + Sync + Clone,
+{
+    Router::new()
+        .route("/api/v1/tournaments/create", post(create_tournament))
+        .route("/api/v1/tournaments/:t_id", get(get_tournament))
+        .route("/api/v1/tournaments/:t_id/sync", post(sync))
+        .route("/api/v1/tournaments/:t_id/rollback", post(rollback))
+        .route("/api/v1/register", post(accounts::register))
+        .route("/api/v1/login", post(accounts::login))
+        .route("/api/v1/logout", post(accounts::logout))
+        .route("/api/v1/cards", get(cards::atomics))
+        .route("/api/v1/meta", get(cards::meta))
+        .with_state(state)
 }
 
 #[tokio::main]
@@ -77,21 +95,13 @@ async fn main() {
         .init();
 
     init().await;
-
+    
     // `MemoryStore` is just used as an example. Don't use this in production.
     let app_state = AppState {
         store: MemoryStore::new(),
     };
 
-    let app = Router::new()
-        .route("/api/v1/tournaments/create", post(create_tournament))
-        .route("/api/v1/tournaments/:t_id", get(get_tournament))
-        .route("/api/v1/tournaments/:t_id/sync", post(sync))
-        .route("/api/v1/tournaments/:t_id/rollback", post(rollback))
-        .route("/api/v1/register", post(accounts::register))
-        .route("/api/v1/cards", get(cards::atomics))
-        .route("/api/v1/meta", get(cards::meta))
-        .with_state(app_state);
+    let app = create_router(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     println!("Starting server!!");
@@ -102,21 +112,13 @@ async fn main() {
 }
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     store: MemoryStore,
 }
 
 impl FromRef<AppState> for MemoryStore {
     fn from_ref(state: &AppState) -> Self {
         state.store.clone()
-    }
-}
-
-pub struct AuthRedirect;
-
-impl IntoResponse for AuthRedirect {
-    fn into_response(self) -> Response {
-        Redirect::temporary("/auth/discord").into_response()
     }
 }
 
@@ -132,7 +134,7 @@ where
     S: Send + Sync,
 {
     // If anything goes wrong or no session is found, redirect to the auth page
-    type Rejection = AuthRedirect;
+    type Rejection = StatusCode;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let store = MemoryStore::from_ref(state);
@@ -142,21 +144,20 @@ where
             .await
             .map_err(|e| match *e.name() {
                 header::COOKIE => match e.reason() {
-                    TypedHeaderRejectionReason::Missing => AuthRedirect,
+                    TypedHeaderRejectionReason::Missing => StatusCode::FORBIDDEN,
                     _ => panic!("unexpected error getting Cookie header(s): {}", e),
                 },
                 _ => panic!("unexpected error getting cookies: {}", e),
             })?;
-        let session_cookie = cookies.get(COOKIE_NAME).ok_or(AuthRedirect)?;
+
+        let session_cookie = cookies.get(COOKIE_NAME).ok_or(StatusCode::FORBIDDEN)?;
 
         let session = store
             .load_session(session_cookie.to_string())
             .await
             .unwrap()
-            .ok_or(AuthRedirect)?;
+            .ok_or(StatusCode::FORBIDDEN)?;
 
-        let user = session.get::<User>("user").ok_or(AuthRedirect)?;
-
-        Ok(user)
+        session.get("user").ok_or(StatusCode::FORBIDDEN)
     }
 }

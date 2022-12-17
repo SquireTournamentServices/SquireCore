@@ -25,7 +25,7 @@ pub type GetTournamentResponse = SquireResponse<Option<TournamentManager>>;
 /// tournament id and tournament objects.
 pub type AllTournamentsResponse = SquireResponse<HashMap<TournamentId, Tournament>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/create` SC API. The fields contain all the data
 /// required to create a tournament.
 pub struct CreateTournamentRequest {
