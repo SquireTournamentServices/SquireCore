@@ -55,8 +55,7 @@ message(
 if(WIN32)
   add_custom_command(
     OUTPUT ${RUST_PART_H_FILE} ${RUST_PART_CXX_FILE}
-    COMMAND ${CMAKE_COMMAND} -E env RUSTFLAGS="${RUST_FLAGS}"
-            "ffi_build.bat"
+    COMMAND ${CMAKE_COMMAND} -E env RUSTFLAGS="${RUST_FLAGS}" "ffi_build.bat"
     COMMAND
       ${CMAKE_COMMAND} -E copy
       "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/squire_lib.${EXT}"
@@ -85,21 +84,17 @@ set(LIBS)
 if(UNIX)
   set(LIBS "dl" "pthread")
 elseif(WIN32)
-  add_link_options(
-      /SUBSYSTEM:WINDOWS
-      /DYNAMICBASE 
-      Version.lib
-      Comctl32.lib
-      /MACHINE:X64
-  )
-  
+  add_link_options(/SUBSYSTEM:WINDOWS /DYNAMICBASE Version.lib Comctl32.lib
+                   /MACHINE:X64)
+
   set(LIBS "wsock32" "ws2_32" "bcrypt")
 endif()
 
 add_library(squire_core INTERFACE)
 set_target_properties(squire_core PROPERTIES IMPORTED_LOCATION
                                              ${RUST_PART_CXX_FILE})
-                                           target_link_libraries(squire_core INTERFACE ${RUST_PART_CXX_FILE} ${LIBS} OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(squire_core INTERFACE ${RUST_PART_CXX_FILE} ${LIBS}
+                                            OpenSSL::SSL OpenSSL::Crypto)
 add_dependencies(squire_core RUST_PART_H)
 
 add_test(
