@@ -929,7 +929,7 @@ impl Tournament {
         ret += "</style></head>";
         ret += "<body>";
 
-        for r in self.round_reg.rounds.values() {
+        for r in self.round_reg.rounds.values().filter(|r| r.is_active()) {
             ret += "<div class='card' style='border-style: solid;'>";
             ret += "<div class='title' style='display: flex; align-items: center; width: 100%; flex-direction: column;'>";
             ret += &html_escape::encode_text(&self.name.to_string());
