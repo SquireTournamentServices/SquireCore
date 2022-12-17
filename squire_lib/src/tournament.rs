@@ -918,6 +918,59 @@ impl Tournament {
         }
         digest
     }
+
+    /// Generates a round slip in HTML
+    pub fn round_slips_html(self, css: String) -> String {
+        let mut ret: String = "<!DOCTPYE HTML>".to_string();
+
+        ret += "<html lang=\"en\">";
+        ret += "<head><style>";
+        ret += &css;
+        ret += "</style></head>";
+        ret += "<body>";
+
+        for r in self.round_reg.rounds.values() {
+            ret += "<div class='card' style='border-style: solid;'>";
+            ret += "<div class='title' style='display: flex; align-items: center; width: 100%; flex-direction: column;'>";
+            ret += &html_escape::encode_text(&self.name.to_string());
+            ret += "</div>";
+            ret += "<table style='width: 100%;'>";
+            ret += "<tr><tr><td>Round # ";
+            ret += &r.match_number.to_string();
+            ret += "</td>";
+
+            let table_number: u64 = r.table_number;
+            if table_number != 0 {
+                ret += "<td>Table #";
+                ret += &table_number.to_string();
+                ret += "</td><tr>";
+            }
+
+            let mut i: u64 = 0;
+            for pid in &r.players {
+                if i % 2 == 0 {
+                    if i != 0 {
+                        ret += "</tr>";
+                    }
+                    ret += "<tr>";
+                }
+                ret += "<td>";
+                ret += &html_escape::encode_text(
+                    &self
+                        .player_reg
+                        .get_player(&pid)
+                        .expect("Round's playes should be within the tournament.")
+                        .all_names(),
+                );
+                ret += "</td>";
+                i += 1
+            }
+            ret += "</tr></table></div>";
+        }
+        ret += "</body>";
+
+        return ret;
+    }
 }
 
 impl ScoringSystem {

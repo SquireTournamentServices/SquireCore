@@ -47,6 +47,19 @@ pub struct Player {
 }
 
 impl Player {
+    /// Returns a string of a player name and, game name
+    pub fn all_names(&self) -> String {
+        match &self.game_name {
+            Some(game_name) => {
+                if self.name.eq(game_name) {
+                    return self.name.clone();
+                }
+                return self.name.clone() + " (" + &game_name + ")";
+            }
+            None => return self.name.clone(),
+        }
+    }
+
     /// Creates a new player
     pub fn new(name: String) -> Self {
         Player {
