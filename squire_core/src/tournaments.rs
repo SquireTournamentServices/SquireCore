@@ -1,5 +1,8 @@
 use async_session::MemoryStore;
-use axum::{extract::{Path, State, FromRef}, Json};
+use axum::{
+    extract::{FromRef, Path, State},
+    Json,
+};
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 
@@ -18,10 +21,14 @@ use crate::User;
 
 pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, TournamentManager>> = OnceCell::new();
 
-
 //#[axum::debug_handler]
-pub async fn create_tournament(user: User, Json(data): Json<CreateTournamentRequest>) -> CreateTournamentResponse {
-    let tourn = user.account.create_tournament(data.name, data.preset, data.format);
+pub async fn create_tournament(
+    user: User,
+    Json(data): Json<CreateTournamentRequest>,
+) -> CreateTournamentResponse {
+    let tourn = user
+        .account
+        .create_tournament(data.name, data.preset, data.format);
     let id = tourn.id;
     TOURNS_MAP.get().unwrap().insert(id, tourn.clone());
     CreateTournamentResponse::new(tourn)

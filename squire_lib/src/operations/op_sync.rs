@@ -1,7 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::operations::{FullOp, OpSlice};
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 /// A struct to help resolve syncing op logs
@@ -147,4 +146,3 @@ impl From<OpSync> for SyncStatus {
         SyncStatus::Completed(other)
     }
 }
-

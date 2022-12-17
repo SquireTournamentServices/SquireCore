@@ -12,7 +12,8 @@ pub use squire_lib::{
 
 use squire_lib::{
     identifiers::OpId,
-    operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus}, tournament_manager::TournamentManager,
+    operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus},
+    tournament_manager::TournamentManager,
 };
 
 use crate::response::SquireResponse;

@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     accounts::SquireAccount,
-    identifiers::{PlayerId, RoundId, AdminId},
+    identifiers::{AdminId, PlayerId, RoundId},
+    operations::OpGroup,
     pairings::Pairings,
     rounds::RoundResult,
     settings::TournamentSetting,
-    operations::OpGroup
 };
 
 /// Operations that only tournament admin can perform
@@ -56,7 +56,7 @@ impl AdminOp {
     pub(crate) fn affects(&self, id: AdminId) -> OpGroup {
         todo!()
     }
-    
+
     pub(crate) fn requires(&self, id: AdminId) -> OpGroup {
         todo!()
     }
