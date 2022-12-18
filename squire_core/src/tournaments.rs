@@ -1,5 +1,9 @@
 use async_session::MemoryStore;
-use axum::{extract::{Path, State, FromRef}, Json};
+use axum::{
+    extract::{FromRef, Path, State},
+    routing::{get, post, MethodRouter},
+    Json, Router,
+};
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 
@@ -14,17 +18,29 @@ use squire_sdk::tournaments::{
     SyncRequest, SyncResponse,
 };
 
-use crate::User;
+use crate::{AppState, User};
 
 pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, TournamentManager>> = OnceCell::new();
-
 
 pub fn init() {
     TOURNS_MAP.get_or_init(Default::default);
 }
 
-pub async fn create_tournament(user: User, Json(data): Json<CreateTournamentRequest>) -> CreateTournamentResponse {
-    let tourn = user.account.create_tournament(data.name, data.preset, data.format);
+pub fn get_routes() -> Router<AppState> {
+    Router::new()
+        .route("/create", post(create_tournament))
+        .route("/:t_id", get(get_tournament))
+        .route("/:t_id/sync", post(sync))
+        .route("/:t_id/rollback", post(rollback))
+}
+
+pub async fn create_tournament(
+    user: User,
+    Json(data): Json<CreateTournamentRequest>,
+) -> CreateTournamentResponse {
+    let tourn = user
+        .account
+        .create_tournament(data.name, data.preset, data.format);
     let id = tourn.id;
     TOURNS_MAP.get().unwrap().insert(id, tourn.clone());
     CreateTournamentResponse::new(tourn)

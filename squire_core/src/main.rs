@@ -66,19 +66,10 @@ pub async fn init() {
     tournaments::init();
 }
 
-pub fn create_router<S>(state: S) -> Router
-where
-    MemoryStore: FromRef<S>,
-    S: 'static + Send + Sync + Clone,
-{
+pub fn create_router(state: AppState) -> Router {
     Router::new()
-        .route("/api/v1/tournaments/create", post(create_tournament))
-        .route("/api/v1/tournaments/:t_id", get(get_tournament))
-        .route("/api/v1/tournaments/:t_id/sync", post(sync))
-        .route("/api/v1/tournaments/:t_id/rollback", post(rollback))
-        .route("/api/v1/register", post(accounts::register))
-        .route("/api/v1/login", post(accounts::login))
-        .route("/api/v1/logout", post(accounts::logout))
+        .nest("/api/v1/tournaments", tournaments::get_routes())
+        .nest("/api/v1", accounts::get_routes())
         .route("/api/v1/cards", get(cards::atomics))
         .route("/api/v1/meta", get(cards::meta))
         .with_state(state)
@@ -95,7 +86,7 @@ async fn main() {
         .init();
 
     init().await;
-    
+
     // `MemoryStore` is just used as an example. Don't use this in production.
     let app_state = AppState {
         store: MemoryStore::new(),

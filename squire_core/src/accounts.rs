@@ -3,7 +3,7 @@ use axum::{
     body::HttpBody,
     extract::State,
     response::{IntoResponse, Redirect},
-    Json, TypedHeader,
+    Json, TypedHeader, routing::{post, MethodRouter}, Router,
 };
 use dashmap::DashMap;
 use headers::HeaderMap;
@@ -30,7 +30,7 @@ use squire_sdk::{
     Action,
 };
 
-use crate::User;
+use crate::{User, AppState};
 
 pub static USERS_MAP: OnceCell<DashMap<SquireAccountId, SquireAccount>> = OnceCell::new();
 pub static ORGS_MAP: OnceCell<DashMap<OrgId, OrganizationAccount>> = OnceCell::new();
@@ -38,6 +38,13 @@ pub static COOKIE_NAME: &str = "SESSION";
 
 pub fn init() {
     USERS_MAP.get_or_init(Default::default);
+}
+
+pub fn get_routes() -> Router<AppState> {
+    Router::new()
+        .route("/register", post(register))
+        .route("/login", post(login))
+        .route("/logout", post(logout))
 }
 
 pub async fn register(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
@@ -61,7 +68,7 @@ pub async fn login(
     let cookie = store.store_session(session).await.unwrap().unwrap();
 
     // Build the cookie
-    let cookie = format!("{}={}; SameSite=Lax; Path=/", COOKIE_NAME, cookie);
+    let cookie = format!("{COOKIE_NAME}={cookie}; SameSite=Lax; Path=/");
 
     // Set cookie
     let mut headers = HeaderMap::new();
