@@ -1,28 +1,20 @@
-#![feature(trivial_bounds)]
 #![allow(unused)]
 
-use std::{env, net::SocketAddr, time::Duration};
+use std::net::SocketAddr;
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
     extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
     http::StatusCode,
-    response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
-    Json, RequestPartsExt, Router, TypedHeader,
+    routing::get,
+    RequestPartsExt, Router, TypedHeader,
 };
 use serde::{Deserialize, Serialize};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use dashmap::DashMap;
 use http::{header, request::Parts};
-use tokio::sync::RwLock;
 
-use squire_sdk::{
-    accounts::SquireAccount,
-    cards::atomics::Atomics,
-    tournaments::{CreateTournamentRequest, CreateTournamentResponse},
-};
+use squire_sdk::accounts::SquireAccount;
 
 static COOKIE_NAME: &str = "SESSION";
 
@@ -31,38 +23,12 @@ mod tests;
 
 mod accounts;
 mod cards;
+mod session;
 mod tournaments;
 
-use accounts::*;
-use cards::MetaChecker;
-use tournaments::*;
-
 pub async fn init() {
-    let atomics: Atomics = reqwest::get("https://mtgjson.com/api/v5/AtomicCards.json")
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-    cards::ATOMICS_MAP.set(RwLock::new(atomics)).unwrap();
-    let meta: MetaChecker = reqwest::get("https://mtgjson.com/api/v5/Meta.json")
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-    cards::META_CACHE.set(RwLock::new(meta.meta)).unwrap();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(1800));
-        interval.tick().await;
-        loop {
-            interval.tick().await;
-            cards::update_cards().await;
-        }
-    });
-
+    cards::init().await;
     accounts::init();
-
     tournaments::init();
 }
 
@@ -88,11 +54,11 @@ async fn main() {
     init().await;
 
     // `MemoryStore` is just used as an example. Don't use this in production.
-    let app_state = AppState {
+    let app_state = MainAppState {
         store: MemoryStore::new(),
     };
 
-    let app = create_router(app_state);
+    let app = create_router(AppState::Main(app_state));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     println!("Starting server!!");
@@ -102,15 +68,15 @@ async fn main() {
         .unwrap()
 }
 
-#[derive(Clone)]
-pub struct AppState {
-    store: MemoryStore,
+#[derive(Debug, Clone)]
+pub enum AppState {
+    Main(MainAppState),
+    //Other(Box<dyn SessionStore>),
 }
 
-impl FromRef<AppState> for MemoryStore {
-    fn from_ref(state: &AppState) -> Self {
-        state.store.clone()
-    }
+#[derive(Debug, Clone)]
+pub struct MainAppState {
+    store: MemoryStore,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -119,17 +85,14 @@ pub struct User {
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for User
-where
-    MemoryStore: FromRef<S>,
-    S: Send + Sync,
-{
+impl FromRequestParts<AppState> for User {
     // If anything goes wrong or no session is found, redirect to the auth page
     type Rejection = StatusCode;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let store = MemoryStore::from_ref(state);
-
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
         let cookies = parts
             .extract::<TypedHeader<headers::Cookie>>()
             .await
@@ -143,12 +106,49 @@ where
 
         let session_cookie = cookies.get(COOKIE_NAME).ok_or(StatusCode::FORBIDDEN)?;
 
-        let session = store
+        let session = state
             .load_session(session_cookie.to_string())
             .await
             .unwrap()
             .ok_or(StatusCode::FORBIDDEN)?;
 
         session.get("user").ok_or(StatusCode::FORBIDDEN)
+    }
+}
+
+#[async_trait]
+impl SessionStore for AppState {
+    async fn load_session(
+        &self,
+        cookie_value: String,
+    ) -> async_session::Result<Option<async_session::Session>> {
+        match self {
+            AppState::Main(state) => state.store.load_session(cookie_value).await,
+            //AppState::Other(state) => state.load_session(cookie_value).await,
+        }
+    }
+
+    async fn store_session(
+        &self,
+        session: async_session::Session,
+    ) -> async_session::Result<Option<String>> {
+        match self {
+            AppState::Main(state) => state.store.store_session(session).await,
+            //AppState::Other(state) => state.store_session(session).await,
+        }
+    }
+
+    async fn destroy_session(&self, session: async_session::Session) -> async_session::Result {
+        match self {
+            AppState::Main(state) => state.store.destroy_session(session).await,
+            //AppState::Other(state) => state.destroy_session(session).await,
+        }
+    }
+
+    async fn clear_store(&self) -> async_session::Result {
+        match self {
+            AppState::Main(state) => state.store.clear_store().await,
+            //AppState::Other(state) => state.clear_store().await,
+        }
     }
 }

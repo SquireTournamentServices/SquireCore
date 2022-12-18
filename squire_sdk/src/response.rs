@@ -15,6 +15,12 @@ impl<T> SquireResponse<T> {
     }
 }
 
+impl<T> From<T> for SquireResponse<T> {
+    fn from(value: T) -> Self {
+        Self::new(value)
+    }
+}
+
 impl<'r, T> IntoResponse for SquireResponse<T>
 where
     T: Serialize + Deserialize<'r>,

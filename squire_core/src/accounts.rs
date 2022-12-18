@@ -1,38 +1,30 @@
 use async_session::{MemoryStore, Session, SessionStore};
 use axum::{
-    body::HttpBody,
-    extract::State,
+    extract::{Path, State},
     response::{IntoResponse, Redirect},
-    Json, TypedHeader, routing::{post, MethodRouter}, Router,
+    routing::{get, post},
+    Json, Router, TypedHeader,
 };
 use dashmap::DashMap;
 use headers::HeaderMap;
 use http::{
     header::{CONTENT_TYPE, SET_COOKIE},
-    Response, StatusCode,
+    StatusCode,
 };
 use once_cell::sync::OnceCell;
 
 use squire_sdk::{
-    accounts::{LoginRequest, LoginResponse},
+    accounts::*,
     model::{
         accounts::{OrganizationAccount, SquireAccount},
-        identifiers::{AdminId, OrganizationAccountId as OrgId, SquireAccountId},
+        identifiers::{OrganizationAccountId as OrgId, SquireAccountId},
     },
 };
 
-use squire_sdk::{
-    accounts::{
-        CreateAccountRequest, CreateAccountResponse, GetAllUsersResponse, GetOrgResponse,
-        GetUserPermissionsResponse, GetUserResponse, UpdateOrgAccountRequest,
-        UpdateOrgAccountResponse, UpdateSquireAccountRequest, UpdateSquireAccountResponse,
-    },
-    Action,
-};
-
-use crate::{User, AppState};
+use crate::{AppState, User};
 
 pub static USERS_MAP: OnceCell<DashMap<SquireAccountId, SquireAccount>> = OnceCell::new();
+#[allow(unused)]
 pub static ORGS_MAP: OnceCell<DashMap<OrgId, OrganizationAccount>> = OnceCell::new();
 pub static COOKIE_NAME: &str = "SESSION";
 
@@ -42,19 +34,24 @@ pub fn init() {
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
+        .route("/:id", get(get_user))
         .route("/register", post(register))
         .route("/login", post(login))
         .route("/logout", post(logout))
 }
 
+pub async fn get_user(Path(id): Path<SquireAccountId>) -> GetUserResponse {
+    USERS_MAP.get().unwrap().get(&id).map(|a| a.clone()).into()
+}
+
 pub async fn register(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
     let account = SquireAccount::new(data.user_name, data.display_name);
     USERS_MAP.get().unwrap().insert(account.id, account.clone());
-    CreateAccountResponse::new(account)
+    account.into()
 }
 
 pub async fn login(
-    State(store): State<MemoryStore>,
+    State(store): State<AppState>,
     Json(data): Json<LoginRequest>,
 ) -> impl IntoResponse {
     let account = USERS_MAP.get().unwrap().get(&data.id).unwrap().clone();
@@ -78,10 +75,9 @@ pub async fn login(
     (headers, LoginResponse::new(Some(user.account)))
 }
 
-#[axum::debug_handler]
 pub async fn logout(
     TypedHeader(cookies): TypedHeader<headers::Cookie>,
-    State(store): State<MemoryStore>,
+    State(store): State<AppState>,
 ) -> Result<StatusCode, Redirect> {
     let cookie = cookies.get(COOKIE_NAME).unwrap();
     let session = store

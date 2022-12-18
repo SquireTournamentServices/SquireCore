@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 
 use tokio::sync::{Mutex, MutexGuard};
 
-use crate::{accounts, create_router, tournaments, AppState};
+use crate::{accounts, create_router, tournaments, AppState, MainAppState};
 
 static SERVER: OnceCell<Mutex<Router>> = OnceCell::new();
 
@@ -13,11 +13,11 @@ fn init() -> Mutex<Router> {
     tournaments::init();
 
     // `MemoryStore` is ephemeral and will not persist between test runs
-    let app_state = AppState {
+    let app_state = MainAppState {
         store: MemoryStore::new(),
     };
 
-    Mutex::new(create_router(app_state))
+    Mutex::new(create_router(AppState::Main(app_state)))
 }
 
 pub(crate) async fn get_app() -> MutexGuard<'static, Router> {

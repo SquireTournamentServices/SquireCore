@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 
@@ -20,20 +22,43 @@ pub static META_CACHE: OnceCell<RwLock<Meta>> = OnceCell::new();
 /// The latest collection of atomic cards
 pub static ATOMICS_MAP: OnceCell<RwLock<Atomics>> = OnceCell::new();
 
-#[axum::debug_handler]
+pub async fn init() {
+    let atomics: Atomics = reqwest::get("https://mtgjson.com/api/v5/AtomicCards.json")
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    ATOMICS_MAP.set(RwLock::new(atomics)).unwrap();
+    let meta: MetaChecker = reqwest::get("https://mtgjson.com/api/v5/Meta.json")
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    META_CACHE.set(RwLock::new(meta.meta)).unwrap();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(1800));
+        interval.tick().await;
+        loop {
+            interval.tick().await;
+            update_cards().await;
+        }
+    });
+}
+
 pub async fn meta() -> MetaResponse {
     let meta: Meta = META_CACHE.get().unwrap().read().await.clone();
     MetaResponse::new(meta)
 }
 
-#[axum::debug_handler]
 pub async fn atomics() -> AtomicCardsResponse {
     let meta: Meta = META_CACHE.get().unwrap().read().await.clone();
     let atomics: Atomics = ATOMICS_MAP.get().unwrap().read().await.clone();
     AtomicCardsResponse::new((meta, atomics))
 }
 
-pub async fn update_cards() {
+async fn update_cards() {
     let meta_data: MetaChecker =
         if let Ok(data) = reqwest::get("https://mtgjson.com/api/v5/Meta.json").await {
             if let Ok(data) = data.json().await {

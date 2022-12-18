@@ -4,15 +4,11 @@ use serde::{Deserialize, Serialize};
 
 pub use squire_lib::{
     error::TournamentError,
-    identifiers::{TournamentId, TournamentIdentifier},
-    operations::{OpResult, TournOp},
+    identifiers::{TournamentId, OpId, TournamentIdentifier},
+    operations::{OpResult, OpSlice, OpSync, Rollback, RollbackError, SyncStatus, TournOp},
     scoring::{StandardScore, Standings},
     tournament::{Tournament, TournamentPreset},
-};
-
-use squire_lib::{
-    identifiers::OpId,
-    operations::{OpSlice, OpSync, Rollback, RollbackError, SyncStatus}, tournament_manager::TournamentManager,
+    tournament_manager::TournamentManager
 };
 
 use crate::response::SquireResponse;
