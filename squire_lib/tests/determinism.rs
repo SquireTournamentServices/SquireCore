@@ -12,7 +12,7 @@ mod tests {
     #[test]
     fn basic_determinism() {
         let account = SquireAccount::new("Test".into(), "Test".into());
-        let a_id: AdminId = account.user_id.0.into();
+        let a_id: AdminId = account.id.0.into();
         let mut tourn_one = account
             .create_tournament("Test".into(), TournamentPreset::Swiss, "Pioneer".into())
             .extract();

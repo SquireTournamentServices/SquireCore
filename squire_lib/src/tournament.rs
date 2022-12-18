@@ -221,12 +221,12 @@ impl Tournament {
             TournOfficialId::Admin(id) => self.is_admin(id),
         }
     }
-    
+
     /// Calculates the number of players in the tournament, regardless of status
     pub fn get_player_count(&self) -> usize {
         self.player_reg.players.len()
     }
-    
+
     /// Calculates the number of rounds in the tournament, regardless of status
     pub fn get_round_count(&self) -> usize {
         self.round_reg.rounds.len()
@@ -974,7 +974,6 @@ mod tests {
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
-        identifiers::UserAccountId,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
     };
@@ -982,12 +981,12 @@ mod tests {
     use super::{Tournament, TournamentPreset};
 
     fn spoof_account() -> SquireAccount {
-        let id: UserAccountId = Uuid::new_v4().into();
+        let id = Uuid::new_v4().into();
         SquireAccount {
+            id,
             user_name: id.to_string(),
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
-            user_id: id,
             permissions: SharingPermissions::Everything,
         }
     }
@@ -1058,7 +1057,11 @@ mod tests {
             .unwrap()
             .assume_pair();
         assert_eq!(rnds.len(), 2);
-        let r_id = tourn.round_reg.get_player_active_round(&plyrs[0]).unwrap().id;
+        let r_id = tourn
+            .round_reg
+            .get_player_active_round(&plyrs[0])
+            .unwrap()
+            .id;
         tourn
             .apply_op(
                 Utc::now(),

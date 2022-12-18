@@ -5,7 +5,6 @@ mod tests {
     use chrono::Utc;
     use squire_lib::{
         accounts::{SharingPermissions, SquireAccount},
-        identifiers::UserAccountId,
         pairings::PairingSystem,
         players::PlayerRegistry,
         rounds::{RoundContext, RoundRegistry},
@@ -15,12 +14,12 @@ mod tests {
     use uuid::Uuid;
 
     fn spoof_account() -> SquireAccount {
-        let id: UserAccountId = Uuid::new_v4().into();
+        let id = Uuid::new_v4().into();
         SquireAccount {
+            id,
             user_name: id.to_string(),
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
-            user_id: id,
             permissions: SharingPermissions::Everything,
         }
     }
