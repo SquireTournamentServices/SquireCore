@@ -1,19 +1,14 @@
-use std::{
-    net::SocketAddr,
-    sync::atomic::{AtomicBool, Ordering}, thread, time::Duration,
-};
-
 use async_session::MemoryStore;
-use axum::{Router, Server};
+use axum::Router;
 use once_cell::sync::OnceCell;
-use tokio::io::{self, AsyncWriteExt};
 
-use crate::{create_router, AppState, tournaments, accounts};
+use tokio::sync::{Mutex, MutexGuard};
 
-static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
-static SERVER: OnceCell<()> = OnceCell::new();
+use crate::{accounts, create_router, tournaments, AppState};
 
-async fn init() {
+static SERVER: OnceCell<Mutex<Router>> = OnceCell::new();
+
+fn init() -> Mutex<Router> {
     accounts::init();
     tournaments::init();
 
@@ -22,32 +17,9 @@ async fn init() {
         store: MemoryStore::new(),
     };
 
-    println!("Spawning server");
-
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
-
-    tokio::spawn(async move {
-        println!("Creating server");
-        axum::Server::bind(&addr)
-            .serve(create_router(app_state).into_make_service())
-            .await
-            .unwrap();
-    });
-    
-    tokio::time::sleep(Duration::from_millis(10)).await;
-
-    println!("Setting server");
-    SERVER.set(()).expect("Could not set initialized server")
+    Mutex::new(create_router(app_state))
 }
 
-pub(crate) async fn ensure_startup() -> () {
-    println!("Ensuring server is starting!!");
-    if !SERVER_STARTED
-        .compare_exchange(false, true, Ordering::Acquire, Ordering::Acquire)
-        .unwrap_or(true)
-    {
-        init().await;
-    }
-    println!("Waiting for server to start...");
-    *SERVER.wait()
+pub(crate) async fn get_app() -> MutexGuard<'static, Router> {
+    SERVER.get_or_init(init).lock().await
 }

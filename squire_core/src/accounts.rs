@@ -37,7 +37,7 @@ pub static ORGS_MAP: OnceCell<DashMap<OrgId, OrganizationAccount>> = OnceCell::n
 pub static COOKIE_NAME: &str = "SESSION";
 
 pub fn init() {
-    USERS_MAP.set(DashMap::new()).unwrap();
+    USERS_MAP.get_or_init(Default::default);
 }
 
 pub async fn register(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {

@@ -1,14 +1,17 @@
-use std::{net::SocketAddr, thread, time::Duration};
+use std::{net::SocketAddr, rc::Rc, thread, time::Duration};
 
 use async_session::MemoryStore;
 use headers::HeaderValue;
 use http::{
     header::{CONTENT_TYPE, SET_COOKIE},
-    StatusCode,
+    Method, StatusCode,
 };
 
-use reqwest::{cookie::Cookie, Client, Request, Response};
+use axum::{body::HttpBody, handler::Handler, http::Request, response::Response};
+use hyper::Body;
 use serde::{Deserialize, Serialize};
+use tower::{Service, ServiceExt};
+
 use squire_sdk::{
     accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
     model::tournament::TournamentPreset,
@@ -17,94 +20,74 @@ use squire_sdk::{
 
 use crate::{create_router, AppState, COOKIE_NAME};
 
-use super::init::ensure_startup;
+use super::init::get_app;
 
-fn register_account_request() -> CreateAccountRequest {
-    CreateAccountRequest {
-        user_name: "Test User".into(),
-        display_name: "Test".into(),
-    }
-}
-
-fn login_request(id: SquireAccountId) -> LoginRequest {
-    LoginRequest { id }
-}
-
-fn create_tournament_request() -> CreateTournamentRequest {
-    CreateTournamentRequest {
-        name: "Test".into(),
-        preset: TournamentPreset::Swiss,
-        format: "Pioneer".into(),
-    }
-}
-
-async fn send_json_request<B>(client: &Client, path: &'static str, body: B) -> Response
+fn create_request<B>(path: &str, body: B) -> Request<Body>
 where
     B: Serialize,
 {
-    client
-        .post(format!("http://127.0.0.1:8000/api/v1/{path}"))
+    Request::builder()
+        .method(Method::POST)
+        .uri(format!("http://127.0.0.1:8000/api/v1/{path}"))
         .header(CONTENT_TYPE, "application/json")
-        .body(serde_json::to_string(&body).unwrap())
-        .send()
-        .await
+        .body(serde_json::to_string(&body).unwrap().into())
         .unwrap()
 }
 
-async fn send_json_request_with_cookie<B>(
-    client: &Client,
-    path: &'static str,
-    cookie: Cookie<'static>,
-    body: B,
-) -> Response
-where
-    B: Serialize,
-{
-    client
-        .post(format!("http://127.0.0.1:8000/api/v1/{path}"))
-        .header(CONTENT_TYPE, "application/json")
-        .header(SET_COOKIE, cookie.value().parse::<HeaderValue>().unwrap())
-        .body(serde_json::to_string(&body).unwrap())
-        .send()
+fn register_account_request() -> Request<Body> {
+    let body = CreateAccountRequest {
+        user_name: "Test User".into(),
+        display_name: "Test".into(),
+    };
+    create_request("register", body)
+}
+
+fn login_request(id: SquireAccountId) -> Request<Body> {
+    let body = LoginRequest { id };
+    create_request("login", body)
+}
+
+fn create_tournament_request() -> Request<Body> {
+    let body = CreateTournamentRequest {
+        name: "Test".into(),
+        preset: TournamentPreset::Swiss,
+        format: "Pioneer".into(),
+    };
+    create_request("tournaments/create", body)
+}
+
+async fn send_request(req: Request<Body>) -> Response {
+    get_app()
+        .await
+        .ready()
+        .await
+        .unwrap()
+        .call(req)
         .await
         .unwrap()
 }
 
 #[tokio::test]
 async fn create_tournament_requires_login() {
-    ensure_startup().await;
-    println!("Server is running");
-
-    let client = Client::new();
     let request = create_tournament_request();
-    let resp = send_json_request(&client, "tournaments/create", &request).await;
+    let resp = send_request(request).await;
 
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]
 async fn create_tournament() {
-    ensure_startup().await;
-    println!("Server is running");
-
-    println!("Registering...");
-    let client = Client::new();
     let request = register_account_request();
-    let resp = send_json_request(&client, "register", &request).await;
+    let resp = send_request(request).await;
 
-    println!("Registered!!");
     assert_eq!(resp.status(), StatusCode::OK);
 
-    tokio::time::sleep(Duration::from_millis(10)).await;
-
-    println!("Logging in...");
-    let account: CreateAccountResponse = resp.json().await.unwrap();
+    let account: CreateAccountResponse = serde_json::from_str(
+        &String::from_utf8(resp.into_body().data().await.unwrap().unwrap().to_vec()).unwrap(),
+    ).unwrap();
     let request = login_request(account.0.id);
-    let resp = send_json_request(&client, "login", &request).await;
-    let cookie = resp.cookies().find(|c| c.name() == COOKIE_NAME).unwrap();
+    let resp = send_request(request).await;
 
-    println!("Logged in!!");
     assert_eq!(resp.status(), StatusCode::OK);
-
-    tokio::time::sleep(Duration::from_millis(1)).await;
+    //let cookie = resp.cookies().find(|c| c.name() == COOKIE_NAME).unwrap();
 }

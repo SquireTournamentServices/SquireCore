@@ -20,7 +20,7 @@ pub static TOURNS_MAP: OnceCell<DashMap<TournamentId, TournamentManager>> = Once
 
 
 pub fn init() {
-    TOURNS_MAP.set(DashMap::new()).unwrap();
+    TOURNS_MAP.get_or_init(Default::default);
 }
 
 pub async fn create_tournament(user: User, Json(data): Json<CreateTournamentRequest>) -> CreateTournamentResponse {
