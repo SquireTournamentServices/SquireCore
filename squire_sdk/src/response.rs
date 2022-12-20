@@ -1,7 +1,7 @@
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "axum")]
+use axum::{http::StatusCode, response::IntoResponse};
 
 #[derive(Debug, Serialize, Deserialize)]
 /// This is the base wrapper struct used to wrap SC response data. This prevents having to
@@ -21,6 +21,7 @@ impl<T> From<T> for SquireResponse<T> {
     }
 }
 
+#[cfg(feature = "axum")]
 impl<'r, T> IntoResponse for SquireResponse<T>
 where
     T: Serialize + Deserialize<'r>,

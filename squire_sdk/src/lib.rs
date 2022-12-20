@@ -33,6 +33,10 @@ pub mod cards {
     pub use crate::card_requests::*;
 }
 
+#[cfg(feature = "client")]
+/// The default client used by non-squire_core services to communicate with squire_core
+pub mod client;
+
 /// Request/response structs for SquireCore account apis
 pub mod accounts;
 /// The errors used by this library

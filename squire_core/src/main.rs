@@ -23,7 +23,6 @@ mod tests;
 
 mod accounts;
 mod cards;
-mod session;
 mod tournaments;
 
 pub async fn init() {
@@ -36,6 +35,7 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         .nest("/api/v1/tournaments", tournaments::get_routes())
         .nest("/api/v1", accounts::get_routes())
+        .route("/api/v1/version", get(|| async { "0.1.0-pre-alpha" }))
         .route("/api/v1/cards", get(cards::atomics))
         .route("/api/v1/meta", get(cards::meta))
         .with_state(state)
@@ -93,6 +93,7 @@ impl FromRequestParts<AppState> for User {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        println!("Loading Cookies from parts...");
         let cookies = parts
             .extract::<TypedHeader<headers::Cookie>>()
             .await
@@ -104,13 +105,16 @@ impl FromRequestParts<AppState> for User {
                 _ => panic!("unexpected error getting cookies: {}", e),
             })?;
 
+        println!("Looking for correct cookie...");
         let session_cookie = cookies.get(COOKIE_NAME).ok_or(StatusCode::FORBIDDEN)?;
 
+        println!("Loading Session...");
         let session = state
             .load_session(session_cookie.to_string())
             .await
             .unwrap()
             .ok_or(StatusCode::FORBIDDEN)?;
+        println!("Session loaded successfully!");
 
         session.get("user").ok_or(StatusCode::FORBIDDEN)
     }
