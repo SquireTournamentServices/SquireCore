@@ -946,8 +946,7 @@ impl Tournament {
                 ret += "</td><tr>";
             }
 
-            let mut i: u64 = 0;
-            for pid in &r.players {
+            for (i, pid) in r.players.iter().enumerate() {
                 if i % 2 == 0 {
                     if i != 0 {
                         ret += "</tr>";
@@ -963,7 +962,6 @@ impl Tournament {
                         .all_names(),
                 );
                 ret += "</td>";
-                i += 1
             }
             ret += "</tr></table></div>";
         }
