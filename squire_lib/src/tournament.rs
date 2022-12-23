@@ -920,7 +920,7 @@ impl Tournament {
     }
 
     /// Generates a round slip in HTML
-    pub fn round_slips_html(self, css: String) -> String {
+    pub fn round_slips_html(&self, css: &str) -> String {
         let mut ret: String = "<!DOCTPYE HTML>".to_string();
 
         ret += "<html lang=\"en\">";
