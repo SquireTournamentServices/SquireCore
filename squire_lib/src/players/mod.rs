@@ -50,6 +50,10 @@ impl Player {
     /// Returns a string of a player name and, game name
     pub fn all_names(&self) -> String {
         match &self.game_name {
+            Some(game_name) if self.name.eq(game_name) => self.name.clone(),
+            Some(game_name) => format!("{} ({game_name})", self.name),
+            None => self.name.clone(),
+        }
             Some(game_name) => {
                 if self.name.eq(game_name) {
                     return self.name.clone();
