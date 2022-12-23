@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use uuid::Uuid;
 
 // use mtgjson::model::deck::Deck;
@@ -923,49 +924,53 @@ impl Tournament {
     pub fn round_slips_html(&self, css: &str) -> String {
         let mut ret: String = "<!DOCTPYE HTML>".to_string();
 
-        ret += "<html lang=\"en\">";
-        ret += "<head><style>";
-        ret += &css;
-        ret += "</style></head>";
-        ret += "<body>";
+        let _ = write!(ret, "<html lang=\"en\">");
+        let _ = write!(ret, "<head><style>");
+        let _ = write!(ret, "{}", &css);
+        let _ = write!(ret, "</style></head>");
+        let _ = write!(ret, "<body>");
 
         for r in self.round_reg.rounds.values().filter(|r| r.is_active()) {
-            ret += "<div class='card' style='border-style: solid;'>";
-            ret += "<div class='title' style='display: flex; align-items: center; width: 100%; flex-direction: column;'>";
-            ret += &html_escape::encode_text(&self.name.to_string());
-            ret += "</div>";
-            ret += "<table style='width: 100%;'>";
-            ret += "<tr><tr><td>Round # ";
-            ret += &r.match_number.to_string();
-            ret += "</td>";
+            let _ = write!(ret, "<div class='card' style='border-style: solid;'>");
+            let _ = write!(ret, "<div class='title' style='display: flex; align-items: center; width: 100%; flex-direction: column;'>");
+            let _ = write!(ret, "{}", &html_escape::encode_text(&self.name.to_string()));
+            let _ = write!(ret, "</div>");
+            let _ = write!(ret, "<table style='width: 100%;'>");
+            let _ = write!(ret, "<tr><tr><td>Round # ");
+            let _ = write!(ret, "{}", &r.match_number.to_string());
+            let _ = write!(ret, "</td>");
 
-            let table_number: u64 = r.table_number;
+            let table_number = r.table_number;
             if table_number != 0 {
-                ret += "<td>Table #";
-                ret += &table_number.to_string();
-                ret += "</td><tr>";
+                let _ = write!(ret, "<td>Table #");
+                let _ = write!(ret, "{}", &table_number.to_string());
+                let _ = write!(ret, "</td><tr>");
             }
 
             for (i, pid) in r.players.iter().enumerate() {
                 if i % 2 == 0 {
                     if i != 0 {
-                        ret += "</tr>";
+                        let _ = write!(ret, "</tr>");
                     }
-                    ret += "<tr>";
+                    let _ = write!(ret, "<tr>");
                 }
-                ret += "<td>";
-                ret += &html_escape::encode_text(
-                    &self
-                        .player_reg
-                        .get_player(&pid)
-                        .expect("Round's playes should be within the tournament.")
-                        .all_names(),
+                let _ = write!(ret, "<td>");
+                let _ = write!(
+                    ret,
+                    "{}",
+                    &html_escape::encode_text(
+                        &self
+                            .player_reg
+                            .get_player(&pid)
+                            .expect("Round's playes should be within the tournament.")
+                            .all_names(),
+                    )
                 );
-                ret += "</td>";
+                let _ = write!(ret, "</td>");
             }
-            ret += "</tr></table></div>";
+            let _ = write!(ret, "</tr></table></div>");
         }
-        ret += "</body>";
+        let _ = write!(ret, "</body>");
 
         ret
     }
