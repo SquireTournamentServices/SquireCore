@@ -10,7 +10,10 @@
 )]
 
 use cookie::Cookie;
-use reqwest::{header::{SET_COOKIE, CONTENT_TYPE, COOKIE}, Client, Response, StatusCode};
+use reqwest::{
+    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
+    Client, Response, StatusCode,
+};
 use serde::Serialize;
 use squire_lib::{
     accounts::SquireAccount,
@@ -22,13 +25,17 @@ use squire_lib::{
 };
 
 use crate::{
-    accounts::{CreateAccountRequest, LoginRequest, CreateAccountResponse},
+    accounts::{
+        CreateAccountRequest, CreateAccountResponse, LoginRequest, VerificationData,
+        VerificationRequest, VerificationResponse,
+    },
     tournaments::CreateTournamentRequest,
+    version::ServerMode,
 };
 
 pub mod simple_state;
 
-pub trait ClientState: Sync {
+pub trait ClientState {
     fn query_tournament<Q, R>(&self, id: &TournamentId, query: Q) -> Option<R>
     where
         Q: FnOnce(&TournamentManager) -> R;
@@ -74,7 +81,9 @@ pub struct SquireClient<S> {
     url: String,
     user: SquireAccount,
     session: Option<Cookie<'static>>,
-    state: S,
+    verification: Option<VerificationData>,
+    server_mode: ServerMode,
+    pub state: S,
 }
 
 impl<S> SquireClient<S>
@@ -88,42 +97,66 @@ where
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }
+        let server_mode = resp.json().await?;
         Ok(Self {
             session: None,
+            verification: None,
             client,
             url,
             user,
+            server_mode,
             state,
         })
+    }
+
+    pub async fn with_account_creation(
+        url: String,
+        user_name: String,
+        display_name: String,
+        state: S,
+    ) -> Result<Self, ClientError> {
+        let client = Client::new();
+        let resp = client.get(format!("{url}/api/v1/version")).send().await?;
+        if resp.status() != StatusCode::OK {
+            return Err(ClientError::FailedToConnect);
+        }
+        let server_mode = resp.json().await?;
+        let body = CreateAccountRequest {
+            user_name,
+            display_name,
+        };
+        let resp = client
+            .post(format!("{url}/api/v1/register"))
+            .header(CONTENT_TYPE, "application/json")
+            .body(serde_json::to_string(&body).unwrap())
+            .send()
+            .await?;
+        match resp.status() {
+            StatusCode::OK => {
+                let resp: CreateAccountResponse = resp.json().await?;
+                let user = resp.0;
+                let mut digest = Self::new_unchecked(url, user, state);
+                digest.server_mode = server_mode;
+                digest.login().await?;
+                Ok(digest)
+            }
+            status => Err(ClientError::RequestStatus(status)),
+        }
     }
 
     /// Creates a client and does not check if the URL is valid
     pub fn new_unchecked(url: String, user: SquireAccount, state: S) -> Self {
         Self {
             session: None,
+            verification: None,
             client: Client::new(),
+            server_mode: ServerMode::Extended,
             url,
             user,
             state,
         }
     }
-
-    pub async fn create_account(&mut self) -> Result<(), ClientError> {
-        let body = CreateAccountRequest {
-            user_name: self.user.user_name.clone(),
-            display_name: self.user.display_name.clone(),
-        };
-        let resp = self.post_request("/api/v1/register", body).await?;
-        match resp.status() {
-            StatusCode::OK => {
-                let resp: CreateAccountResponse = resp.json().await?;
-                self.user = resp.0;
-                self.login().await
-            },
-            status => Err(ClientError::RequestStatus(status)),
-        }
-    }
-
+    
     pub async fn login(&mut self) -> Result<(), ClientError> {
         let body = LoginRequest { id: self.user.id };
         let resp = self.post_request("/api/v1/login", body).await?;
@@ -134,6 +167,42 @@ where
         let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
         self.session = Some(cookie);
         Ok(())
+    }
+
+    pub fn is_verify(&self) -> bool {
+        self.verification
+            .as_ref()
+            .map(|data| data.status)
+            .unwrap_or_default()
+    }
+
+    pub async fn verify(&mut self) -> Result<String, ClientError> {
+        let data = match &self.verification {
+            Some(data) => self.verify_post().await?,
+            None => self.verify_get().await?,
+        };
+        let digest = data.confirmation.clone();
+        self.verification = Some(data);
+        Ok(digest)
+    }
+
+    async fn verify_post(&mut self) -> Result<VerificationData, ClientError> {
+        let body = VerificationRequest {
+            account: self.user.clone(),
+        };
+        let resp = self.post_request("/api/v1/verify", body).await?;
+        let session = resp
+            .cookies()
+            .find(|c| c.name() == "SESSION")
+            .ok_or(ClientError::LogInFailed)?;
+        let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
+        self.session = Some(cookie);
+        Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
+    }
+
+    async fn verify_get(&mut self) -> Result<VerificationData, ClientError> {
+        let resp = self.get_request_with_cookie("/api/v1/verify").await?;
+        Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
     }
 
     pub async fn create_tournament(
@@ -159,6 +228,25 @@ where
             }
             status => Err(ClientError::RequestStatus(status)),
         }
+    }
+
+    async fn get_request_with_cookie(&self, path: &str) -> Result<Response, ClientError> {
+        let cookie = self
+            .session
+            .as_ref()
+            .ok_or(ClientError::NotLoggedIn)?
+            .to_string();
+        self.client
+            .get(format!("{}{path}", self.url))
+            .header(COOKIE, cookie.to_string())
+            .send()
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {
+        println!("Sending a GET request to: {}{path}", self.url);
+        self.client.get(format!("{}{path}", self.url)).send().await
     }
 
     async fn post_request_with_cookie<B>(
@@ -188,7 +276,7 @@ where
     where
         B: Serialize,
     {
-        println!("Sending request to: {}{path}", self.url);
+        println!("Sending a POST request to: {}{path}", self.url);
         self.client
             .post(format!("{}{path}", self.url))
             .header(CONTENT_TYPE, "application/json")

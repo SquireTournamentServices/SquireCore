@@ -9,12 +9,17 @@ use axum::{
     routing::get,
     RequestPartsExt, Router, TypedHeader,
 };
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use http::{header, request::Parts};
 
-use squire_sdk::accounts::SquireAccount;
+use squire_sdk::{
+    accounts::SquireAccount,
+    response::SquireResponse,
+    version::{ServerMode, Version},
+};
 
 static COOKIE_NAME: &str = "SESSION";
 
@@ -25,7 +30,13 @@ mod accounts;
 mod cards;
 mod tournaments;
 
+static VERSION_DATA: OnceCell<Version> = OnceCell::new();
+
 pub async fn init() {
+    VERSION_DATA.get_or_init(|| Version {
+        version: "0.1.0-pre-alpha".to_string(),
+        mode: ServerMode::Extended,
+    });
     cards::init().await;
     accounts::init();
     tournaments::init();
@@ -35,9 +46,12 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         .nest("/api/v1/tournaments", tournaments::get_routes())
         .nest("/api/v1", accounts::get_routes())
-        .route("/api/v1/version", get(|| async { "0.1.0-pre-alpha" }))
         .route("/api/v1/cards", get(cards::atomics))
         .route("/api/v1/meta", get(cards::meta))
+        .route(
+            "/api/v1/version",
+            get(|| async { SquireResponse::new(VERSION_DATA.get().unwrap().clone()) }),
+        )
         .with_state(state)
 }
 

@@ -47,6 +47,8 @@ pub mod players;
 pub mod response;
 /// Request/response structs for SquireCore tournament apis
 pub mod tournaments;
+/// Request/response structs for server version
+pub mod version;
 
 /// A general-purpose enum to encode what to do with an accompanying value
 #[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
