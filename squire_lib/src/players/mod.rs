@@ -54,14 +54,6 @@ impl Player {
             Some(game_name) => format!("{} ({game_name})", self.name),
             None => self.name.clone(),
         }
-            Some(game_name) => {
-                if self.name.eq(game_name) {
-                    return self.name.clone();
-                }
-                return self.name.clone() + " (" + &game_name + ")";
-            }
-            None => return self.name.clone(),
-        }
     }
 
     /// Creates a new player

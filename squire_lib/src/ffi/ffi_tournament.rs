@@ -645,7 +645,7 @@ impl TournamentId {
         SQUIRE_RUNTIME.get().unwrap().tournament_query(self, |t| {
             ret = t
                 .clone()
-                .round_slips_html(unsafe { CStr::from_ptr(__css).to_str().unwrap().to_string() })
+                .round_slips_html(unsafe { CStr::from_ptr(__css).to_str().unwrap() })
         });
         clone_string_to_c_string(ret.as_str())
     }
