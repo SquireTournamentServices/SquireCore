@@ -1,31 +1,62 @@
-use rocket::http::{ContentType, MediaType, Status};
+use std::{net::SocketAddr, rc::Rc, thread, time::Duration};
 
-use squire_lib::tournament::TournamentPreset;
-use squire_sdk::tournaments::{CreateTournamentRequest, CreateTournamentResponse};
+use async_session::MemoryStore;
+use headers::{Cookie, HeaderName, HeaderValue};
+use http::{
+    header::{self, CONTENT_TYPE, SET_COOKIE},
+    Method, StatusCode,
+};
 
-use super::init::get_server;
+use axum::{body::HttpBody, handler::Handler, http::Request, response::Response};
+use hyper::Body;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tower::{Service, ServiceExt};
+
+use squire_sdk::{
+    accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
+    model::tournament::TournamentPreset,
+    tournaments::{CreateTournamentRequest, CreateTournamentResponse},
+};
+
+use crate::{
+    create_router,
+    tests::{
+        init::get_app,
+        requests::{create_tournament_request, login_request, register_account_request},
+        utils::*,
+    },
+    AppState, COOKIE_NAME,
+};
+
+#[tokio::test]
+async fn create_tournament_requires_login() {
+    let request = create_tournament_request();
+    let resp = send_request(request).await;
+
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+}
 
 #[tokio::test]
 async fn create_tournament() {
-    let client = get_server().await;
-    let data = CreateTournamentRequest {
-        name: "Test".into(),
-        preset: TournamentPreset::Swiss,
-        format: "Pioneer".into(),
-    };
-    let response = client
-        .post("/api/v1/tournaments/create")
-        .header(ContentType(MediaType::JSON))
-        .body(serde_json::to_string(&data).expect("Could not serialize tournament create request"))
-        .dispatch()
-        .await;
-    println!("{:?}", response.status().reason());
-    assert_eq!(response.status(), Status::Ok);
-    let response: CreateTournamentResponse = response
-        .into_json()
-        .await
-        .expect("malformed response: tournament create");
-    let tourn = response.0;
-    assert_eq!(tourn.name, data.name);
-    assert_eq!(tourn.format, data.format);
+    let request = register_account_request();
+    let resp = send_request(request).await;
+
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let account: CreateAccountResponse = extract_json_body(resp).await;
+
+    let request = login_request(account.0.id);
+    let resp = send_request(request).await;
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let cookies = get_cookies(&resp);
+
+    let mut request = create_tournament_request();
+    request
+        .headers_mut()
+        .insert(header::COOKIE, cookies[0].clone());
+    let resp = send_request(request).await;
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let tourn: CreateTournamentResponse = extract_json_body(resp).await;
 }

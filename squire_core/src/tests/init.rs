@@ -1,25 +1,25 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
+use async_session::MemoryStore;
+use axum::Router;
 use once_cell::sync::OnceCell;
-use rocket::local::asynchronous::Client;
 
-static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
-static SERVER: OnceCell<Client> = OnceCell::new();
+use tokio::sync::{Mutex, MutexGuard};
 
-async fn init() {
-    let client = Client::tracked(crate::init())
-        .await
-        .expect("Could not initialize server");
-    SERVER
-        .set(client)
-        .expect("Could not set initialized server")
+use crate::{accounts, create_router, tournaments, AppState, MainAppState};
+
+static SERVER: OnceCell<Mutex<Router>> = OnceCell::new();
+
+fn init() -> Mutex<Router> {
+    accounts::init();
+    tournaments::init();
+
+    // `MemoryStore` is ephemeral and will not persist between test runs
+    let app_state = MainAppState {
+        store: MemoryStore::new(),
+    };
+
+    Mutex::new(create_router(AppState::Main(app_state)))
 }
 
-pub(crate) async fn get_server() -> &'static Client {
-    if let Ok(_) =
-        SERVER_STARTED.compare_exchange(false, true, Ordering::Acquire, Ordering::Acquire)
-    {
-        init().await;
-    }
-    SERVER.wait()
+pub(crate) async fn get_app() -> MutexGuard<'static, Router> {
+    SERVER.get_or_init(init).lock().await
 }

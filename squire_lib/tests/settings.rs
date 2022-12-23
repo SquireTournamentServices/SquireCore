@@ -13,12 +13,12 @@ mod tests {
     use uuid::Uuid;
 
     fn spoof_account() -> SquireAccount {
-        let id = Uuid::new_v4();
+        let id = Uuid::new_v4().into();
         SquireAccount {
+            id,
             user_name: id.to_string(),
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
-            user_id: id.into(),
             permissions: SharingPermissions::Everything,
         }
     }
@@ -26,7 +26,7 @@ mod tests {
     #[test]
     fn basic_tournament_settings() {
         let admin = spoof_account();
-        let admin_id: AdminId = admin.user_id.0.into();
+        let admin_id: AdminId = admin.id.0.into();
         let mut tourn = admin.create_tournament(
             "Test Tournament".into(),
             TournamentPreset::Swiss,
@@ -64,7 +64,7 @@ mod tests {
     #[test]
     fn check_pairings_guard() {
         let admin = spoof_account();
-        let admin_id: AdminId = admin.user_id.0.into();
+        let admin_id: AdminId = admin.id.0.into();
         let mut tourn = admin.create_tournament(
             "Test Tournament".into(),
             TournamentPreset::Swiss,

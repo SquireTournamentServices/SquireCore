@@ -1029,7 +1029,6 @@ mod tests {
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
-        identifiers::UserAccountId,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
     };
@@ -1037,12 +1036,12 @@ mod tests {
     use super::{Tournament, TournamentPreset};
 
     fn spoof_account() -> SquireAccount {
-        let id: UserAccountId = Uuid::new_v4().into();
+        let id = Uuid::new_v4().into();
         SquireAccount {
+            id,
             user_name: id.to_string(),
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
-            user_id: id,
             permissions: SharingPermissions::Everything,
         }
     }

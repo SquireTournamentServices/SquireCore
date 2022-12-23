@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 
 pub use squire_lib::{
     error::TournamentError,
-    identifiers::{TournamentId, TournamentIdentifier},
-    operations::{OpResult, TournOp},
+    identifiers::{OpId, TournamentId, TournamentIdentifier},
+    operations::{OpResult, OpSlice, OpSync, Rollback, RollbackError, SyncStatus, TournOp},
     scoring::{StandardScore, Standings},
     tournament::{Tournament, TournamentPreset},
+    tournament_manager::TournamentManager,
 };
 
 use squire_lib::{
@@ -26,7 +27,7 @@ pub type GetTournamentResponse = SquireResponse<Option<TournamentManager>>;
 /// tournament id and tournament objects.
 pub type AllTournamentsResponse = SquireResponse<HashMap<TournamentId, Tournament>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/create` SC API. The fields contain all the data
 /// required to create a tournament.
 pub struct CreateTournamentRequest {
