@@ -940,10 +940,9 @@ impl Tournament {
             let _ = write!(ret, "{}", &r.match_number.to_string());
             let _ = write!(ret, "</td>");
 
-            let table_number = r.table_number;
-            if table_number != 0 {
+            if self.use_table_number {
                 let _ = write!(ret, "<td>Table #");
-                let _ = write!(ret, "{}", &table_number.to_string());
+                let _ = write!(ret, "{}", &r.table_number.to_string());
                 let _ = write!(ret, "</td><tr>");
             }
 
