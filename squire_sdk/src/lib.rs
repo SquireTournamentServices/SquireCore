@@ -27,7 +27,7 @@ pub mod cards {
     pub use squire_lib::players::Deck;
 
     pub use mtgjson as model;
-    
+
     pub use mtgjson::mtgjson::{atomics, meta};
 
     pub use crate::card_requests::*;

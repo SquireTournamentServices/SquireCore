@@ -6,9 +6,9 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    r64,
     identifiers::PlayerId,
     players::PlayerRegistry,
+    r64,
     rounds::{Round, RoundRegistry},
     scoring::{Score, Standings},
     settings::StandardScoringSetting,

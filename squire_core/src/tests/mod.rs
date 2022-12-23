@@ -1,5 +1,5 @@
 mod init;
-mod utils;
 mod requests;
 pub mod tournaments;
+mod utils;
 pub use tournaments::*;

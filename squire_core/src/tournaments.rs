@@ -17,8 +17,7 @@ pub fn init() {
     TOURNS_MAP.get_or_init(Default::default);
 }
 
-pub fn get_routes() -> Router<AppState>
-{
+pub fn get_routes() -> Router<AppState> {
     Router::new()
         .route("/create", post(create_tournament))
         .route("/:t_id", get(get_tournament))

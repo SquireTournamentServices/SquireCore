@@ -155,7 +155,7 @@ impl Round {
             context,
         }
     }
-    
+
     /// Calculates if an identifier matches data in this round
     pub fn match_ident(&self, ident: RoundIdentifier) -> bool {
         match ident {

@@ -10,7 +10,10 @@
 )]
 
 use cookie::Cookie;
-use reqwest::{header::{SET_COOKIE, CONTENT_TYPE, COOKIE}, Client, Response, StatusCode};
+use reqwest::{
+    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
+    Client, Response, StatusCode,
+};
 use serde::Serialize;
 use squire_lib::{
     accounts::SquireAccount,
@@ -22,7 +25,7 @@ use squire_lib::{
 };
 
 use crate::{
-    accounts::{CreateAccountRequest, LoginRequest, CreateAccountResponse},
+    accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest},
     tournaments::CreateTournamentRequest,
 };
 
@@ -119,7 +122,7 @@ where
                 let resp: CreateAccountResponse = resp.json().await?;
                 self.user = resp.0;
                 self.login().await
-            },
+            }
             status => Err(ClientError::RequestStatus(status)),
         }
     }

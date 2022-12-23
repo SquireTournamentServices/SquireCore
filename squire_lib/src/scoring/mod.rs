@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{r64, identifiers::PlayerId};
+use crate::{identifiers::PlayerId, r64};
 
 /// Contains the models for the standard score
 pub mod standard_scoring;
