@@ -37,3 +37,7 @@ libc = { version = "0.2", optional = true }
 
 [build-dependencies]
 cbindgen = { version = "0.20.0", optional = true}
+
+# This ensures that when the program crashes a usable stack trace can be generated
+[profile.release]
+debug = true
