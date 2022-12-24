@@ -35,6 +35,9 @@ libc = { version = "0.2", optional = true }
 [build-dependencies]
 cbindgen = { version = "0.20.0", optional = true}
 
-# This ensures that when the program crashes a usable stack trace can be generated
+# The following allows DWARF-4 to work with Rust
 [profile.release]
-debug = true
+debug = false
+strip = "debuginfo"
+lto = false
+panic = "unwind"
