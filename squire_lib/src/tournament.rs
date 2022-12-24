@@ -937,7 +937,7 @@ impl Tournament {
             let _ = write!(ret, "</div>");
             let _ = write!(ret, "<table style='width: 100%;'>");
             let _ = write!(ret, "<tr><tr><td>Round # ");
-            let _ = write!(ret, "{}", &r.match_number.to_string());
+            let _ = write!(ret, "{}", r.match_number);
             let _ = write!(ret, "</td>");
 
             if self.use_table_number {
