@@ -5,6 +5,9 @@ edition = "2021"
 license = "GPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
+# The following allows DWARF-4 to work with Rust
+dwarf-version = 4
+
 [lib]
 crate-type = ["lib", "staticlib"]
 
@@ -34,10 +37,3 @@ libc = { version = "0.2", optional = true }
 
 [build-dependencies]
 cbindgen = { version = "0.20.0", optional = true}
-
-# The following allows DWARF-4 to work with Rust
-[profile.release]
-debug = false
-strip = "debuginfo"
-lto = false
-panic = "unwind"

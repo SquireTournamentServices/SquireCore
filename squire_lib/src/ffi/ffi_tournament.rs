@@ -643,10 +643,8 @@ impl TournamentId {
     pub extern "C" fn tid_round_slips_html(self, __css: *const c_char) -> *const c_char {
         let mut ret: String = Default::default();
         SQUIRE_RUNTIME.get().unwrap().tournament_query(self, |t| {
-            clone_string_c_string(&t.round_slips_html(unsafe { CStr::from_ptr(__css).to_str().unwrap() })
-                .clone()
-                .round_slips_html(unsafe { CStr::from_ptr(__css).to_str().unwrap() })
-        });
+            clone_string_to_c_string(&t.round_slips_html(unsafe { CStr::from_ptr(__css).to_str().unwrap() })
+        )});
         clone_string_to_c_string(ret.as_str())
     }
 
