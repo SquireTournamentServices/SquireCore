@@ -9,8 +9,8 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 default = ["deck_sites"]
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
 wasm = ["squire_lib/wasm"]
-server = ["axum", "serde_json"]
 client = ["serde_json"]
+server = ["axum", "axum/json", "axum/macros", "axum/headers", "async-session", "headers", "http", "serde_json"]
 
 [dependencies]
 # In-House deps
@@ -23,3 +23,16 @@ cookie = { version = "0.16" }
 
 serde_json = { version = "1.0.68", optional = true }
 axum = { version = "0.6.1", default-features = false, optional = true }
+
+tokio = { version = "1.0", features = ["full"] }
+# oauth2 = "4.1"
+
+# Server-specifics
+async-session = { version = "3.0.0", optional = true }
+headers = { version = "0.3", optional = true }
+http = { version = "0.2", optional = true }
+
+[dev-dependencies]
+tower = { version = "0.4", features = ["util"] }
+hyper = { version = "0.14", features = ["full"] }
+once_cell = { version = "1.13.0" }

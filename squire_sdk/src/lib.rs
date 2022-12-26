@@ -16,9 +16,7 @@
 use serde::{Deserialize, Serialize};
 
 /// The module wraps and re-exports the squire_lib crate
-pub mod model {
-    pub use squire_lib::*;
-}
+pub use squire_lib as model;
 
 mod card_requests;
 
@@ -36,6 +34,10 @@ pub mod cards {
 #[cfg(feature = "client")]
 /// The default client used by non-squire_core services to communicate with squire_core
 pub mod client;
+
+#[cfg(feature = "server")]
+/// The default client used by non-squire_core services to communicate with squire_core
+pub mod server;
 
 /// Request/response structs for SquireCore account apis
 pub mod accounts;
