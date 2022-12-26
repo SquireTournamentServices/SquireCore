@@ -89,10 +89,8 @@ impl PlayerRegistry {
         match self.players.contains_key(&(account.id.0.into())) {
             true => {
                 // Re-registering
-                self.players
-                    .get_mut(&(account.id.0.into()))
-                    .unwrap()
-                    .status = PlayerStatus::Registered;
+                self.players.get_mut(&(account.id.0.into())).unwrap().status =
+                    PlayerStatus::Registered;
                 Ok(account.id.0.into())
             }
             false => {

@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use uuid::Uuid;
 
 // use mtgjson::model::deck::Deck;
@@ -917,6 +918,60 @@ impl Tournament {
             digest.1 = self.player_reg.len() - self.player_reg.check_ins.len();
         }
         digest
+    }
+
+    /// Generates a round slip in HTML
+    pub fn round_slips_html(&self, css: &str) -> String {
+        let mut ret: String = "<!DOCTPYE HTML>".to_string();
+
+        let _ = write!(ret, "<html lang=\"en\">");
+        let _ = write!(ret, "<head><style>");
+        let _ = write!(ret, "{}", &css);
+        let _ = write!(ret, "</style></head>");
+        let _ = write!(ret, "<body>");
+
+        for r in self.round_reg.rounds.values().filter(|r| r.is_active()) {
+            let _ = write!(ret, "<div class='card' style='border-style: solid;'>");
+            let _ = write!(ret, "<div class='title' style='display: flex; align-items: center; width: 100%; flex-direction: column;'>");
+            let _ = write!(ret, "{}", &html_escape::encode_text(&self.name.to_string()));
+            let _ = write!(ret, "</div>");
+            let _ = write!(ret, "<table style='width: 100%;'>");
+            let _ = write!(ret, "<tr><tr><td>Round # ");
+            let _ = write!(ret, "{}", r.match_number);
+            let _ = write!(ret, "</td>");
+
+            if self.use_table_number {
+                let _ = write!(ret, "<td>Table #");
+                let _ = write!(ret, "{}", &r.table_number.to_string());
+                let _ = write!(ret, "</td><tr>");
+            }
+
+            for (i, pid) in r.players.iter().enumerate() {
+                if i % 2 == 0 {
+                    if i != 0 {
+                        let _ = write!(ret, "</tr>");
+                    }
+                    let _ = write!(ret, "<tr>");
+                }
+                let _ = write!(ret, "<td>");
+                let _ = write!(
+                    ret,
+                    "{}",
+                    &html_escape::encode_text(
+                        &self
+                            .player_reg
+                            .get_player(&pid)
+                            .expect("Round's playes should be within the tournament.")
+                            .all_names(),
+                    )
+                );
+                let _ = write!(ret, "</td>");
+            }
+            let _ = write!(ret, "</tr></table></div>");
+        }
+        let _ = write!(ret, "</body>");
+
+        ret
     }
 }
 

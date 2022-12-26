@@ -1,10 +1,7 @@
-use std::{
-    ops::Deref,
-    slice::Iter,
-};
+use std::{ops::Deref, slice::Iter};
 
-use serde::{Deserialize, Serialize};
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{

@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use cycle_map::GroupMap;
 
 use crate::{
-    r64,
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
     players::PlayerRegistry,
+    r64,
     rounds::{RoundContext, RoundRegistry},
     scoring::{Score, Standings},
     settings::SwissPairingsSetting,

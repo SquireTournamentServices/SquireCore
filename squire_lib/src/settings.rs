@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{r64, pairings::PairingAlgorithm, tournament::TournamentPreset};
+use crate::{pairings::PairingAlgorithm, r64, tournament::TournamentPreset};
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// A set of adjustable default settings for a tournament.

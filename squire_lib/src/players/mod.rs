@@ -11,7 +11,9 @@ use crate::{accounts::SquireAccount, error::TournamentError};
 mod player_registry;
 pub use player_registry::PlayerRegistry;
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
+#[derive(
+    Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord,
+)]
 #[repr(C)]
 /// The registration status of a player
 pub enum PlayerStatus {
@@ -45,6 +47,15 @@ pub struct Player {
 }
 
 impl Player {
+    /// Returns a string of a player name and, game name
+    pub fn all_names(&self) -> String {
+        match &self.game_name {
+            Some(game_name) if self.name.eq(game_name) => self.name.clone(),
+            Some(game_name) => format!("{} ({game_name})", self.name),
+            None => self.name.clone(),
+        }
+    }
+
     /// Creates a new player
     pub fn new(name: String) -> Self {
         Player {

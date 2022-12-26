@@ -7,7 +7,7 @@ use crate::{
     accounts::SquireAccount,
     admin::Admin,
     ffi::{clone_string_to_c_string, copy_to_system_pointer, print_err, SQUIRE_RUNTIME},
-    identifiers::{AdminId, PlayerId, RoundId, TournamentId, SquireAccountId},
+    identifiers::{AdminId, PlayerId, RoundId, SquireAccountId, TournamentId},
     operations::{AdminOp, OpData, TournOp},
     pairings::PairingStyle,
     scoring::StandardScore,
@@ -635,6 +635,19 @@ impl TournamentId {
                 TournamentStatus::Cancelled
             }
         }
+    }
+
+    /// Generates a round slip for a tournament
+    /// NULL on error
+    #[no_mangle]
+    pub extern "C" fn tid_round_slips_html(self, __css: *const c_char) -> *const c_char {
+        let mut ret: *const c_char = std::ptr::null();
+        SQUIRE_RUNTIME.get().unwrap().tournament_query(self, |t| {
+            ret = clone_string_to_c_string(
+                &t.round_slips_html(unsafe { CStr::from_ptr(__css).to_str().unwrap() }),
+            );
+        });
+        return ret;
     }
 
     // End of getters
