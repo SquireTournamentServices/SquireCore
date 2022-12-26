@@ -24,20 +24,8 @@ pub static COOKIE_NAME: &str = "SESSION";
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
-        .route("/:id", get(get_user))
-        .route("/register", post(register))
-        .route("/login", post(login))
+        .route("/verify", post(login))
         .route("/logout", post(logout))
-}
-
-pub async fn get_user(Path(id): Path<SquireAccountId>) -> GetUserResponse {
-    USERS_MAP.get().unwrap().get(&id).map(|a| a.clone()).into()
-}
-
-pub async fn register(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
-    let account = SquireAccount::new(data.user_name, data.display_name);
-    USERS_MAP.get().unwrap().insert(account.id, account.clone());
-    account.into()
 }
 
 pub async fn login(
