@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "axum")]
@@ -18,6 +20,19 @@ impl<T> SquireResponse<T> {
 impl<T> From<T> for SquireResponse<T> {
     fn from(value: T) -> Self {
         Self::new(value)
+    }
+}
+
+impl<T> Deref for SquireResponse<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for SquireResponse<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

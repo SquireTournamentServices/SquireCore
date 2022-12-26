@@ -73,3 +73,31 @@ pub struct UpdateOrgAccountRequest {
 
 /// The response type used by the `accounts/user/<id>/update` SC POST API.
 pub type UpdateOrgAccountResponse = SquireResponse<Option<OrganizationAccount>>;
+
+/// The error types can be returned during the verification process
+#[derive(Debug, Serialize, Deserialize)]
+pub enum VerificationError {
+    /// A player with that account has already be verified for the tournament
+    AlreadyConfirmed,
+    /// That account is unknown and likely not valid
+    UnknownAccount,
+}
+
+/// The body data required to start the verification process
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerificationRequest {
+    /// The account that is being verified
+    pub account: SquireAccount,
+}
+
+/// The body data returned during the verification process
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerificationData {
+    /// The verification string
+    pub confirmation: String,
+    /// The verification status
+    pub status: bool,
+}
+
+/// The response type used by the `verify` SC GET and POST API.
+pub type VerificationResponse = SquireResponse<Result<VerificationData, VerificationError>>;
