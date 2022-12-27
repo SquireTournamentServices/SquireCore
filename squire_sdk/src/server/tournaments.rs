@@ -1,12 +1,12 @@
 use async_session::SessionStore;
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     routing::{get, post},
     Json, Router,
 };
 
 use crate::{
-    server::{AppState, User},
+    server::{state::ServerState, AppState, User},
     tournaments::*,
 };
 
@@ -20,24 +20,37 @@ pub fn get_routes() -> Router<AppState> {
 
 pub async fn create_tournament(
     user: User,
+    State(state): State<AppState>,
     Json(data): Json<CreateTournamentRequest>,
 ) -> CreateTournamentResponse {
-    let tourn = user
-        .account
-        .create_tournament(data.name, data.preset, data.format);
-    let id = tourn.id;
-    TOURNS_MAP.get().unwrap().insert(id, tourn.clone());
-    CreateTournamentResponse::new(tourn)
+    CreateTournamentResponse::new(
+        state
+            .create_tournament(user, data.name, data.preset, data.format)
+            .await,
+    )
 }
 
-pub async fn get_tournament(id: Path<TournamentId>) -> GetTournamentResponse {
-    GetTournamentResponse::new(TOURNS_MAP.get().unwrap().get(&id).map(|a| a.clone()))
+pub async fn get_tournament(
+    State(state): State<AppState>,
+    id: Path<TournamentId>,
+) -> GetTournamentResponse {
+    GetTournamentResponse::new(state.query_tournament(&id, |t| t.clone()).await)
 }
 
-pub async fn sync(id: Path<TournamentId>, data: Json<SyncRequest>) -> SyncResponse {
-    SyncResponse::new(TOURNS_MAP.get().unwrap().get(&id).map(|a| todo!()))
+pub async fn sync(
+    user: User,
+    State(state): State<AppState>,
+    id: Path<TournamentId>,
+    data: Json<SyncRequest>,
+) -> SyncResponse {
+    SyncResponse::new(state.sync_tournament(&id, &user, data.0.sync).await)
 }
 
-pub async fn rollback(id: Path<TournamentId>, data: Json<RollbackRequest>) -> RollbackResponse {
-    RollbackResponse::new(TOURNS_MAP.get().unwrap().get(&id).map(|a| todo!()))
+pub async fn rollback(
+    user: User,
+    State(state): State<AppState>,
+    id: Path<TournamentId>,
+    data: Json<RollbackRequest>,
+) -> RollbackResponse {
+    RollbackResponse::new(state.rollback_tournament(&id, &user, data.0.rollback).await)
 }

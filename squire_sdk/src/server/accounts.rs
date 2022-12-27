@@ -20,37 +20,58 @@ use crate::{
     server::{AppState, User},
 };
 
+use super::state::ServerState;
+
 pub static COOKIE_NAME: &str = "SESSION";
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
-        .route("/verify", post(login))
+        .route("/verify", post(post_verify).get(get_verify))
         .route("/logout", post(logout))
 }
 
-pub async fn login(
-    State(store): State<AppState>,
+pub async fn get_verify(user: User, State(state): State<AppState>) -> VerificationResponse {
+    VerificationResponse::new(
+        state
+            .get_verification_data(&user)
+            .ok_or(VerificationError::UnknownAccount),
+    )
+}
+
+pub async fn post_verify(
+    State(state): State<AppState>,
     Json(data): Json<LoginRequest>,
-) -> impl IntoResponse {
-    let account = USERS_MAP.get().unwrap().get(&data.id).unwrap().clone();
-    let user = User { account };
+) -> (HeaderMap, VerificationResponse) {
+    let user = match state
+        .get_user(&data.id)
+        .await
+        .ok_or(VerificationError::UnknownAccount)
+    {
+        Ok(user) => user,
+        Err(err) => return (HeaderMap::new(), VerificationResponse::new(Err(err))),
+    };
 
     // Create a new session filled with user data
     let mut session = Session::new();
     session.insert("user", &user).unwrap();
 
     // Store session and get corresponding cookie
-    let cookie = store.store_session(session).await.unwrap().unwrap();
+    let cookie = state.store_session(session).await.unwrap().unwrap();
 
     // Build the cookie
     let cookie = format!("{COOKIE_NAME}={cookie}; SameSite=Lax; Path=/");
+
+    let data = VerificationData {
+        confirmation: state.create_verification_data(&user).await,
+        status: false,
+    };
 
     // Set cookie
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
     headers.insert(SET_COOKIE, cookie.parse().unwrap());
 
-    (headers, LoginResponse::new(Some(user.account)))
+    (headers, VerificationResponse::new(Ok(data)))
 }
 
 pub async fn logout(

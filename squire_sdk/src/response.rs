@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{ControlFlow, Deref, DerefMut, FromResidual, Try};
 
 use serde::{Deserialize, Serialize};
 
@@ -50,5 +50,30 @@ where
                 .into_response(),
             Ok(data) => data.into_response(),
         }
+    }
+}
+
+impl<T, O, R> Try for SquireResponse<T>
+where
+    T: Try<Output = O, Residual = R> + FromResidual,
+{
+    type Output = O;
+    type Residual = R;
+
+    fn from_output(output: Self::Output) -> Self {
+        Self::new(T::from_output(output))
+    }
+
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        self.0.branch()
+    }
+}
+
+impl<T, O, R> FromResidual for SquireResponse<T>
+where
+    T: Try<Output = O, Residual = R> + FromResidual,
+{
+    fn from_residual(residual: <Self as Try>::Residual) -> Self {
+        Self::new(T::from_residual(residual))
     }
 }

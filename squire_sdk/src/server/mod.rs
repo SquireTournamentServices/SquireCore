@@ -19,9 +19,10 @@ static COOKIE_NAME: &str = "SESSION";
 #[cfg(test)]
 mod tests;
 
-mod accounts;
-mod cards;
-mod tournaments;
+pub mod accounts;
+//mod cards;
+pub mod state;
+pub mod tournaments;
 
 pub fn create_router(state: AppState) -> Router {
     Router::new()
@@ -34,7 +35,7 @@ pub fn create_router(state: AppState) -> Router {
 #[derive(Debug, Clone)]
 pub enum AppState {
     Main(MainAppState),
-    //Other(Box<dyn SessionStore>),
+    //Other(Box<dyn ServerState>),
 }
 
 #[derive(Debug, Clone)]

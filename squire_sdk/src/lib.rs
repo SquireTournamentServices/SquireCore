@@ -1,7 +1,10 @@
+#![feature(try_trait_v2)]
+
 //! This crate contains the model used by SquireCore's API endpoints. There are some features
 //! needed only for the SquireCore server. These are enabled by default. For client usage, you can
 //! disable them with `--no-default-features`.
 
+/*
 #![deny(
     missing_docs,
     unused_variables,
@@ -11,6 +14,7 @@
     missing_debug_implementations,
     unreachable_pub
 )]
+*/
 #![warn(rust_2018_idioms)]
 
 use serde::{Deserialize, Serialize};
