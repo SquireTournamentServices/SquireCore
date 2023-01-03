@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[async_trait]
-pub trait ServerState: SessionStore {
+pub trait ServerState: SessionStore + Clone + Send + Sync {
     fn get_version(&self) -> Version;
     fn get_verification_data(&self, user: &User) -> Option<VerificationData>;
     async fn create_tournament(

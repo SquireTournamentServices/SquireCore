@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use async_session::SessionStore;
 use axum::{
     extract::{Path, State},
+    handler::Handler,
     routing::{get, post},
     Json, Router,
 };
@@ -10,19 +13,26 @@ use crate::{
     tournaments::*,
 };
 
-pub fn get_routes() -> Router<AppState> {
+pub fn get_routes<S>(state: S) -> Router<S>
+where
+    S: ServerState,
+{
     Router::new()
-        .route("/create", post(create_tournament))
-        .route("/:t_id", get(get_tournament))
-        .route("/:t_id/sync", post(sync))
-        .route("/:t_id/rollback", post(rollback))
+        .route("/create", post(create_tournament::<S>))
+        .route("/create", post(create_tournament::<S>))
+        .route("/:t_id", get(get_tournament::<S>))
+        .route("/:t_id/sync", post(sync::<S>))
+        .route("/:t_id/rollback", post(rollback::<S>))
 }
 
-pub async fn create_tournament(
+pub async fn create_tournament<S>(
     user: User,
-    State(state): State<AppState>,
+    State(state): State<S>,
     Json(data): Json<CreateTournamentRequest>,
-) -> CreateTournamentResponse {
+) -> CreateTournamentResponse
+where
+    S: ServerState,
+{
     CreateTournamentResponse::new(
         state
             .create_tournament(user, data.name, data.preset, data.format)
@@ -30,27 +40,36 @@ pub async fn create_tournament(
     )
 }
 
-pub async fn get_tournament(
-    State(state): State<AppState>,
+pub async fn get_tournament<S>(
+    State(state): State<S>,
     id: Path<TournamentId>,
-) -> GetTournamentResponse {
+) -> GetTournamentResponse
+where
+    S: ServerState,
+{
     GetTournamentResponse::new(state.query_tournament(&id, |t| t.clone()).await)
 }
 
-pub async fn sync(
+pub async fn sync<S>(
     user: User,
-    State(state): State<AppState>,
+    State(state): State<S>,
     id: Path<TournamentId>,
     data: Json<SyncRequest>,
-) -> SyncResponse {
+) -> SyncResponse
+where
+    S: ServerState,
+{
     SyncResponse::new(state.sync_tournament(&id, &user, data.0.sync).await)
 }
 
-pub async fn rollback(
+pub async fn rollback<S>(
     user: User,
-    State(state): State<AppState>,
+    State(state): State<S>,
     id: Path<TournamentId>,
     data: Json<RollbackRequest>,
-) -> RollbackResponse {
+) -> RollbackResponse
+where
+    S: ServerState,
+{
     RollbackResponse::new(state.rollback_tournament(&id, &user, data.0.rollback).await)
 }

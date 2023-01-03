@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use async_session::{MemoryStore, Session, SessionStore};
 use axum::{
     extract::{Path, State},
+    handler::Handler,
     response::{IntoResponse, Redirect},
     routing::{get, post},
     Json, Router, TypedHeader,
@@ -24,13 +27,19 @@ use super::state::ServerState;
 
 pub static COOKIE_NAME: &str = "SESSION";
 
-pub fn get_routes() -> Router<AppState> {
+pub fn get_routes<S>(state: S) -> Router<S>
+where
+    S: ServerState,
+{
     Router::new()
-        .route("/verify", post(post_verify).get(get_verify))
-        .route("/logout", post(logout))
+        .route("/verify", post(post_verify::<S>).get(get_verify::<S>))
+        .route("/logout", post(logout::<S>))
 }
 
-pub async fn get_verify(user: User, State(state): State<AppState>) -> VerificationResponse {
+pub async fn get_verify<S>(user: User, State(state): State<S>) -> VerificationResponse
+where
+    S: ServerState,
+{
     VerificationResponse::new(
         state
             .get_verification_data(&user)
@@ -38,10 +47,13 @@ pub async fn get_verify(user: User, State(state): State<AppState>) -> Verificati
     )
 }
 
-pub async fn post_verify(
-    State(state): State<AppState>,
+pub async fn post_verify<S>(
+    State(state): State<S>,
     Json(data): Json<LoginRequest>,
-) -> (HeaderMap, VerificationResponse) {
+) -> (HeaderMap, VerificationResponse)
+where
+    S: ServerState,
+{
     let user = match state
         .get_user(&data.id)
         .await
@@ -74,10 +86,13 @@ pub async fn post_verify(
     (headers, VerificationResponse::new(Ok(data)))
 }
 
-pub async fn logout(
+pub async fn logout<S>(
     TypedHeader(cookies): TypedHeader<headers::Cookie>,
-    State(store): State<AppState>,
-) -> Result<StatusCode, Redirect> {
+    State(store): State<S>,
+) -> Result<StatusCode, Redirect>
+where
+    S: ServerState,
+{
     let cookie = cookies.get(COOKIE_NAME).unwrap();
     let session = store
         .load_session(cookie.to_string())

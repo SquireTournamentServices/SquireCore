@@ -156,7 +156,7 @@ where
             state,
         }
     }
-    
+
     pub async fn login(&mut self) -> Result<(), ClientError> {
         let body = LoginRequest { id: self.user.id };
         let resp = self.post_request("/api/v1/login", body).await?;

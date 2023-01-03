@@ -4,10 +4,9 @@ use hyper::Body;
 use crate::{
     accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
     model::tournament::TournamentPreset,
-    tournaments::CreateTournamentRequest,
     server::tests::utils::create_request,
+    tournaments::CreateTournamentRequest,
 };
-
 
 pub(crate) fn register_account_request() -> Request<Body> {
     let body = CreateAccountRequest {

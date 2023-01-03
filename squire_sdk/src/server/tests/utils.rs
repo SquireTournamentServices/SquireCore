@@ -12,14 +12,7 @@ use tower::{Service, ServiceExt};
 use crate::server::{create_router, tests::init::get_app};
 
 pub(crate) async fn send_request(req: Request<Body>) -> Response {
-    get_app()
-        .await
-        .ready()
-        .await
-        .unwrap()
-        .call(req)
-        .await
-        .unwrap()
+    get_app().await.call(req).await.unwrap()
 }
 
 pub(crate) async fn extract_json_body<T>(resp: Response) -> T

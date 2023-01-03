@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
@@ -14,6 +14,8 @@ use squire_lib::accounts::SquireAccount;
 
 use http::{header, request::Parts};
 
+use self::state::ServerState;
+
 static COOKIE_NAME: &str = "SESSION";
 
 #[cfg(test)]
@@ -24,10 +26,16 @@ pub mod accounts;
 pub mod state;
 pub mod tournaments;
 
-pub fn create_router(state: AppState) -> Router {
+pub fn create_router<S>(state: S) -> Router
+where
+    S: ServerState,
+{
     Router::new()
-        .nest("/api/v1/tournaments", tournaments::get_routes())
-        .nest("/api/v1", accounts::get_routes())
+        .nest(
+            "/api/v1/tournaments",
+            tournaments::get_routes(state.clone()),
+        )
+        .nest("/api/v1", accounts::get_routes(state.clone()))
         .route("/api/v1/version", get(|| async { "0.1.0-pre-alpha" }))
         .with_state(state)
 }
@@ -49,14 +57,14 @@ pub struct User {
 }
 
 #[async_trait]
-impl FromRequestParts<AppState> for User {
+impl<S> FromRequestParts<S> for User
+where
+    S: ServerState,
+{
     // If anything goes wrong or no session is found, redirect to the auth page
     type Rejection = StatusCode;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         println!("Loading Cookies from parts...");
         let cookies = parts
             .extract::<TypedHeader<headers::Cookie>>()
