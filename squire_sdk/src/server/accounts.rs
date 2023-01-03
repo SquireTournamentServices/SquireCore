@@ -20,14 +20,14 @@ use crate::{
         accounts::{OrganizationAccount, SquireAccount},
         identifiers::{OrganizationAccountId as OrgId, SquireAccountId},
     },
-    server::{AppState, User},
+    server::User,
 };
 
 use super::state::ServerState;
 
 pub static COOKIE_NAME: &str = "SESSION";
 
-pub fn get_routes<S>(state: S) -> Router<S>
+pub fn get_routes<S>() -> Router<S>
 where
     S: ServerState,
 {

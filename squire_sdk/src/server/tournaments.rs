@@ -9,16 +9,15 @@ use axum::{
 };
 
 use crate::{
-    server::{state::ServerState, AppState, User},
+    server::{state::ServerState, User},
     tournaments::*,
 };
 
-pub fn get_routes<S>(state: S) -> Router<S>
+pub fn get_routes<S>() -> Router<S>
 where
     S: ServerState,
 {
     Router::new()
-        .route("/create", post(create_tournament::<S>))
         .route("/create", post(create_tournament::<S>))
         .route("/:t_id", get(get_tournament::<S>))
         .route("/:t_id/sync", post(sync::<S>))

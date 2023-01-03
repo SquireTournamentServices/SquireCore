@@ -26,32 +26,20 @@ pub mod accounts;
 pub mod state;
 pub mod tournaments;
 
-pub fn create_router<S>(state: S) -> Router
+pub fn create_router<S>() -> Router<S>
 where
     S: ServerState,
 {
     Router::new()
         .nest(
             "/api/v1/tournaments",
-            tournaments::get_routes(state.clone()),
+            tournaments::get_routes::<S>(),
         )
-        .nest("/api/v1", accounts::get_routes(state.clone()))
+        .nest("/api/v1", accounts::get_routes::<S>())
         .route("/api/v1/version", get(|| async { "0.1.0-pre-alpha" }))
-        .with_state(state)
 }
 
-#[derive(Debug, Clone)]
-pub enum AppState {
-    Main(MainAppState),
-    //Other(Box<dyn ServerState>),
-}
-
-#[derive(Debug, Clone)]
-pub struct MainAppState {
-    store: MemoryStore,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
     account: SquireAccount,
 }
@@ -89,42 +77,5 @@ where
         println!("Session loaded successfully!");
 
         session.get("user").ok_or(StatusCode::FORBIDDEN)
-    }
-}
-
-#[async_trait]
-impl SessionStore for AppState {
-    async fn load_session(
-        &self,
-        cookie_value: String,
-    ) -> async_session::Result<Option<async_session::Session>> {
-        match self {
-            AppState::Main(state) => state.store.load_session(cookie_value).await,
-            //AppState::Other(state) => state.load_session(cookie_value).await,
-        }
-    }
-
-    async fn store_session(
-        &self,
-        session: async_session::Session,
-    ) -> async_session::Result<Option<String>> {
-        match self {
-            AppState::Main(state) => state.store.store_session(session).await,
-            //AppState::Other(state) => state.store_session(session).await,
-        }
-    }
-
-    async fn destroy_session(&self, session: async_session::Session) -> async_session::Result {
-        match self {
-            AppState::Main(state) => state.store.destroy_session(session).await,
-            //AppState::Other(state) => state.destroy_session(session).await,
-        }
-    }
-
-    async fn clear_store(&self) -> async_session::Result {
-        match self {
-            AppState::Main(state) => state.store.clear_store().await,
-            //AppState::Other(state) => state.clear_store().await,
-        }
     }
 }

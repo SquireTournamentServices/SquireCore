@@ -36,3 +36,4 @@ http = { version = "0.2", optional = true }
 tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }
 once_cell = { version = "1.13.0" }
+dashmap = { version = "5.0" }

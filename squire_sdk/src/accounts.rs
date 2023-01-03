@@ -91,7 +91,7 @@ pub struct VerificationRequest {
 }
 
 /// The body data returned during the verification process
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationData {
     /// The verification string
     pub confirmation: String,

@@ -22,7 +22,7 @@ use crate::{
             requests::{create_tournament_request, login_request, register_account_request},
             utils::*,
         },
-        AppState, COOKIE_NAME,
+        COOKIE_NAME,
     },
     tournaments::{CreateTournamentRequest, CreateTournamentResponse},
 };
