@@ -12,7 +12,7 @@
 use cookie::Cookie;
 use reqwest::{
     header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
-    Client, Response, StatusCode,
+    Client, Response, StatusCode, IntoUrl,
 };
 use serde::Serialize;
 use squire_lib::{
@@ -30,7 +30,7 @@ use crate::{
         VerificationRequest, VerificationResponse,
     },
     tournaments::CreateTournamentRequest,
-    version::ServerMode,
+    version::{ServerMode, Version},
 };
 
 pub mod simple_state;
@@ -76,6 +76,7 @@ pub enum ClientError {
     FailedToConnect,
 }
 
+#[derive(Debug, Clone)]
 pub struct SquireClient<S> {
     client: Client,
     url: String,
@@ -92,12 +93,13 @@ where
 {
     /// Tries to create a client. Fails if a connection can not be made at the given URL
     pub async fn new(url: String, user: SquireAccount, state: S) -> Result<Self, ClientError> {
-        let client = Client::new();
+        let client = Client::builder().build()?;
         let resp = client.get(format!("{url}/api/v1/version")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }
-        let server_mode = resp.json().await?;
+        let version: Version = resp.json().await?;
+        let server_mode = version.mode;
         Ok(Self {
             session: None,
             verification: None,

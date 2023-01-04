@@ -1,4 +1,4 @@
-use headers::{Cookie, HeaderName, HeaderValue};
+use headers::HeaderValue;
 use http::{
     header::{CONTENT_TYPE, SET_COOKIE},
     Method,
@@ -7,9 +7,9 @@ use http::{
 use axum::{body::HttpBody, http::Request, response::Response};
 use hyper::Body;
 use serde::{de::DeserializeOwned, Serialize};
-use tower::{Service, ServiceExt};
+use tower::Service;
 
-use crate::server::{create_router, tests::init::get_app};
+use super::init::get_app;
 
 pub(crate) async fn send_request(req: Request<Body>) -> Response {
     get_app().await.call(req).await.unwrap()

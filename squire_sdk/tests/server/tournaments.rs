@@ -1,30 +1,10 @@
-use std::{net::SocketAddr, rc::Rc, thread, time::Duration};
+use http::{header, StatusCode};
 
-use async_session::MemoryStore;
-use headers::{Cookie, HeaderName, HeaderValue};
-use http::{
-    header::{self, CONTENT_TYPE, SET_COOKIE},
-    Method, StatusCode,
-};
+use squire_sdk::{accounts::CreateAccountResponse, tournaments::CreateTournamentResponse};
 
-use axum::{body::HttpBody, handler::Handler, http::Request, response::Response};
-use hyper::Body;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tower::{Service, ServiceExt};
-
-use crate::{
-    accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
-    model::tournament::TournamentPreset,
-    server::{
-        create_router,
-        tests::{
-            init::get_app,
-            requests::{create_tournament_request, login_request, register_account_request},
-            utils::*,
-        },
-        COOKIE_NAME,
-    },
-    tournaments::{CreateTournamentRequest, CreateTournamentResponse},
+use super::{
+    requests::{create_tournament_request, login_request, register_account_request},
+    utils::*,
 };
 
 #[tokio::test]

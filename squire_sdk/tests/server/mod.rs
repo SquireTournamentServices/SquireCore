@@ -1,12 +1,13 @@
+#![allow(unused)]
+
 mod init;
 mod requests;
 pub mod tournaments;
 mod utils;
 
 use std::{
-    collections::{HashMap, HashSet},
     error::Error,
-    sync::Arc, cell::RefCell,
+    sync::Arc,
 };
 
 use async_session::{async_trait, MemoryStore, SessionStore};
@@ -19,19 +20,30 @@ use squire_lib::{
     tournament_manager::TournamentManager,
 };
 
-use crate::{
+use squire_sdk::{
     accounts::VerificationData,
+    server::{state::ServerState, User},
     version::{ServerMode, Version},
 };
 
-use super::{state::ServerState, User};
-
+// `MemoryStore` is ephemeral and will not persist between test runs
 #[derive(Debug, Clone)]
 pub struct AppState {
-    store: MemoryStore,
-    users: DashMap<SquireAccountId, User>,
-    verified: DashMap<SquireAccountId, VerificationData>,
-    tourns: DashMap<TournamentId, TournamentManager>,
+    pub store: MemoryStore,
+    pub users: DashMap<SquireAccountId, User>,
+    pub verified: DashMap<SquireAccountId, VerificationData>,
+    pub tourns: DashMap<TournamentId, TournamentManager>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        AppState {
+            store: MemoryStore::new(),
+            users: DashMap::new(),
+            verified: DashMap::new(),
+            tourns: DashMap::new(),
+        }
+    }
 }
 
 #[async_trait]
@@ -44,7 +56,9 @@ impl ServerState for AppState {
     }
 
     fn get_verification_data(&self, user: &User) -> Option<VerificationData> {
-        self.verified.get(&user.account.id).map(|data| (*data).clone())
+        self.verified
+            .get(&user.account.id)
+            .map(|data| (*data).clone())
     }
 
     async fn create_tournament(
@@ -90,7 +104,7 @@ impl ServerState for AppState {
         user: &User,
         rollback: Rollback,
     ) -> Option<Result<(), RollbackError>> {
-        self.tourns.get_mut(id).map(|mut t| t.propose_rollback(rollback))
+        todo!()
     }
 
     async fn get_user(&self, id: &SquireAccountId) -> Option<User> {

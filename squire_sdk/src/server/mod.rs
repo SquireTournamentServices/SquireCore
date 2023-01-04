@@ -4,7 +4,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
-    extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
+    extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts, State},
     http::StatusCode,
     routing::get,
     RequestPartsExt, Router, TypedHeader,
@@ -14,12 +14,11 @@ use squire_lib::accounts::SquireAccount;
 
 use http::{header, request::Parts};
 
+use crate::version::ServerVersionResponse;
+
 use self::state::ServerState;
 
-static COOKIE_NAME: &str = "SESSION";
-
-#[cfg(test)]
-mod tests;
+pub static COOKIE_NAME: &str = "SESSION";
 
 pub mod accounts;
 //mod cards;
@@ -31,17 +30,21 @@ where
     S: ServerState,
 {
     Router::new()
-        .nest(
-            "/api/v1/tournaments",
-            tournaments::get_routes::<S>(),
-        )
+        .nest("/api/v1/tournaments", tournaments::get_routes::<S>())
         .nest("/api/v1", accounts::get_routes::<S>())
-        .route("/api/v1/version", get(|| async { "0.1.0-pre-alpha" }))
+        .route("/api/v1/version", get(get_version::<S>))
+}
+
+pub async fn get_version<S>(State(state): State<S>) -> ServerVersionResponse
+where
+    S: ServerState,
+{
+    ServerVersionResponse::new(state.get_version())
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
-    account: SquireAccount,
+    pub account: SquireAccount,
 }
 
 #[async_trait]

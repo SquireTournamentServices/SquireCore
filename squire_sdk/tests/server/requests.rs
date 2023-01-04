@@ -1,12 +1,13 @@
 use axum::http::Request;
 use hyper::Body;
 
-use crate::{
-    accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
+use squire_sdk::{
+    accounts::{CreateAccountRequest, LoginRequest, SquireAccountId},
     model::tournament::TournamentPreset,
-    server::tests::utils::create_request,
     tournaments::CreateTournamentRequest,
 };
+
+use super::utils::create_request;
 
 pub(crate) fn register_account_request() -> Request<Body> {
     let body = CreateAccountRequest {
