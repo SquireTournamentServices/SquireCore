@@ -19,6 +19,10 @@
 
 use serde::{Deserialize, Serialize};
 
+pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
+pub static TOURNAMENTS_ROUTE: &str = "/api/v1/tournaments";
+pub static ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
+
 /// The module wraps and re-exports the squire_lib crate
 pub use squire_lib as model;
 

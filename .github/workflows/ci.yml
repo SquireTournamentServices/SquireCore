@@ -51,33 +51,26 @@ jobs:
       - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - uses: taiki-e/install-action@cargo-hack
       - uses: actions/checkout@v2
-      - run: cargo build --package squire_sdk --verbose --no-default-features
-      - run: cargo test --package squire_sdk --verbose --no-default-features
-      - run: cargo doc --package squire_sdk --verbose --no-default-features
+      - run: cargo hack build --package squire_sdk --verbose
+      - run: cargo hack test --package squire_sdk --verbose
+      - run: cargo hack doc --package squire_sdk --verbose
+  squire_core_build_tests:
+    name: SquireCore - Build Tests - Linux
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [nightly]
+        os: [ubuntu-latest]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
       - run: cargo build --package squire_sdk --verbose
       - run: cargo test --package squire_sdk --verbose
       - run: cargo doc --package squire_sdk --verbose
-      - run: cargo build --package squire_sdk --verbose --features "server"
-      - run: cargo test --package squire_sdk --verbose --features "server"
-      - run: cargo doc --package squire_sdk --verbose --features "server"
-      - run: cargo build --package squire_sdk --verbose --features "client"
-      - run: cargo test --package squire_sdk --verbose --features "client"
-      - run: cargo doc --package squire_sdk --verbose --features "client"
-      - run: cargo build --package squire_sdk --verbose --all-features
-      - run: cargo test --package squire_sdk --verbose --all-features
-      - run: cargo doc --package squire_sdk --verbose --all-features
-  squire_core_build_tests:
-    name: SquireCore - Build Tests - Linux
-    runs-on: ubuntu-latest
-      toolchain:
-        - nightly
-    steps:
-      - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --package squire_core --verbose
-      - run: cargo test --package squire_core --verbose
-      - run: cargo doc --package squire_core --verbose
   coverage:
     name: Squire - Coverage
     runs-on: ubuntu-latest

@@ -30,7 +30,7 @@ use crate::{
         VerificationRequest, VerificationResponse,
     },
     tournaments::CreateTournamentRequest,
-    version::{ServerMode, Version},
+    version::{ServerMode, Version}, COOKIE_NAME,
 };
 
 pub mod simple_state;
@@ -164,9 +164,9 @@ where
         let resp = self.post_request("/api/v1/login", body).await?;
         let session = resp
             .cookies()
-            .find(|c| c.name() == "SESSION")
+            .find(|c| c.name() == COOKIE_NAME)
             .ok_or(ClientError::LogInFailed)?;
-        let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
+        let cookie = Cookie::build(COOKIE_NAME, session.value().to_string()).finish();
         self.session = Some(cookie);
         Ok(())
     }
@@ -194,12 +194,12 @@ where
             account: self.user.clone(),
         };
         println!("Sending verification request!");
-        let resp = self.post_request("/api/v1/verify", body).await?;
+        let resp = self.post_request("/api/v1/accounts/verify", body).await?;
         let session = resp
             .cookies()
-            .find(|c| c.name() == "SESSION")
+            .find(|c| c.name() == COOKIE_NAME)
             .ok_or(ClientError::LogInFailed)?;
-        let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
+        let cookie = Cookie::build(COOKIE_NAME, session.value().to_string()).finish();
         let digest: VerificationResponse = resp.json().await?;
         let digest = digest.0.map_err(|_| ClientError::LogInFailed)?;
         self.session = Some(cookie);
