@@ -15,6 +15,7 @@ async fn create_tournament_requires_login() {
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
+/*
 #[tokio::test]
 async fn create_tournament() {
     let request = register_account_request();
@@ -39,3 +40,4 @@ async fn create_tournament() {
     assert_eq!(resp.status(), StatusCode::OK);
     let tourn: CreateTournamentResponse = extract_json_body(resp).await;
 }
+*/

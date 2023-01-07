@@ -30,7 +30,7 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
     async fn query_tournament<F, O>(&self, id: &TournamentId, f: F) -> Option<O>
     where
         F: Send + FnOnce(&TournamentManager) -> O;
-    async fn create_verification_data(&self, user: &User) -> String;
+    async fn create_verification_data(&self, user: &User) -> VerificationData;
     async fn sync_tournament(
         &self,
         id: &TournamentId,
@@ -43,6 +43,7 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
         user: &User,
         rollback: Rollback,
     ) -> Option<Result<(), RollbackError>>;
+    async fn load_user(&self, user: User);
     async fn get_user(&self, id: &SquireAccountId) -> Option<User>;
     async fn get_cards_meta(&self) -> Meta;
     async fn get_atomics(&self) -> Arc<Atomics>;

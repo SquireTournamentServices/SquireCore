@@ -20,12 +20,8 @@ use crate::{
         accounts::{OrganizationAccount, SquireAccount},
         identifiers::{OrganizationAccountId as OrgId, SquireAccountId},
     },
-    server::User,
+    server::{state::ServerState, User, COOKIE_NAME},
 };
-
-use super::state::ServerState;
-
-pub static COOKIE_NAME: &str = "SESSION";
 
 pub fn get_routes<S>() -> Router<S>
 where
@@ -34,6 +30,7 @@ where
     Router::new()
         .route("/verify", post(post_verify::<S>).get(get_verify::<S>))
         .route("/logout", post(logout::<S>))
+        .route("/load", post(load_user::<S>))
 }
 
 pub async fn get_verify<S>(user: User, State(state): State<S>) -> VerificationResponse
@@ -49,13 +46,14 @@ where
 
 pub async fn post_verify<S>(
     State(state): State<S>,
-    Json(data): Json<LoginRequest>,
+    Json(data): Json<VerificationRequest>,
 ) -> (HeaderMap, VerificationResponse)
 where
     S: ServerState,
 {
+    println!("Processing verification request");
     let user = match state
-        .get_user(&data.id)
+        .get_user(&data.account.id)
         .await
         .ok_or(VerificationError::UnknownAccount)
     {
@@ -73,10 +71,7 @@ where
     // Build the cookie
     let cookie = format!("{COOKIE_NAME}={cookie}; SameSite=Lax; Path=/");
 
-    let data = VerificationData {
-        confirmation: state.create_verification_data(&user).await,
-        status: false,
-    };
+    let data = state.create_verification_data(&user).await;
 
     // Set cookie
     let mut headers = HeaderMap::new();
@@ -103,4 +98,12 @@ where
     store.destroy_session(session).await.unwrap();
 
     Ok(StatusCode::OK)
+}
+
+pub async fn load_user<S>(State(state): State<S>, Json(user): Json<User>) -> StatusCode
+where
+    S: ServerState,
+{
+    state.load_user(user);
+    StatusCode::ACCEPTED
 }

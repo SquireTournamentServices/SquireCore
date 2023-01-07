@@ -12,7 +12,7 @@
 use cookie::Cookie;
 use reqwest::{
     header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
-    Client, Response, StatusCode, IntoUrl,
+    Client, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
 use squire_lib::{
@@ -179,9 +179,10 @@ where
     }
 
     pub async fn verify(&mut self) -> Result<String, ClientError> {
+        println!("Attempting to verify!");
         let data = match &self.verification {
-            Some(data) => self.verify_post().await?,
-            None => self.verify_get().await?,
+            Some(data) => self.verify_get().await?,
+            None => self.verify_post().await?,
         };
         let digest = data.confirmation.clone();
         self.verification = Some(data);
@@ -192,14 +193,17 @@ where
         let body = VerificationRequest {
             account: self.user.clone(),
         };
+        println!("Sending verification request!");
         let resp = self.post_request("/api/v1/verify", body).await?;
         let session = resp
             .cookies()
             .find(|c| c.name() == "SESSION")
             .ok_or(ClientError::LogInFailed)?;
         let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
+        let digest: VerificationResponse = resp.json().await?;
+        let digest = digest.0.map_err(|_| ClientError::LogInFailed)?;
         self.session = Some(cookie);
-        Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
+        Ok(digest)
     }
 
     async fn verify_get(&mut self) -> Result<VerificationData, ClientError> {

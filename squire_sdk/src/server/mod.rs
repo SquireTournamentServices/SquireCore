@@ -18,7 +18,9 @@ use crate::version::ServerVersionResponse;
 
 use self::state::ServerState;
 
-pub static COOKIE_NAME: &str = "SESSION";
+pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
+pub static TOURNAMENTS_ROUTE: &str = "/api/v1/tournaments";
+pub static ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
 
 pub mod accounts;
 //mod cards;
@@ -30,8 +32,8 @@ where
     S: ServerState,
 {
     Router::new()
-        .nest("/api/v1/tournaments", tournaments::get_routes::<S>())
-        .nest("/api/v1", accounts::get_routes::<S>())
+        .nest(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())
+        .nest(ACCOUNTS_ROUTE, accounts::get_routes::<S>())
         .route("/api/v1/version", get(get_version::<S>))
 }
 

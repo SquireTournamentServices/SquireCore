@@ -11,11 +11,11 @@ use tower::Service;
 
 use super::init::get_app;
 
-pub(crate) async fn send_request(req: Request<Body>) -> Response {
+pub async fn send_request(req: Request<Body>) -> Response {
     get_app().await.call(req).await.unwrap()
 }
 
-pub(crate) async fn extract_json_body<T>(resp: Response) -> T
+pub async fn extract_json_body<T>(resp: Response) -> T
 where
     T: DeserializeOwned,
 {
@@ -28,14 +28,14 @@ where
     serde_json::from_str(&data).expect("Could not deserialize body data")
 }
 
-pub(crate) fn get_cookies(resp: &Response) -> Vec<&HeaderValue> {
+pub fn get_cookies(resp: &Response) -> Vec<&HeaderValue> {
     resp.headers()
         .iter()
         .filter_map(|(name, val)| (name == SET_COOKIE).then_some(val))
         .collect()
 }
 
-pub(crate) fn create_request<B>(path: &str, body: B) -> Request<Body>
+pub fn create_request<B>(path: &str, body: B) -> Request<Body>
 where
     B: Serialize,
 {

@@ -1,9 +1,9 @@
 #![allow(unused)]
 
-mod init;
-mod requests;
+pub mod init;
+pub mod requests;
 pub mod tournaments;
-mod utils;
+pub mod utils;
 
 use std::{
     error::Error,
@@ -30,18 +30,18 @@ use squire_sdk::{
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub store: MemoryStore,
-    pub users: DashMap<SquireAccountId, User>,
-    pub verified: DashMap<SquireAccountId, VerificationData>,
-    pub tourns: DashMap<TournamentId, TournamentManager>,
+    pub users: Arc<DashMap<SquireAccountId, User>>,
+    pub verified: Arc<DashMap<SquireAccountId, VerificationData>>,
+    pub tourns: Arc<DashMap<TournamentId, TournamentManager>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
         AppState {
             store: MemoryStore::new(),
-            users: DashMap::new(),
-            verified: DashMap::new(),
-            tourns: DashMap::new(),
+            users: Arc::new(DashMap::new()),
+            verified: Arc::new(DashMap::new()),
+            tourns: Arc::new(DashMap::new()),
         }
     }
 }
@@ -80,13 +80,13 @@ impl ServerState for AppState {
         self.tourns.get(id).map(|t| (f)(&*t))
     }
 
-    async fn create_verification_data(&self, user: &User) -> String {
+    async fn create_verification_data(&self, user: &User) -> VerificationData {
         let data = VerificationData {
             confirmation: "ABCDEF".to_owned(),
             status: true,
         };
         self.verified.insert(user.account.id, data.clone());
-        data.confirmation
+        data
     }
 
     async fn sync_tournament(
@@ -105,6 +105,10 @@ impl ServerState for AppState {
         rollback: Rollback,
     ) -> Option<Result<(), RollbackError>> {
         todo!()
+    }
+
+    async fn load_user(&self, user: User) {
+        self.users.entry(user.account.id).or_insert(user);
     }
 
     async fn get_user(&self, id: &SquireAccountId) -> Option<User> {

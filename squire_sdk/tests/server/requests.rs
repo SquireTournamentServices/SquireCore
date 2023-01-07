@@ -9,7 +9,7 @@ use squire_sdk::{
 
 use super::utils::create_request;
 
-pub(crate) fn register_account_request() -> Request<Body> {
+pub fn register_account_request() -> Request<Body> {
     let body = CreateAccountRequest {
         user_name: "Test User".into(),
         display_name: "Test".into(),
@@ -17,12 +17,12 @@ pub(crate) fn register_account_request() -> Request<Body> {
     create_request("register", body)
 }
 
-pub(crate) fn login_request(id: SquireAccountId) -> Request<Body> {
+pub fn login_request(id: SquireAccountId) -> Request<Body> {
     let body = LoginRequest { id };
     create_request("login", body)
 }
 
-pub(crate) fn create_tournament_request() -> Request<Body> {
+pub fn create_tournament_request() -> Request<Body> {
     let body = CreateTournamentRequest {
         name: "Test".into(),
         preset: TournamentPreset::Swiss,

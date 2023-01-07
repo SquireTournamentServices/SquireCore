@@ -15,13 +15,13 @@ use tokio::time::interval;
 use crate::server::AppState;
 
 pub mod startup;
+pub mod tournaments;
 
 static STARTING_UP: AtomicBool = AtomicBool::new(false);
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 static CLIENT: OnceCell<SquireClient<SimpleState>> = OnceCell::new();
 
 pub async fn init() {
-    println!("Starting client and server");
     let account = SquireAccount::new("Test User".to_owned(), "Test User".to_owned());
     let user = User {
         account: account.clone(),
@@ -52,7 +52,6 @@ pub async fn init() {
     .await
     {
         Ok(client) => {
-            println!("Succcessfully connected client to server");
             CLIENT.set(client).unwrap();
         }
         Err(err) => {
@@ -66,8 +65,10 @@ pub async fn get_client() -> SquireClient<SimpleState> {
     let mut counter = 0;
     let mut timer = interval(Duration::from_millis(10));
     loop {
-        if let Ok(false) =
-            STARTING_UP.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+        if let Some(false) = STARTING_UP
+            .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+            .ok()
+            .and_then(|b| Some(b || CLIENT.get().is_some()))
         {
             init().await;
         }
