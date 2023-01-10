@@ -112,15 +112,14 @@ where
 }
 
 pub async fn new_verification_data(key: String, user: User) -> VerificationData {
-    let data = VerificationData {
+    VerificationData {
         confirmation: key.to_owned(),
         status: false,
-    };
-    data
+    }
 }
 
 pub async fn generate_key() -> String {
-  thread_rng()
+    thread_rng()
         .sample_iter(&Alphanumeric)
         .take(6)
         .map(char::from)
