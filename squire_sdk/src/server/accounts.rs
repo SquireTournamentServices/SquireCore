@@ -14,6 +14,9 @@ use http::{
     StatusCode,
 };
 
+use rand::{thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+
 use crate::{
     accounts::*,
     model::{
@@ -106,4 +109,21 @@ where
 {
     state.load_user(user);
     StatusCode::ACCEPTED
+}
+
+pub async fn new_verification_data(key: String, user: User) -> VerificationData {
+    let data = VerificationData {
+        confirmation: key.to_owned(),
+        status: true,
+    };
+    self.verified.insert(user.account.id, data.clone());
+    data
+}
+
+pub async fn generate_key() -> String {
+  thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(6)
+        .map(char::from)
+        .collect()
 }
