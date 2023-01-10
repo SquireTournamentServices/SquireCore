@@ -111,10 +111,12 @@ where
     StatusCode::ACCEPTED
 }
 
-pub async fn new_verification_data(key: String) -> VerificationData {
-    VerificationData {
-        confirmation: key.to_owned(),
-        status: false,
+impl VerificationData {
+    fn new(key: String) -> VerificationData{
+        VerificationData {
+            confirmation: key.to_owned(),
+            status: false,
+        }
     }
 }
 
