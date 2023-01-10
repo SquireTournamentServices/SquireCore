@@ -111,7 +111,7 @@ where
     StatusCode::ACCEPTED
 }
 
-pub async fn new_verification_data(key: String, user: User) -> VerificationData {
+pub async fn new_verification_data(key: String) -> VerificationData {
     VerificationData {
         confirmation: key.to_owned(),
         status: false,
@@ -124,4 +124,10 @@ pub async fn generate_key() -> String {
         .take(6)
         .map(char::from)
         .collect()
+}
+
+pub async fn attempt_verification(account: SquireAccount) -> VerificationRequest {
+    VerificationRequest {
+        account,
+    }
 }
