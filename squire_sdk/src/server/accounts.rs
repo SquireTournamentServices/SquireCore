@@ -114,9 +114,8 @@ where
 pub async fn new_verification_data(key: String, user: User) -> VerificationData {
     let data = VerificationData {
         confirmation: key.to_owned(),
-        status: true,
+        status: false,
     };
-    self.verified.insert(user.account.id, data.clone());
     data
 }
 
