@@ -120,7 +120,7 @@ impl VerificationData {
     }
 }
 
-pub async fn generate_key() -> String {
+pub fn generate_key() -> String {
     thread_rng()
         .sample_iter(&Alphanumeric)
         .take(6)
@@ -128,7 +128,7 @@ pub async fn generate_key() -> String {
         .collect()
 }
 
-pub async fn attempt_verification(account: SquireAccount) -> VerificationRequest {
+pub fn attempt_verification(account: SquireAccount) -> VerificationRequest {
     VerificationRequest {
         account,
     }
