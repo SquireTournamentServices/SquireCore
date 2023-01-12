@@ -14,6 +14,9 @@ use http::{
     StatusCode,
 };
 
+use rand::{thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+
 use crate::{
     accounts::*,
     model::{
@@ -106,4 +109,27 @@ where
 {
     state.load_user(user);
     StatusCode::ACCEPTED
+}
+
+impl VerificationData {
+    fn new(key: String) -> VerificationData{
+        VerificationData {
+            confirmation: key.to_owned(),
+            status: false,
+        }
+    }
+}
+
+pub fn generate_key() -> String {
+    thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(6)
+        .map(char::from)
+        .collect()
+}
+
+pub fn attempt_verification(account: SquireAccount) -> VerificationRequest {
+    VerificationRequest {
+        account,
+    }
 }
