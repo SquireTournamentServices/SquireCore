@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
@@ -16,19 +16,22 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use http::{header, request::Parts};
 
 use squire_sdk::{
-    accounts::SquireAccount,
+    accounts::{SquireAccount, SquireAccountId, VerificationData},
+    cards::{atomics::Atomics, meta::Meta},
     response::SquireResponse,
+    server::{self, state::ServerState, User},
+    tournaments::{
+        OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
+        TournamentPreset,
+    },
     version::{ServerMode, Version},
 };
-
-static COOKIE_NAME: &str = "SESSION";
 
 #[cfg(test)]
 mod tests;
 
 mod accounts;
 mod cards;
-mod tournaments;
 
 static VERSION_DATA: OnceCell<Version> = OnceCell::new();
 
@@ -39,19 +42,12 @@ pub async fn init() {
     });
     cards::init().await;
     accounts::init();
-    tournaments::init();
 }
 
 pub fn create_router(state: AppState) -> Router {
-    Router::new()
-        .nest("/api/v1/tournaments", tournaments::get_routes())
-        .nest("/api/v1", accounts::get_routes())
+    server::create_router::<AppState>()
         .route("/api/v1/cards", get(cards::atomics))
         .route("/api/v1/meta", get(cards::meta))
-        .route(
-            "/api/v1/version",
-            get(|| async { SquireResponse::new(VERSION_DATA.get().unwrap().clone()) }),
-        )
         .with_state(state)
 }
 
@@ -68,11 +64,11 @@ async fn main() {
     init().await;
 
     // `MemoryStore` is just used as an example. Don't use this in production.
-    let app_state = MainAppState {
+    let app_state = AppState {
         store: MemoryStore::new(),
     };
 
-    let app = create_router(AppState::Main(app_state));
+    let app = create_router(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     println!("Starting server!!");
@@ -81,56 +77,78 @@ async fn main() {
         .await
         .unwrap()
 }
-
 #[derive(Debug, Clone)]
-pub enum AppState {
-    Main(MainAppState),
-    //Other(Box<dyn SessionStore>),
-}
-
-#[derive(Debug, Clone)]
-pub struct MainAppState {
+pub struct AppState {
     store: MemoryStore,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct User {
-    account: SquireAccount,
-}
-
 #[async_trait]
-impl FromRequestParts<AppState> for User {
-    // If anything goes wrong or no session is found, redirect to the auth page
-    type Rejection = StatusCode;
+impl ServerState for AppState {
+    fn get_version(&self) -> Version {
+        todo!()
+    }
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> Result<Self, Self::Rejection> {
-        println!("Loading Cookies from parts...");
-        let cookies = parts
-            .extract::<TypedHeader<headers::Cookie>>()
-            .await
-            .map_err(|e| match *e.name() {
-                header::COOKIE => match e.reason() {
-                    TypedHeaderRejectionReason::Missing => StatusCode::FORBIDDEN,
-                    _ => panic!("unexpected error getting Cookie header(s): {}", e),
-                },
-                _ => panic!("unexpected error getting cookies: {}", e),
-            })?;
+    fn get_verification_data(&self, user: &User) -> Option<VerificationData> {
+        todo!()
+    }
 
-        println!("Looking for correct cookie...");
-        let session_cookie = cookies.get(COOKIE_NAME).ok_or(StatusCode::FORBIDDEN)?;
+    async fn create_tournament(
+        &self,
+        user: User,
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> TournamentManager {
+        todo!()
+    }
 
-        println!("Loading Session...");
-        let session = state
-            .load_session(session_cookie.to_string())
-            .await
-            .unwrap()
-            .ok_or(StatusCode::FORBIDDEN)?;
-        println!("Session loaded successfully!");
+    async fn query_tournament<F, O>(&self, id: &TournamentId, f: F) -> Option<O>
+    where
+        F: Send + FnOnce(&TournamentManager) -> O,
+    {
+        todo!()
+    }
 
-        session.get("user").ok_or(StatusCode::FORBIDDEN)
+    async fn create_verification_data(&self, user: &User) -> VerificationData {
+        todo!()
+    }
+
+    async fn sync_tournament(
+        &self,
+        id: &TournamentId,
+        user: &User,
+        sync: OpSync,
+    ) -> Option<SyncStatus> {
+        todo!()
+    }
+
+    async fn rollback_tournament(
+        &self,
+        id: &TournamentId,
+        user: &User,
+        rollback: Rollback,
+    ) -> Option<Result<(), RollbackError>> {
+        todo!()
+    }
+
+    async fn load_user(&self, user: User) {
+        todo!()
+    }
+
+    async fn get_user(&self, id: &SquireAccountId) -> Option<User> {
+        todo!()
+    }
+
+    async fn get_cards_meta(&self) -> Meta {
+        todo!()
+    }
+
+    async fn get_atomics(&self) -> Arc<Atomics> {
+        todo!()
+    }
+
+    async fn update_cards(&self) -> Result<(), Box<dyn std::error::Error>> {
+        todo!()
     }
 }
 
@@ -140,33 +158,21 @@ impl SessionStore for AppState {
         &self,
         cookie_value: String,
     ) -> async_session::Result<Option<async_session::Session>> {
-        match self {
-            AppState::Main(state) => state.store.load_session(cookie_value).await,
-            //AppState::Other(state) => state.load_session(cookie_value).await,
-        }
+        self.store.load_session(cookie_value).await
     }
 
     async fn store_session(
         &self,
         session: async_session::Session,
     ) -> async_session::Result<Option<String>> {
-        match self {
-            AppState::Main(state) => state.store.store_session(session).await,
-            //AppState::Other(state) => state.store_session(session).await,
-        }
+        self.store.store_session(session).await
     }
 
     async fn destroy_session(&self, session: async_session::Session) -> async_session::Result {
-        match self {
-            AppState::Main(state) => state.store.destroy_session(session).await,
-            //AppState::Other(state) => state.destroy_session(session).await,
-        }
+        self.store.destroy_session(session).await
     }
 
     async fn clear_store(&self) -> async_session::Result {
-        match self {
-            AppState::Main(state) => state.store.clear_store().await,
-            //AppState::Other(state) => state.clear_store().await,
-        }
+        self.store.clear_store().await
     }
 }

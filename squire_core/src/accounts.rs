@@ -19,14 +19,15 @@ use squire_sdk::{
         accounts::{OrganizationAccount, SquireAccount},
         identifiers::{OrganizationAccountId as OrgId, SquireAccountId},
     },
+    server::User,
+    COOKIE_NAME,
 };
 
-use crate::{AppState, User};
+use crate::AppState;
 
 pub static USERS_MAP: OnceCell<DashMap<SquireAccountId, SquireAccount>> = OnceCell::new();
 #[allow(unused)]
 pub static ORGS_MAP: OnceCell<DashMap<OrgId, OrganizationAccount>> = OnceCell::new();
-pub static COOKIE_NAME: &str = "SESSION";
 
 pub fn init() {
     USERS_MAP.get_or_init(Default::default);
