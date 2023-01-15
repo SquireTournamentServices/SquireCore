@@ -30,7 +30,7 @@ use crate::{
         VerificationRequest, VerificationResponse,
     },
     tournaments::CreateTournamentRequest,
-    version::{ServerMode, Version}, COOKIE_NAME,
+    version::{ServerMode, Version}, COOKIE_NAME, api::CREATE_TOURNAMENT_ENDPOINT,
 };
 
 pub mod simple_state;
@@ -94,6 +94,7 @@ where
     /// Tries to create a client. Fails if a connection can not be made at the given URL
     pub async fn new(url: String, user: SquireAccount, state: S) -> Result<Self, ClientError> {
         let client = Client::builder().build()?;
+        // FIXME: Replace with const Url
         let resp = client.get(format!("{url}/api/v1/version")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
@@ -118,6 +119,7 @@ where
         state: S,
     ) -> Result<Self, ClientError> {
         let client = Client::new();
+        // FIXME: Replace with const Url
         let resp = client.get(format!("{url}/api/v1/version")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
@@ -127,6 +129,7 @@ where
             user_name,
             display_name,
         };
+        // FIXME: Replace with const Url
         let resp = client
             .post(format!("{url}/api/v1/register"))
             .header(CONTENT_TYPE, "application/json")
@@ -161,6 +164,7 @@ where
 
     pub async fn login(&mut self) -> Result<(), ClientError> {
         let body = LoginRequest { id: self.user.id };
+        // FIXME: Replace with const Url
         let resp = self.post_request("/api/v1/login", body).await?;
         let session = resp
             .cookies()
@@ -194,6 +198,7 @@ where
             account: self.user.clone(),
         };
         println!("Sending verification request!");
+        // FIXME: Replace with const Url
         let resp = self.post_request("/api/v1/accounts/verify", body).await?;
         let session = resp
             .cookies()
@@ -207,6 +212,7 @@ where
     }
 
     async fn verify_get(&mut self) -> Result<VerificationData, ClientError> {
+        // FIXME: Replace with const Url
         let resp = self.get_request_with_cookie("/api/v1/verify").await?;
         Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
     }
@@ -223,7 +229,7 @@ where
             format,
         };
         let resp = self
-            .post_request_with_cookie("/api/v1/tournaments/create", body)
+            .post_request_with_cookie(CREATE_TOURNAMENT_ENDPOINT.as_str(), body)
             .await?;
         match resp.status() {
             StatusCode::OK => {

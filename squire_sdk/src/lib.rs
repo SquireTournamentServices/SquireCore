@@ -19,14 +19,14 @@
 
 use serde::{Deserialize, Serialize};
 
-pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
-pub static TOURNAMENTS_ROUTE: &str = "/api/v1/tournaments";
-pub static ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
-
 /// The module wraps and re-exports the squire_lib crate
 pub use squire_lib as model;
 
 mod card_requests;
+pub mod utils;
+pub mod api;
+
+pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
 
 /// The module wraps and re-exports key parts of the mtgjson crate
 pub mod cards {

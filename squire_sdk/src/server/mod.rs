@@ -14,7 +14,11 @@ use squire_lib::accounts::SquireAccount;
 
 use http::{header, request::Parts};
 
-use crate::{version::ServerVersionResponse, TOURNAMENTS_ROUTE, ACCOUNTS_ROUTE, COOKIE_NAME};
+use crate::{
+    api::{ACCOUNTS_ROUTE, TOURNAMENTS_ROUTE},
+    version::ServerVersionResponse,
+    COOKIE_NAME,
+};
 
 use self::state::ServerState;
 
