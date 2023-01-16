@@ -1,6 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, hash::Hash};
+
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
+use serde_with::{Seq, serde_as};
 
 use crate::{
     identifiers::{AdminId, OrganizationAccountId, SquireAccountId},
@@ -41,6 +43,7 @@ pub enum SharingPermissions {
     Nothing,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The core model for an account for a user
 pub struct SquireAccount {
@@ -49,6 +52,7 @@ pub struct SquireAccount {
     /// The name that's displayed on the user's account
     pub display_name: String,
     /// The name of the user on MTG Arena
+    #[serde_as(as = "Seq<(_, _)>")]
     pub gamer_tags: HashMap<Platform, String>,
     /// The user's Id
     pub id: SquireAccountId,

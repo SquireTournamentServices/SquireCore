@@ -1,7 +1,8 @@
 use std::{collections::HashMap, fmt::Display};
 
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
+use serde_with::{Seq, serde_as};
 
 pub use mtgjson::model::deck::Deck;
 
@@ -24,6 +25,7 @@ pub enum PlayerStatus {
     Dropped,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The core player model.
 /// This model only contains information about the player and what they have registered. All
@@ -41,6 +43,7 @@ pub struct Player {
     /// The relative order that the player added their decks (needed for pruning)
     pub deck_ordering: Vec<String>,
     /// The player's registered decks
+    #[serde_as(as = "Seq<(_, _)>")]
     pub decks: HashMap<String, Deck>,
     /// The player's status
     pub status: PlayerStatus,

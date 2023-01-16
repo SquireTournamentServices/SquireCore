@@ -6,6 +6,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use serde_with::{Seq, serde_as};
 
 use cycle_map::CycleMap;
 
@@ -18,15 +19,18 @@ use crate::{
 
 use super::RoundContext;
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all rounds.
 pub struct RoundRegistry {
     /// A lookup table between round ids and match numbers
     pub num_and_id: CycleMap<u64, RoundId>,
     /// All the rounds in a tournament
+    #[serde_as(as = "Seq<(_, _)>")]
     pub rounds: HashMap<RoundId, Round>,
     /// A lookup table between players and their opponents. This is duplicate data, but used
     /// heavily by scoring and pairings systems
+    #[serde_as(as = "Seq<(_, _)>")]
     pub opponents: HashMap<PlayerId, HashSet<PlayerId>>,
     /// The starting table number for assigning table numbers
     pub starting_table: u64,
@@ -34,6 +38,7 @@ pub struct RoundRegistry {
     pub length: Duration,
     /// The players' seating scores, for seeded table ordering
     #[serde(default)]
+    #[serde_as(as = "Seq<(_, _)>")]
     seat_scores: HashMap<PlayerId, usize>,
 }
 

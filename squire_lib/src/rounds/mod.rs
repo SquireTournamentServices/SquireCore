@@ -5,8 +5,8 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-
 use serde::{Deserialize, Serialize};
+use serde_with::{Seq, serde_as};
 
 pub use crate::identifiers::RoundId;
 use crate::{
@@ -54,6 +54,7 @@ pub enum RoundContext {
     Multiple(Vec<RoundContext>),
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A "round" might also be known as a "match" in some circles. This contains of at least two
 /// players playing at least one games against each other; however, a round can also encode a bye,
@@ -85,6 +86,7 @@ pub struct Round {
     /// The winner after certification, if one exists
     pub drops: HashSet<PlayerId>,
     /// The winner after certification, if one exists
+    #[serde_as(as = "Seq<(_, _)>")]
     pub results: HashMap<PlayerId, u32>,
     /// The winner after certification, if one exists
     pub draws: u32,
