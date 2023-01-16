@@ -2,6 +2,7 @@ use const_format::concatcp;
 
 use crate::utils::Url;
 
+/* ---------- Tournament Routes ---------- */
 pub const TOURNAMENTS_ROUTE: &str = "/api/v1/tournaments";
 
 pub(crate) const CREATE_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/create");
@@ -34,14 +35,36 @@ pub const ROLLBACK_TOURNAMENT_ROUTE: Url<1> = Url::new(
     ROLLBACK_TOURNAMENT_ENDPOINT.replacements,
 );
 
-pub static ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
+/* ---------- Account Routes ---------- */
+pub const ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
+
+pub(crate) const REGISTER_ACCOUNT_ENDPOINT: Url<0> = Url::from("/register");
+pub const REGISTER_ACCOUNT_ROUTE: Url<0> =
+    Url::from(concatcp!(ACCOUNTS_ROUTE, REGISTER_ACCOUNT_ENDPOINT.route));
+
+pub(crate) const VERIFY_ACCOUNT_ENDPOINT: Url<0> = Url::from("/verify");
+pub const VERIFY_ACCOUNT_ROUTE: Url<0> =
+    Url::from(concatcp!(ACCOUNTS_ROUTE, VERIFY_ACCOUNT_ENDPOINT.route));
+
+pub(crate) const LOGOUT_ENDPOINT: Url<0> = Url::from("/logout");
+pub const LOGOUT_ROUTE: Url<0> = Url::from(concatcp!(ACCOUNTS_ROUTE, LOGOUT_ENDPOINT.route));
+
+pub(crate) const LOAD_ACCOUNT_ENDPOINT: Url<0> = Url::from("/load");
+pub const LOAD_ACCOUNT_ROUTE: Url<0> =
+    Url::from(concatcp!(ACCOUNTS_ROUTE, LOAD_ACCOUNT_ENDPOINT.route));
+
+/* ---------- Misc Routes ---------- */
+pub const VERSION_ROUTE: &str = "/api/v1/version";
+
 
 #[cfg(test)]
 mod tests {
     use crate::api::{
         CREATE_TOURNAMENT_ENDPOINT, CREATE_TOURNAMENT_ROUTE, GET_TOURNAMENT_ENDPOINT,
-        GET_TOURNAMENT_ROUTE, ROLLBACK_TOURNAMENT_ENDPOINT, ROLLBACK_TOURNAMENT_ROUTE,
-        SYNC_TOURNAMENT_ENDPOINT, SYNC_TOURNAMENT_ROUTE,
+        GET_TOURNAMENT_ROUTE, LOAD_ACCOUNT_ENDPOINT, LOAD_ACCOUNT_ROUTE, LOGOUT_ENDPOINT,
+        LOGOUT_ROUTE, ROLLBACK_TOURNAMENT_ENDPOINT, ROLLBACK_TOURNAMENT_ROUTE,
+        SYNC_TOURNAMENT_ENDPOINT, SYNC_TOURNAMENT_ROUTE, VERIFY_ACCOUNT_ENDPOINT,
+        VERIFY_ACCOUNT_ROUTE, REGISTER_ACCOUNT_ROUTE, REGISTER_ACCOUNT_ENDPOINT,
     };
 
     #[test]
@@ -67,5 +90,21 @@ mod tests {
             ROLLBACK_TOURNAMENT_ROUTE.as_str(),
             "/api/v1/tournaments/:t_id/rollback"
         );
+    }
+
+    #[test]
+    fn verify_account_endpoints() {
+        assert_eq!(REGISTER_ACCOUNT_ENDPOINT.as_str(), "/register");
+        assert_eq!(VERIFY_ACCOUNT_ENDPOINT.as_str(), "/verify");
+        assert_eq!(LOGOUT_ENDPOINT.as_str(), "/logout");
+        assert_eq!(LOAD_ACCOUNT_ENDPOINT.as_str(), "/load");
+    }
+
+    #[test]
+    fn verify_account_routes() {
+        assert_eq!(REGISTER_ACCOUNT_ROUTE.as_str(), "/api/v1/accounts/register");
+        assert_eq!(VERIFY_ACCOUNT_ROUTE.as_str(), "/api/v1/accounts/verify");
+        assert_eq!(LOGOUT_ROUTE.as_str(), "/api/v1/accounts/logout");
+        assert_eq!(LOAD_ACCOUNT_ROUTE.as_str(), "/api/v1/accounts/load");
     }
 }

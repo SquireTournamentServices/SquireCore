@@ -11,7 +11,7 @@ pub use squire_lib::{
     tournament_manager::TournamentManager,
 };
 
-use crate::{response::SquireResponse, api::CREATE_TOURNAMENT_ENDPOINT};
+use crate::response::SquireResponse;
 
 /// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
 /// requested tournament might not be found.
@@ -31,12 +31,6 @@ pub struct CreateTournamentRequest {
     pub preset: TournamentPreset,
     /// The format of the new tournament
     pub format: String,
-}
-
-impl CreateTournamentRequest {
-    pub fn route(&self) -> &'static str {
-        CREATE_TOURNAMENT_ENDPOINT.as_str()
-    }
 }
 
 /// The response type used by the `tournaments/all` SC API. The inner data is the newly created

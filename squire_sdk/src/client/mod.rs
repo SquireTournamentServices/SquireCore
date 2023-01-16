@@ -29,8 +29,10 @@ use crate::{
         CreateAccountRequest, CreateAccountResponse, LoginRequest, VerificationData,
         VerificationRequest, VerificationResponse,
     },
+    api::{CREATE_TOURNAMENT_ENDPOINT, REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE, LOGOUT_ROUTE, VERIFY_ACCOUNT_ROUTE},
     tournaments::CreateTournamentRequest,
-    version::{ServerMode, Version}, COOKIE_NAME, api::CREATE_TOURNAMENT_ENDPOINT,
+    version::{ServerMode, Version},
+    COOKIE_NAME,
 };
 
 pub mod simple_state;
@@ -94,8 +96,7 @@ where
     /// Tries to create a client. Fails if a connection can not be made at the given URL
     pub async fn new(url: String, user: SquireAccount, state: S) -> Result<Self, ClientError> {
         let client = Client::builder().build()?;
-        // FIXME: Replace with const Url
-        let resp = client.get(format!("{url}/api/v1/version")).send().await?;
+        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }
@@ -119,8 +120,7 @@ where
         state: S,
     ) -> Result<Self, ClientError> {
         let client = Client::new();
-        // FIXME: Replace with const Url
-        let resp = client.get(format!("{url}/api/v1/version")).send().await?;
+        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }
@@ -129,9 +129,8 @@ where
             user_name,
             display_name,
         };
-        // FIXME: Replace with const Url
         let resp = client
-            .post(format!("{url}/api/v1/register"))
+            .post(format!("{url}{REGISTER_ACCOUNT_ROUTE}"))
             .header(CONTENT_TYPE, "application/json")
             .body(serde_json::to_string(&body).unwrap())
             .send()
@@ -164,8 +163,7 @@ where
 
     pub async fn login(&mut self) -> Result<(), ClientError> {
         let body = LoginRequest { id: self.user.id };
-        // FIXME: Replace with const Url
-        let resp = self.post_request("/api/v1/login", body).await?;
+        let resp = self.post_request(LOGOUT_ROUTE.as_str(), body).await?;
         let session = resp
             .cookies()
             .find(|c| c.name() == COOKIE_NAME)
@@ -198,8 +196,7 @@ where
             account: self.user.clone(),
         };
         println!("Sending verification request!");
-        // FIXME: Replace with const Url
-        let resp = self.post_request("/api/v1/accounts/verify", body).await?;
+        let resp = self.post_request(VERIFY_ACCOUNT_ROUTE.as_str(), body).await?;
         let session = resp
             .cookies()
             .find(|c| c.name() == COOKIE_NAME)
@@ -212,8 +209,7 @@ where
     }
 
     async fn verify_get(&mut self) -> Result<VerificationData, ClientError> {
-        // FIXME: Replace with const Url
-        let resp = self.get_request_with_cookie("/api/v1/verify").await?;
+        let resp = self.get_request_with_cookie(VERIFY_ACCOUNT_ROUTE.as_str()).await?;
         Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
     }
 

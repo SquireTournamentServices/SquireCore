@@ -1,3 +1,6 @@
+use std::fmt::Display;
+
+#[derive(Debug)]
 pub struct Url<const N: usize> {
     pub(crate) route: &'static str,
     pub(crate) replacements: [&'static str; N],
@@ -37,6 +40,12 @@ impl<const N: usize> Url<N> {
 impl Url<1> {
     pub fn insert<S: ToString>(&self, value: S) -> String {
         self.route.replace(self.replacements[0], &value.to_string())
+    }
+}
+
+impl<const N: usize> Display for Url<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.route)
     }
 }
 
