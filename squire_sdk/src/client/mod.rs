@@ -29,7 +29,10 @@ use crate::{
         CreateAccountRequest, CreateAccountResponse, LoginRequest, VerificationData,
         VerificationRequest, VerificationResponse,
     },
-    api::{CREATE_TOURNAMENT_ENDPOINT, REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE, LOGOUT_ROUTE, VERIFY_ACCOUNT_ROUTE},
+    api::{
+        CREATE_TOURNAMENT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
+        VERSION_ROUTE,
+    },
     tournaments::CreateTournamentRequest,
     version::{ServerMode, Version},
     COOKIE_NAME,
@@ -196,7 +199,9 @@ where
             account: self.user.clone(),
         };
         println!("Sending verification request!");
-        let resp = self.post_request(VERIFY_ACCOUNT_ROUTE.as_str(), body).await?;
+        let resp = self
+            .post_request(VERIFY_ACCOUNT_ROUTE.as_str(), body)
+            .await?;
         let session = resp
             .cookies()
             .find(|c| c.name() == COOKIE_NAME)
@@ -209,7 +214,9 @@ where
     }
 
     async fn verify_get(&mut self) -> Result<VerificationData, ClientError> {
-        let resp = self.get_request_with_cookie(VERIFY_ACCOUNT_ROUTE.as_str()).await?;
+        let resp = self
+            .get_request_with_cookie(VERIFY_ACCOUNT_ROUTE.as_str())
+            .await?;
         Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
     }
 

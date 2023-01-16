@@ -5,7 +5,6 @@ use squire_sdk::{
 
 use crate::client_server::get_client;
 
-
 #[tokio::test]
 async fn create_tournament_requires_login() {
     let mut client = get_client().await;

@@ -5,10 +5,7 @@ pub mod requests;
 pub mod tournaments;
 pub mod utils;
 
-use std::{
-    error::Error,
-    sync::Arc,
-};
+use std::{error::Error, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use dashmap::DashMap;

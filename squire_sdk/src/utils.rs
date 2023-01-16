@@ -27,7 +27,6 @@ impl<const N: usize> Url<N> {
         self.route
     }
 
-
     pub fn replace(&self, values: &[&str; N]) -> String {
         let mut digest = self.route.to_string();
         for (pattern, value) in self.replacements.iter().zip(values.iter()) {
