@@ -11,6 +11,7 @@ use axum::{
 };
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
+use state::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use http::{header, request::Parts};
@@ -32,16 +33,10 @@ mod tests;
 
 mod accounts;
 mod cards;
-
-static VERSION_DATA: OnceCell<Version> = OnceCell::new();
+mod state;
 
 pub async fn init() {
-    VERSION_DATA.get_or_init(|| Version {
-        version: "0.1.0-pre-alpha".to_string(),
-        mode: ServerMode::Extended,
-    });
     cards::init().await;
-    accounts::init();
 }
 
 pub fn create_router(state: AppState) -> Router {
@@ -63,10 +58,7 @@ async fn main() {
 
     init().await;
 
-    // `MemoryStore` is just used as an example. Don't use this in production.
-    let app_state = AppState {
-        store: MemoryStore::new(),
-    };
+    let app_state = AppState::new().await;
 
     let app = create_router(app_state);
 
@@ -76,103 +68,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap()
-}
-#[derive(Debug, Clone)]
-pub struct AppState {
-    store: MemoryStore,
-}
-
-#[async_trait]
-impl ServerState for AppState {
-    fn get_version(&self) -> Version {
-        todo!()
-    }
-
-    fn get_verification_data(&self, user: &User) -> Option<VerificationData> {
-        todo!()
-    }
-
-    async fn create_tournament(
-        &self,
-        user: User,
-        name: String,
-        preset: TournamentPreset,
-        format: String,
-    ) -> TournamentManager {
-        todo!()
-    }
-
-    async fn query_tournament<F, O>(&self, id: &TournamentId, f: F) -> Option<O>
-    where
-        F: Send + FnOnce(&TournamentManager) -> O,
-    {
-        todo!()
-    }
-
-    async fn create_verification_data(&self, user: &User) -> VerificationData {
-        todo!()
-    }
-
-    async fn sync_tournament(
-        &self,
-        id: &TournamentId,
-        user: &User,
-        sync: OpSync,
-    ) -> Option<SyncStatus> {
-        todo!()
-    }
-
-    async fn rollback_tournament(
-        &self,
-        id: &TournamentId,
-        user: &User,
-        rollback: Rollback,
-    ) -> Option<Result<(), RollbackError>> {
-        todo!()
-    }
-
-    async fn load_user(&self, user: User) {
-        todo!()
-    }
-
-    async fn get_user(&self, id: &SquireAccountId) -> Option<User> {
-        todo!()
-    }
-
-    async fn get_cards_meta(&self) -> Meta {
-        todo!()
-    }
-
-    async fn get_atomics(&self) -> Arc<Atomics> {
-        todo!()
-    }
-
-    async fn update_cards(&self) -> Result<(), Box<dyn std::error::Error>> {
-        todo!()
-    }
-}
-
-#[async_trait]
-impl SessionStore for AppState {
-    async fn load_session(
-        &self,
-        cookie_value: String,
-    ) -> async_session::Result<Option<async_session::Session>> {
-        self.store.load_session(cookie_value).await
-    }
-
-    async fn store_session(
-        &self,
-        session: async_session::Session,
-    ) -> async_session::Result<Option<String>> {
-        self.store.store_session(session).await
-    }
-
-    async fn destroy_session(&self, session: async_session::Session) -> async_session::Result {
-        self.store.destroy_session(session).await
-    }
-
-    async fn clear_store(&self) -> async_session::Result {
-        self.store.clear_store().await
-    }
 }

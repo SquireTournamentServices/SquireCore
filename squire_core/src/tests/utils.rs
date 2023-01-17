@@ -7,6 +7,7 @@ use http::{
 use axum::{body::HttpBody, http::Request, response::Response};
 use hyper::Body;
 use serde::{de::DeserializeOwned, Serialize};
+use squire_sdk::utils::Url;
 use tower::{Service, ServiceExt};
 
 use crate::{create_router, tests::init::get_app};
@@ -42,13 +43,13 @@ pub(crate) fn get_cookies(resp: &Response) -> Vec<&HeaderValue> {
         .collect()
 }
 
-pub(crate) fn create_request<B>(path: &str, body: B) -> Request<Body>
+pub(crate) fn create_request<B>(path: &Url<0>, body: B) -> Request<Body>
 where
     B: Serialize,
 {
     Request::builder()
         .method(Method::POST)
-        .uri(format!("http://127.0.0.1:8000/api/v1/{path}"))
+        .uri(format!("http://127.0.0.1:8000/{path}"))
         .header(CONTENT_TYPE, "application/json")
         .body(serde_json::to_string(&body).unwrap().into())
         .unwrap()

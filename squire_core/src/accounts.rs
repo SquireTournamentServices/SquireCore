@@ -25,14 +25,6 @@ use squire_sdk::{
 
 use crate::AppState;
 
-pub static USERS_MAP: OnceCell<DashMap<SquireAccountId, SquireAccount>> = OnceCell::new();
-#[allow(unused)]
-pub static ORGS_MAP: OnceCell<DashMap<OrgId, OrganizationAccount>> = OnceCell::new();
-
-pub fn init() {
-    USERS_MAP.get_or_init(Default::default);
-}
-
 pub fn get_routes() -> Router<AppState> {
     Router::new()
         .route("/:id", get(get_user))
@@ -42,19 +34,19 @@ pub fn get_routes() -> Router<AppState> {
 }
 
 pub async fn get_user(Path(id): Path<SquireAccountId>) -> GetUserResponse {
-    USERS_MAP.get().unwrap().get(&id).map(|a| a.clone()).into()
+    todo!()
 }
 
 pub async fn register(Json(data): Json<CreateAccountRequest>) -> CreateAccountResponse {
-    let account = SquireAccount::new(data.user_name, data.display_name);
-    USERS_MAP.get().unwrap().insert(account.id, account.clone());
-    account.into()
+    todo!()
 }
 
 pub async fn login(
     State(store): State<AppState>,
     Json(data): Json<LoginRequest>,
 ) -> impl IntoResponse {
+    todo!();
+    /*
     let account = USERS_MAP.get().unwrap().get(&data.id).unwrap().clone();
     let user = User { account };
 
@@ -74,6 +66,7 @@ pub async fn login(
     headers.insert(SET_COOKIE, cookie.parse().unwrap());
 
     (headers, LoginResponse::new(Some(user.account)))
+    */
 }
 
 pub async fn logout(

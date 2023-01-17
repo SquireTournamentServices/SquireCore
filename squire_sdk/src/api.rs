@@ -46,6 +46,10 @@ pub(crate) const VERIFY_ACCOUNT_ENDPOINT: Url<0> = Url::from("/verify");
 pub const VERIFY_ACCOUNT_ROUTE: Url<0> =
     Url::from(concatcp!(ACCOUNTS_ROUTE, VERIFY_ACCOUNT_ENDPOINT.route));
 
+pub(crate) const LOGIN_ENDPOINT: Url<0> = Url::from("/login");
+pub const LOGIN_ROUTE: Url<0> =
+    Url::from(concatcp!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT.route));
+
 pub(crate) const LOGOUT_ENDPOINT: Url<0> = Url::from("/logout");
 pub const LOGOUT_ROUTE: Url<0> = Url::from(concatcp!(ACCOUNTS_ROUTE, LOGOUT_ENDPOINT.route));
 
