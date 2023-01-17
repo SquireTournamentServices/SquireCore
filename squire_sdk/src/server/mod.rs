@@ -14,13 +14,13 @@ use squire_lib::accounts::SquireAccount;
 
 use http::{header, request::Parts};
 
-use crate::version::ServerVersionResponse;
+use crate::{
+    api::{ACCOUNTS_ROUTE, TOURNAMENTS_ROUTE},
+    version::ServerVersionResponse,
+    COOKIE_NAME,
+};
 
 use self::state::ServerState;
-
-pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
-pub static TOURNAMENTS_ROUTE: &str = "/api/v1/tournaments";
-pub static ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
 
 pub mod accounts;
 //mod cards;
@@ -70,7 +70,7 @@ where
                 _ => panic!("unexpected error getting cookies: {}", e),
             })?;
 
-        println!("Looking for correct cookie...");
+        println!("Looking for correct cookie:\n{cookies:?}");
         let session_cookie = cookies.get(COOKIE_NAME).ok_or(StatusCode::FORBIDDEN)?;
 
         println!("Loading Session...");

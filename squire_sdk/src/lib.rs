@@ -22,7 +22,11 @@ use serde::{Deserialize, Serialize};
 /// The module wraps and re-exports the squire_lib crate
 pub use squire_lib as model;
 
+pub mod api;
 mod card_requests;
+pub mod utils;
+
+pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
 
 /// The module wraps and re-exports key parts of the mtgjson crate
 pub mod cards {

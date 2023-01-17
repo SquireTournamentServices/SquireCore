@@ -29,8 +29,13 @@ use crate::{
         CreateAccountRequest, CreateAccountResponse, LoginRequest, VerificationData,
         VerificationRequest, VerificationResponse,
     },
+    api::{
+        CREATE_TOURNAMENT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
+        VERSION_ROUTE,
+    },
     tournaments::CreateTournamentRequest,
     version::{ServerMode, Version},
+    COOKIE_NAME,
 };
 
 pub mod simple_state;
@@ -94,7 +99,7 @@ where
     /// Tries to create a client. Fails if a connection can not be made at the given URL
     pub async fn new(url: String, user: SquireAccount, state: S) -> Result<Self, ClientError> {
         let client = Client::builder().build()?;
-        let resp = client.get(format!("{url}/api/v1/version")).send().await?;
+        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }
@@ -118,7 +123,7 @@ where
         state: S,
     ) -> Result<Self, ClientError> {
         let client = Client::new();
-        let resp = client.get(format!("{url}/api/v1/version")).send().await?;
+        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }
@@ -128,7 +133,7 @@ where
             display_name,
         };
         let resp = client
-            .post(format!("{url}/api/v1/register"))
+            .post(format!("{url}{REGISTER_ACCOUNT_ROUTE}"))
             .header(CONTENT_TYPE, "application/json")
             .body(serde_json::to_string(&body).unwrap())
             .send()
@@ -161,12 +166,12 @@ where
 
     pub async fn login(&mut self) -> Result<(), ClientError> {
         let body = LoginRequest { id: self.user.id };
-        let resp = self.post_request("/api/v1/login", body).await?;
+        let resp = self.post_request(LOGOUT_ROUTE.as_str(), body).await?;
         let session = resp
             .cookies()
-            .find(|c| c.name() == "SESSION")
+            .find(|c| c.name() == COOKIE_NAME)
             .ok_or(ClientError::LogInFailed)?;
-        let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
+        let cookie = Cookie::build(COOKIE_NAME, session.value().to_string()).finish();
         self.session = Some(cookie);
         Ok(())
     }
@@ -194,12 +199,14 @@ where
             account: self.user.clone(),
         };
         println!("Sending verification request!");
-        let resp = self.post_request("/api/v1/verify", body).await?;
+        let resp = self
+            .post_request(VERIFY_ACCOUNT_ROUTE.as_str(), body)
+            .await?;
         let session = resp
             .cookies()
-            .find(|c| c.name() == "SESSION")
+            .find(|c| c.name() == COOKIE_NAME)
             .ok_or(ClientError::LogInFailed)?;
-        let cookie = Cookie::build("SESSION", session.value().to_string()).finish();
+        let cookie = Cookie::build(COOKIE_NAME, session.value().to_string()).finish();
         let digest: VerificationResponse = resp.json().await?;
         let digest = digest.0.map_err(|_| ClientError::LogInFailed)?;
         self.session = Some(cookie);
@@ -207,7 +214,9 @@ where
     }
 
     async fn verify_get(&mut self) -> Result<VerificationData, ClientError> {
-        let resp = self.get_request_with_cookie("/api/v1/verify").await?;
+        let resp = self
+            .get_request_with_cookie(VERIFY_ACCOUNT_ROUTE.as_str())
+            .await?;
         Ok(resp.json::<VerificationResponse>().await?.0.unwrap())
     }
 
@@ -223,7 +232,7 @@ where
             format,
         };
         let resp = self
-            .post_request_with_cookie("/api/v1/tournaments/create", body)
+            .post_request_with_cookie(CREATE_TOURNAMENT_ENDPOINT.as_str(), body)
             .await?;
         match resp.status() {
             StatusCode::OK => {

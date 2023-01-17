@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::{Seq, serde_as};
 use std::fmt::Write;
 use uuid::Uuid;
 
@@ -48,6 +49,7 @@ pub enum TournamentStatus {
     Cancelled,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The core tournament structure
 pub struct Tournament {
@@ -80,8 +82,10 @@ pub struct Tournament {
     /// The status of the tournament
     pub status: TournamentStatus,
     /// The set of judges for the tournament
+    #[serde_as(as = "Seq<(_, _)>")]
     pub judges: HashMap<JudgeId, Judge>,
     /// The set of admins for the tournament
+    #[serde_as(as = "Seq<(_, _)>")]
     pub admins: HashMap<AdminId, Admin>,
 }
 

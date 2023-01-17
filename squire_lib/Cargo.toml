@@ -9,13 +9,13 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 dwarf-version = 4
 
 [lib]
-crate-type = ["lib", "staticlib"]
+crate-type = ["lib", "staticlib", "cdylib"]
 
 [features]
 default = ["deck_sites"]
 deck_sites = ["mtgjson/deck_sites"]
-ffi = ["cbindgen", "libc", "dashmap"]
-wasm = ["chrono/wasmbind"]
+ffi = ["cbindgen", "libc", "dashmap", "serde_json"]
+wasm = ["chrono/wasmbind", "getrandom/js"]
 
 [dependencies]
 #In-house deps
@@ -25,18 +25,23 @@ mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffcc
 
 uuid = { version = "1.1", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0.68" }
+serde_with = { version = "2.2" }
+serde_json = { version = "1.0.68", optional = true }
 once_cell = { version = "1.8.0" }
 chrono = { version = "0.4", features = ["serde"] }
 itertools = { version = "0.10.0" }
 num-rational = { version = "0.4.1", features = ["serde"] }
 html-escape = "0.2.12"
+getrandom = { version = "0.2" }
 
 dashmap = { version = "5.0", features = ["serde"], optional = true }
 libc = { version = "0.2", optional = true }
 
 [build-dependencies]
-cbindgen = { version = "0.20.0", optional = true}
+cbindgen = { version = "0.20.0", optional = true }
+
+[dev-dependencies]
+serde_json = { version = "1.0.68" }
 
 # This ensures that when the program crashes a usable stack trace can be generated
 [profile.release]

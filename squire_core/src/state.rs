@@ -1,45 +1,42 @@
-#![allow(unused)]
-
-pub mod init;
-pub mod requests;
-pub mod tournaments;
-pub mod utils;
-
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use async_session::{async_trait, MemoryStore, SessionStore};
-use dashmap::DashMap;
-use mtgjson::mtgjson::{atomics::Atomics, meta::Meta};
-use squire_lib::{
-    identifiers::SquireAccountId,
-    operations::{OpSync, Rollback, RollbackError, SyncStatus},
-    tournament::{TournamentId, TournamentPreset},
-    tournament_manager::TournamentManager,
-};
-
+use mongodb::{options::ClientOptions, Client as DbClient, Database, Collection};
 use squire_sdk::{
-    accounts::VerificationData,
+    accounts::{SquireAccount, SquireAccountId, VerificationData},
+    cards::{atomics::Atomics, meta::Meta},
     server::{state::ServerState, User},
+    tournaments::{
+        OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
+        TournamentPreset,
+    },
     version::{ServerMode, Version},
 };
 
-// `MemoryStore` is ephemeral and will not persist between test runs
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub store: MemoryStore,
-    pub users: Arc<DashMap<SquireAccountId, User>>,
-    pub verified: Arc<DashMap<SquireAccountId, VerificationData>>,
-    pub tourns: Arc<DashMap<TournamentId, TournamentManager>>,
+    client: DbClient,
 }
 
 impl AppState {
-    pub fn new() -> Self {
-        AppState {
-            store: MemoryStore::new(),
-            users: Arc::new(DashMap::new()),
-            verified: Arc::new(DashMap::new()),
-            tourns: Arc::new(DashMap::new()),
-        }
+    pub async fn new() -> Self {
+        let mut client_options = ClientOptions::parse("mongodb://localhost:27017")
+            .await
+            .unwrap();
+
+        client_options.app_name = Some("SquireCore Public Server".to_string());
+
+        let client = DbClient::with_options(client_options).unwrap();
+
+        Self { client }
+    }
+    
+    pub fn get_db(&self) -> Database {
+        self.client.database("Squire")
+    }
+    
+    pub fn get_tourns(&self) -> Collection<TournamentManager> {
+        self.get_db().collection("Tournaments")
     }
 }
 
@@ -47,15 +44,13 @@ impl AppState {
 impl ServerState for AppState {
     fn get_version(&self) -> Version {
         Version {
-            version: "0.1.0-pre-alpha".to_owned(),
-            mode: ServerMode::Basic,
+            version: "0.1.0-pre-alpha".to_string(),
+            mode: ServerMode::Extended,
         }
     }
 
     fn get_verification_data(&self, user: &User) -> Option<VerificationData> {
-        self.verified
-            .get(&user.account.id)
-            .map(|data| (*data).clone())
+        None
     }
 
     async fn create_tournament(
@@ -65,25 +60,18 @@ impl ServerState for AppState {
         preset: TournamentPreset,
         format: String,
     ) -> TournamentManager {
-        let tourn = TournamentManager::new(user.account, name, preset, format);
-        self.tourns.insert(tourn.id, tourn.clone());
-        tourn
+        todo!()
     }
 
     async fn query_tournament<F, O>(&self, id: &TournamentId, f: F) -> Option<O>
     where
         F: Send + FnOnce(&TournamentManager) -> O,
     {
-        self.tourns.get(id).map(|t| (f)(&*t))
+        todo!()
     }
 
     async fn create_verification_data(&self, user: &User) -> VerificationData {
-        let data = VerificationData {
-            confirmation: "ABCDEF".to_owned(),
-            status: true,
-        };
-        self.verified.insert(user.account.id, data.clone());
-        data
+        todo!()
     }
 
     async fn sync_tournament(
@@ -92,7 +80,7 @@ impl ServerState for AppState {
         user: &User,
         sync: OpSync,
     ) -> Option<SyncStatus> {
-        self.tourns.get_mut(id).map(|mut t| t.attempt_sync(sync))
+        todo!()
     }
 
     async fn rollback_tournament(
@@ -105,11 +93,11 @@ impl ServerState for AppState {
     }
 
     async fn load_user(&self, user: User) {
-        self.users.entry(user.account.id).or_insert(user);
+        todo!()
     }
 
     async fn get_user(&self, id: &SquireAccountId) -> Option<User> {
-        self.users.get(id).map(|user| (*user).clone())
+        todo!()
     }
 
     async fn get_cards_meta(&self) -> Meta {
@@ -120,7 +108,7 @@ impl ServerState for AppState {
         todo!()
     }
 
-    async fn update_cards(&self) -> Result<(), Box<dyn Error>> {
+    async fn update_cards(&self) -> Result<(), Box<dyn std::error::Error>> {
         todo!()
     }
 }
@@ -131,21 +119,21 @@ impl SessionStore for AppState {
         &self,
         cookie_value: String,
     ) -> async_session::Result<Option<async_session::Session>> {
-        self.store.load_session(cookie_value).await
+        todo!()
     }
 
     async fn store_session(
         &self,
         session: async_session::Session,
     ) -> async_session::Result<Option<String>> {
-        self.store.store_session(session).await
+        todo!()
     }
 
     async fn destroy_session(&self, session: async_session::Session) -> async_session::Result {
-        self.store.destroy_session(session).await
+        todo!()
     }
 
     async fn clear_store(&self) -> async_session::Result {
-        self.store.clear_store().await
+        todo!()
     }
 }

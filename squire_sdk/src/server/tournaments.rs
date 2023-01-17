@@ -9,8 +9,13 @@ use axum::{
 };
 
 use crate::{
+    api::{
+        CREATE_TOURNAMENT_ENDPOINT, GET_TOURNAMENT_ENDPOINT, ROLLBACK_TOURNAMENT_ENDPOINT,
+        SYNC_TOURNAMENT_ENDPOINT,
+    },
     server::{state::ServerState, User},
     tournaments::*,
+    utils::Url,
 };
 
 pub fn get_routes<S>() -> Router<S>
@@ -18,10 +23,13 @@ where
     S: ServerState,
 {
     Router::new()
-        .route("/create", post(create_tournament::<S>))
-        .route("/:t_id", get(get_tournament::<S>))
-        .route("/:t_id/sync", post(sync::<S>))
-        .route("/:t_id/rollback", post(rollback::<S>))
+        .route(
+            CREATE_TOURNAMENT_ENDPOINT.as_str(),
+            post(create_tournament::<S>),
+        )
+        .route(GET_TOURNAMENT_ENDPOINT.as_str(), get(get_tournament::<S>))
+        .route(SYNC_TOURNAMENT_ENDPOINT.as_str(), post(sync::<S>))
+        .route(ROLLBACK_TOURNAMENT_ENDPOINT.as_str(), post(rollback::<S>))
 }
 
 pub async fn create_tournament<S>(

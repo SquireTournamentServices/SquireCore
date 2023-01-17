@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
+use serde_with::{Seq, serde_as};
 use uuid::Uuid;
 
 use crate::{
@@ -18,6 +19,7 @@ use crate::{
 
 use TournamentError::{PlayerAlreadyRegistered, PlayerNotFound};
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// The struct that creates and manages all players.
 pub struct PlayerRegistry {
@@ -26,6 +28,7 @@ pub struct PlayerRegistry {
     // the players field
     pub name_and_id: CycleMap<String, PlayerId>,
     /// All players in a tournament
+    #[serde_as(as = "Seq<(_, _)>")]
     pub players: HashMap<PlayerId, Player>,
     /// A map of players that have checked into the tournament for registration
     pub(crate) check_ins: HashSet<PlayerId>,

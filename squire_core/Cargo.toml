@@ -20,11 +20,12 @@ reqwest = { version = "0.11", features = ["json", "cookies"] }
 # oauth2 = "4.1"
 
 # Server-specifics
+mongodb = { version = "2.3.1", features = ["tokio-runtime"] }
 axum = { version = "0.6.1", features = ["json", "macros", "headers"]}
-async-session = "3.0.0"
-headers = "0.3"
-http = "0.2"
-tracing = "0.1"
+async-session = { version = "3.0.0" }
+headers = { version = "0.3" }
+http = { version = "0.2" }
+tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
