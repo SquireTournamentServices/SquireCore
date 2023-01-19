@@ -77,6 +77,14 @@ impl ServerState for AppState {
         self.tourns.get(id).map(|t| (f)(&*t))
     }
 
+    async fn query_all_tournaments<F, O, Out>(&self, mut f: F) -> Out
+    where
+        Out: FromIterator<O>,
+        F: Send + FnMut(&TournamentManager) -> O
+    {
+        self.tourns.iter().map(|t| (f)(&*t)).collect()
+    }
+
     async fn create_verification_data(&self, user: &User) -> VerificationData {
         let data = VerificationData {
             confirmation: "ABCDEF".to_owned(),

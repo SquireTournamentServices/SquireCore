@@ -11,6 +11,10 @@ pub const CREATE_TOURNAMENT_ROUTE: Url<0> = Url::from(concatcp!(
     CREATE_TOURNAMENT_ENDPOINT.route
 ));
 
+pub(crate) const GET_ALL_TOURNAMENTS_ENDPOINT: Url<0> = Url::from("/all");
+pub const GET_ALL_TOURNAMENTS_ROUTE: Url<0> =
+    Url::from(concatcp!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT.route));
+
 pub(crate) const GET_TOURNAMENT_ENDPOINT: Url<1> = Url::new("/:t_id", [":t_id"]);
 pub const GET_TOURNAMENT_ROUTE: Url<1> = Url::new(
     concatcp!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT.route),
@@ -47,8 +51,7 @@ pub const VERIFY_ACCOUNT_ROUTE: Url<0> =
     Url::from(concatcp!(ACCOUNTS_ROUTE, VERIFY_ACCOUNT_ENDPOINT.route));
 
 pub(crate) const LOGIN_ENDPOINT: Url<0> = Url::from("/login");
-pub const LOGIN_ROUTE: Url<0> =
-    Url::from(concatcp!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT.route));
+pub const LOGIN_ROUTE: Url<0> = Url::from(concatcp!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT.route));
 
 pub(crate) const LOGOUT_ENDPOINT: Url<0> = Url::from("/logout");
 pub const LOGOUT_ROUTE: Url<0> = Url::from(concatcp!(ACCOUNTS_ROUTE, LOGOUT_ENDPOINT.route));

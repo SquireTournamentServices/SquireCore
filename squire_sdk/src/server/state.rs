@@ -30,6 +30,11 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
     async fn query_tournament<F, O>(&self, id: &TournamentId, f: F) -> Option<O>
     where
         F: Send + FnOnce(&TournamentManager) -> O;
+    async fn query_all_tournaments<F, O, Out>(&self, f: F) -> Out
+    where
+        Out: FromIterator<O>,
+        O: Send,
+        F: Send + FnMut(&TournamentManager) -> O;
     async fn create_verification_data(&self, user: &User) -> VerificationData;
     async fn sync_tournament(
         &self,

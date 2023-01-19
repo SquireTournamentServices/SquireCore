@@ -17,6 +17,10 @@ use crate::response::SquireResponse;
 /// requested tournament might not be found.
 pub type GetTournamentResponse = SquireResponse<Option<TournamentManager>>;
 
+/// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
+/// requested tournament might not be found.
+pub type GetAllTournamentsResponse = SquireResponse<Vec<TournamentManager>>;
+
 /// The response type used by the `tournaments/all` SC API. The inner data is a map between
 /// tournament id and tournament objects.
 pub type AllTournamentsResponse = SquireResponse<HashMap<TournamentId, Tournament>>;

@@ -32,17 +32,17 @@ use squire_sdk::{
 mod tests;
 
 mod accounts;
-mod cards;
+//mod cards;
 mod state;
 
 pub async fn init() {
-    cards::init().await;
+    //cards::init().await;
 }
 
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
-        .route("/api/v1/cards", get(cards::atomics))
-        .route("/api/v1/meta", get(cards::meta))
+        //.route("/api/v1/cards", get(cards::atomics))
+        //.route("/api/v1/meta", get(cards::meta))
         .with_state(state)
 }
 

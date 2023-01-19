@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use futures::stream::TryStreamExt;
 use async_session::{async_trait, MemoryStore, SessionStore};
-use mongodb::{options::ClientOptions, Client as DbClient, Database, Collection};
+use mongodb::{options::ClientOptions, Client as DbClient, Collection, Database};
 use squire_sdk::{
     accounts::{SquireAccount, SquireAccountId, VerificationData},
     cards::{atomics::Atomics, meta::Meta},
@@ -30,11 +31,11 @@ impl AppState {
 
         Self { client }
     }
-    
+
     pub fn get_db(&self) -> Database {
         self.client.database("Squire")
     }
-    
+
     pub fn get_tourns(&self) -> Collection<TournamentManager> {
         self.get_db().collection("Tournaments")
     }
@@ -68,6 +69,20 @@ impl ServerState for AppState {
         F: Send + FnOnce(&TournamentManager) -> O,
     {
         todo!()
+    }
+
+    async fn query_all_tournaments<F, O, Out>(&self, mut f: F) -> Out
+    where
+        Out: FromIterator<O>,
+        O: Send,
+        F: Send + FnMut(&TournamentManager) -> O,
+    {
+        let mut digest = Vec::new();
+        let mut cursor = self.get_tourns().find(None, None).await.unwrap();
+        while let Some(tourn) = cursor.try_next().await.unwrap() {
+            digest.push(f(&tourn));
+        }
+        digest.into_iter().collect()
     }
 
     async fn create_verification_data(&self, user: &User) -> VerificationData {
