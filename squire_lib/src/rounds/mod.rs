@@ -93,10 +93,14 @@ pub struct Round {
     /// The round context that the round was created in
     #[serde(default)]
     pub context: RoundContext,
-    pub(crate) timer: DateTime<Utc>,
-    pub(crate) length: Duration,
-    pub(crate) extension: Duration,
-    pub(crate) is_bye: bool,
+    /// The start time of the round
+    pub timer: DateTime<Utc>,
+    /// The length of the round
+    pub length: Duration,
+    /// All recorded time extensions for the round
+    pub extension: Duration,
+    /// Whether or not this round is a bye
+    pub is_bye: bool,
 }
 
 impl Round {

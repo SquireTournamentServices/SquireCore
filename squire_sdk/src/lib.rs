@@ -24,6 +24,7 @@ pub use squire_lib as model;
 
 pub mod api;
 mod card_requests;
+pub mod data;
 pub mod utils;
 
 pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
