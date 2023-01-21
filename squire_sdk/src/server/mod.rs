@@ -19,7 +19,7 @@ use squire_lib::accounts::SquireAccount;
 use http::{header, request::Parts};
 
 use crate::{
-    api::{ACCOUNTS_ROUTE, TOURNAMENTS_ROUTE, VERSION_ROUTE},
+    api::{ACCOUNTS_ROUTE, TOURNAMENTS_ROUTE, VERSION_ROUTE, API_BASE, VERSION_ENDPOINT},
     utils::Url,
     version::ServerVersionResponse,
     COOKIE_NAME,
@@ -32,17 +32,21 @@ pub mod accounts;
 pub mod state;
 pub mod tournaments;
 
+pub fn get_routes<S>() -> Router<S>
+where S: ServerState,
+{
+    Router::new()
+        .route(VERSION_ENDPOINT.as_str(), get(get_version::<S>))
+}
+
 pub fn create_router<S>() -> SquireRouter<S>
 where
     S: ServerState,
 {
     SquireRouter::new()
+        .extend(API_BASE, get_routes::<S>())
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())
         .extend(ACCOUNTS_ROUTE, accounts::get_routes::<S>())
-        .extend(
-            VERSION_ROUTE,
-            Router::new().route(VERSION_ROUTE.as_str(), get(get_version::<S>)),
-        )
 }
 
 #[derive(Debug)]

@@ -46,7 +46,8 @@ pub(crate) const LOAD_ACCOUNT_ENDPOINT: Url<0> = Url::from("/load");
 pub const LOAD_ACCOUNT_ROUTE: Url<0> = extend!(ACCOUNTS_ROUTE, LOAD_ACCOUNT_ENDPOINT);
 
 /* ---------- Misc Routes ---------- */
-pub const VERSION_ROUTE: Url<0> = extend!(API_BASE, "/version");
+pub const VERSION_ENDPOINT: Url<0> = Url::from("/version");
+pub const VERSION_ROUTE: Url<0> = extend!(API_BASE, VERSION_ENDPOINT);
 
 #[cfg(test)]
 mod tests {
@@ -55,7 +56,7 @@ mod tests {
         GET_TOURNAMENT_ROUTE, LOAD_ACCOUNT_ENDPOINT, LOAD_ACCOUNT_ROUTE, LOGOUT_ENDPOINT,
         LOGOUT_ROUTE, REGISTER_ACCOUNT_ENDPOINT, REGISTER_ACCOUNT_ROUTE,
         ROLLBACK_TOURNAMENT_ENDPOINT, ROLLBACK_TOURNAMENT_ROUTE, SYNC_TOURNAMENT_ENDPOINT,
-        SYNC_TOURNAMENT_ROUTE, VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE,
+        SYNC_TOURNAMENT_ROUTE, VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
     };
 
     #[test]
@@ -97,5 +98,14 @@ mod tests {
         assert_eq!(VERIFY_ACCOUNT_ROUTE.as_str(), "/api/v1/accounts/verify");
         assert_eq!(LOGOUT_ROUTE.as_str(), "/api/v1/accounts/logout");
         assert_eq!(LOAD_ACCOUNT_ROUTE.as_str(), "/api/v1/accounts/load");
+    }
+
+    #[test]
+    fn verify_misc_endpoints() {
+    }
+
+    #[test]
+    fn verify_misc_routes() {
+        assert_eq!(VERSION_ROUTE.as_str(), "/api/v1/version");
     }
 }
