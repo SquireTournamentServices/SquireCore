@@ -1,6 +1,10 @@
 #![allow(unused)]
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    net::SocketAddr,
+    sync::Arc,
+};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
@@ -15,7 +19,8 @@ use squire_lib::accounts::SquireAccount;
 use http::{header, request::Parts};
 
 use crate::{
-    api::{ACCOUNTS_ROUTE, TOURNAMENTS_ROUTE},
+    api::{ACCOUNTS_ROUTE, TOURNAMENTS_ROUTE, VERSION_ROUTE},
+    utils::Url,
     version::ServerVersionResponse,
     COOKIE_NAME,
 };
@@ -27,14 +32,53 @@ pub mod accounts;
 pub mod state;
 pub mod tournaments;
 
-pub fn create_router<S>() -> Router<S>
+pub fn create_router<S>() -> SquireRouter<S>
 where
     S: ServerState,
 {
-    Router::new()
-        .nest(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())
-        .nest(ACCOUNTS_ROUTE, accounts::get_routes::<S>())
-        .route("/api/v1/version", get(get_version::<S>))
+    SquireRouter::new()
+        .extend(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())
+        .extend(ACCOUNTS_ROUTE, accounts::get_routes::<S>())
+        .extend(
+            VERSION_ROUTE,
+            Router::new().route(VERSION_ROUTE.as_str(), get(get_version::<S>)),
+        )
+}
+
+#[derive(Debug)]
+pub struct SquireRouter<S> {
+    router: HashMap<&'static str, Router<S>>,
+}
+
+impl<S> SquireRouter<S>
+where
+    S: 'static + Clone + Send + Sync,
+{
+    pub fn new() -> Self {
+        Self {
+            router: Default::default(),
+        }
+    }
+
+    pub fn extend<const N: usize>(mut self, url: Url<N>, new_router: Router<S>) -> Self {
+        let router = if let Some(router) = self.router.remove(url.as_str()) {
+            router.merge(new_router)
+        } else {
+            new_router
+        };
+        self.router.insert(url.as_str(), router);
+        Self {
+            router: self.router,
+        }
+    }
+    
+    pub fn into(self) -> Router<S> {
+        let mut router = Router::new();
+        for (base, sub) in self.router {
+            router = router.nest(base, sub);
+        }
+        router
+    }
 }
 
 pub async fn get_version<S>(State(state): State<S>) -> ServerVersionResponse

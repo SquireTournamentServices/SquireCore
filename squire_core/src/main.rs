@@ -25,12 +25,13 @@ use squire_sdk::{
         OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
         TournamentPreset,
     },
-    version::{ServerMode, Version},
+    version::{ServerMode, Version}, api::{TOURNAMENTS_ROUTE, GET_ALL_PAST_TOURNAMENTS_ROUTE},
 };
 
 #[cfg(test)]
 mod tests;
 
+mod tournaments;
 mod accounts;
 //mod cards;
 mod state;
@@ -41,8 +42,10 @@ pub async fn init() {
 
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
+        .extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
         //.route("/api/v1/cards", get(cards::atomics))
         //.route("/api/v1/meta", get(cards::meta))
+        .into()
         .with_state(state)
 }
 
@@ -63,7 +66,7 @@ async fn main() {
     let app = create_router(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
-    println!("Starting server!!");
+    println!("Starting server at: {addr:?}");
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await

@@ -10,7 +10,7 @@ use axum::{
 
 use crate::{
     api::{
-        CREATE_TOURNAMENT_ENDPOINT, GET_ALL_TOURNAMENTS_ENDPOINT, GET_TOURNAMENT_ENDPOINT,
+        CREATE_TOURNAMENT_ENDPOINT, GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT, GET_TOURNAMENT_ENDPOINT,
         ROLLBACK_TOURNAMENT_ENDPOINT, SYNC_TOURNAMENT_ENDPOINT,
     },
     server::{state::ServerState, User},
@@ -29,7 +29,7 @@ where
         )
         .route(GET_TOURNAMENT_ENDPOINT.as_str(), get(get_tournament::<S>))
         .route(
-            GET_ALL_TOURNAMENTS_ENDPOINT.as_str(),
+            GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT.as_str(),
             get(get_all_tournaments::<S>),
         )
         .route(SYNC_TOURNAMENT_ENDPOINT.as_str(), post(sync::<S>))

@@ -11,7 +11,7 @@ static SERVER: OnceCell<Mutex<Router>> = OnceCell::new();
 
 fn init() -> Mutex<Router> {
     let app_state = AppState::new();
-    Mutex::new(create_router::<AppState>().with_state(app_state))
+    Mutex::new(create_router::<AppState>().into().with_state(app_state))
 }
 
 pub(crate) async fn get_app() -> MutexGuard<'static, Router> {

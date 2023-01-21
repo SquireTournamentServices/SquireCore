@@ -1,4 +1,5 @@
 #![feature(try_trait_v2)]
+#![feature(inline_const)]
 
 //! This crate contains the model used by SquireCore's API endpoints. There are some features
 //! needed only for the SquireCore server. These are enabled by default. For client usage, you can

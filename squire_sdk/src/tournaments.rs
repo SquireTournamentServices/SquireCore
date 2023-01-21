@@ -11,19 +11,19 @@ pub use squire_lib::{
     tournament_manager::TournamentManager,
 };
 
-use crate::response::SquireResponse;
+use crate::{response::SquireResponse, data::CompressedTournament};
 
 /// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
 /// requested tournament might not be found.
 pub type GetTournamentResponse = SquireResponse<Option<TournamentManager>>;
 
-/// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
+/// The response type used by the `tournaments/all` SC API. The option encodes that the
 /// requested tournament might not be found.
 pub type GetAllTournamentsResponse = SquireResponse<Vec<TournamentManager>>;
 
 /// The response type used by the `tournaments/all` SC API. The inner data is a map between
 /// tournament id and tournament objects.
-pub type AllTournamentsResponse = SquireResponse<HashMap<TournamentId, Tournament>>;
+pub type GetAllPastTournamentsResponse = SquireResponse<HashMap<TournamentId, CompressedTournament>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/create` SC API. The fields contain all the data

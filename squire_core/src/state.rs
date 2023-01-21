@@ -11,7 +11,7 @@ use squire_sdk::{
         OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
         TournamentPreset,
     },
-    version::{ServerMode, Version},
+    version::{ServerMode, Version}, data::CompressedTournament,
 };
 
 #[derive(Debug, Clone)]
@@ -38,6 +38,24 @@ impl AppState {
 
     pub fn get_tourns(&self) -> Collection<TournamentManager> {
         self.get_db().collection("Tournaments")
+    }
+
+    pub fn get_past_tourns(&self) -> Collection<CompressedTournament> {
+        self.get_db().collection("PastTournaments")
+    }
+
+    pub async fn query_all_past_tournaments<F, O, Out>(&self, mut f: F) -> Out
+    where
+        Out: FromIterator<O>,
+        O: Send,
+        F: Send + FnMut(&CompressedTournament) -> O,
+    {
+        let mut digest = Vec::new();
+        let mut cursor = self.get_past_tourns().find(None, None).await.unwrap();
+        while let Some(tourn) = cursor.try_next().await.unwrap() {
+            digest.push(f(&tourn));
+        }
+        digest.into_iter().collect()
     }
 }
 

@@ -1,6 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
 use hashbag::HashBag;
+use serde::{Serialize, Deserialize};
+use serde_with::{Seq, serde_as};
+
 use squire_lib::{
     pairings::PairingSystem,
     players::{Deck, Player, PlayerId, PlayerRegistry, PlayerStatus},
@@ -9,6 +12,7 @@ use squire_lib::{
     tournament::{Tournament, TournamentId, TournamentStatus},
 };
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CompressedTournament {
     pub id: TournamentId,
     pub name: String,
@@ -58,7 +62,10 @@ impl From<Tournament> for CompressedTournament {
     }
 }
 
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CompressedPlayerReg {
+    #[serde_as(as = "Seq<(_, _)>")]
     pub players: HashMap<PlayerId, CompressedPlayer>,
 }
 
@@ -71,6 +78,7 @@ impl From<PlayerRegistry> for CompressedPlayerReg {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CompressedDeck {
     pub mainboard: HashBag<String>,
     pub sideboard: HashBag<String>,
@@ -102,9 +110,12 @@ impl From<Deck> for CompressedDeck {
     }
 }
 
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CompressedPlayer {
     pub id: PlayerId,
     pub name: String,
+    #[serde_as(as = "Seq<(_, _)>")]
     pub decks: HashMap<String, CompressedDeck>,
     pub status: PlayerStatus,
 }
@@ -130,7 +141,10 @@ impl From<Player> for CompressedPlayer {
     }
 }
 
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CompressedRoundReg {
+    #[serde_as(as = "Seq<(_, _)>")]
     pub rounds: HashMap<RoundId, CompressedRound>,
     pub starting_table: u64,
 }
@@ -149,6 +163,8 @@ impl From<RoundRegistry> for CompressedRoundReg {
     }
 }
 
+#[serde_as]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CompressedRound {
     pub id: RoundId,
     pub match_number: u64,
@@ -156,6 +172,7 @@ pub struct CompressedRound {
     pub players: Vec<PlayerId>,
     pub status: RoundStatus,
     pub winner: Option<PlayerId>,
+    #[serde_as(as = "Seq<(_, _)>")]
     pub results: HashMap<PlayerId, u32>,
     pub draws: u32,
     pub context: RoundContext,

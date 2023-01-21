@@ -1,5 +1,38 @@
 use std::fmt::Display;
 
+
+#[macro_export]
+macro_rules! extend {
+    ($url:ident, $ext:literal) => {
+        Url::new(
+            const_format::concatcp!($url.route, $ext),
+            $url.replacements
+        )
+    };
+    ($url:ident, $ext:literal, $reps:literal) => {
+        Url::new(
+            const_format::concatcp!($url.route, $ext),
+            array_concat::concat_arrays!($url.replacements, $reps),
+        )
+    };
+    ($url:ident, $ext:ident) => {{
+        const A: [&str; $url.replacements.len()] = $url.replacements;
+        const B: [&str; $ext.replacements.len()] = $ext.replacements;
+        Url::new(
+            const_format::concatcp!($url.route, $ext.route),
+            array_concat::concat_arrays!(A, B),
+        )
+    }};
+    ($url:ident, $ext:ident, $reps:literal) => {
+        const A: [&str; $url.replacements.len()] = $url.replacements;
+        const B: [&str; $ext.replacements.len()] = $ext.replacements;
+        Url::new(
+            const_format::concatcp!($url.route, $ext.route),
+            array_concat::concat_arrays!(A, B, $reps),
+        )
+    };
+}
+
 #[derive(Debug)]
 pub struct Url<const N: usize> {
     pub(crate) route: &'static str,

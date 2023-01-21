@@ -1,67 +1,52 @@
-use const_format::concatcp;
+use crate::{extend, utils::Url};
 
-use crate::utils::Url;
+/* ---------- Base Routes ---------- */
+pub const API_BASE: Url<0> = Url::from("/api/v1");
 
 /* ---------- Tournament Routes ---------- */
-pub const TOURNAMENTS_ROUTE: &str = "/api/v1/tournaments";
+pub const TOURNAMENTS_ROUTE: Url<0> = extend!(API_BASE, "/tournaments");
 
 pub(crate) const CREATE_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/create");
-pub const CREATE_TOURNAMENT_ROUTE: Url<0> = Url::from(concatcp!(
-    TOURNAMENTS_ROUTE,
-    CREATE_TOURNAMENT_ENDPOINT.route
-));
+pub const CREATE_TOURNAMENT_ROUTE: Url<0> = extend!(TOURNAMENTS_ROUTE, CREATE_TOURNAMENT_ENDPOINT);
 
-pub(crate) const GET_ALL_TOURNAMENTS_ENDPOINT: Url<0> = Url::from("/all");
-pub const GET_ALL_TOURNAMENTS_ROUTE: Url<0> =
-    Url::from(concatcp!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT.route));
+pub(crate) const GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT: Url<0> = Url::from("/all");
+pub const GET_ALL_ACTIVE_TOURNAMENTS_ROUTE: Url<0> =
+    extend!(TOURNAMENTS_ROUTE, GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT);
+
+pub const GET_ALL_PAST_TOURNAMENTS_ENDPOINT: Url<0> = Url::from("/past/all");
+pub const GET_ALL_PAST_TOURNAMENTS_ROUTE: Url<0> =
+    extend!(TOURNAMENTS_ROUTE, GET_ALL_PAST_TOURNAMENTS_ENDPOINT);
 
 pub(crate) const GET_TOURNAMENT_ENDPOINT: Url<1> = Url::new("/:t_id", [":t_id"]);
-pub const GET_TOURNAMENT_ROUTE: Url<1> = Url::new(
-    concatcp!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT.route),
-    GET_TOURNAMENT_ENDPOINT.replacements,
-);
+pub const GET_TOURNAMENT_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT);
 
-pub(crate) const SYNC_TOURNAMENT_ENDPOINT: Url<1> = Url::new(
-    concatcp!(GET_TOURNAMENT_ENDPOINT.route, "/sync"),
-    GET_TOURNAMENT_ENDPOINT.replacements,
-);
-pub const SYNC_TOURNAMENT_ROUTE: Url<1> = Url::new(
-    concatcp!(TOURNAMENTS_ROUTE, SYNC_TOURNAMENT_ENDPOINT.route),
-    SYNC_TOURNAMENT_ENDPOINT.replacements,
-);
+pub(crate) const SYNC_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/sync");
+pub const SYNC_TOURNAMENT_ROUTE: Url<1> = extend!(GET_TOURNAMENT_ROUTE, SYNC_TOURNAMENT_ENDPOINT);
 
-pub(crate) const ROLLBACK_TOURNAMENT_ENDPOINT: Url<1> = Url::new(
-    concatcp!(GET_TOURNAMENT_ENDPOINT.route, "/rollback"),
-    SYNC_TOURNAMENT_ENDPOINT.replacements,
-);
-pub const ROLLBACK_TOURNAMENT_ROUTE: Url<1> = Url::new(
-    concatcp!(TOURNAMENTS_ROUTE, ROLLBACK_TOURNAMENT_ENDPOINT.route),
-    ROLLBACK_TOURNAMENT_ENDPOINT.replacements,
-);
+pub(crate) const ROLLBACK_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/rollback");
+pub const ROLLBACK_TOURNAMENT_ROUTE: Url<1> =
+    extend!(GET_TOURNAMENT_ROUTE, ROLLBACK_TOURNAMENT_ENDPOINT);
 
 /* ---------- Account Routes ---------- */
-pub const ACCOUNTS_ROUTE: &str = "/api/v1/accounts";
+pub const ACCOUNTS_ROUTE: Url<0> = extend!(API_BASE, "/accounts");
 
 pub(crate) const REGISTER_ACCOUNT_ENDPOINT: Url<0> = Url::from("/register");
-pub const REGISTER_ACCOUNT_ROUTE: Url<0> =
-    Url::from(concatcp!(ACCOUNTS_ROUTE, REGISTER_ACCOUNT_ENDPOINT.route));
+pub const REGISTER_ACCOUNT_ROUTE: Url<0> = extend!(ACCOUNTS_ROUTE, REGISTER_ACCOUNT_ENDPOINT);
 
 pub(crate) const VERIFY_ACCOUNT_ENDPOINT: Url<0> = Url::from("/verify");
-pub const VERIFY_ACCOUNT_ROUTE: Url<0> =
-    Url::from(concatcp!(ACCOUNTS_ROUTE, VERIFY_ACCOUNT_ENDPOINT.route));
+pub const VERIFY_ACCOUNT_ROUTE: Url<0> = extend!(ACCOUNTS_ROUTE, VERIFY_ACCOUNT_ENDPOINT);
 
 pub(crate) const LOGIN_ENDPOINT: Url<0> = Url::from("/login");
-pub const LOGIN_ROUTE: Url<0> = Url::from(concatcp!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT.route));
+pub const LOGIN_ROUTE: Url<0> = extend!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT);
 
 pub(crate) const LOGOUT_ENDPOINT: Url<0> = Url::from("/logout");
-pub const LOGOUT_ROUTE: Url<0> = Url::from(concatcp!(ACCOUNTS_ROUTE, LOGOUT_ENDPOINT.route));
+pub const LOGOUT_ROUTE: Url<0> = extend!(ACCOUNTS_ROUTE, LOGOUT_ENDPOINT);
 
 pub(crate) const LOAD_ACCOUNT_ENDPOINT: Url<0> = Url::from("/load");
-pub const LOAD_ACCOUNT_ROUTE: Url<0> =
-    Url::from(concatcp!(ACCOUNTS_ROUTE, LOAD_ACCOUNT_ENDPOINT.route));
+pub const LOAD_ACCOUNT_ROUTE: Url<0> = extend!(ACCOUNTS_ROUTE, LOAD_ACCOUNT_ENDPOINT);
 
 /* ---------- Misc Routes ---------- */
-pub const VERSION_ROUTE: &str = "/api/v1/version";
+pub const VERSION_ROUTE: Url<0> = extend!(API_BASE, "/version");
 
 #[cfg(test)]
 mod tests {
@@ -77,8 +62,8 @@ mod tests {
     fn verify_tournament_endpoints() {
         assert_eq!(CREATE_TOURNAMENT_ENDPOINT.as_str(), "/create");
         assert_eq!(GET_TOURNAMENT_ENDPOINT.as_str(), "/:t_id");
-        assert_eq!(SYNC_TOURNAMENT_ENDPOINT.as_str(), "/:t_id/sync");
-        assert_eq!(ROLLBACK_TOURNAMENT_ENDPOINT.as_str(), "/:t_id/rollback");
+        assert_eq!(SYNC_TOURNAMENT_ENDPOINT.as_str(), "/sync");
+        assert_eq!(ROLLBACK_TOURNAMENT_ENDPOINT.as_str(), "/rollback");
     }
 
     #[test]
