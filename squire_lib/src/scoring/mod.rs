@@ -24,7 +24,7 @@ pub enum ScoringSystem {
     Standard(StandardScoring),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// An ordered collection of scores
 pub struct Standings<S> {
     /// The player, score pairings

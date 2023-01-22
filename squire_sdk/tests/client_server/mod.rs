@@ -33,7 +33,7 @@ pub async fn init() {
         tokio::spawn(async move {
             let state = AppState::new();
             state.users.insert(user.account.id, user);
-            let app = squire_sdk::server::create_router().with_state(state);
+            let app = squire_sdk::server::create_router().into().with_state(state);
             if let Err(_) = axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .await
