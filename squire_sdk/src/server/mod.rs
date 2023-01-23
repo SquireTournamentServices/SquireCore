@@ -79,8 +79,12 @@ where
             .await
             .unwrap()
             .ok_or(StatusCode::FORBIDDEN)?;
+        session.expire_in(std::time::Duration::from_secs(600));
         println!("Session loaded successfully!");
 
-        session.get("user").ok_or(StatusCode::FORBIDDEN)
+        session.get("user").ok_or(StatusCode::FORBIDDEN);
+        if session.is_expired() {
+            session.destroy()
+        }
     }
 }
