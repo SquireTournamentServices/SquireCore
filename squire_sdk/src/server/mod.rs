@@ -84,7 +84,8 @@ where
 
         session.get("user").ok_or(StatusCode::FORBIDDEN);
         if session.is_expired() {
-            session.destroy()
+            session.destroy();
+            Ok(())
         }
     }
 }
