@@ -114,7 +114,7 @@ where
 impl VerificationData {
     fn new(key: String) -> VerificationData {
         VerificationData {
-            confirmation: key.to_owned(),
+            confirmation: key,
             status: false,
         }
     }

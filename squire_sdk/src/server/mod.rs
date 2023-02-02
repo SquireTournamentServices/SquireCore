@@ -113,9 +113,9 @@ where
             .map_err(|e| match *e.name() {
                 header::COOKIE => match e.reason() {
                     TypedHeaderRejectionReason::Missing => StatusCode::FORBIDDEN,
-                    _ => panic!("unexpected error getting Cookie header(s): {}", e),
+                    _ => panic!("unexpected error getting Cookie header(s): {e}"),
                 },
-                _ => panic!("unexpected error getting cookies: {}", e),
+                _ => panic!("unexpected error getting cookies: {e}"),
             })?;
 
         println!("Looking for correct cookie:\n{cookies:?}");
@@ -130,5 +130,14 @@ where
         println!("Session loaded successfully!");
 
         session.get("user").ok_or(StatusCode::FORBIDDEN)
+    }
+}
+
+impl<S> Default for SquireRouter<S>
+where
+    S: 'static + Clone + Send + Sync,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
