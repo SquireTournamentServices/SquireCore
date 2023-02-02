@@ -68,10 +68,7 @@ pub type OpResult = Result<OpData, TournamentError>;
 impl OpData {
     /// Calculates if the data is nothing
     pub fn is_nothing(&self) -> bool {
-        match self {
-            Self::Nothing => true,
-            _ => false,
-        }
+        matches!(self, Self::Nothing)
     }
 
     /// Assumes contained data is `Nothing`

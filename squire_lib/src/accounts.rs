@@ -1,8 +1,8 @@
 use std::{collections::HashMap, hash::Hash};
 
-use uuid::Uuid;
 use serde::{Deserialize, Serialize};
-use serde_with::{Seq, serde_as};
+use serde_with::{serde_as, Seq};
+use uuid::Uuid;
 
 use crate::{
     identifiers::{AdminId, OrganizationAccountId, SquireAccountId},
@@ -44,7 +44,7 @@ pub enum SharingPermissions {
 }
 
 #[serde_as]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq)]
 /// The core model for an account for a user
 pub struct SquireAccount {
     /// The user's name
@@ -143,7 +143,7 @@ impl SquireAccount {
 
     /// Gets the Sharing Permissions
     pub fn get_current_permissions(&self) -> SharingPermissions {
-        self.permissions.clone()
+        self.permissions
     }
 
     /// Update Sharing Permissions to something else
@@ -235,5 +235,15 @@ impl OrganizationAccount {
 impl Hash for SquireAccount {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state)
+    }
+}
+
+impl PartialEq for SquireAccount {
+    fn eq(&self, other: &Self) -> bool {
+        self.user_name == other.user_name
+            && self.display_name == other.display_name
+            && self.gamer_tags == other.gamer_tags
+            && self.id == other.id
+            && self.permissions == other.permissions
     }
 }

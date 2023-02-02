@@ -121,7 +121,7 @@ impl TournamentManager {
     /// it to the tournament, and returns the result.
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         let f_op = FullOp::new(op.clone());
-        let salt = f_op.salt.clone();
+        let salt = f_op.salt;
         let digest = self.tourn.apply_op(salt, op);
         if digest.is_ok() {
             self.log.ops.push(f_op);

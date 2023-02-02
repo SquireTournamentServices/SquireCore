@@ -78,6 +78,7 @@ impl JudgeOp {
     }
 
     pub(crate) fn requires(&self, id: TournOfficialId) -> OpGroup {
+        #[allow(clippy::match_single_binding)]
         match self {
             _ => todo!(),
         }

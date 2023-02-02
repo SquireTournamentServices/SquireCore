@@ -68,7 +68,7 @@ impl fmt::Display for TournamentError {
             RoundConfirmed => "RoundConfirmed",
             NoMatchResult => "NoMatchResult",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

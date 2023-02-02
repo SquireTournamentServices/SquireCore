@@ -22,7 +22,7 @@ pub fn rotary_pairings(
     let mut count = 0;
     while !digest.is_valid(opps, repair_tol) && count < 25 {
         count += 1;
-        let plyrs = digest.paired.into_iter().map(|p| p.into_iter()).flatten();
+        let plyrs = digest.paired.into_iter().flat_map(|p| p.into_iter());
         let temp = match count % 2 == 0 {
             true => process(plyrs, match_size, opps),
             false => process(plyrs.rev(), match_size, opps),

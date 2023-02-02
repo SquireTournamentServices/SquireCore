@@ -188,8 +188,8 @@ impl StandardScoring {
     ) -> Standings<StandardScore> {
         let mut counters: HashMap<PlayerId, ScoreCounter> = player_reg
             .players
-            .iter()
-            .map(|(id, _)| (*id, ScoreCounter::new(*id)))
+            .keys()
+            .map(|id| (*id, ScoreCounter::new(*id)))
             .collect();
         round_reg
             .rounds
@@ -243,7 +243,7 @@ impl StandardScoring {
         }
         let mut results: Vec<(PlayerId, StandardScore)> = digest
             .drain()
-            .filter(|(p, _)| player_reg.get_player(&(*p).into()).unwrap().can_play())
+            .filter(|(p, _)| player_reg.get_player(p).unwrap().can_play())
             .collect();
         results.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
         Standings::new(results)
@@ -361,22 +361,22 @@ impl ScoreCounter {
         }
     }
 
-    fn add_win(&mut self, players: &Vec<PlayerId>) {
+    fn add_win(&mut self, players: &[PlayerId]) {
         self.wins += 1;
         self.games += 1;
-        self.opponents.extend(players.clone());
+        self.opponents.extend(players);
     }
 
-    fn add_loss(&mut self, players: &Vec<PlayerId>) {
+    fn add_loss(&mut self, players: &[PlayerId]) {
         self.losses += 1;
         self.games += 1;
-        self.opponents.extend(players.clone());
+        self.opponents.extend(players);
     }
 
-    fn add_draw(&mut self, players: &Vec<PlayerId>) {
+    fn add_draw(&mut self, players: &[PlayerId]) {
         self.draws += 1;
         self.games += 1;
-        self.opponents.extend(players.clone());
+        self.opponents.extend(players);
     }
 
     fn add_bye(&mut self) {

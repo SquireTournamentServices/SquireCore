@@ -34,7 +34,7 @@ pub use greedy::greedy_pairings;
 pub use rotary::rotary_pairings;
 pub use swiss_pairings::SwissPairings;
 
-#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Default, Hash, Clone, PartialEq, Eq)]
 /// A struct for communicating new pairings information
 pub struct Pairings {
     /// The players that are paired and their groupings
@@ -92,12 +92,16 @@ impl Pairings {
         self.paired.len() + self.rejected.len()
     }
 
+    /// Calculates if the pairings are empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Calculates if the pairings are all valid
     pub fn is_valid(&self, opps: &HashMap<PlayerId, HashSet<PlayerId>>, repair_tol: u64) -> bool {
-        self.paired
+        !self.paired
             .iter()
-            .find(|p| count_opps(p, opps) > repair_tol)
-            .is_none()
+            .any(|p| count_opps(p, opps) > repair_tol)
     }
 }
 

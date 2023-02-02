@@ -20,7 +20,7 @@ pub struct SwissContext {
     swiss_round_number: u8,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 /// Swiss pairings are the "traditional" pairings system for Magic tournaments
 pub struct SwissPairings {
     do_check_ins: bool,
@@ -119,7 +119,7 @@ impl SwissPairings {
             .drain(0..)
             .filter_map(|(p, s)| {
                 players
-                    .get_player(&p.into())
+                    .get_player(&p)
                     .ok()?
                     .can_play()
                     .then(|| (p, s.primary_score()))
@@ -133,14 +133,13 @@ impl SwissPairings {
             match_size,
             repair_tol,
         );
-        while count < max_count && pairings.rejected.len() != 0 {
+        while count < max_count && pairings.rejected.is_empty() {
             count += 1;
             let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
             plyrs.extend(
                 grouped_plyrs
                     .iter_right()
-                    .map(|r| grouped_plyrs.get_left_iter(r).unwrap())
-                    .flatten()
+                    .flat_map(|r| grouped_plyrs.get_left_iter(r).unwrap())
                     .cloned(),
             );
             let buffer = (alg.as_alg())(

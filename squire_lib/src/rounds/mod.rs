@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt,
-    time::Duration,
+    time::Duration, cmp::Ordering,
 };
 
 use chrono::{DateTime, Utc};
@@ -215,11 +215,15 @@ impl Round {
                     self.results.insert(p_id, count);
                     let mut max = 0;
                     for (p, num) in self.results.iter() {
-                        if *num > max {
-                            max = *num;
-                            self.winner = Some(*p);
-                        } else if *num == max {
-                            self.winner = None;
+                        match max.cmp(num) {
+                            Ordering::Less => {
+                                max = *num;
+                                self.winner = Some(*p);
+                            }
+                            Ordering::Equal => {
+                                self.winner = None;
+                            }
+                            Ordering::Greater => {}
                         }
                     }
                 }

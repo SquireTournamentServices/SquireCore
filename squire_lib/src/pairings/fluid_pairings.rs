@@ -10,7 +10,7 @@ use crate::{
     settings::FluidPairingsSetting,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 /// Fluid pairings are also known as a looking-for-game queue and are used for on-the-fly pairings
 /// between players.
 pub struct FluidPairings {
@@ -29,7 +29,7 @@ impl FluidPairings {
 
     /// Marks a player as ready to play a game
     pub fn ready_player(&mut self, plyr: PlayerId) {
-        if self.queue.iter().find(|p| **p == plyr).is_none() {
+        if !self.queue.iter().any(|p| *p == plyr) {
             self.check_ins.insert(plyr);
         }
     }

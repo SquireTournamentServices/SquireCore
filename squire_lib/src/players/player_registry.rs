@@ -46,7 +46,7 @@ impl PlayerRegistry {
 
     /// Returns a list of copied player ids, this is used in FFI mostly.
     pub fn get_player_ids(&self) -> Vec<PlayerId> {
-        self.players.iter().map(|(id, _)| *id).collect()
+        self.players.keys().cloned().collect()
     }
 
     /// Checks in a player for registration
@@ -101,7 +101,7 @@ impl PlayerRegistry {
                 match self.name_and_id.contains_left(&account.user_name) {
                     true => Err(PlayerAlreadyRegistered),
                     false => {
-                        let name = account.get_user_name().clone();
+                        let name = account.get_user_name();
                         let plyr = Player::from_account(account);
                         let digest = Ok(plyr.id);
                         self.name_and_id.insert(name, plyr.id);
@@ -141,8 +141,7 @@ impl PlayerRegistry {
     pub fn reregister_guest(&mut self, name: String) -> Result<(), TournamentError> {
         self.name_and_id
             .get_right(&name)
-            .map(|id| self.players.get_mut(id))
-            .flatten()
+            .and_then(|id| self.players.get_mut(id))
             .ok_or(PlayerNotFound)?
             .status = PlayerStatus::Registered;
         Ok(())
@@ -157,21 +156,20 @@ impl PlayerRegistry {
 
     /// Given a player identifier, returns a mutable reference to that player if found
     pub fn get_mut_player(&mut self, id: &PlayerId) -> Result<&mut Player, TournamentError> {
-        self.players.get_mut(id).ok_or_else(|| PlayerNotFound)
+        self.players.get_mut(id).ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns a reference to that player if found
     pub fn get_player(&self, id: &PlayerId) -> Result<&Player, TournamentError> {
-        self.players.get(id).ok_or_else(|| PlayerNotFound)
+        self.players.get(id).ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns a reference to that player if found
     pub fn get_by_name(&self, name: &String) -> Result<&Player, TournamentError> {
         self.name_and_id
             .get_right(name)
-            .map(|id| self.players.get(id))
-            .flatten()
-            .ok_or_else(|| PlayerNotFound)
+            .and_then(|id| self.players.get(id))
+            .ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's id if found
@@ -179,7 +177,7 @@ impl PlayerRegistry {
         self.name_and_id
             .get_right(name)
             .cloned()
-            .ok_or_else(|| PlayerNotFound)
+            .ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's name if found

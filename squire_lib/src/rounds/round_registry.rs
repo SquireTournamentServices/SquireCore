@@ -6,7 +6,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use serde_with::{Seq, serde_as};
+use serde_with::{serde_as, Seq};
 
 use cycle_map::CycleMap;
 
@@ -64,7 +64,7 @@ impl RoundRegistry {
     pub fn get_round_ids_for_player(&self, p_id: PlayerId) -> Vec<RoundId> {
         self.rounds
             .iter()
-            .filter_map(|(id, r)| r.contains_player(&p_id).then(|| *id))
+            .filter_map(|(id, r)| r.contains_player(&p_id).then_some(*id))
             .collect()
     }
 
@@ -73,7 +73,7 @@ impl RoundRegistry {
         self.num_and_id
             .get_right(n)
             .cloned()
-            .ok_or_else(|| TournamentError::RoundLookup)
+            .ok_or(TournamentError::RoundLookup)
     }
 
     /// Gets a round's id by its match number
@@ -87,9 +87,8 @@ impl RoundRegistry {
     pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {
         self.num_and_id
             .get_right(n)
-            .map(|id| self.rounds.get(id))
-            .flatten()
-            .ok_or_else(|| TournamentError::RoundLookup)
+            .and_then(|id| self.rounds.get(id))
+            .ok_or(TournamentError::RoundLookup)
     }
 
     /// Gets the next table number. Not all pairing systems force all matches to be over before
@@ -98,7 +97,7 @@ impl RoundRegistry {
         let mut tracker = self.starting_table;
         self.rounds
             .values()
-            .filter_map(|r| r.is_active().then(|| r.table_number))
+            .filter_map(|r| r.is_active().then_some(r.table_number))
             .sorted()
             .zip(self.starting_table..(self.rounds.len() as u64 + self.starting_table))
             .find_map(|(active, new)| {
@@ -109,7 +108,7 @@ impl RoundRegistry {
                     Some(new)
                 }
             })
-            .unwrap_or_else(|| tracker)
+            .unwrap_or(tracker)
     }
 
     /// Marks a round as dead
@@ -206,12 +205,12 @@ impl RoundRegistry {
 
     /// Given a round identifier, returns a mutable reference to the round if the round can be found
     pub(crate) fn get_mut_round(&mut self, id: &RoundId) -> Result<&mut Round, TournamentError> {
-        self.rounds.get_mut(&id).ok_or(RoundLookup)
+        self.rounds.get_mut(id).ok_or(RoundLookup)
     }
 
     /// Given a round identifier, returns a reference to the round if the round can be found
     pub fn get_round(&self, id: &RoundId) -> Result<&Round, TournamentError> {
-        self.rounds.get(&id).ok_or(RoundLookup)
+        self.rounds.get(id).ok_or(RoundLookup)
     }
 
     /// This is a messy function... but the idea was ported directly from the Python version
@@ -231,7 +230,7 @@ impl RoundRegistry {
             .filter(|r| r.players.contains(id) && r.is_active())
             .sorted_by(|a, b| a.match_number.cmp(&b.match_number))
             .next()
-            .ok_or_else(|| NoActiveRound)
+            .ok_or(NoActiveRound)
     }
 
     /// Gets a Vec of `&mut Round`

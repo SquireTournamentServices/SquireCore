@@ -12,9 +12,9 @@ pub struct OpSync {
 /// An enum to help track the progress of the syncing of two op logs
 pub enum SyncStatus {
     /// There was an error when attempting to initially sync
-    SyncError(SyncError),
+    SyncError(Box<SyncError>),
     /// There are discrepancies in between the two logs that are being synced
-    InProgress(Blockage),
+    InProgress(Box<Blockage>),
     /// The logs have been successfully synced
     Completed(OpSync),
 }
@@ -29,7 +29,7 @@ pub enum SyncError {
     /// One of the log was empty
     EmptySync,
     /// The starting operation of the slice in unknown to the other log
-    UnknownOperation(FullOp),
+    UnknownOperation(Box<FullOp>),
     /// One of the logs contains a rollback that the other doesn't have
     RollbackFound(OpSlice),
 }
@@ -61,7 +61,7 @@ impl Blockage {
         } else if op == self.problem.1 {
             self.agreed.add_op(self.problem.1.clone());
         } else {
-            return SyncStatus::InProgress(self);
+            return SyncStatus::InProgress(Box::new(self));
         }
         self.attempt_resolution()
     }
@@ -81,7 +81,7 @@ impl Blockage {
             self.agreed.add_op(p_two);
             self.agreed.add_op(p_one);
         } else {
-            return SyncStatus::InProgress(self);
+            return SyncStatus::InProgress(Box::new(self));
         }
         self.attempt_resolution()
     }
@@ -96,7 +96,7 @@ impl Blockage {
             self.agreed.add_op(self.problem.1.clone());
             self.known.ops.insert(0, self.problem.0.clone());
         } else {
-            return SyncStatus::InProgress(self);
+            return SyncStatus::InProgress(Box::new(self));
         }
         self.attempt_resolution()
     }
@@ -112,9 +112,9 @@ impl Blockage {
                 block.agreed = self.agreed;
                 SyncStatus::InProgress(block)
             }
-            SyncStatus::SyncError(e) => match e {
+            SyncStatus::SyncError(e) => match *e {
                 SyncError::RollbackFound(roll) => {
-                    SyncStatus::SyncError(SyncError::RollbackFound(roll))
+                    SyncStatus::SyncError(Box::new(SyncError::RollbackFound(roll)))
                 }
                 SyncError::UnknownOperation(_) => {
                     unreachable!("There should be no unknown starting operations during the resolution of a blockage.");
@@ -131,13 +131,13 @@ impl Blockage {
 
 impl From<SyncError> for SyncStatus {
     fn from(other: SyncError) -> SyncStatus {
-        SyncStatus::SyncError(other)
+        SyncStatus::SyncError(Box::new(other))
     }
 }
 
 impl From<Blockage> for SyncStatus {
     fn from(other: Blockage) -> SyncStatus {
-        SyncStatus::InProgress(other)
+        SyncStatus::InProgress(Box::new(other))
     }
 }
 

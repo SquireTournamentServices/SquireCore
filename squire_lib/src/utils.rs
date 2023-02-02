@@ -3,50 +3,50 @@ use crate::settings::{
     SwissPairingsSetting, TournamentSetting,
 };
 
-impl Into<TournamentSetting> for PairingSetting {
-    fn into(self) -> TournamentSetting {
-        TournamentSetting::PairingSetting(self)
+impl From<PairingSetting> for TournamentSetting {
+    fn from(other: PairingSetting) -> Self {
+        TournamentSetting::PairingSetting(other)
     }
 }
 
-impl Into<TournamentSetting> for ScoringSetting {
-    fn into(self) -> TournamentSetting {
-        TournamentSetting::ScoringSetting(self)
+impl From<ScoringSetting> for TournamentSetting {
+    fn from(other: ScoringSetting) -> Self {
+        TournamentSetting::ScoringSetting(other)
     }
 }
 
-impl Into<PairingSetting> for SwissPairingsSetting {
-    fn into(self) -> PairingSetting {
-        PairingSetting::Swiss(self)
+impl From<SwissPairingsSetting> for PairingSetting {
+    fn from(other: SwissPairingsSetting) -> Self {
+        PairingSetting::Swiss(other)
     }
 }
 
-impl Into<PairingSetting> for FluidPairingsSetting {
-    fn into(self) -> PairingSetting {
-        PairingSetting::Fluid(self)
+impl From<FluidPairingsSetting> for PairingSetting {
+    fn from(other: FluidPairingsSetting) -> Self {
+        PairingSetting::Fluid(other)
     }
 }
 
-impl Into<ScoringSetting> for StandardScoringSetting {
-    fn into(self) -> ScoringSetting {
-        ScoringSetting::Standard(self)
+impl From<StandardScoringSetting> for ScoringSetting {
+    fn from(other: StandardScoringSetting) -> Self {
+        ScoringSetting::Standard(other)
     }
 }
 
-impl Into<TournamentSetting> for SwissPairingsSetting {
-    fn into(self) -> TournamentSetting {
-        TournamentSetting::PairingSetting(self.into())
+impl From<SwissPairingsSetting> for TournamentSetting {
+    fn from(other: SwissPairingsSetting) -> Self {
+        TournamentSetting::PairingSetting(other.into())
     }
 }
 
-impl Into<TournamentSetting> for FluidPairingsSetting {
-    fn into(self) -> TournamentSetting {
-        TournamentSetting::PairingSetting(self.into())
+impl From<FluidPairingsSetting> for TournamentSetting {
+    fn from(other: FluidPairingsSetting) -> Self {
+        TournamentSetting::PairingSetting(other.into())
     }
 }
 
-impl Into<TournamentSetting> for StandardScoringSetting {
-    fn into(self) -> TournamentSetting {
-        TournamentSetting::ScoringSetting(self.into())
+impl From<StandardScoringSetting> for TournamentSetting {
+    fn from(other: StandardScoringSetting) -> Self {
+        TournamentSetting::ScoringSetting(other.into())
     }
 }

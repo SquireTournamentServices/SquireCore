@@ -36,9 +36,7 @@ pub struct Rollback {
 impl OpLog {
     /// Creates a new log
     pub fn new(op: FullOp) -> Self {
-        let mut ops = Vec::new();
-        ops.push(op);
-        OpLog { ops }
+        OpLog { ops: vec![op] }
     }
 
     /// Adds an operation to the end of the OpLog
@@ -72,7 +70,7 @@ impl OpLog {
         let op = ops.start_op().ok_or(SyncError::EmptySync)?;
         let slice = self
             .get_slice(op.id)
-            .ok_or_else(|| SyncError::UnknownOperation(op.clone()))?;
+            .ok_or_else(|| SyncError::UnknownOperation(Box::new(op.clone())))?;
         match slice.start_op().unwrap() != op {
             true => Ok(slice),
             false => Err(SyncError::RollbackFound(slice)),
@@ -116,18 +114,11 @@ impl OpLog {
         }
         let mut r_op = rollback.ops.ops.iter();
         for i_op in slice.ops.iter() {
-            let mut broke = false;
-            while let Some(r) = r_op.next() {
-                // If the id is unknown, the operation is unknow... so we continue.
-                // Unknown, inactive ops ok to keep around. They can't affect anything
-                if i_op.id == r.id {
-                    broke = true;
-                    break;
-                }
-            }
-            if !broke {
-                return Err(RollbackError::OutOfSync(OpSync { ops: slice }));
-            }
+            // If the id is unknown, the operation is unknow... so we continue.
+            // Unknown, inactive ops ok to keep around. They can't affect anything
+            r_op.by_ref()
+                .find(|r| i_op.id == r.id)
+                .ok_or_else(|| RollbackError::OutOfSync(OpSync { ops: slice.clone() }))?;
         }
         // This should never return an Err
         self.overwrite(rollback.ops)
@@ -140,7 +131,7 @@ impl OpLog {
     pub fn sync(&mut self, other: OpSync) -> SyncStatus {
         match self.slice_from_slice(&other.ops) {
             Ok(slice) => slice.merge(other.ops),
-            Err(e) => SyncStatus::SyncError(e),
+            Err(e) => SyncStatus::SyncError(Box::new(e)),
         }
     }
 }
@@ -221,14 +212,14 @@ impl OpSlice {
                 Some(index) => {
                     /* 2 */
                     let block = self.ops.remove(index);
-                    return SyncStatus::InProgress(Blockage {
+                    return SyncStatus::InProgress(Box::new(Blockage {
                         known: self,
                         agreed: OpSlice { ops: agreed },
                         other: OpSlice {
                             ops: iter.collect(),
                         },
                         problem: (block, op),
-                    });
+                    }));
                 }
                 None => {
                     /* 3 */

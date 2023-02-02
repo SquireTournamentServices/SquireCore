@@ -6,8 +6,6 @@ use serde_with::{Seq, serde_as};
 use std::fmt::Write;
 use uuid::Uuid;
 
-// use mtgjson::model::deck::Deck;
-
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
@@ -244,8 +242,8 @@ impl Tournament {
             PlayerIdentifier::Id(id) => self
                 .player_reg
                 .is_registered(id)
-                .then(|| *id)
-                .ok_or_else(|| TournamentError::PlayerNotFound),
+                .then_some(*id)
+                .ok_or(TournamentError::PlayerNotFound),
             PlayerIdentifier::Name(name) => self.player_reg.get_player_id(name),
         }
     }
@@ -272,8 +270,8 @@ impl Tournament {
             RoundIdentifier::Id(id) => self
                 .round_reg
                 .validate_id(id)
-                .then(|| *id)
-                .ok_or_else(|| TournamentError::RoundLookup),
+                .then_some(*id)
+                .ok_or(TournamentError::RoundLookup),
             RoundIdentifier::Number(num) => self.round_reg.get_round_id(num),
             RoundIdentifier::Table(num) => {
                 self.round_reg.round_from_table_number(*num).map(|r| r.id)
@@ -320,7 +318,7 @@ impl Tournament {
     ) -> Result<&Deck, TournamentError> {
         self.get_player(ident)?
             .get_deck(name)
-            .ok_or_else(|| TournamentError::DeckLookup)
+            .ok_or(TournamentError::DeckLookup)
     }
 
     /// Gets a copy of all the decks a player has registered
@@ -588,7 +586,7 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        let round = self.round_reg.get_mut_round(&id)?;
+        let round = self.round_reg.get_mut_round(id)?;
         match round.status {
             RoundStatus::Open if round.has_result() => {
                 round.status = RoundStatus::Certified;
@@ -605,12 +603,12 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if let Some(_) = self
+        if self
             .round_reg
             .rounds
             .values()
             .filter(|r| r.is_active())
-            .find(|r| !r.has_result())
+            .any(|r| !r.has_result())
         {
             return Err(TournamentError::NoMatchResult);
         }
@@ -964,7 +962,7 @@ impl Tournament {
                     &html_escape::encode_text(
                         &self
                             .player_reg
-                            .get_player(&pid)
+                            .get_player(pid)
                             .expect("Round's playes should be within the tournament.")
                             .all_names(),
                     )
