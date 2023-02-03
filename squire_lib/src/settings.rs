@@ -110,7 +110,6 @@ pub struct SwissPairingsSettingsTree {
 }
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
-#[repr(C)]
 /// An enum that encodes all the adjustable settings of swiss pairing systems
 pub enum SwissPairingsSetting {
     /// Whether or not player need to check in before a round is paired
@@ -159,7 +158,6 @@ pub struct StandardScoringSettingsTree {
 }
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
-#[repr(C)]
 /// An enum that encodes all the adjustable settings of standard scoring systems
 pub enum StandardScoringSetting {
     /// Adjusts the number of points a match win is worth

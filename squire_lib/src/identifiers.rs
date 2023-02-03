@@ -47,7 +47,6 @@ where
 }
 
 #[derive(Debug)]
-#[repr(C)]
 /// A generic type-checked wrapper around a Uuid (to reduce boilerplate and redudent code)
 pub struct TypeId<T>(pub Uuid, PhantomData<T>);
 
