@@ -15,6 +15,7 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
+#[repr(C)]
 /// The score type used by the standard scoring system
 pub struct StandardScore {
     /// The number of match points a player has
@@ -60,6 +61,7 @@ struct ScoreCounter {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[repr(C)]
 /// The scoring stuct that uses the standard match point model
 pub struct StandardScoring {
     match_win_points: r64,

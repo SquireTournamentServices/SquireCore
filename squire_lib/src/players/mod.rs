@@ -16,6 +16,7 @@ pub use player_registry::PlayerRegistry;
 #[derive(
     Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord,
 )]
+#[repr(C)]
 /// The registration status of a player
 pub enum PlayerStatus {
     /// The player is registered for the tournament

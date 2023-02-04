@@ -2,11 +2,14 @@
 //! models for players, rounds, scoring and pairings systems, and tournaments. The client-server
 //! sync protocol is also implemented here.
 
+#![allow(dead_code, irrefutable_let_patterns)]
 #![warn(rust_2018_idioms)]
 #![deny(
     dead_code,
     missing_docs,
-    unused,
+    unused_variables,
+    unused_imports,
+    unused_import_braces,
     rustdoc::broken_intra_doc_links,
     missing_debug_implementations,
     unreachable_pub

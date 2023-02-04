@@ -19,6 +19,7 @@ mod round_registry;
 pub use round_registry::RoundRegistry;
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
+#[repr(C)]
 /// The status of a round has exactly four states. This enum encodes them
 pub enum RoundStatus {
     /// The round is still active and nothing has been recorded
@@ -32,6 +33,7 @@ pub enum RoundStatus {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[repr(C)]
 /// Encodes part of the final result of a round
 pub enum RoundResult {
     /// The specified player won N games
