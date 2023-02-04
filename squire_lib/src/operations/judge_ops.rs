@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -7,12 +8,14 @@ use crate::{
     admin::TournOfficialId,
     identifiers::{PlayerId, RoundId},
     operations::OpGroup,
-    players::Deck,
+    players::{Deck, Player},
     rounds::RoundResult,
 };
 
+use super::OpUpdate;
+
 /// Operations that judges and tournament admin can perform
-#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub enum JudgeOp {
     /// Operation for adding a guest player to a tournament (i.e. someone without an account)
     RegisterGuest(String),
@@ -39,6 +42,42 @@ pub enum JudgeOp {
 }
 
 impl JudgeOp {
+    pub(crate) fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
+        match self {
+            JudgeOp::RegisterGuest(name) => OpUpdate::PlayerId(Player::create_guest_id(salt, name)),
+            _ => OpUpdate::None,
+        }
+    }
+
+    pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
+        match self {
+            JudgeOp::AdminConfirmResult(_, p_id)
+            | JudgeOp::AdminAddDeck(p_id, _, _)
+            | JudgeOp::AdminRemoveDeck(p_id, _)
+            | JudgeOp::AdminReadyPlayer(p_id)
+            | JudgeOp::AdminUnReadyPlayer(p_id)
+                if *p_id == old =>
+            {
+                *p_id = new;
+            }
+            _ => {}
+        }
+    }
+
+    pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
+        match self {
+            JudgeOp::AdminRecordResult(r_id, _)
+            | JudgeOp::AdminConfirmResult(r_id, _)
+            | JudgeOp::TimeExtension(r_id, _)
+            | JudgeOp::ConfirmRound(r_id)
+                if *r_id == old =>
+            {
+                *r_id = new;
+            }
+            _ => {}
+        }
+    }
+
     pub(crate) fn affects(&self) -> OpGroup {
         match self {
             JudgeOp::RegisterGuest(name) => {

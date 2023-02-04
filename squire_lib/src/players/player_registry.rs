@@ -1,14 +1,10 @@
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap, HashSet},
-    hash::{Hash, Hasher},
-};
+use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use cycle_map::CycleMap;
-use serde_with::{Seq, serde_as};
-use uuid::Uuid;
+use serde_with::{serde_as, Seq};
 
 use crate::{
     accounts::SquireAccount,
@@ -122,12 +118,7 @@ impl PlayerRegistry {
         if self.name_and_id.contains_left(&name) {
             Err(PlayerAlreadyRegistered)
         } else {
-            let mut hasher = DefaultHasher::new();
-            salt.hash(&mut hasher);
-            let upper = hasher.finish();
-            name.hash(&mut hasher);
-            let lower = hasher.finish();
-            let id = Uuid::from_u64_pair(upper, lower);
+            let id = Player::create_guest_id(salt, &name);
             let mut plyr = Player::new(name.clone());
             plyr.id = id.into();
             let digest = Ok(plyr.id);

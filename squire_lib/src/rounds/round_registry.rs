@@ -137,19 +137,15 @@ impl RoundRegistry {
         pairings: Pairings,
         context: RoundContext,
     ) -> Vec<RoundId> {
-        let mut digest = Vec::with_capacity(pairings.len());
-        digest.extend(
-            pairings
-                .paired
-                .into_iter()
-                .map(|p| self.create_round(salt, p, context.clone())),
-        );
-        digest.extend(
-            pairings
-                .rejected
-                .into_iter()
-                .map(|p| self.give_bye(salt, p, context.clone())),
-        );
+        let digest = pairings.get_ids(salt);
+        pairings
+            .paired
+            .into_iter()
+            .for_each(|p| { self.create_round(salt, p, context.clone()); });
+        pairings
+            .rejected
+            .into_iter()
+            .for_each(|p| { self.give_bye(salt, p, context.clone()); });
         digest
     }
 

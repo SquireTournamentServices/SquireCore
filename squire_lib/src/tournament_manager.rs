@@ -75,14 +75,14 @@ impl TournamentManager {
     }
 
     /// Gets a slice of the op log
-    pub fn get_op_slice(&self, id: OpId) -> Option<OpSlice> {
+    fn get_op_slice(&self, id: OpId) -> Option<OpSlice> {
         self.log.get_slice(id)
     }
 
     /// Gets a slice of the log starting at the operation of the last log.
     /// Primarily used by clients to track when they last synced with the server
-    pub fn slice_from_last_sync(&self) -> OpSlice {
-        self.get_op_slice(self.last_sync).unwrap()
+    pub fn sync_request(&self) -> OpSync {
+        self.get_op_slice(self.last_sync).unwrap().into()
     }
 
     /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op

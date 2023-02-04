@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    OpEffects, OpGroup, OpPlayerEffects, OpRoundEffects, PlayerEffectComponent,
+    OpEffects, OpGroup, OpPlayerEffects, OpRoundEffects, OpUpdate, PlayerEffectComponent,
     RoundEffectComponent,
 };
 
@@ -37,6 +38,19 @@ pub enum PlayerOp {
 }
 
 impl PlayerOp {
+    pub(crate) fn get_update(&self, _salt: DateTime<Utc>) -> OpUpdate {
+        OpUpdate::None
+    }
+
+    pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
+        match self {
+            PlayerOp::RecordResult(r_id, _) | PlayerOp::ConfirmResult(r_id) if *r_id == old => {
+                *r_id = new;
+            }
+            _ => {}
+        }
+    }
+
     pub(crate) fn affects(&self, id: PlayerId) -> OpGroup {
         match self {
             PlayerOp::CheckIn => {

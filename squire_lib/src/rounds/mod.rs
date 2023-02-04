@@ -111,7 +111,7 @@ impl Round {
         len: Duration,
         context: RoundContext,
     ) -> Self {
-        let id = id_from_list(salt, players.iter());
+        let id = Self::create_id(salt, &players);
         let confirmations = HashSet::with_capacity(players.len());
         let results = HashMap::with_capacity(players.len());
         Round {
@@ -131,6 +131,10 @@ impl Round {
             extension: Duration::from_secs(0),
             is_bye: false,
         }
+    }
+    
+    pub(crate) fn create_id(salt: DateTime<Utc>, players: &[PlayerId]) -> RoundId {
+        id_from_list(salt, players.iter())
     }
 
     /// Creates a new bye round

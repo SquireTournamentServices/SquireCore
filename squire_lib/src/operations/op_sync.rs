@@ -2,13 +2,31 @@ use serde::{Deserialize, Serialize};
 
 use crate::operations::{FullOp, OpSlice};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A struct to help resolve syncing op logs
 pub struct OpSync {
     pub(crate) ops: OpSlice,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+impl From<OpSlice> for OpSync {
+    fn from(ops: OpSlice) -> Self {
+        Self { ops }
+    }
+}
+
+impl OpSync {
+    /// Calculates the length of inner `Vec` of `FullOps`
+    pub fn len(&self) -> usize {
+        self.ops.len()
+    }
+    
+    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
+    pub fn is_empty(&self) -> bool {
+        self.ops.is_empty()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An enum to help track the progress of the syncing of two op logs
 pub enum SyncStatus {
     /// There was an error when attempting to initially sync
@@ -19,12 +37,68 @@ pub enum SyncStatus {
     Completed(OpSync),
 }
 
+impl SyncStatus {
+    /// Calculates if the status is an error
+    pub fn is_error(&self) -> bool {
+        matches!(self, SyncStatus::SyncError(_))
+    }
+
+    /// Calculates if the status is a blockage
+    pub fn is_in_progress(&self) -> bool {
+        matches!(self, SyncStatus::InProgress(_))
+    }
+
+    /// Calculates if the status is a success
+    pub fn is_completed(&self) -> bool {
+        matches!(self, SyncStatus::Completed(_))
+    }
+
+    /// Comsumes self and returns the held error if `self` is `SyncError` and panics otherwise
+    pub fn assume_error(self) -> Box<SyncError> {
+        match self {
+            SyncStatus::SyncError(err) => err,
+            SyncStatus::InProgress(block) => {
+                panic!("Sync status was not an error but was a blockage: {block:?}")
+            }
+            SyncStatus::Completed(sync) => {
+                panic!("Sync status was not an error but was completed: {sync:?}")
+            }
+        }
+    }
+
+    /// Comsumes self and returns the held error if `self` is `InProgress` and panics otherwise
+    pub fn assume_in_progress(self) -> Box<Blockage> {
+        match self {
+            SyncStatus::InProgress(block) => block,
+            SyncStatus::SyncError(err) => {
+                panic!("Sync status was not a blockage but was an error: {err:?}")
+            }
+            SyncStatus::Completed(sync) => {
+                panic!("Sync status was not a blockage but was completed: {sync:?}")
+            }
+        }
+    }
+
+    /// Comsumes self and returns the held error if `self` is `Complete` and panics otherwise
+    pub fn assume_completed(self) -> OpSync {
+        match self {
+            SyncStatus::Completed(sync) => sync,
+            SyncStatus::InProgress(block) => {
+                panic!("Sync status was not completed but was a blockage: {block:?}")
+            }
+            SyncStatus::SyncError(err) => {
+                panic!("Sync status was not completed but was an error: {err:?}")
+            }
+        }
+    }
+}
+
 /// An enum to that captures the error that might occur when sync op logs.
 /// `UnknownOperation` encodes that first operation in an OpSlice is unknown
 /// `RollbackFound` encode that a rollback has occured remotely but not locally and returns an
 /// OpSlice that contains everything since that rollback. When recieved, this new log should
 /// overwrite the local log
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum SyncError {
     /// One of the log was empty
     EmptySync,
@@ -34,10 +108,11 @@ pub enum SyncError {
     RollbackFound(OpSlice),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A struct to help resolve blockages
 pub struct Blockage {
     pub(crate) known: OpSlice,
+    pub(crate) known_in_progress: OpSlice,
     pub(crate) agreed: OpSlice,
     pub(crate) other: OpSlice,
     pub(crate) problem: (FullOp, FullOp),
@@ -135,9 +210,21 @@ impl From<SyncError> for SyncStatus {
     }
 }
 
+impl From<Box<SyncError>> for SyncStatus {
+    fn from(other: Box<SyncError>) -> SyncStatus {
+        SyncStatus::SyncError(other)
+    }
+}
+
 impl From<Blockage> for SyncStatus {
     fn from(other: Blockage) -> SyncStatus {
         SyncStatus::InProgress(Box::new(other))
+    }
+}
+
+impl From<Box<Blockage>> for SyncStatus {
+    fn from(other: Box<Blockage>) -> SyncStatus {
+        SyncStatus::InProgress(other)
     }
 }
 

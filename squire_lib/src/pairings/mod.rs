@@ -3,14 +3,15 @@ use std::{
     fmt::Display,
 };
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TournamentError,
-    identifiers::PlayerId,
+    identifiers::{PlayerId, RoundId},
     operations::{OpData, OpResult},
     players::PlayerRegistry,
-    rounds::{RoundContext, RoundRegistry},
+    rounds::{Round, RoundContext, RoundRegistry},
     scoring::{Score, Standings},
     settings::PairingSetting,
     tournament::TournamentPreset,
@@ -41,6 +42,21 @@ pub struct Pairings {
     pub paired: Vec<Vec<PlayerId>>,
     /// The players that aren't paired
     pub rejected: Vec<PlayerId>,
+}
+
+impl Pairings {
+    pub(crate) fn get_ids(&self, salt: DateTime<Utc>) -> Vec<RoundId> {
+        self.paired
+            .iter()
+            .map(|plyrs| Round::create_id(salt, plyrs))
+            .chain(self.rejected.iter().map(|p| Round::create_id(salt, &[*p])))
+            .collect()
+    }
+    
+    pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
+        self.paired.iter_mut().flatten().filter(|p| **p == old).for_each(|p| { *p = new; });
+        self.rejected.iter_mut().filter(|p| **p == old).for_each(|p| { *p = new; });
+    }
 }
 
 /// Encodes what algorithm will be used to pair players
@@ -99,9 +115,7 @@ impl Pairings {
 
     /// Calculates if the pairings are all valid
     pub fn is_valid(&self, opps: &HashMap<PlayerId, HashSet<PlayerId>>, repair_tol: u64) -> bool {
-        !self.paired
-            .iter()
-            .any(|p| count_opps(p, opps) > repair_tol)
+        !self.paired.iter().any(|p| count_opps(p, opps) > repair_tol)
     }
 }
 

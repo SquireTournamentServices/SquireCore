@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -5,12 +6,14 @@ use crate::{
     identifiers::{AdminId, PlayerId, RoundId},
     operations::OpGroup,
     pairings::Pairings,
-    rounds::RoundResult,
+    rounds::{Round, RoundResult},
     settings::TournamentSetting,
 };
 
+use super::OpUpdate;
+
 /// Operations that only tournament admin can perform
-#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub enum AdminOp {
     /// Operation to check the registration status of the tournament
     UpdateReg(bool),
@@ -53,6 +56,39 @@ pub enum AdminOp {
 }
 
 impl AdminOp {
+    pub(crate) fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
+        match self {
+            AdminOp::GiveBye(plyr) => OpUpdate::RoundId(vec![Round::create_id(salt, &[*plyr])]),
+            AdminOp::CreateRound(plyrs) => OpUpdate::RoundId(vec![Round::create_id(salt, plyrs)]),
+            AdminOp::PairRound(pairings) => OpUpdate::RoundId(pairings.get_ids(salt)),
+            _ => OpUpdate::None,
+        }
+    }
+
+    pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
+        match self {
+            AdminOp::AdminDropPlayer(p_id) | AdminOp::GiveBye(p_id) if *p_id == old => {
+                *p_id = new;
+            }
+            AdminOp::CreateRound(plyrs) => {
+                plyrs.iter_mut().filter(|p| **p == old).for_each(|p| { *p = new; });
+            }
+            AdminOp::PairRound(pairings) => {
+                pairings.swap_player_ids(old, new);
+            }
+            _ => { },
+        }
+    }
+
+    pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
+        match self {
+            AdminOp::AdminOverwriteResult(r_id, _) | AdminOp::RemoveRound(r_id) if *r_id == old => {
+                *r_id = new;
+            }
+            _ => {}
+        }
+    }
+
     pub(crate) fn affects(&self, id: AdminId) -> OpGroup {
         todo!()
     }

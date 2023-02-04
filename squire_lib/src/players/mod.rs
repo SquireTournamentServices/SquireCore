@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use serde_with::{Seq, serde_as};
@@ -7,7 +8,7 @@ use serde_with::{Seq, serde_as};
 pub use mtgjson::model::deck::Deck;
 
 pub use crate::identifiers::PlayerId;
-use crate::{accounts::SquireAccount, error::TournamentError};
+use crate::{accounts::SquireAccount, error::TournamentError, identifiers::id_from_item};
 
 mod player_registry;
 pub use player_registry::PlayerRegistry;
@@ -68,6 +69,10 @@ impl Player {
             decks: HashMap::new(),
             status: PlayerStatus::Registered,
         }
+    }
+    
+    pub(crate) fn create_guest_id(salt: DateTime<Utc>, name: &str) -> PlayerId {
+        id_from_item(salt, name)
     }
 
     /// Creates a new player
