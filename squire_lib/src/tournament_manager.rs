@@ -19,12 +19,14 @@ use crate::{
 /// The manager holds the current tournament and can recreate any meaningful prior state.
 ///
 /// This is the primary synchronization primative between tournaments.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct TournamentManager {
     tourn: Tournament,
     log: OpLog,
     /// The last OpId of the last operation after a successful sync
     last_sync: OpId,
+    /// The tournament state that existed after the last sync
+    last_sync_state: Tournament,
 }
 
 impl TournamentManager {
@@ -45,11 +47,18 @@ impl TournamentManager {
         let last_sync = first_op.id;
         let mut tourn = Tournament::from_preset(name, preset, format);
         tourn.admins.insert(admin.id, admin);
+        let last_sync_state = tourn.clone();
         Self {
             tourn,
             log: OpLog::new(first_op),
             last_sync,
+            last_sync_state,
         }
+    }
+
+    /// Calculates the number of operations that the manager is storing
+    pub fn get_op_count(&self) -> usize {
+        self.log.len()
     }
 
     /// Read only accesses to tournaments don't need to be wrapped, so we can freely provide
@@ -89,11 +98,29 @@ impl TournamentManager {
     /// logs are merged and SyncStatus::Completed is returned.
     pub fn attempt_sync(&mut self, sy: OpSync) -> SyncStatus {
         let sync = self.log.sync(sy);
-        if let SyncStatus::Completed(c) = &sync {
-            let id = c.ops.ops.last().unwrap().id;
-            // Can this error? No...
-            let _ = self.overwrite(c.ops.clone());
-            self.last_sync = id;
+        if let SyncStatus::Completed(comp) = &sync {
+            let mut buffer = self.last_sync_state.clone();
+            match comp
+                .ops
+                .ops
+                .iter()
+                .filter(|op| op.active)
+                .find(|FullOp { op, salt, .. }| buffer.apply_op(*salt, op.clone()).is_err())
+            {
+                Some(op) => {
+                    return SyncStatus::SyncError(Box::new(SyncError::FailedSync(Box::new((
+                        op.clone(),
+                        comp.clone(),
+                    )))));
+                }
+                None => {
+                    // Everything is good!!
+                    self.log.overwrite(comp.ops.clone()).unwrap();
+                    self.last_sync = self.log.ops.last().unwrap().id;
+                    self.last_sync_state = buffer.clone();
+                    self.tourn = buffer;
+                }
+            }
         }
         sync
     }

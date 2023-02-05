@@ -1,6 +1,13 @@
+use std::{cmp::min, cell::RefCell};
+
 use serde::{Deserialize, Serialize};
 
-use crate::operations::{FullOp, OpSlice};
+use crate::{
+    identifiers::{PlayerId, RoundId},
+    operations::{FullOp, OpSlice},
+};
+
+use super::{OpDiff, OpUpdate};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A struct to help resolve syncing op logs
@@ -19,7 +26,7 @@ impl OpSync {
     pub fn len(&self) -> usize {
         self.ops.len()
     }
-    
+
     /// Calculates if the length of inner `Vec` of `FullOp`s is empty
     pub fn is_empty(&self) -> bool {
         self.ops.is_empty()
@@ -100,8 +107,11 @@ impl SyncStatus {
 /// overwrite the local log
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum SyncError {
-    /// One of the log was empty
+    /// At least one of the logs was empty
     EmptySync,
+    /// The tournament logs were merged, but an operation is causing an error in the tournament
+    /// itself. Contains the operation that is causing the problem and the merged log
+    FailedSync(Box<(FullOp, OpSync)>),
     /// The starting operation of the slice in unknown to the other log
     UnknownOperation(Box<FullOp>),
     /// One of the logs contains a rollback that the other doesn't have
@@ -113,123 +123,219 @@ pub enum SyncError {
 pub struct Blockage {
     pub(crate) known: OpSlice,
     pub(crate) known_in_progress: OpSlice,
-    pub(crate) agreed: OpSlice,
+    pub(crate) accepted: OpSlice,
     pub(crate) other: OpSlice,
-    pub(crate) problem: (FullOp, FullOp),
+    pub(crate) problem: FullOp,
+    /// The index into `known_in_progress` that contains the blocking operation
+    pub(crate) blocks: usize,
+}
+
+/// Holds references to the operations that are causing a blockage in the sync process
+#[derive(Debug, Clone)]
+pub struct Problem<'a> {
+    /// The operation that is trying to be added to the log, but is causing problems
+    pub other: &'a FullOp,
+    /// The operation that is canon that is blocking the `other` operation
+    pub known: &'a FullOp,
 }
 
 impl Blockage {
     /// Returns the problematic pair of operations.
-    pub fn problem(&self) -> &(FullOp, FullOp) {
-        &self.problem
-    }
-
-    /// Resolves the current problem by keeping the given solution and deleting the other, consuming self.
-    ///
-    /// The `Ok` varient is returned if the given operation is one of the problematic operations.
-    /// It contains the rectified logs.
-    ///
-    /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn pick_and_continue(mut self, op: FullOp) -> SyncStatus {
-        if op == self.problem.0 {
-            self.agreed.add_op(self.problem.0.clone());
-        } else if op == self.problem.1 {
-            self.agreed.add_op(self.problem.1.clone());
-        } else {
-            return SyncStatus::InProgress(Box::new(self));
+    pub fn problem(&self) -> Problem<'_> {
+        Problem {
+            other: &self.problem,
+            known: &self.known_in_progress.ops[self.blocks],
         }
-        self.attempt_resolution()
     }
 
-    /// Resolves the current problem by ordering the problematic solutions, consuming self.
-    ///
-    /// The `Ok` varient is returned if the given operation is one of the problematic operations.
-    /// It contains the rectified logs.
-    ///
-    /// The `Err` varient is returned if the given operation isn't one of the problematic operations, containing `self`.
-    pub fn order_and_continue(mut self, first: FullOp) -> SyncStatus {
-        let (p_one, p_two) = self.problem.clone();
-        if first == p_one {
-            self.agreed.add_op(p_one);
-            self.agreed.add_op(p_two);
-        } else if first == p_two {
-            self.agreed.add_op(p_two);
-            self.agreed.add_op(p_one);
-        } else {
-            return SyncStatus::InProgress(Box::new(self));
-        }
-        self.attempt_resolution()
+    /// Ignores the problematic operation and continues the syncing process
+    pub fn ignore(self) -> SyncStatus {
+        let Self {
+            known,
+            known_in_progress,
+            accepted,
+            other,
+            ..
+        } = self;
+        process_sync(known, known_in_progress, other, accepted)
     }
 
-    /// Resolves the current problem by applying exactly one operation and putting the other back
-    /// in its slice, consuming self.
-    pub fn push_and_continue(mut self, apply: FullOp) -> SyncStatus {
-        if apply == self.problem.0 {
-            self.agreed.add_op(self.problem.0.clone());
-            self.other.ops.insert(0, self.problem.1.clone());
-        } else if apply == self.problem.1 {
-            self.agreed.add_op(self.problem.1.clone());
-            self.known.ops.insert(0, self.problem.0.clone());
-        } else {
-            return SyncStatus::InProgress(Box::new(self));
-        }
-        self.attempt_resolution()
-    }
-
-    fn attempt_resolution(mut self) -> SyncStatus {
-        match self.known.merge(self.other) {
-            SyncStatus::Completed(sync) => {
-                self.agreed.ops.extend(sync.ops.ops.into_iter());
-                SyncStatus::Completed(OpSync { ops: self.agreed })
+    /// Accepts that the problematic operation is meant to occur after the operation it blocks and
+    /// continues the syncing process
+    pub fn push(mut self) -> SyncStatus {
+        let Self {
+            known,
+            mut known_in_progress,
+            mut accepted,
+            mut other,
+            problem,
+            blocks,
+        } = self;
+        let mut player_updates = Vec::new();
+        let mut round_updates = Vec::new();
+        let time_update = |old, new| match (old, new) {
+            (OpUpdate::None, OpUpdate::None) => {}
+            (OpUpdate::PlayerId(old), OpUpdate::PlayerId(new)) => {
+                player_updates.push((old, new));
             }
-            SyncStatus::InProgress(mut block) => {
-                self.agreed.ops.extend(block.agreed.ops.into_iter());
-                block.agreed = self.agreed;
-                SyncStatus::InProgress(block)
+            (OpUpdate::RoundId(old), OpUpdate::RoundId(new)) => {
+                assert_eq!(old.len(), new.len());
+                round_updates
+                    .extend(old.into_iter().zip(new.into_iter()));
             }
-            SyncStatus::SyncError(e) => match *e {
-                SyncError::RollbackFound(roll) => {
-                    SyncStatus::SyncError(Box::new(SyncError::RollbackFound(roll)))
-                }
-                SyncError::UnknownOperation(_) => {
-                    unreachable!("There should be no unknown starting operations during the resolution of a blockage.");
-                }
-                SyncError::EmptySync => {
-                    unreachable!(
-                        "There should be no empty syncs during the resolution of a blockage"
-                    );
-                }
-            },
+            _ => {
+                unreachable!(
+                    "The inner operations are identical, so their updates should be the same variant."
+                );
+            }
+        };
+        match process_sync_inner(
+            &problem,
+            known_in_progress.ops[blocks + 1..].iter(),
+            time_update
+        ) {
+            SyncInnerStatus::RollbackFound => {
+                SyncStatus::SyncError(Box::new(SyncError::RollbackFound(known_in_progress)))
+            }
+            SyncInnerStatus::Blockage(blocks) => {
+                self.blocks = blocks;
+                SyncStatus::InProgress(Box::new(Self {
+                    known,
+                    known_in_progress,
+                    accepted,
+                    other,
+                    problem,
+                    blocks,
+                }))
+            }
+            SyncInnerStatus::Passes(None) => {
+                accepted.add_op(problem);
+                process_sync(known, known_in_progress, other, accepted)
+            }
+            SyncInnerStatus::Passes(Some(i)) => {
+                let len = min(known_in_progress.len() - 1, i);
+                known_in_progress.ops.drain(0..=len);
+                other.ops.iter_mut().for_each(|op| {
+                    player_updates
+                        .iter()
+                        .for_each(|(old, new)| op.swap_player_ids(*old, *new));
+                    round_updates
+                        .iter()
+                        .for_each(|(old, new)| op.swap_round_ids(*old, *new));
+                });
+                process_sync(known, known_in_progress, other, accepted)
+            }
         }
     }
 }
 
-impl From<SyncError> for SyncStatus {
-    fn from(other: SyncError) -> SyncStatus {
-        SyncStatus::SyncError(Box::new(other))
+pub(crate) fn process_sync(
+    mut known: OpSlice,
+    mut known_in_progress: OpSlice,
+    other: OpSlice,
+    mut accepted: OpSlice,
+) -> SyncStatus {
+    // Inner tuples are (old, new)
+    let player_updates = RefCell::new(Vec::<(PlayerId, PlayerId)>::new());
+    // Inner tuples are (old, new)
+    let round_updates = RefCell::new(Vec::<(RoundId, RoundId)>::new());
+    let mut iter = other.ops.into_iter().map(|mut op| {
+        player_updates
+            .borrow()
+            .iter()
+            .for_each(|(old, new)| op.swap_player_ids(*old, *new));
+        round_updates
+            .borrow()
+            .iter()
+            .for_each(|(old, new)| op.swap_round_ids(*old, *new));
+        op
+    });
+    let time_update = |old, new| match (old, new) {
+        (OpUpdate::None, OpUpdate::None) => {}
+        (OpUpdate::PlayerId(old), OpUpdate::PlayerId(new)) => {
+            player_updates.borrow_mut().push((old, new));
+        }
+        (OpUpdate::RoundId(old), OpUpdate::RoundId(new)) => {
+            assert_eq!(old.len(), new.len());
+            round_updates
+                .borrow_mut()
+                .extend(old.into_iter().zip(new.into_iter()));
+        }
+        _ => {
+            unreachable!(
+                "The inner operations are identical, so their updates should be the same variant."
+            );
+        }
+    };
+    // Iterated through the other ops
+    // For each op, iterate through known_in_progress
+    for op in iter.by_ref() {
+        match process_sync_inner(&op, known.ops.iter(), time_update) {
+            SyncInnerStatus::Passes(Some(i)) => {
+                let len = min(known_in_progress.len() - 1, i);
+                known_in_progress.ops.drain(0..=len);
+            }
+            SyncInnerStatus::Passes(None) => {
+                accepted.ops.push(op);
+            }
+            SyncInnerStatus::Blockage(blocks) => {
+                return SyncStatus::InProgress(Box::new(Blockage {
+                    known,
+                    known_in_progress,
+                    accepted,
+                    other: iter.collect::<Vec<_>>().into(),
+                    problem: op,
+                    blocks,
+                }));
+            }
+            SyncInnerStatus::RollbackFound => {
+                return SyncStatus::SyncError(Box::new(SyncError::RollbackFound(
+                    known_in_progress,
+                )));
+            }
+        }
     }
+    // All the agreed upon operations happen after this log
+    known.ops.extend(accepted.ops);
+    SyncStatus::Completed(OpSync { ops: known })
 }
 
-impl From<Box<SyncError>> for SyncStatus {
-    fn from(other: Box<SyncError>) -> SyncStatus {
-        SyncStatus::SyncError(other)
-    }
+enum SyncInnerStatus {
+    Passes(Option<usize>),
+    Blockage(usize),
+    RollbackFound,
 }
 
-impl From<Blockage> for SyncStatus {
-    fn from(other: Blockage) -> SyncStatus {
-        SyncStatus::InProgress(Box::new(other))
+fn process_sync_inner<'a, I, F>(other: &'a FullOp, known: I, mut time_update: F) -> SyncInnerStatus
+where
+    I: Iterator<Item = &'a FullOp>,
+    F: FnMut(OpUpdate, OpUpdate),
+{
+    for (i, known_op) in known.enumerate() {
+        match other.diff(known_op) {
+            OpDiff::Different => {
+                // TODO: Verify that these are ordered correctly
+                if other.blocks(known_op) {
+                    return SyncInnerStatus::Blockage(i);
+                }
+            }
+            OpDiff::Inactive => {
+                return SyncInnerStatus::RollbackFound;
+            }
+            OpDiff::Time => {
+                // Identical ops at different times, case by case
+                // Could require changing the round/player ids in the rest of the other
+                // operations and remove this known_op from known_in_progress (like
+                // registering a guest)
+                // Could just require this known_op to be removed from known_in_progress
+                // (like recording a match result)
+                time_update(other.get_update(), known_op.get_update());
+                return SyncInnerStatus::Passes(Some(i));
+            }
+            OpDiff::Equal => {
+                return SyncInnerStatus::Passes(Some(i));
+            }
+        }
     }
-}
-
-impl From<Box<Blockage>> for SyncStatus {
-    fn from(other: Box<Blockage>) -> SyncStatus {
-        SyncStatus::InProgress(other)
-    }
-}
-
-impl From<OpSync> for SyncStatus {
-    fn from(other: OpSync) -> SyncStatus {
-        SyncStatus::Completed(other)
-    }
+    SyncInnerStatus::Passes(None)
 }

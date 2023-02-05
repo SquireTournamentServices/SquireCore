@@ -1,15 +1,11 @@
-use std::cell::RefCell;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    identifiers::{OpId, PlayerId, RoundId},
-    operations::{Blockage, FullOp, OpSync, SyncError, SyncStatus},
+    identifiers::OpId,
+    operations::{process_sync, FullOp, OpSync, SyncError, SyncStatus},
 };
 
-use super::{OpDiff, OpUpdate};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An ordered list of all operations applied to a tournament
 pub struct OpLog {
     pub(crate) ops: Vec<FullOp>,
@@ -100,7 +96,7 @@ impl OpLog {
         let slice = self
             .get_slice(op.id)
             .ok_or_else(|| SyncError::UnknownOperation(Box::new(op.clone())))?;
-        match slice.start_op().unwrap() != op {
+        match slice.start_op().unwrap() == op {
             true => Ok(slice),
             false => Err(SyncError::RollbackFound(slice)),
         }
@@ -223,92 +219,10 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(mut self, other: OpSlice) -> SyncStatus {
-        let mut agreed: Vec<FullOp> = Vec::with_capacity(self.ops.len() + other.ops.len());
-        // Inner tuples are (old, new)
-        let player_updates = RefCell::new(Vec::<(PlayerId, PlayerId)>::new());
-        // Inner tuples are (old, new)
-        let round_updates = RefCell::new(Vec::<(RoundId, RoundId)>::new());
-        let mut known_in_progress = self.ops.clone();
-        let mut iter = other.ops.into_iter().map(|mut op| {
-            player_updates
-                .borrow()
-                .iter()
-                .for_each(|(old, new)| op.swap_player_ids(*old, *new));
-            round_updates
-                .borrow()
-                .iter()
-                .for_each(|(old, new)| op.swap_round_ids(*old, *new));
-            op
-        });
-        for op in iter.by_ref() {
-            let mut do_remove = None;
-            for (i, known_op) in known_in_progress.iter().enumerate() {
-                match op.diff(known_op) {
-                    OpDiff::Different => {
-                        // Check blocking else put operation in agreed
-                        // TODO: Verify that these are ordered correctly
-                        if op.blocks(known_op) {
-                            // Return blockage
-                            return SyncStatus::InProgress(Box::new(Blockage {
-                                known: self,
-                                known_in_progress: known_in_progress.clone().into(),
-                                agreed: agreed.into(),
-                                other: iter.collect::<Vec<_>>().into(),
-                                problem: (known_op.clone(), op),
-                            }));
-                        }
-                    }
-                    OpDiff::Inactive => {
-                        // Return a Rollback error
-                        return SyncStatus::SyncError(Box::new(SyncError::RollbackFound(
-                            known_in_progress.clone().into(),
-                        )));
-                    }
-                    OpDiff::Time => {
-                        // Identical ops at different times, case by case
-                        // Could require changing the round/player ids in the rest of the other
-                        // operations and remove this known_op from known_in_progress (like
-                        // registering a guest)
-                        // Could just require this known_op to be removed from known_in_progress
-                        // (like recording a match result)
-                        match known_op.get_update() {
-                            OpUpdate::None => {}
-                            OpUpdate::PlayerId(new) => {
-                                let old = op.get_update().assume_player_id();
-                                player_updates.borrow_mut().push((old, new));
-                            }
-                            OpUpdate::RoundId(new) => {
-                                let old = op.get_update().assume_round_id();
-                                assert_eq!(new.len(), old.len());
-                                round_updates
-                                    .borrow_mut()
-                                    .extend(old.into_iter().zip(new.into_iter()));
-                            }
-                        }
-                        do_remove = Some(i);
-                        break;
-                    }
-                    OpDiff::Equal => {
-                        // Mark this known_op to be removed from known_in_progress
-                        // Break
-                        do_remove = Some(i);
-                        break;
-                    }
-                }
-            }
-            match do_remove {
-                Some(i) => {
-                    known_in_progress.remove(i);
-                }
-                None => {
-                    agreed.push(op);
-                }
-            }
-        }
-        // All the agreed upon operations happen after this log
-        self.ops.extend(agreed);
-        SyncStatus::Completed(OpSync { ops: self })
+    pub fn merge(self, other: OpSlice) -> SyncStatus {
+        let known_in_progress = self.clone();
+        let accepted = Vec::with_capacity(self.ops.len() + other.ops.len()).into();
+        process_sync(self, known_in_progress, other, accepted)
     }
 }
 

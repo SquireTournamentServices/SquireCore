@@ -375,6 +375,7 @@ impl TournOp {
 
 impl OpGroup {
     fn blocks(&self, _other: Self) -> bool {
-        todo!()
+        false
+        //todo!()
     }
 }
