@@ -188,19 +188,19 @@ impl FullOp {
             active: true,
         }
     }
-    
+
     pub(crate) fn get_update(&self) -> OpUpdate {
         self.op.get_update(self.salt)
     }
-    
+
     pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
         self.op.swap_player_ids(old, new)
     }
-    
+
     pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
         self.op.swap_round_ids(old, new)
     }
-    
+
     /// Calculate the kind of difference (if any) there is between two operations
     pub fn diff(&self, other: &Self) -> OpDiff {
         if self.op != other.op {
@@ -294,7 +294,7 @@ impl OpUpdate {
             OpUpdate::RoundId(_) => panic!("OpUpdate assumed to be PlayerId but was RoundId"),
         }
     }
-    
+
     pub(crate) fn assume_round_id(self) -> Vec<RoundId> {
         match self {
             OpUpdate::None => panic!("OpUpdate assumed to be RoundId but was None"),
@@ -309,7 +309,7 @@ impl TournOp {
     pub fn blocks(&self, other: &Self) -> bool {
         self.affects().blocks(other.requires())
     }
-    
+
     pub(crate) fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
         match self {
             TournOp::Create(_, _, _, _) => OpUpdate::None,
@@ -319,11 +319,11 @@ impl TournOp {
             TournOp::AdminOp(_, a_op) => a_op.get_update(salt),
         }
     }
-    
+
     pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
         match self {
-            TournOp::Create(_, _, _, _) => { },
-            TournOp::RegisterPlayer(_) => { },
+            TournOp::Create(_, _, _, _) => {}
+            TournOp::RegisterPlayer(_) => {}
             TournOp::PlayerOp(p_id, _) => {
                 if *p_id == old {
                     *p_id = new;
@@ -333,11 +333,11 @@ impl TournOp {
             TournOp::AdminOp(_, a_op) => a_op.swap_player_ids(old, new),
         }
     }
-    
+
     pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
         match self {
-            TournOp::Create(_, _, _, _) => { },
-            TournOp::RegisterPlayer(_) => { },
+            TournOp::Create(_, _, _, _) => {}
+            TournOp::RegisterPlayer(_) => {}
             TournOp::PlayerOp(_, p_op) => p_op.swap_round_ids(old, new),
             TournOp::JudgeOp(_, j_op) => j_op.swap_round_ids(old, new),
             TournOp::AdminOp(_, a_op) => a_op.swap_round_ids(old, new),

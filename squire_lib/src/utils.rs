@@ -1,7 +1,10 @@
-use crate::{settings::{
-    FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
-    SwissPairingsSetting, TournamentSetting,
-}, operations::{SyncError, SyncStatus, Blockage, OpSync}};
+use crate::{
+    operations::{Blockage, OpSync, SyncError, SyncStatus},
+    settings::{
+        FluidPairingsSetting, PairingSetting, ScoringSetting, StandardScoringSetting,
+        SwissPairingsSetting, TournamentSetting,
+    },
+};
 
 impl From<PairingSetting> for TournamentSetting {
     fn from(other: PairingSetting) -> Self {

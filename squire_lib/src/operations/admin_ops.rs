@@ -71,12 +71,14 @@ impl AdminOp {
                 *p_id = new;
             }
             AdminOp::CreateRound(plyrs) => {
-                plyrs.iter_mut().filter(|p| **p == old).for_each(|p| { *p = new; });
+                plyrs.iter_mut().filter(|p| **p == old).for_each(|p| {
+                    *p = new;
+                });
             }
             AdminOp::PairRound(pairings) => {
                 pairings.swap_player_ids(old, new);
             }
-            _ => { },
+            _ => {}
         }
     }
 

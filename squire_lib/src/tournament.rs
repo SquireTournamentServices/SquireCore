@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_with::{Seq, serde_as};
+use serde_with::{serde_as, Seq};
 use std::fmt::Write;
 use uuid::Uuid;
 

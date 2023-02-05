@@ -1,9 +1,9 @@
 use std::{collections::HashMap, fmt::Display};
 
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use serde::{Deserialize, Serialize};
-use serde_with::{Seq, serde_as};
+use serde_with::{serde_as, Seq};
+use uuid::Uuid;
 
 pub use mtgjson::model::deck::Deck;
 
@@ -71,7 +71,7 @@ impl Player {
             status: PlayerStatus::Registered,
         }
     }
-    
+
     pub(crate) fn create_guest_id(salt: DateTime<Utc>, name: &str) -> PlayerId {
         id_from_item(salt, name)
     }

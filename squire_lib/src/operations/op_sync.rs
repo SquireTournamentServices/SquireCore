@@ -1,4 +1,4 @@
-use std::{cmp::min, cell::RefCell};
+use std::{cell::RefCell, cmp::min};
 
 use serde::{Deserialize, Serialize};
 
@@ -180,8 +180,7 @@ impl Blockage {
             }
             (OpUpdate::RoundId(old), OpUpdate::RoundId(new)) => {
                 assert_eq!(old.len(), new.len());
-                round_updates
-                    .extend(old.into_iter().zip(new.into_iter()));
+                round_updates.extend(old.into_iter().zip(new.into_iter()));
             }
             _ => {
                 unreachable!(
@@ -192,7 +191,7 @@ impl Blockage {
         match process_sync_inner(
             &problem,
             known_in_progress.ops[blocks + 1..].iter(),
-            time_update
+            time_update,
         ) {
             SyncInnerStatus::RollbackFound => {
                 SyncStatus::SyncError(Box::new(SyncError::RollbackFound(known_in_progress)))

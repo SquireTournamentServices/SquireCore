@@ -52,10 +52,21 @@ impl Pairings {
             .chain(self.rejected.iter().map(|p| Round::create_id(salt, &[*p])))
             .collect()
     }
-    
+
     pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
-        self.paired.iter_mut().flatten().filter(|p| **p == old).for_each(|p| { *p = new; });
-        self.rejected.iter_mut().filter(|p| **p == old).for_each(|p| { *p = new; });
+        self.paired
+            .iter_mut()
+            .flatten()
+            .filter(|p| **p == old)
+            .for_each(|p| {
+                *p = new;
+            });
+        self.rejected
+            .iter_mut()
+            .filter(|p| **p == old)
+            .for_each(|p| {
+                *p = new;
+            });
     }
 }
 

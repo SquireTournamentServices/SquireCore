@@ -1,12 +1,13 @@
 use std::{
+    cmp::Ordering,
     collections::{HashMap, HashSet},
     fmt,
-    time::Duration, cmp::Ordering,
+    time::Duration,
 };
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_with::{Seq, serde_as};
+use serde_with::{serde_as, Seq};
 
 pub use crate::identifiers::RoundId;
 use crate::{
@@ -134,7 +135,7 @@ impl Round {
             is_bye: false,
         }
     }
-    
+
     pub(crate) fn create_id(salt: DateTime<Utc>, players: &[PlayerId]) -> RoundId {
         id_from_list(salt, players.iter())
     }
