@@ -12,7 +12,7 @@ use serde_with::{serde_as, Seq};
 pub use crate::identifiers::RoundId;
 use crate::{
     error::TournamentError,
-    identifiers::{id_from_item, id_from_list, PlayerId, RoundIdentifier},
+    identifiers::{id_from_list, PlayerId, RoundIdentifier},
     pairings::swiss_pairings::SwissContext,
 };
 
@@ -149,7 +149,7 @@ impl Round {
         context: RoundContext,
     ) -> Self {
         Round {
-            id: id_from_item(salt, plyr),
+            id: Self::create_id(salt, &[plyr]),
             match_number: match_num,
             table_number: 0,
             players: vec![plyr],

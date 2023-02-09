@@ -133,7 +133,7 @@ impl SwissPairings {
             match_size,
             repair_tol,
         );
-        while count < max_count && pairings.rejected.is_empty() {
+        while count < max_count && !pairings.rejected.is_empty() {
             count += 1;
             let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
             plyrs.extend(
