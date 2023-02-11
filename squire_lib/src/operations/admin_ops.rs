@@ -3,14 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     accounts::SquireAccount,
-    identifiers::{AdminId, PlayerId, RoundId},
-    operations::OpGroup,
+    identifiers::{PlayerId, RoundId},
+    operations::OpUpdate,
     pairings::Pairings,
     rounds::{Round, RoundResult},
     settings::TournamentSetting,
 };
-
-use super::OpUpdate;
 
 /// Operations that only tournament admin can perform
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
@@ -89,13 +87,5 @@ impl AdminOp {
             }
             _ => {}
         }
-    }
-
-    pub(crate) fn affects(&self, id: AdminId) -> OpGroup {
-        todo!()
-    }
-
-    pub(crate) fn requires(&self, id: AdminId) -> OpGroup {
-        todo!()
     }
 }

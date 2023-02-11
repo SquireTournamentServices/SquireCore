@@ -53,6 +53,7 @@ where
     }
 }
 
+// Example: Fn() -> Result<O, R>? => SquireResponse(Err(R))
 impl<T, O, R> Try for SquireResponse<T>
 where
     T: Try<Output = O, Residual = R> + FromResidual,

@@ -5,11 +5,9 @@ use serde_with::{serde_as, Seq};
 use uuid::Uuid;
 
 use crate::{
-    identifiers::{AdminId, OrganizationAccountId, SquireAccountId},
-    operations::{AdminOp, TournOp},
-    settings::TournamentSettingsTree,
-    tournament::TournamentPreset,
-    tournament_manager::TournamentManager,
+    admin::Admin,
+    identifiers::SquireAccountId,
+    tournament::{Tournament, TournamentSeed},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -58,25 +56,6 @@ pub struct SquireAccount {
     pub id: SquireAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
     pub permissions: SharingPermissions,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-/// The core model for an account for an organization
-pub struct OrganizationAccount {
-    /// The displayed name of the org
-    pub display_name: String,
-    /// The name of the org
-    pub org_name: String,
-    /// The org's id
-    pub account_id: OrganizationAccountId,
-    /// The owner of the account
-    pub owner: SquireAccount,
-    /// A list of accounts that will be added as judges to new tournaments
-    pub default_judges: HashMap<SquireAccountId, SquireAccount>,
-    /// A list of accounts that will be added as tournament admins to new tournaments
-    pub default_admins: HashMap<SquireAccountId, SquireAccount>,
-    /// The default settings for new tournaments
-    pub default_tournament_settings: TournamentSettingsTree,
 }
 
 impl SquireAccount {
@@ -152,14 +131,32 @@ impl SquireAccount {
     }
 
     /// Creates a new tournament and loads it with the default settings of the org
-    pub fn create_tournament(
-        &self,
-        name: String,
-        preset: TournamentPreset,
-        format: String,
-    ) -> TournamentManager {
-        TournamentManager::new(self.clone(), name, preset, format)
+    pub fn create_tournament(&self, seed: TournamentSeed) -> Tournament {
+        let mut tourn = Tournament::from(seed);
+        let admin = Admin::new(self.clone());
+        tourn.admins.insert(admin.id, admin);
+        tourn
     }
+}
+
+/*
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+/// The core model for an account for an organization
+pub struct OrganizationAccount {
+    /// The displayed name of the org
+    pub display_name: String,
+    /// The name of the org
+    pub org_name: String,
+    /// The org's id
+    pub account_id: OrganizationAccountId,
+    /// The owner of the account
+    pub owner: SquireAccount,
+    /// A list of accounts that will be added as judges to new tournaments
+    pub default_judges: HashMap<SquireAccountId, SquireAccount>,
+    /// A list of accounts that will be added as tournament admins to new tournaments
+    pub default_admins: HashMap<SquireAccountId, SquireAccount>,
+    /// The default settings for new tournaments
+    pub default_tournament_settings: TournamentSettingsTree,
 }
 
 impl OrganizationAccount {
@@ -177,13 +174,9 @@ impl OrganizationAccount {
     }
 
     /// Creates a new tournament and loads it with the default settings of the org
-    pub fn create_tournament(
-        &self,
-        name: String,
-        preset: TournamentPreset,
-        format: String,
-    ) -> TournamentManager {
-        let mut tourn = TournamentManager::new(self.owner.clone(), name, preset, format);
+    pub fn create_tournament(&self, seed: TournamentSeed) -> TournamentManager {
+        let default_settings = self.default_tournament_settings.as_settings(seed.preset);
+        let mut tourn = TournamentManager::new(self.owner.clone(), seed);
         let owner_id: AdminId = self.owner.id.0.into();
         for judge in self.default_judges.values().cloned() {
             // Should never error
@@ -193,7 +186,7 @@ impl OrganizationAccount {
             // Should never error
             let _ = tourn.apply_op(TournOp::AdminOp(owner_id, AdminOp::RegisterAdmin(admin)));
         }
-        for s in self.default_tournament_settings.as_settings(preset) {
+        for s in default_settings {
             // TODO: Should we be returning this error??
             // Or maybe this should never error... The settings tree would have to enforce this.
             let _ = tourn.apply_op(TournOp::AdminOp(owner_id, AdminOp::UpdateTournSetting(s)));
@@ -231,6 +224,7 @@ impl OrganizationAccount {
         self.org_name.clone()
     }
 }
+*/
 
 impl Hash for SquireAccount {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

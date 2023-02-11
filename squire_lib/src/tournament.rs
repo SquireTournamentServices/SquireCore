@@ -31,6 +31,17 @@ pub enum TournamentPreset {
     Fluid,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+/// Container for all the information needed to start a tournament
+pub struct TournamentSeed {
+    /// The name of the to-be tournament
+    pub name: String,
+    /// The initial present of the to-be tournament
+    pub preset: TournamentPreset,
+    /// The initial format fo the to-be tournament
+    pub format: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 /// An enum that encodes all the statuses of a tournament
@@ -114,7 +125,6 @@ impl Tournament {
     pub fn apply_op(&mut self, salt: DateTime<Utc>, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
-            Create(..) => OpResult::Ok(OpData::Nothing),
             RegisterPlayer(account) => self.register_player(account),
             PlayerOp(p_id, op) => self.apply_player_op(salt, p_id, op),
             JudgeOp(ta_id, op) => self.apply_judge_op(salt, ta_id, op),
@@ -977,22 +987,25 @@ impl Tournament {
     }
 }
 
-impl ScoringSystem {
-    /// Gets the current standings of all players
-    pub fn get_standings(
-        &self,
-        player_reg: &PlayerRegistry,
-        round_reg: &RoundRegistry,
-    ) -> Standings<StandardScore> {
-        match self {
-            ScoringSystem::Standard(s) => s.get_standings(player_reg, round_reg),
+impl TournamentSeed {
+    /// Creates a new tournament seed
+    pub fn new(name: String, preset: TournamentPreset, format: String) -> Self {
+        Self {
+            name,
+            preset,
+            format,
         }
     }
 }
 
-impl From<StandardScoring> for ScoringSystem {
-    fn from(other: StandardScoring) -> Self {
-        Self::Standard(other)
+impl From<TournamentSeed> for Tournament {
+    fn from(seed: TournamentSeed) -> Self {
+        let TournamentSeed {
+            name,
+            preset,
+            format,
+        } = seed;
+        Tournament::from_preset(name, preset, format)
     }
 }
 

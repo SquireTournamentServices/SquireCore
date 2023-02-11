@@ -1,5 +1,4 @@
 #![allow(dead_code, unused_variables)]
-use std::borrow::Cow;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -8,29 +7,21 @@ use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
-    identifiers::{id_from_item, AdminId, JudgeId, OpId, PlayerId},
+    identifiers::{id_from_item, AdminId, OpId, PlayerId},
     rounds::{RoundId, RoundStatus},
-    settings::TournamentSetting,
-    tournament::{TournamentPreset, TournamentStatus},
 };
 
 mod admin_ops;
 mod judge_ops;
-mod op_log;
-mod op_sync;
 mod player_ops;
 
 pub use admin_ops::AdminOp;
 pub use judge_ops::JudgeOp;
-pub use op_log::*;
-pub use op_sync::*;
 pub use player_ops::PlayerOp;
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// This enum captures all ways in which a tournament can mutate.
 pub enum TournOp {
-    /// Operation to mark the creation of a tournament
-    Create(SquireAccount, String, TournamentPreset, String),
     /// Operation for a player register themself for a tournament
     RegisterPlayer(SquireAccount),
     /// Opertions that a player can perform, after registering
@@ -213,69 +204,6 @@ impl FullOp {
             OpDiff::Equal
         }
     }
-
-    /// Determines if the given operation affects this operation
-    pub fn blocks(&self, other: &Self) -> bool {
-        self.op.blocks(&other.op)
-    }
-}
-
-/// Encodes what an operations relates on or affects in a tournaments
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) enum OpEffects {
-    Player(OpPlayerEffects),
-    Round(OpRoundEffects),
-    Settings(TournamentSetting),
-    Status(TournamentStatus),
-    Admin(OpAdminEffects),
-    Everything,
-}
-
-/// Encodes the ways in which an operation can affect players
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) enum OpPlayerEffects {
-    Single(PlayerId, PlayerEffectComponent),
-    SingleActive(PlayerId, PlayerEffectComponent),
-    All(PlayerEffectComponent),
-    AllActive(PlayerEffectComponent),
-}
-
-/// Encodes the what an operation affects about a player
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) enum PlayerEffectComponent {
-    Nothing,
-    Deck(String),
-    Status,
-    CheckIn,
-}
-
-/// Encodes the ways in which an operation can affect rounds
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) enum OpRoundEffects {
-    Single(RoundId, RoundEffectComponent),
-    SingleActive(RoundId, RoundEffectComponent),
-    All(RoundEffectComponent),
-    AllActive(RoundEffectComponent),
-}
-
-/// Encodes the what an operation affects about a player
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) enum RoundEffectComponent {
-    Nothing,
-    Result(Option<PlayerId>),
-    Confirmation,
-    Status,
-}
-
-/// Encodes the ways in which an operation can affect rounds
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) enum OpAdminEffects {
-    Judge(JudgeId),
-    Admin(AdminId),
-}
-
-pub(crate) struct OpGroup {
-    pub(crate) effects: Cow<'static, [OpEffects]>,
 }
 
 #[derive(Debug, Clone)]
@@ -305,14 +233,8 @@ impl OpUpdate {
 }
 
 impl TournOp {
-    /// Determines if this operation blocks a given operation
-    pub fn blocks(&self, other: &Self) -> bool {
-        self.affects().blocks(other.requires())
-    }
-
     pub(crate) fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
         match self {
-            TournOp::Create(_, _, _, _) => OpUpdate::None,
             TournOp::RegisterPlayer(_) => OpUpdate::None,
             TournOp::PlayerOp(_, p_op) => p_op.get_update(salt),
             TournOp::JudgeOp(_, j_op) => j_op.get_update(salt),
@@ -322,7 +244,6 @@ impl TournOp {
 
     pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
         match self {
-            TournOp::Create(_, _, _, _) => {}
             TournOp::RegisterPlayer(_) => {}
             TournOp::PlayerOp(p_id, _) => {
                 if *p_id == old {
@@ -336,46 +257,10 @@ impl TournOp {
 
     pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
         match self {
-            TournOp::Create(_, _, _, _) => {}
             TournOp::RegisterPlayer(_) => {}
             TournOp::PlayerOp(_, p_op) => p_op.swap_round_ids(old, new),
             TournOp::JudgeOp(_, j_op) => j_op.swap_round_ids(old, new),
             TournOp::AdminOp(_, a_op) => a_op.swap_round_ids(old, new),
         }
-    }
-
-    fn affects(&self) -> OpGroup {
-        match self {
-            TournOp::Create(..) => OpGroup {
-                effects: Cow::Borrowed(&[]),
-            },
-            TournOp::RegisterPlayer(..) => OpGroup {
-                effects: Cow::Borrowed(&[]),
-            },
-            TournOp::PlayerOp(p_id, op) => op.affects(*p_id),
-            TournOp::JudgeOp(_, op) => op.affects(),
-            TournOp::AdminOp(a_id, op) => op.affects(*a_id),
-        }
-    }
-
-    fn requires(&self) -> OpGroup {
-        match self {
-            TournOp::Create(..) => OpGroup {
-                effects: Cow::Borrowed(&[]),
-            },
-            TournOp::RegisterPlayer(account) => OpGroup {
-                effects: Cow::Borrowed(&[]),
-            },
-            TournOp::PlayerOp(p_id, op) => op.requires(*p_id),
-            TournOp::JudgeOp(to_id, op) => op.requires(*to_id),
-            TournOp::AdminOp(a_id, op) => op.requires(*a_id),
-        }
-    }
-}
-
-impl OpGroup {
-    fn blocks(&self, _other: Self) -> bool {
-        false
-        //todo!()
     }
 }

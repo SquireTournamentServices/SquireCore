@@ -11,7 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::{
-    accounts::{OrganizationAccount, SquireAccount},
+    accounts::SquireAccount,
     admin::{Admin, Judge},
     operations::FullOp,
     players::Player,
@@ -59,8 +59,6 @@ pub type RoundId = TypeId<Round>;
 pub type TournamentId = TypeId<Tournament>;
 /// A type-checked Uuid for user accounts
 pub type SquireAccountId = TypeId<SquireAccount>;
-/// A type-checked Uuid for org accounts
-pub type OrganizationAccountId = TypeId<OrganizationAccount>;
 /// A type-checked Uuid for tournament operations
 pub type OpId = TypeId<FullOp>;
 /// A type-checked Uuid for tournament judges

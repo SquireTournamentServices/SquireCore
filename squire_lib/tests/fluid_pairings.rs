@@ -1,43 +1,20 @@
+mod utils;
+
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, time::Duration};
-
     use chrono::Utc;
+
     use squire_lib::{
-        accounts::{SharingPermissions, SquireAccount},
-        pairings::PairingSystem,
-        players::PlayerRegistry,
-        rounds::{RoundContext, RoundRegistry},
+        rounds::RoundContext,
         scoring::{StandardScore, Standings},
-        tournament::TournamentPreset,
     };
-    use uuid::Uuid;
 
-    fn spoof_account() -> SquireAccount {
-        let id = Uuid::new_v4().into();
-        SquireAccount {
-            id,
-            user_name: id.to_string(),
-            display_name: id.to_string(),
-            gamer_tags: HashMap::new(),
-            permissions: SharingPermissions::Everything,
-        }
-    }
-
-    fn spoof_data(count: usize) -> (PairingSystem, PlayerRegistry, RoundRegistry) {
-        let mut plyrs = PlayerRegistry::new();
-        for _ in 0..count {
-            let _ = plyrs.register_player(spoof_account());
-        }
-
-        let mut sys = PairingSystem::new(TournamentPreset::Fluid);
-        sys.match_size = 4;
-        (sys, plyrs, RoundRegistry::new(0, Duration::from_secs(0)))
-    }
+    use crate::utils::{spoof_account, spoof_data, spoof_fluid_pairings};
 
     #[test]
     fn check_ins_function() {
-        let (mut sys, plyrs, rnds) = spoof_data(4);
+        let (_, plyrs, rnds, _) = spoof_data(4);
+        let mut sys = spoof_fluid_pairings();
         // You should be able to pair if no one has checked in
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         // Should should need at least N players to pair
@@ -56,7 +33,8 @@ mod tests {
 
     #[test]
     fn simple_pair_all() {
-        let (mut sys, mut plyrs, rnds) = spoof_data(4);
+        let (_, mut plyrs, rnds, _) = spoof_data(4);
+        let mut sys = spoof_fluid_pairings();
         let standings = Standings::<StandardScore>::new(Vec::new());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
@@ -76,7 +54,7 @@ mod tests {
             sys.ready_player(*id);
         }
         // Pairings should exist
-        let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
+        let pairings = sys.pair(&plyrs, &rnds, standings).unwrap();
         sys.update(&pairings);
         // There should be exactly one pairings (with 4 players) and no one else
         assert_eq!(pairings.paired.len(), 1);
@@ -93,14 +71,15 @@ mod tests {
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         let id = plyrs.register_player(spoof_account()).unwrap();
         sys.ready_player(id);
-        println!("{:?}", sys);
+        println!("{sys:?}");
         assert!(sys.ready_to_pair(&plyrs, &rnds));
     }
 
     #[test]
     fn top_of_queue_paired_first() {
         // If a player isn't paired, they should be the first one that is paired the next time
-        let (mut sys, plyrs, rnds) = spoof_data(5);
+        let (_, plyrs, rnds, _) = spoof_data(5);
+        let mut sys = spoof_fluid_pairings();
         let standings = Standings::<StandardScore>::new(Vec::new());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
@@ -110,12 +89,12 @@ mod tests {
         let in_queue = plyrs
             .players
             .keys()
-            .find(|p| pairings.paired[0].iter().find(|id| id == p).is_none())
+            .find(|p| !pairings.paired[0].iter().any(|id| id == *p))
             .unwrap();
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }
-        let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
+        let pairings = sys.pair(&plyrs, &rnds, standings).unwrap();
         sys.update(&pairings);
         assert_eq!(pairings.paired[0][0], *in_queue);
     }
@@ -123,7 +102,8 @@ mod tests {
     #[test]
     fn no_double_queued() {
         // If a player checking in should not cause them to count twice
-        let (mut sys, plyrs, rnds) = spoof_data(3);
+        let (_, plyrs, rnds, _) = spoof_data(3);
+        let mut sys = spoof_fluid_pairings();
         let standings = Standings::<StandardScore>::new(Vec::new());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
@@ -135,16 +115,17 @@ mod tests {
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
 
         // If a player checking in while in the queue should not cause them to count twice
-        let (mut sys, plyrs, rnds) = spoof_data(5);
+        let (_, plyrs, rnds, _) = spoof_data(5);
+        let mut sys = spoof_fluid_pairings();
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }
-        let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
+        let pairings = sys.pair(&plyrs, &rnds, standings).unwrap();
         sys.update(&pairings);
         let in_queue = plyrs
             .players
             .keys()
-            .find(|p| pairings.paired[0].iter().find(|id| id == p).is_none())
+            .find(|p| !pairings.paired[0].iter().any(|id| id == *p))
             .unwrap();
         sys.ready_player(pairings.paired[0][0]);
         sys.ready_player(pairings.paired[0][1]);
@@ -157,7 +138,8 @@ mod tests {
     fn failed_to_re_pair() {
         // If a pairing is attempted and no pairings are found, everyone should be queued and no
         // one should be paired
-        let (mut sys, plyrs, mut rnds) = spoof_data(4);
+        let (_, plyrs, mut rnds, _) = spoof_data(4);
+        let mut sys = spoof_fluid_pairings();
         let standings = Standings::<StandardScore>::new(Vec::new());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
@@ -183,7 +165,8 @@ mod tests {
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
 
         // TODO: Provide description
-        let (mut sys, plyrs, mut rnds) = spoof_data(6);
+        let (_, plyrs, mut rnds, _) = spoof_data(6);
+        let mut sys = spoof_fluid_pairings();
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }
@@ -200,7 +183,7 @@ mod tests {
             sys.ready_player(*id);
         }
         assert!(sys.ready_to_pair(&plyrs, &rnds));
-        let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
+        let pairings = sys.pair(&plyrs, &rnds, standings).unwrap();
         sys.update(&pairings);
         assert_eq!(pairings.paired.len(), 0);
         assert_eq!(pairings.rejected.len(), 0);
@@ -210,17 +193,18 @@ mod tests {
     #[test]
     fn remove_queued_player() {
         // If a player checking in while in the queue should not cause them to count twice
-        let (mut sys, plyrs, rnds) = spoof_data(5);
+        let (_, plyrs, rnds, _) = spoof_data(5);
+        let mut sys = spoof_fluid_pairings();
         let standings = Standings::<StandardScore>::new(Vec::new());
         for id in plyrs.players.keys() {
             sys.ready_player(*id);
         }
-        let pairings = sys.pair(&plyrs, &rnds, standings.clone()).unwrap();
+        let pairings = sys.pair(&plyrs, &rnds, standings).unwrap();
         sys.update(&pairings);
         let in_queue = plyrs
             .players
             .keys()
-            .find(|p| pairings.paired[0].iter().find(|id| id == p).is_none())
+            .find(|p| !pairings.paired[0].iter().any(|id| id == *p))
             .unwrap();
         sys.ready_player(pairings.paired[0][0]);
         sys.ready_player(pairings.paired[0][1]);

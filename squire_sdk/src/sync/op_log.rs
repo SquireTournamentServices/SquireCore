@@ -1,44 +1,24 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    accounts::SquireAccount,
     identifiers::OpId,
     operations::{process_sync, FullOp, OpSync, SyncError, SyncStatus},
+    tournament::{Tournament, TournamentSeed},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An ordered list of all operations applied to a tournament
 pub struct OpLog {
+    pub(crate) owner: SquireAccount,
+    pub(crate) seed: TournamentSeed,
     pub(crate) ops: Vec<FullOp>,
-}
-
-impl OpLog {
-    /// Calculates the length of inner `Vec` of `FullOp`s
-    pub fn len(&self) -> usize {
-        self.ops.len()
-    }
-
-    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub fn is_empty(&self) -> bool {
-        self.ops.is_empty()
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An ordered list of some of the operations applied to a tournament
 pub struct OpSlice {
     pub(crate) ops: Vec<FullOp>,
-}
-
-impl OpSlice {
-    /// Calculates the length of inner `Vec` of `FullOp`s
-    pub fn len(&self) -> usize {
-        self.ops.len()
-    }
-
-    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub fn is_empty(&self) -> bool {
-        self.ops.is_empty()
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -59,13 +39,45 @@ pub struct Rollback {
 
 impl OpLog {
     /// Creates a new log
-    pub fn new(op: FullOp) -> Self {
-        OpLog { ops: vec![op] }
+    pub fn new(owner: SquireAccount, seed: TournamentSeed) -> Self {
+        OpLog {
+            owner,
+            seed,
+            ops: vec![],
+        }
+    }
+
+    /// Calculates the length of inner `Vec` of `FullOp`s
+    pub fn len(&self) -> usize {
+        self.ops.len()
+    }
+
+    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
+    pub fn is_empty(&self) -> bool {
+        self.ops.is_empty()
     }
 
     /// Adds an operation to the end of the OpLog
     pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
+    }
+
+    pub(crate) fn slice_up_to(&self, id: OpId) -> Option<OpSlice> {
+        let found = false;
+        let ops = self
+            .ops
+            .iter()
+            .cloned()
+            .take_while(|op| {
+                found &= op.id == id;
+                found
+            })
+            .collect();
+        if found {
+            Some(OpSlice { ops })
+        } else {
+            None
+        }
     }
 
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
@@ -135,15 +147,23 @@ impl OpLog {
             .slice_from_slice(&rollback.ops)
             .map_err(RollbackError::SliceError)?;
         if slice.ops.len() > rollback.ops.ops.len() {
-            return Err(RollbackError::OutOfSync(OpSync { ops: slice }));
+            return Err(RollbackError::OutOfSync(OpSync {
+                owner: self.owner.clone(),
+                seed: self.seed.clone(),
+                ops: slice,
+            }));
         }
         let mut r_op = rollback.ops.ops.iter();
         for i_op in slice.ops.iter() {
             // If the id is unknown, the operation is unknow... so we continue.
             // Unknown, inactive ops ok to keep around. They can't affect anything
-            r_op.by_ref()
-                .find(|r| i_op.id == r.id)
-                .ok_or_else(|| RollbackError::OutOfSync(OpSync { ops: slice.clone() }))?;
+            r_op.by_ref().find(|r| i_op.id == r.id).ok_or_else(|| {
+                RollbackError::OutOfSync(OpSync {
+                    owner: self.owner.clone(),
+                    seed: self.seed.clone(),
+                    ops: slice.clone(),
+                })
+            })?;
         }
         // This should never return an Err
         self.overwrite(rollback.ops)
@@ -153,11 +173,9 @@ impl OpLog {
     /// Attempts to sync the local log with a remote log.
     /// Returns Err if the starting op id of the given log can't be found in this log.
     /// Otherwise, Ok is returned and contains a SyncStatus
-    pub fn sync(&mut self, other: OpSync) -> SyncStatus {
-        match self.slice_from_slice(&other.ops) {
-            Ok(slice) => slice.merge(other.ops),
-            Err(e) => SyncStatus::SyncError(Box::new(e)),
-        }
+    pub fn sync(&mut self, other: OpSync, base: &mut Tournament) -> SyncStatus {
+        let slice = self.slice_from_slice(&other.ops)?;
+        slice.merge(other.ops, base)
     }
 }
 
@@ -165,6 +183,16 @@ impl OpSlice {
     /// Creates a new slice
     pub fn new() -> Self {
         OpSlice { ops: Vec::new() }
+    }
+
+    /// Calculates the length of inner `Vec` of `FullOp`s
+    pub fn len(&self) -> usize {
+        self.ops.len()
+    }
+
+    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
+    pub fn is_empty(&self) -> bool {
+        self.ops.is_empty()
     }
 
     /// Adds an operation to the end of the OpSlice
@@ -219,22 +247,16 @@ impl OpSlice {
     /// The new log is then returned.
     ///
     /// Every operation "knows" what it blocks.
-    pub fn merge(self, other: OpSlice) -> SyncStatus {
+    pub fn merge(self, other: OpSlice, base: &mut Tournament) -> SyncStatus {
         let known_in_progress = self.clone();
         let accepted = Vec::with_capacity(self.ops.len() + other.ops.len()).into();
-        process_sync(self, known_in_progress, other, accepted)
+        process_sync(&mut base, self, known_in_progress, other, accepted)
     }
 }
 
 impl Default for OpSlice {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl From<Vec<FullOp>> for OpLog {
-    fn from(ops: Vec<FullOp>) -> Self {
-        Self { ops }
     }
 }
 

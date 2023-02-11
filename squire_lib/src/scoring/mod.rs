@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{identifiers::PlayerId, r64};
+use crate::{identifiers::PlayerId, players::PlayerRegistry, r64, rounds::RoundRegistry};
 
 /// Contains the models for the standard score
 pub mod standard_scoring;
@@ -38,5 +38,18 @@ where
     /// Creates a new, empty standings object
     pub fn new(scores: Vec<(PlayerId, S)>) -> Self {
         Standings { scores }
+    }
+}
+
+impl ScoringSystem {
+    /// Gets the current standings of all players
+    pub fn get_standings(
+        &self,
+        player_reg: &PlayerRegistry,
+        round_reg: &RoundRegistry,
+    ) -> Standings<StandardScore> {
+        match self {
+            ScoringSystem::Standard(s) => s.get_standings(player_reg, round_reg),
+        }
     }
 }

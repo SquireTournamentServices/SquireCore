@@ -1,8 +1,6 @@
 use std::{ops::Deref, slice::Iter};
 
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::{
     accounts::SquireAccount,
@@ -24,35 +22,22 @@ pub struct TournamentManager {
     tourn: Tournament,
     log: OpLog,
     /// The last OpId of the last operation after a successful sync
-    last_sync: OpId,
-    /// The tournament state that existed after the last sync
-    last_sync_state: Tournament,
+    last_sync: Option<OpId>,
 }
 
 impl TournamentManager {
     /// Creates a tournament manager, tournament, and operations log
     pub fn new(
         owner: SquireAccount,
-        name: String,
-        preset: TournamentPreset,
-        format: String,
+        seed: TournamentSeed,
     ) -> Self {
         let admin = Admin::new(owner.clone());
-        let first_op = FullOp {
-            op: TournOp::Create(owner, name.clone(), preset, format.clone()),
-            salt: Utc::now(),
-            id: Uuid::new_v4().into(),
-            active: true,
-        };
-        let last_sync = first_op.id;
-        let mut tourn = Tournament::from_preset(name, preset, format);
+        let mut tourn = Tournament::from(seed);
         tourn.admins.insert(admin.id, admin);
-        let last_sync_state = tourn.clone();
         Self {
             tourn,
-            log: OpLog::new(first_op),
-            last_sync,
-            last_sync_state,
+            log: OpLog::new(owner, seed),
+            last_sync: None,
         }
     }
 
@@ -91,13 +76,21 @@ impl TournamentManager {
     /// Gets a slice of the log starting at the operation of the last log.
     /// Primarily used by clients to track when they last synced with the server
     pub fn sync_request(&self) -> OpSync {
-        self.get_op_slice(self.last_sync).unwrap().into()
+        match self.last_sync {
+            Some(id) => self.get_op_slice(id).unwrap().into(),
+            None => self.log.ops.clone().into(),
+        }
     }
 
     /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op
     /// logs are merged and SyncStatus::Completed is returned.
     pub fn attempt_sync(&mut self, sy: OpSync) -> SyncStatus {
-        let sync = self.log.sync(sy);
+        let op_id = sy.ops.start_id().ok_or(SyncError::EmptySync)?;
+        let slice = self
+            .log
+            .slice_up_to(op_id)
+            .ok_or_else(|| SyncError::UnknownOperation(Box::new(sy.ops.start_op().unwrap())))?;
+        let sync = self.log.sync(base, sy);
         if let SyncStatus::Completed(comp) = &sync {
             let mut buffer = self.last_sync_state.clone();
             match comp
@@ -116,8 +109,7 @@ impl TournamentManager {
                 None => {
                     // Everything is good!!
                     self.log.overwrite(comp.ops.clone()).unwrap();
-                    self.last_sync = self.log.ops.last().unwrap().id;
-                    self.last_sync_state = buffer.clone();
+                    self.last_sync = Some(self.log.ops.last().unwrap().id);
                     self.tourn = buffer;
                 }
             }
@@ -130,7 +122,7 @@ impl TournamentManager {
         let id = ops.ops.first().map(|op| op.id);
         let digest = self.log.overwrite(ops);
         if digest.is_ok() {
-            self.last_sync = id.unwrap();
+            self.last_sync = Some(id.unwrap());
         }
         digest
     }
@@ -155,22 +147,20 @@ impl TournamentManager {
         }
         digest
     }
+    
+    fn get_tourn_start(&self) -> Tournament {
+        let OpLog { owner, seed, .. } = &self.log;
+        let admin = Admin::new(owner.clone());
+        let mut tourn = Tournament::from(seed.clone());
+        tourn.admins.insert(admin.id, admin);
+        tourn
+    }
 
     /// Returns an iterator over all the states of a tournament
     pub fn states(&self) -> StateIter<'_> {
-        let mut iter = self.log.ops.iter();
-        let tourn = match iter.next() {
-            Some(FullOp {
-                op: TournOp::Create(_, name, seed, format),
-                ..
-            }) => Tournament::from_preset(name.clone(), *seed, format.clone()),
-            _ => {
-                unreachable!("First operation isn't a create");
-            }
-        };
         StateIter {
-            state: tourn,
-            ops: iter,
+            state: self.get_tourn_start(),
+            ops: self.log.ops.iter(),
             shown_init: false,
         }
     }

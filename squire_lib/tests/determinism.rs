@@ -1,24 +1,24 @@
+mod utils;
+
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+
     use squire_lib::{
         accounts::SquireAccount,
         identifiers::AdminId,
         operations::{AdminOp, JudgeOp, TournOp},
         settings::{PairingSetting, TournamentSetting},
-        tournament::TournamentPreset,
     };
+
+    use crate::utils::get_seed;
 
     #[test]
     fn basic_determinism() {
         let account = SquireAccount::new("Test".into(), "Test".into());
         let a_id: AdminId = account.id.0.into();
-        let mut tourn_one = account
-            .create_tournament("Test".into(), TournamentPreset::Swiss, "Pioneer".into())
-            .extract();
-        let mut tourn_two = account
-            .create_tournament("Test".into(), TournamentPreset::Swiss, "Pioneer".into())
-            .extract();
+        let mut tourn_one = account.create_tournament(get_seed());
+        let mut tourn_two = account.create_tournament(get_seed());
         let now = Utc::now();
         let op = TournOp::AdminOp(
             a_id,

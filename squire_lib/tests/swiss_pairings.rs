@@ -1,52 +1,15 @@
+mod utils;
+
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use std::{collections::HashMap, time::Duration};
-    use uuid::Uuid;
 
     use squire_lib::{
-        accounts::{SharingPermissions, SquireAccount},
-        pairings::PairingSystem,
-        players::PlayerRegistry,
-        rounds::{RoundContext, RoundRegistry, RoundResult},
-        scoring::StandardScoring,
+        rounds::{RoundContext, RoundResult},
         settings::SwissPairingsSetting,
-        tournament::TournamentPreset,
     };
 
-    fn spoof_account() -> SquireAccount {
-        let id = Uuid::new_v4().into();
-        SquireAccount {
-            id,
-            user_name: id.to_string(),
-            display_name: id.to_string(),
-            gamer_tags: HashMap::new(),
-            permissions: SharingPermissions::Everything,
-        }
-    }
-
-    fn spoof_data(
-        count: usize,
-    ) -> (
-        PairingSystem,
-        PlayerRegistry,
-        RoundRegistry,
-        StandardScoring,
-    ) {
-        let mut plyrs = PlayerRegistry::new();
-        for _ in 0..count {
-            let _ = plyrs.register_player(spoof_account());
-        }
-
-        let mut sys = PairingSystem::new(TournamentPreset::Swiss);
-        sys.match_size = 4;
-        (
-            sys,
-            plyrs,
-            RoundRegistry::new(0, Duration::from_secs(0)),
-            StandardScoring::new(),
-        )
-    }
+    use crate::utils::spoof_data;
 
     #[test]
     fn check_ins_function() {
@@ -62,7 +25,6 @@ mod tests {
             assert!(sys.ready_to_pair(&plyrs, &rnds));
         }
 
-        //
         let (mut sys, plyrs, rnds, _) = spoof_data(4);
         sys.update_setting(SwissPairingsSetting::DoCheckIns(true).into())
             .unwrap();
@@ -132,11 +94,11 @@ mod tests {
         for (winner, rnd) in winners.iter().zip(matches.iter()) {
             assert!(rnds
                 .rounds
-                .get_mut(&rnd)
+                .get_mut(rnd)
                 .unwrap()
                 .record_result(RoundResult::Wins(*winner, 1))
                 .is_ok());
-            assert_eq!(rnds.rounds.get_mut(&rnd).unwrap().winner.unwrap(), *winner);
+            assert_eq!(rnds.rounds.get_mut(rnd).unwrap().winner.unwrap(), *winner);
         }
         for (pairing, rnd) in pairings.paired.iter().zip(matches.iter()) {
             assert!(rnds.rounds.get(rnd).unwrap().is_active());
@@ -160,7 +122,7 @@ mod tests {
         assert_eq!(pairings.rejected.len(), 0);
         // The first pairing should be the winners from the last round
         for plyr in winners.iter() {
-            assert!(pairings.paired[0].iter().find(|p| *p == plyr).is_some());
+            assert!(pairings.paired[0].iter().any(|p| p == plyr));
         }
         println!("Standings: {:?}", standings.get_standings(&plyrs, &rnds));
     }

@@ -21,7 +21,6 @@ use squire_lib::{
     players::Player,
     rounds::Round,
     tournament::{Tournament, TournamentPreset},
-    tournament_manager::TournamentManager,
 };
 
 use crate::{

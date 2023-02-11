@@ -1,24 +1,20 @@
-use std::{cell::RefCell, cmp::min};
+use std::{cell::RefCell, cmp::min, convert::Infallible, ops::FromResidual};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    accounts::SquireAccount,
     identifiers::{PlayerId, RoundId},
-    operations::{FullOp, OpSlice},
+    operations::{FullOp, OpDiff, OpSlice, OpUpdate},
+    tournament::{Tournament, TournamentSeed},
 };
-
-use super::{OpDiff, OpUpdate};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A struct to help resolve syncing op logs
 pub struct OpSync {
+    pub(crate) owner: SquireAccount,
+    pub(crate) seed: TournamentSeed,
     pub(crate) ops: OpSlice,
-}
-
-impl From<OpSlice> for OpSync {
-    fn from(ops: OpSlice) -> Self {
-        Self { ops }
-    }
 }
 
 impl OpSync {
@@ -42,6 +38,18 @@ pub enum SyncStatus {
     InProgress(Box<Blockage>),
     /// The logs have been successfully synced
     Completed(OpSync),
+}
+
+impl<E> FromResidual<Result<Infallible, E>> for SyncStatus
+where
+    E: Into<Box<SyncError>>,
+{
+    fn from_residual(residual: Result<Infallible, E>) -> Self {
+        match residual {
+            Ok(_) => unreachable!(""),
+            Err(err) => Self::SyncError(err.into()),
+        }
+    }
 }
 
 impl SyncStatus {
@@ -121,7 +129,8 @@ pub enum SyncError {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// A struct to help resolve blockages
 pub struct Blockage {
-    pub(crate) known: OpSlice,
+    pub(crate) base: Tournament,
+    pub(crate) known: OpSync,
     pub(crate) known_in_progress: OpSlice,
     pub(crate) accepted: OpSlice,
     pub(crate) other: OpSlice,
@@ -151,19 +160,21 @@ impl Blockage {
     /// Ignores the problematic operation and continues the syncing process
     pub fn ignore(self) -> SyncStatus {
         let Self {
+            mut base,
             known,
             known_in_progress,
             accepted,
             other,
             ..
         } = self;
-        process_sync(known, known_in_progress, other, accepted)
+        process_sync(&mut base, known, known_in_progress, other, accepted)
     }
 
     /// Accepts that the problematic operation is meant to occur after the operation it blocks and
     /// continues the syncing process
     pub fn push(mut self) -> SyncStatus {
         let Self {
+            base,
             known,
             mut known_in_progress,
             mut accepted,
@@ -189,6 +200,7 @@ impl Blockage {
             }
         };
         match process_sync_inner(
+            &mut base,
             &problem,
             known_in_progress.ops[blocks + 1..].iter(),
             time_update,
@@ -199,6 +211,7 @@ impl Blockage {
             SyncInnerStatus::Blockage(blocks) => {
                 self.blocks = blocks;
                 SyncStatus::InProgress(Box::new(Self {
+                    base,
                     known,
                     known_in_progress,
                     accepted,
@@ -209,7 +222,7 @@ impl Blockage {
             }
             SyncInnerStatus::Passes(None) => {
                 accepted.add_op(problem);
-                process_sync(known, known_in_progress, other, accepted)
+                process_sync(&mut base, known, known_in_progress, other, accepted)
             }
             SyncInnerStatus::Passes(Some(i)) => {
                 let len = min(known_in_progress.len() - 1, i);
@@ -222,13 +235,14 @@ impl Blockage {
                         .iter()
                         .for_each(|(old, new)| op.swap_round_ids(*old, *new));
                 });
-                process_sync(known, known_in_progress, other, accepted)
+                process_sync(&mut base, known, known_in_progress, other, accepted)
             }
         }
     }
 }
 
 pub(crate) fn process_sync(
+    base: &mut Tournament,
     mut known: OpSlice,
     mut known_in_progress: OpSlice,
     other: OpSlice,
@@ -269,7 +283,7 @@ pub(crate) fn process_sync(
     // Iterated through the other ops
     // For each op, iterate through known_in_progress
     for op in iter.by_ref() {
-        match process_sync_inner(&op, known.ops.iter(), time_update) {
+        match process_sync_inner(base, &op, known.ops.iter(), time_update) {
             SyncInnerStatus::Passes(Some(i)) => {
                 let len = min(known_in_progress.len() - 1, i);
                 known_in_progress.ops.drain(0..=len);
@@ -279,6 +293,7 @@ pub(crate) fn process_sync(
             }
             SyncInnerStatus::Blockage(blocks) => {
                 return SyncStatus::InProgress(Box::new(Blockage {
+                    base: base.clone(),
                     known,
                     known_in_progress,
                     accepted,
@@ -305,7 +320,12 @@ enum SyncInnerStatus {
     RollbackFound,
 }
 
-fn process_sync_inner<'a, I, F>(other: &'a FullOp, known: I, mut time_update: F) -> SyncInnerStatus
+fn process_sync_inner<'a, I, F>(
+    base: &mut Tournament,
+    other: &'a FullOp,
+    known: I,
+    mut time_update: F,
+) -> SyncInnerStatus
 where
     I: Iterator<Item = &'a FullOp>,
     F: FnMut(OpUpdate, OpUpdate),
@@ -313,10 +333,7 @@ where
     for (i, known_op) in known.enumerate() {
         match other.diff(known_op) {
             OpDiff::Different => {
-                // TODO: Verify that these are ordered correctly
-                if other.blocks(known_op) {
-                    return SyncInnerStatus::Blockage(i);
-                }
+                todo!("Implement tournament cursor/simulation method of checking for blockages");
             }
             OpDiff::Inactive => {
                 return SyncInnerStatus::RollbackFound;
