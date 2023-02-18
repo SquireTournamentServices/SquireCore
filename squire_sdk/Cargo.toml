@@ -37,6 +37,8 @@ async-session = { version = "3.0.0", optional = true }
 headers = { version = "0.3", optional = true }
 http = { version = "0.2", optional = true }
 
+chrono = { version = "0.4", features = ["serde"] }
+
 [dev-dependencies]
 tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }

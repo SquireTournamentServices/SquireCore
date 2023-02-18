@@ -13,13 +13,13 @@ use uuid::Uuid;
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge},
-    operations::FullOp,
     players::Player,
     rounds::Round,
     tournament::Tournament,
 };
 
-pub(crate) fn id_from_item<T, ID>(salt: DateTime<Utc>, item: T) -> TypeId<ID>
+/// Creates an ID (of any type) from a time and a hashable value
+pub fn id_from_item<T, ID>(salt: DateTime<Utc>, item: T) -> TypeId<ID>
 where
     T: Hash,
 {
@@ -31,7 +31,8 @@ where
     Uuid::from_u64_pair(upper, lower).into()
 }
 
-pub(crate) fn id_from_list<I, T, ID>(salt: DateTime<Utc>, vals: I) -> TypeId<ID>
+/// Creates an ID (of any type) from a time and a iterator of hashable values
+pub fn id_from_list<I, T, ID>(salt: DateTime<Utc>, vals: I) -> TypeId<ID>
 where
     I: Iterator<Item = T>,
     T: Hash,
@@ -59,8 +60,6 @@ pub type RoundId = TypeId<Round>;
 pub type TournamentId = TypeId<Tournament>;
 /// A type-checked Uuid for user accounts
 pub type SquireAccountId = TypeId<SquireAccount>;
-/// A type-checked Uuid for tournament operations
-pub type OpId = TypeId<FullOp>;
 /// A type-checked Uuid for tournament judges
 pub type JudgeId = TypeId<Judge>;
 /// A type-checked Uuid for tournament admin

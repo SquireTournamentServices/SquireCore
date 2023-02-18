@@ -7,7 +7,7 @@ use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
     error::TournamentError,
-    identifiers::{id_from_item, AdminId, OpId, PlayerId},
+    identifiers::{AdminId, PlayerId},
     rounds::{RoundId, RoundStatus},
 };
 
@@ -143,79 +143,20 @@ impl OpData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-/// An full operation used by the tournament manager to help track metadata for client-server
-/// syncing
-pub struct FullOp {
-    pub(crate) op: TournOp,
-    pub(crate) salt: DateTime<Utc>,
-    pub(crate) id: OpId,
-    pub(crate) active: bool,
-}
-
-/// An enum that captures the ways in which two `FullOp`s can differ. This is a vital part in the
-/// tournament syncing process.
-#[derive(Debug, Clone, Copy)]
-pub enum OpDiff {
-    /// The two operations are completely equal
-    Equal,
-    /// The two operations
-    Inactive,
-    /// The two operations are completely equal
-    Time,
-    /// The two operations are completely equal
-    Different,
-}
-
-impl FullOp {
-    /// Creates a new FullOp from an existing TournOp
-    pub fn new(op: TournOp) -> Self {
-        let salt = Utc::now();
-        let id = id_from_item(salt, &op);
-        Self {
-            op,
-            id,
-            salt,
-            active: true,
-        }
-    }
-
-    pub(crate) fn get_update(&self) -> OpUpdate {
-        self.op.get_update(self.salt)
-    }
-
-    pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
-        self.op.swap_player_ids(old, new)
-    }
-
-    pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
-        self.op.swap_round_ids(old, new)
-    }
-
-    /// Calculate the kind of difference (if any) there is between two operations
-    pub fn diff(&self, other: &Self) -> OpDiff {
-        if self.op != other.op {
-            OpDiff::Different
-        } else if self.active != other.active {
-            OpDiff::Inactive
-        } else if self.salt != other.salt {
-            OpDiff::Time
-        } else {
-            OpDiff::Equal
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 /// Encapsules the ways that an operation might need to be updated during the sync process
-pub(crate) enum OpUpdate {
+pub enum OpUpdate {
+    /// This operation has no update
     None,
+    /// This operation has a player id that can be updated
     PlayerId(PlayerId),
+    /// This operation has one or more round ids that can be updated
     RoundId(Vec<RoundId>),
 }
 
 impl OpUpdate {
-    pub(crate) fn assume_player_id(self) -> PlayerId {
+    /// Unwraps the update. Returns the player id if it exists and panics otherwise.
+    pub fn assume_player_id(self) -> PlayerId {
         match self {
             OpUpdate::None => panic!("OpUpdate assumed to be PlayerId but was None"),
             OpUpdate::PlayerId(id) => id,
@@ -223,7 +164,8 @@ impl OpUpdate {
         }
     }
 
-    pub(crate) fn assume_round_id(self) -> Vec<RoundId> {
+    /// Unwraps the update. Returns the round id(s) if present and panics otherwise.
+    pub fn assume_round_id(self) -> Vec<RoundId> {
         match self {
             OpUpdate::None => panic!("OpUpdate assumed to be RoundId but was None"),
             OpUpdate::PlayerId(_) => panic!("OpUpdate assumed to be RoundId but was PlayerId"),
@@ -233,7 +175,8 @@ impl OpUpdate {
 }
 
 impl TournOp {
-    pub(crate) fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
+    /// Returns the update that the operation can have
+    pub fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
         match self {
             TournOp::RegisterPlayer(_) => OpUpdate::None,
             TournOp::PlayerOp(_, p_op) => p_op.get_update(salt),
@@ -242,7 +185,8 @@ impl TournOp {
         }
     }
 
-    pub(crate) fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
+    /// Replaces an old player id with a new player id in the operation
+    pub fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
         match self {
             TournOp::RegisterPlayer(_) => {}
             TournOp::PlayerOp(p_id, _) => {
@@ -255,7 +199,8 @@ impl TournOp {
         }
     }
 
-    pub(crate) fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
+    /// Replaces an old round id with a new round id in the operation
+    pub fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
         match self {
             TournOp::RegisterPlayer(_) => {}
             TournOp::PlayerOp(_, p_op) => p_op.swap_round_ids(old, new),

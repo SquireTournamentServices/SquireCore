@@ -1,11 +1,21 @@
+use std::vec::IntoIter;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    accounts::SquireAccount,
-    identifiers::OpId,
-    operations::{process_sync, FullOp, OpSync, SyncError, SyncStatus},
-    tournament::{Tournament, TournamentSeed},
+    model::{
+        accounts::SquireAccount,
+        tournament::{Tournament, TournamentSeed},
+    },
+    sync::{
+        op_sync::{process_sync, OpSync},
+        sync_error::SyncError,
+        sync_status::SyncStatus,
+        FullOp, OpId,
+    },
 };
+
+use super::{Rollback, RollbackError};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An ordered list of all operations applied to a tournament
@@ -21,22 +31,6 @@ pub struct OpSlice {
     pub(crate) ops: Vec<FullOp>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-/// An enum that encodes that errors that can occur during a rollback
-pub enum RollbackError {
-    /// The rollback slice has an unknown starting point
-    SliceError(SyncError),
-    /// The log that doesn't contain the rollback contains operations that the rolled back log
-    /// doesn't contain
-    OutOfSync(OpSync),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-/// A struct used to communicate a rollback
-pub struct Rollback {
-    pub(crate) ops: OpSlice,
-}
-
 impl OpLog {
     /// Creates a new log
     pub fn new(owner: SquireAccount, seed: TournamentSeed) -> Self {
@@ -45,6 +39,11 @@ impl OpLog {
             seed,
             ops: vec![],
         }
+    }
+    
+    /// Creates the initial state of the tournament
+    pub fn init_tourn(&self) -> Tournament {
+        self.owner.create_tournament(self.seed.clone())
     }
 
     /// Calculates the length of inner `Vec` of `FullOp`s
@@ -60,6 +59,14 @@ impl OpLog {
     /// Adds an operation to the end of the OpLog
     pub fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
+    }
+    
+    /// Splits the log into two halves. The first operation in the second half will have the same
+    /// id as the given id (if that id can be found).
+    pub fn split_at(&self, id: OpId) -> (OpSlice, OpSlice) {
+        let index = self.ops.iter().position(|op| id == op.id).unwrap_or(self.ops.len());
+        let (left, right) = self.ops.split_at(index);
+        (left.to_vec().into(), right.to_vec().into())
     }
 
     pub(crate) fn slice_up_to(&self, id: OpId) -> Option<OpSlice> {
@@ -173,9 +180,14 @@ impl OpLog {
     /// Attempts to sync the local log with a remote log.
     /// Returns Err if the starting op id of the given log can't be found in this log.
     /// Otherwise, Ok is returned and contains a SyncStatus
-    pub fn sync(&mut self, other: OpSync, base: &mut Tournament) -> SyncStatus {
-        let slice = self.slice_from_slice(&other.ops)?;
-        slice.merge(other.ops, base)
+    pub fn sync(&mut self, sy: OpSync) -> SyncStatus {
+        let op_id = sy.first_id()?;
+        let (known, to_merge) = sy.bisect_log(self)?;
+        let mut base = self.init_tourn();
+        for op in known {
+            base.apply_op(op.salt, op.op).map_err(SyncError::from)?;
+        }
+        to_merge.merge(sy.ops, &mut base)
     }
 }
 
@@ -254,26 +266,12 @@ impl OpSlice {
     }
 }
 
-impl Default for OpSlice {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+impl IntoIterator for OpSlice {
+    type Item = FullOp;
 
-impl From<Vec<FullOp>> for OpSlice {
-    fn from(ops: Vec<FullOp>) -> Self {
-        Self { ops }
-    }
-}
+    type IntoIter = IntoIter<FullOp>;
 
-impl From<Rollback> for OpSlice {
-    fn from(r: Rollback) -> OpSlice {
-        r.ops
-    }
-}
-
-impl From<OpSync> for OpSlice {
-    fn from(s: OpSync) -> OpSlice {
-        s.ops
+    fn into_iter(self) -> Self::IntoIter {
+        self.ops.into_iter()
     }
 }
