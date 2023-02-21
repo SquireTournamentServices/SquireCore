@@ -1,26 +1,65 @@
+use std::{ops::FromResidual, convert::Infallible};
+
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    model::error::TournamentError,
-    sync::{op_log::OpSlice, op_sync::OpSync, FullOp}
-};
+use crate::model::error::TournamentError;
 
-/// An enum to that captures the error that might occur when sync op logs.
-/// `UnknownOperation` encodes that first operation in an OpSlice is unknown
-/// `RollbackFound` encode that a rollback has occured remotely but not locally and returns an
-/// OpSlice that contains everything since that rollback. When recieved, this new log should
-/// overwrite the local log
+use super::{OpId, processor::SyncProblem};
+
+/// An enum that captures errors with the validity of sync requests.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum SyncError {
     /// At least one of the logs was empty
     EmptySync,
-    /// The tournament logs were merged, but an operation is causing an error in the tournament
-    /// itself. Contains the operation that is causing the problem and the merged log
-    FailedSync(Box<(FullOp, OpSync)>),
-    /// The starting operation of the slice in unknown to the other log
-    UnknownOperation(Box<FullOp>),
+    /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
+    InvalidRequest,
     /// One of the logs contains a rollback that the other doesn't have
-    RollbackFound(OpSlice),
+    RollbackFound(OpId),
+    /// The starting operation of the slice in unknown to the other log
+    UnknownOperation(OpId),
     /// An error in the tournament occured (this should not happen)
     TournamentError(TournamentError),
+}
+
+/// An enum that captures issues found during the processing of a validated sync process
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum MergeError {
+    /// There is not simple way to solve the merge conflict. The user must take handle the merge
+    /// manually. This most frequently happens when a merge creates tournament errors
+    Irreconcilable,
+    /// The given log was either invalid or did not match the sync process
+    InvalidLog,
+    /// This error occurs when two slices can't be placed in arbitary order and the user must
+    /// handle merging them.
+    Incompatable(Box<SyncProblem>),
+}
+
+impl From<TournamentError> for MergeError {
+    fn from(_: TournamentError) -> Self {
+        Self::Irreconcilable
+    }
+}
+
+impl FromResidual<Result<Infallible, TournamentError>> for MergeError {
+    fn from_residual(residual: Result<Infallible, TournamentError>) -> Self {
+        match residual {
+            Ok(_) => unreachable!("Infallible"),
+            Err(_) => Self::Irreconcilable,
+        }
+    }
+}
+
+impl From<SyncError> for MergeError {
+    fn from(_: SyncError) -> Self {
+        Self::InvalidLog
+    }
+}
+
+impl FromResidual<Result<Infallible, SyncError>> for MergeError {
+    fn from_residual(residual: Result<Infallible, SyncError>) -> Self {
+        match residual {
+            Ok(_) => unreachable!("Infallible"),
+            Err(_) => Self::InvalidLog,
+        }
+    }
 }

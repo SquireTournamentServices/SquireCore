@@ -10,22 +10,24 @@ use crate::model::{
     tournament::*,
 };
 
-pub mod blockage;
-pub mod rollback;
 pub mod full_op;
+pub mod op_align;
 pub mod op_log;
 pub mod op_sync;
+pub mod processor;
+pub mod rollback;
 pub mod sync_error;
 pub mod sync_status;
 pub(crate) mod utils;
 
-pub use blockage::*;
-pub use rollback::*;
 pub use full_op::*;
 pub use op_log::*;
 pub use op_sync::*;
+pub use rollback::*;
 pub use sync_error::*;
 pub use sync_status::*;
+
+use self::processor::SyncProcessor;
 
 /// The id type for `FullOp`
 pub type OpId = TypeId<FullOp>;
@@ -46,12 +48,11 @@ pub struct TournamentManager {
 impl TournamentManager {
     /// Creates a tournament manager, tournament, and operations log
     pub fn new(owner: SquireAccount, seed: TournamentSeed) -> Self {
-        let admin = Admin::new(owner.clone());
-        let mut tourn = Tournament::from(seed);
-        tourn.admins.insert(admin.id, admin);
+        let log = OpLog::new(owner, seed);
+        let tourn = log.init_tourn();
         Self {
             tourn,
-            log: OpLog::new(owner, seed),
+            log,
             last_sync: None,
         }
     }
@@ -93,7 +94,7 @@ impl TournamentManager {
     pub fn sync_request(&self) -> OpSync {
         let ops = match self.last_sync {
             Some(id) => self.get_op_slice(id).unwrap(),
-            None => self.log.ops.clone().into(),
+            None => self.log.iter().cloned().collect(),
         };
         OpSync {
             owner: self.log.owner.clone(),
@@ -104,20 +105,25 @@ impl TournamentManager {
 
     /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op
     /// logs are merged and SyncStatus::Completed is returned.
-    pub fn attempt_sync(&mut self, sy: OpSync) -> SyncStatus {
-        let sync = self.log.sync(sy);
-        if let SyncStatus::Completed(comp) = &sync {
-            todo!()
+    pub fn attempt_sync(&mut self, sync: OpSync) -> SyncStatus {
+        let mut sync = SyncProcessor::new(sync, &self.log)?;
+        match sync.process(&self.log) {
+            Ok(()) => SyncStatus::Completed(OpSync {
+                owner: self.log.owner.clone(),
+                seed: self.log.seed.clone(),
+                ops: sync.iter_known().cloned().collect(),
+            }),
+            Err(err) => SyncStatus::InProgress(Box::new((sync, err))),
         }
-        sync
     }
 
     /// TODO:
     pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
-        let id = ops.ops.first().map(|op| op.id);
+        // FIXME: This should disactive old operations and then add the new operations
+        let id = ops.start_id().ok_or(SyncError::EmptySync)?;
         let digest = self.log.overwrite(ops);
         if digest.is_ok() {
-            self.last_sync = Some(id.unwrap());
+            self.last_sync = Some(id);
         }
         digest
     }

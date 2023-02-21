@@ -19,10 +19,7 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     accounts::*,
-    model::{
-        accounts::{OrganizationAccount, SquireAccount},
-        identifiers::{OrganizationAccountId as OrgId, SquireAccountId},
-    },
+    model::{accounts::SquireAccount, identifiers::SquireAccountId},
     server::{state::ServerState, User, COOKIE_NAME},
 };
 

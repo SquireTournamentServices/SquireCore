@@ -2,16 +2,18 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-pub use squire_lib::{
-    error::TournamentError,
-    identifiers::{OpId, TournamentId, TournamentIdentifier},
-    operations::{OpResult, OpSlice, OpSync, Rollback, RollbackError, SyncStatus, TournOp},
-    scoring::{StandardScore, Standings},
-    tournament::{Tournament, TournamentPreset},
-    tournament_manager::TournamentManager,
+pub use crate::{
+    model::{
+        error::TournamentError,
+        identifiers::{TournamentId, TournamentIdentifier},
+        operations::{OpResult, TournOp},
+        scoring::{StandardScore, Standings},
+        tournament::{Tournament, TournamentPreset},
+    },
+    sync::{OpId, OpSlice, OpSync, Rollback, RollbackError, SyncStatus, TournamentManager},
 };
 
-use crate::{response::SquireResponse, data::CompressedTournament};
+use crate::{data::CompressedTournament, response::SquireResponse};
 
 /// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
 /// requested tournament might not be found.
@@ -23,7 +25,8 @@ pub type GetAllTournamentsResponse = SquireResponse<Vec<TournamentManager>>;
 
 /// The response type used by the `tournaments/all` SC API. The inner data is a map between
 /// tournament id and tournament objects.
-pub type GetAllPastTournamentsResponse = SquireResponse<HashMap<TournamentId, CompressedTournament>>;
+pub type GetAllPastTournamentsResponse =
+    SquireResponse<HashMap<TournamentId, CompressedTournament>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/create` SC API. The fields contain all the data

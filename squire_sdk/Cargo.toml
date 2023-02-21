@@ -14,7 +14,7 @@ server = ["axum", "axum/json", "axum/macros", "axum/headers", "async-session", "
 
 [dependencies]
 # In-House deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", default-features = false }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffccde3b0eecd230c2f067e18383ed804c5f3" }
 squire_lib = { path = "../squire_lib", default-features = false }
 
 hashbag = { version = "0.1.10", features = ["serde"] }

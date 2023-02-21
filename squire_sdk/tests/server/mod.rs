@@ -10,18 +10,19 @@ use std::{error::Error, sync::Arc};
 use async_session::{async_trait, MemoryStore, SessionStore};
 use dashmap::DashMap;
 use mtgjson::mtgjson::{atomics::Atomics, meta::Meta};
-use squire_lib::{
-    identifiers::SquireAccountId,
-    operations::{OpSync, Rollback, RollbackError, SyncStatus},
-    tournament::{TournamentId, TournamentPreset},
-    tournament_manager::TournamentManager,
-};
 
 use squire_sdk::{
     accounts::VerificationData,
+    model::{
+        identifiers::SquireAccountId,
+        tournament::{TournamentId, TournamentPreset},
+    },
     server::{state::ServerState, User},
+    sync::{OpSync, Rollback, RollbackError, SyncStatus, TournamentManager},
     version::{ServerMode, Version},
 };
+
+use self::utils::get_seed;
 
 // `MemoryStore` is ephemeral and will not persist between test runs
 #[derive(Debug, Clone)]
@@ -65,7 +66,7 @@ impl ServerState for AppState {
         preset: TournamentPreset,
         format: String,
     ) -> TournamentManager {
-        let tourn = TournamentManager::new(user.account, name, preset, format);
+        let tourn = TournamentManager::new(user.account, get_seed());
         self.tourns.insert(tourn.id, tourn.clone());
         tourn
     }
@@ -74,15 +75,15 @@ impl ServerState for AppState {
     where
         F: Send + FnOnce(&TournamentManager) -> O,
     {
-        self.tourns.get(id).map(|t| (f)(&*t))
+        self.tourns.get(id).map(|t| (f)(&t))
     }
 
     async fn query_all_tournaments<F, O, Out>(&self, mut f: F) -> Out
     where
         Out: FromIterator<O>,
-        F: Send + FnMut(&TournamentManager) -> O
+        F: Send + FnMut(&TournamentManager) -> O,
     {
-        self.tourns.iter().map(|t| (f)(&*t)).collect()
+        self.tourns.iter().map(|t| (f)(&t)).collect()
     }
 
     async fn create_verification_data(&self, user: &User) -> VerificationData {

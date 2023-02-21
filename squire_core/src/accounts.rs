@@ -15,10 +15,7 @@ use once_cell::sync::OnceCell;
 
 use squire_sdk::{
     accounts::*,
-    model::{
-        accounts::{OrganizationAccount, SquireAccount},
-        identifiers::{OrganizationAccountId as OrgId, SquireAccountId},
-    },
+    model::{accounts::SquireAccount, identifiers::SquireAccountId},
     server::User,
     COOKIE_NAME,
 };

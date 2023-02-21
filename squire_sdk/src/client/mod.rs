@@ -15,13 +15,6 @@ use reqwest::{
     Client, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
-use squire_lib::{
-    accounts::SquireAccount,
-    identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
-    players::Player,
-    rounds::Round,
-    tournament::{Tournament, TournamentPreset},
-};
 
 use crate::{
     accounts::{
@@ -32,6 +25,14 @@ use crate::{
         CREATE_TOURNAMENT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
         VERSION_ROUTE,
     },
+    model::{
+        accounts::SquireAccount,
+        identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
+        players::Player,
+        rounds::Round,
+        tournament::{Tournament, TournamentPreset},
+    },
+    sync::TournamentManager,
     tournaments::CreateTournamentRequest,
     version::{ServerMode, Version},
     COOKIE_NAME,

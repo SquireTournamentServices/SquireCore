@@ -102,6 +102,7 @@ impl Tournament {
     /// Creates a new tournament from the defaults established by the given preset
     pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
         Tournament {
+            // TODO: This should be calculated from some salt and the name
             id: TournamentId::new(Uuid::new_v4()),
             name,
             use_table_number: true,

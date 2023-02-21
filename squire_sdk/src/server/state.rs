@@ -1,17 +1,16 @@
 use std::{error::Error, sync::Arc};
 
 use async_session::{async_trait, SessionStore};
-use squire_lib::{
-    operations::{OpSync, Rollback, RollbackError, SyncStatus},
-    tournament::TournamentId,
-    tournament_manager::TournamentManager,
-};
 
 use crate::{
     accounts::VerificationData,
     cards::{atomics::Atomics, meta::Meta},
-    model::{identifiers::SquireAccountId, tournament::TournamentPreset},
+    model::{
+        identifiers::SquireAccountId,
+        tournament::{TournamentId, TournamentPreset},
+    },
     server::User,
+    sync::{OpSync, Rollback, RollbackError, SyncStatus, TournamentManager},
     tournaments::SyncRequest,
     version::Version,
 };

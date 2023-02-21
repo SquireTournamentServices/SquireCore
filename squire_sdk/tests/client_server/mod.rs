@@ -34,9 +34,10 @@ pub async fn init() {
             let state = AppState::new();
             state.users.insert(user.account.id, user);
             let app = squire_sdk::server::create_router().into().with_state(state);
-            if let Err(_) = axum::Server::bind(&addr)
+            if axum::Server::bind(&addr)
                 .serve(app.into_make_service())
                 .await
+                .is_err()
             {
                 SERVER_STARTED.store(false, Ordering::Relaxed);
                 println!("Could not start server");
@@ -63,12 +64,12 @@ pub async fn init() {
 
 pub async fn get_client() -> SquireClient<SimpleState> {
     let mut counter = 0;
-    let mut timer = interval(Duration::from_millis(10));
+    let mut timer = interval(Duration::from_millis(50));
     loop {
         if let Some(false) = STARTING_UP
             .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
             .ok()
-            .and_then(|b| Some(b || CLIENT.get().is_some()))
+            .map(|b| b || CLIENT.get().is_some())
         {
             init().await;
         }

@@ -2,7 +2,9 @@ use std::{convert::Infallible, ops::FromResidual};
 
 use serde::{Deserialize, Serialize};
 
-use crate::sync::{blockage::Blockage, op_sync::OpSync, sync_error::SyncError};
+use crate::sync::{op_sync::OpSync, sync_error::SyncError};
+
+use super::{processor::SyncProcessor, MergeError};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An enum to help track the progress of the syncing of two op logs
@@ -10,7 +12,7 @@ pub enum SyncStatus {
     /// There was an error when attempting to initially sync
     SyncError(Box<SyncError>),
     /// There are discrepancies in between the two logs that are being synced
-    InProgress(Box<Blockage>),
+    InProgress(Box<(SyncProcessor, MergeError)>),
     /// The logs have been successfully synced
     Completed(OpSync),
 }
@@ -45,9 +47,9 @@ impl SyncStatus {
     }
 
     /// Comsumes self and returns the held error if `self` is `InProgress` and panics otherwise
-    pub fn assume_in_progress(self) -> Box<Blockage> {
+    pub fn assume_in_progress(self) -> Box<(SyncProcessor, MergeError)> {
         match self {
-            SyncStatus::InProgress(block) => block,
+            SyncStatus::InProgress(prog) => prog,
             SyncStatus::SyncError(err) => {
                 panic!("Sync status was not a blockage but was an error: {err:?}")
             }

@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{ops::Deref, collections::VecDeque};
 
 use squire_lib::error::TournamentError;
 
@@ -25,8 +25,8 @@ impl Default for OpSlice {
     }
 }
 
-impl From<Vec<FullOp>> for OpSlice {
-    fn from(ops: Vec<FullOp>) -> Self {
+impl From<VecDeque<FullOp>> for OpSlice {
+    fn from(ops: VecDeque<FullOp>) -> Self {
         Self { ops }
     }
 }
@@ -47,39 +47,5 @@ impl From<OpSync> for OpSlice {
 impl From<TournamentError> for SyncError {
     fn from(value: TournamentError) -> Self {
         SyncError::TournamentError(value)
-    }
-}
-
-impl From<OpSlice> for SyncError {
-    fn from(value: OpSlice) -> Self {
-        SyncError::RollbackFound(value)
-    }
-}
-
-impl From<(FullOp, OpSync)> for SyncError
-{
-    fn from(value: (FullOp, OpSync)) -> Self {
-        SyncError::FailedSync(Box::new(value))
-    }
-}
-
-impl From<Box<(FullOp, OpSync)>> for SyncError
-{
-    fn from(value: Box<(FullOp, OpSync)>) -> Self {
-        SyncError::FailedSync(value)
-    }
-}
-
-impl From<FullOp> for SyncError
-{
-    fn from(value: FullOp) -> Self {
-        SyncError::UnknownOperation(Box::new(value))
-    }
-}
-
-impl From<Box<FullOp>> for SyncError
-{
-    fn from(value: Box<FullOp>) -> Self {
-        SyncError::UnknownOperation(value)
     }
 }

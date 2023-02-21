@@ -10,6 +10,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tower::Service;
 
 use super::init::get_app;
+pub use crate::utils::*;
 
 pub async fn send_request(req: Request<Body>) -> Response {
     get_app().await.call(req).await.unwrap()

@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
-use squire_lib::{
-    identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
-    players::Player,
-    rounds::Round,
-    tournament_manager::TournamentManager,
+use crate::{
+    model::{
+        identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
+        players::Player,
+        rounds::Round,
+    },
+    sync::TournamentManager,
+    client::ClientState
 };
-
-use crate::client::ClientState;
 
 #[derive(Debug, Default, Clone)]
 pub struct SimpleState {
