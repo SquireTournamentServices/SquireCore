@@ -1,10 +1,10 @@
-use std::{ops::FromResidual, convert::Infallible};
+use std::{convert::Infallible, ops::FromResidual};
 
 use serde::{Deserialize, Serialize};
 
 use crate::model::error::TournamentError;
 
-use super::{OpId, processor::SyncProblem};
+use super::{processor::SyncProblem, OpId};
 
 /// An enum that captures errors with the validity of sync requests.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

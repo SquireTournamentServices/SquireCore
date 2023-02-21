@@ -1,4 +1,7 @@
-use std::{slice, collections::vec_deque::{Drain, IntoIter, Iter, VecDeque}};
+use std::{
+    collections::vec_deque::{Drain, IntoIter, Iter, VecDeque},
+    slice,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -70,7 +73,10 @@ impl OpLog {
             .position(|op| id == op.id)
             .unwrap_or(self.ops.len());
         let (left, right) = self.ops.split_at(index);
-        (left.iter().cloned().collect(), right.iter().cloned().collect())
+        (
+            left.iter().cloned().collect(),
+            right.iter().cloned().collect(),
+        )
     }
 
     /// Splits the log into two halves and returns the first half. The returned slice will stop at

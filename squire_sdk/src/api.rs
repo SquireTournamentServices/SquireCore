@@ -101,8 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn verify_misc_endpoints() {
-    }
+    fn verify_misc_endpoints() {}
 
     #[test]
     fn verify_misc_routes() {

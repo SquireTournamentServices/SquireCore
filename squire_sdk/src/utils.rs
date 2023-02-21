@@ -1,13 +1,9 @@
 use std::fmt::Display;
 
-
 #[macro_export]
 macro_rules! extend {
     ($url:ident, $ext:literal) => {
-        Url::new(
-            const_format::concatcp!($url.route, $ext),
-            $url.replacements
-        )
+        Url::new(const_format::concatcp!($url.route, $ext), $url.replacements)
     };
     ($url:ident, $ext:literal, $reps:literal) => {
         Url::new(

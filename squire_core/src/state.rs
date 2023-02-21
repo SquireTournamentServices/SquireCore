@@ -1,17 +1,18 @@
 use std::sync::Arc;
 
-use futures::stream::TryStreamExt;
 use async_session::{async_trait, MemoryStore, SessionStore};
+use futures::stream::TryStreamExt;
 use mongodb::{options::ClientOptions, Client as DbClient, Collection, Database};
 use squire_sdk::{
     accounts::{SquireAccount, SquireAccountId, VerificationData},
     cards::{atomics::Atomics, meta::Meta},
+    data::CompressedTournament,
     server::{state::ServerState, User},
     tournaments::{
         OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
         TournamentPreset,
     },
-    version::{ServerMode, Version}, data::CompressedTournament,
+    version::{ServerMode, Version},
 };
 
 #[derive(Debug, Clone)]

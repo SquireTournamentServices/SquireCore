@@ -6,12 +6,12 @@ mod tests {
         model::{
             accounts::SquireAccount,
             identifiers::AdminId,
-            operations::{JudgeOp, TournOp}
+            operations::{JudgeOp, TournOp},
         },
         sync::TournamentManager,
     };
 
-    use crate::utils::{spoof_account, get_seed};
+    use crate::utils::{get_seed, spoof_account};
 
     fn create_managers(
         creator: SquireAccount,

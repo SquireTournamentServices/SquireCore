@@ -1,4 +1,4 @@
-use std::{ops::Deref, collections::VecDeque};
+use std::{collections::VecDeque, ops::Deref};
 
 use squire_lib::error::TournamentError;
 

@@ -3,7 +3,7 @@ use squire_lib::{error::TournamentError, tournament::Tournament};
 
 use super::{
     op_align::{OpAlign, OpAlignment},
-    FullOp, OpId, OpLog, OpSlice, OpSync, SyncError, MergeError,
+    FullOp, MergeError, OpId, OpLog, OpSlice, OpSync, SyncError,
 };
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -96,7 +96,10 @@ impl SyncProcessor {
         if f_then_k == k_then_f {
             Ok(())
         } else {
-            Err(MergeError::Incompatable(Box::new(SyncProblem { known, foreign })))
+            Err(MergeError::Incompatable(Box::new(SyncProblem {
+                known,
+                foreign,
+            })))
         }
     }
 

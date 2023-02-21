@@ -1,14 +1,14 @@
 use std::{collections::HashMap, time::Duration};
 
 use hashbag::HashBag;
-use serde::{Serialize, Deserialize};
-use serde_with::{Seq, serde_as};
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, Seq};
 
 use squire_lib::{
     pairings::PairingSystem,
     players::{Deck, Player, PlayerId, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundContext, RoundId, RoundRegistry, RoundStatus},
-    scoring::{ScoringSystem, Standings, StandardScore},
+    scoring::{ScoringSystem, StandardScore, Standings},
     tournament::{Tournament, TournamentId, TournamentStatus},
 };
 

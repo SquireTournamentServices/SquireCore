@@ -17,7 +17,7 @@ pub(crate) async fn get_app() -> MutexGuard<'static, Router> {
         None => {
             let app_state = AppState::new().await;
             SERVER.get_or_init(|| init(app_state))
-        },
+        }
     };
     app.lock().await
 }

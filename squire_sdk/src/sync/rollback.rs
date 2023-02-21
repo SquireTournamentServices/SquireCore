@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::sync::{op_log::OpSlice, op_sync::OpSync, sync_error::SyncError};
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 /// A struct used to communicate a rollback
 pub struct Rollback {

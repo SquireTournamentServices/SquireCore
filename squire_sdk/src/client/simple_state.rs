@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use crate::{
+    client::ClientState,
     model::{
         identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
         players::Player,
         rounds::Round,
     },
     sync::TournamentManager,
-    client::ClientState
 };
 
 #[derive(Debug, Default, Clone)]

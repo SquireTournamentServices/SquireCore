@@ -18,6 +18,7 @@ use http::{header, request::Parts};
 
 use squire_sdk::{
     accounts::{SquireAccount, SquireAccountId, VerificationData},
+    api::{GET_ALL_PAST_TOURNAMENTS_ROUTE, TOURNAMENTS_ROUTE},
     cards::{atomics::Atomics, meta::Meta},
     response::SquireResponse,
     server::{self, state::ServerState, User},
@@ -25,14 +26,14 @@ use squire_sdk::{
         OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
         TournamentPreset,
     },
-    version::{ServerMode, Version}, api::{TOURNAMENTS_ROUTE, GET_ALL_PAST_TOURNAMENTS_ROUTE},
+    version::{ServerMode, Version},
 };
 
 #[cfg(test)]
 mod tests;
 
-mod tournaments;
 mod accounts;
+mod tournaments;
 //mod cards;
 mod state;
 
