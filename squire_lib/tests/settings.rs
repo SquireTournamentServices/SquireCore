@@ -1,9 +1,8 @@
-mod utils;
-
 #[cfg(test)]
 mod tests {
-
     use chrono::Utc;
+
+    use squire_tests::{get_fluid_seed, get_seed, spoof_account};
 
     use squire_lib::{
         error::TournamentError,
@@ -11,8 +10,6 @@ mod tests {
         operations::{AdminOp::*, TournOp},
         settings::*,
     };
-
-    use crate::utils::{get_fluid_seed, get_seed, spoof_account};
 
     #[test]
     fn basic_tournament_settings() {

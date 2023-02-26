@@ -2,7 +2,7 @@
 name = "squire_core"
 version = "0.1.0-pre-alpha.1"
 edition = "2021"
-license = "GPL-3.0"
+license = "AGPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 
@@ -30,5 +30,8 @@ tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
+# In-house
+squire_tests = { path = "../squire_tests" }
+
 tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }

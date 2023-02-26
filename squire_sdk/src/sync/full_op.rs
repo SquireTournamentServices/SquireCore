@@ -35,7 +35,7 @@ pub enum OpDiff {
 
 impl FullOp {
     /// Creates a new FullOp from an existing TournOp
-    pub fn new(op: TournOp) -> Self {
+    pub(crate) fn new(op: TournOp) -> Self {
         let salt = Utc::now();
         let id = id_from_item(salt, &op);
         Self {
@@ -59,7 +59,7 @@ impl FullOp {
     }
 
     /// Calculate the kind of difference (if any) there is between two operations
-    pub fn diff(&self, other: &Self) -> OpDiff {
+    pub(crate) fn diff(&self, other: &Self) -> OpDiff {
         if self.op != other.op {
             OpDiff::Different
         } else if self.active != other.active {

@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::{
     accounts::SquireAccount,
-    admin::Admin,
     identifiers::TypeId,
     operations::{OpResult, TournOp},
     tournament::*,
@@ -57,25 +56,10 @@ impl TournamentManager {
         }
     }
 
-    /// Calculates the number of operations that the manager is storing
-    pub fn get_op_count(&self) -> usize {
-        self.log.len()
-    }
-
     /// Read only accesses to tournaments don't need to be wrapped, so we can freely provide
     /// references to them
     pub fn tourn(&self) -> &Tournament {
         &self.tourn
-    }
-
-    /// Returns the latest active operation id
-    pub fn get_last_active_id(&self) -> OpId {
-        self.log
-            .ops
-            .iter()
-            .rev()
-            .find_map(|op| op.active.then_some(op.id))
-            .unwrap()
     }
 
     /// Takes the manager, removes all unnecessary data for storage, and return the underlying
@@ -149,18 +133,10 @@ impl TournamentManager {
         digest
     }
 
-    fn get_tourn_start(&self) -> Tournament {
-        let OpLog { owner, seed, .. } = &self.log;
-        let admin = Admin::new(owner.clone());
-        let mut tourn = Tournament::from(seed.clone());
-        tourn.admins.insert(admin.id, admin);
-        tourn
-    }
-
     /// Returns an iterator over all the states of a tournament
     pub fn states(&self) -> StateIter<'_> {
         StateIter {
-            state: self.get_tourn_start(),
+            state: self.log.init_tourn(),
             ops: self.log.ops.iter(),
             shown_init: false,
         }

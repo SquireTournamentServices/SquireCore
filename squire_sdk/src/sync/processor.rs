@@ -14,7 +14,7 @@ pub struct SyncProcessor {
 }
 
 impl SyncProcessor {
-    pub fn new(sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
+    pub(crate) fn new(sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
         let start_at = sync.first_id()?;
         let known = log.split_at_first(start_at);
         let align = OpAlign::new(known, sync.ops)?;
@@ -27,7 +27,7 @@ impl SyncProcessor {
 
     /// Processes the sync request by simulating different possible tournament histories. The log
     /// is used to recreate the initial tournament history.
-    pub fn process(&mut self, log: &OpLog) -> Result<(), MergeError> {
+    pub(crate) fn process(&mut self, log: &OpLog) -> Result<(), MergeError> {
         let mut tourn = log.split_at_tourn(self.start_at)?;
 
         // This shouldn't error. If it does, it is likely that the wrong log was passed in
@@ -50,7 +50,7 @@ impl SyncProcessor {
 
     /// Processes the sync request by simulating different possible tournament histories. The log
     /// is used to recreate the initial tournament history.
-    pub fn add_agreed_and_process(&mut self, ops: OpSlice, log: &OpLog) -> Result<(), MergeError> {
+    pub(crate) fn add_agreed_and_process(&mut self, ops: OpSlice, log: &OpLog) -> Result<(), MergeError> {
         let mut tourn = log.split_at_tourn(self.start_at)?;
 
         // This shouldn't error. If it does, it is likely that the wrong log was passed in
@@ -103,11 +103,11 @@ impl SyncProcessor {
         }
     }
 
-    pub fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
+    pub(crate) fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
         self.agreed.iter().chain(self.align.iter_known())
     }
 
-    pub fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
+    pub(crate) fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
         self.agreed.iter().chain(self.align.iter_foreign())
     }
 }

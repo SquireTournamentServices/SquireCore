@@ -31,7 +31,7 @@ pub struct OpSlice {
 
 impl OpLog {
     /// Creates a new log
-    pub fn new(owner: SquireAccount, seed: TournamentSeed) -> Self {
+    pub(crate) fn new(owner: SquireAccount, seed: TournamentSeed) -> Self {
         OpLog {
             owner,
             seed,
@@ -40,33 +40,33 @@ impl OpLog {
     }
 
     /// Creates the initial state of the tournament
-    pub fn init_tourn(&self) -> Tournament {
+    pub(crate) fn init_tourn(&self) -> Tournament {
         self.owner.create_tournament(self.seed.clone())
     }
 
     /// Calculates the length of inner `Vec` of `FullOp`s
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.ops.len()
     }
 
     /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
 
     /// Adds an operation to the end of the OpLog
-    pub fn add_op(&mut self, op: FullOp) {
+    pub(crate) fn add_op(&mut self, op: FullOp) {
         self.ops.push(op);
     }
 
     /// Returns an iterator over the log
-    pub fn iter(&self) -> slice::Iter<'_, FullOp> {
+    pub(crate) fn iter(&self) -> slice::Iter<'_, FullOp> {
         self.ops.iter()
     }
 
     /// Splits the log into two halves. The first operation in the second half will have the same
     /// id as the given id (if that id can be found).
-    pub fn split_at(&self, id: OpId) -> (OpSlice, OpSlice) {
+    pub(crate) fn split_at(&self, id: OpId) -> (OpSlice, OpSlice) {
         let index = self
             .ops
             .iter()
@@ -81,7 +81,7 @@ impl OpLog {
 
     /// Splits the log into two halves and returns the first half. The returned slice will stop at
     /// the last operation before given id, i.e. the slice will not contain the given operation.
-    pub fn split_at_first(&self, id: OpId) -> OpSlice {
+    pub(crate) fn split_at_first(&self, id: OpId) -> OpSlice {
         let index = self
             .ops
             .iter()
@@ -94,7 +94,7 @@ impl OpLog {
     /// Splits the log into two halves. The first half is used to populate the tournament. The
     /// first operation in the given slice will have the same id as the given id (if that id can be
     /// found).
-    pub fn split_at_tourn(&self, id: OpId) -> Result<Tournament, SyncError> {
+    pub(crate) fn split_at_tourn(&self, id: OpId) -> Result<Tournament, SyncError> {
         let mut tourn = self.init_tourn();
         let mut found = false;
         for op in self.ops.iter().cloned() {
@@ -162,7 +162,7 @@ impl OpLog {
 
     /// Removes all elements in the log starting at the first index of the given slice. All
     /// operations in the slice are then appended to the end of the log.
-    pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
+    pub(crate) fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
         let slice = self.slice_from_slice(&ops)?;
         let id = slice.start_id().unwrap();
         let index = self.ops.iter().position(|o| o.id == id).unwrap();
@@ -175,7 +175,7 @@ impl OpLog {
     /// that cause the closure to return `true` will be dropped and `false` will be kept. An
     /// operation causes `None` to be returned will end the iteration, will not be in the slice,
     /// but kept in the log.
-    pub fn create_rollback(&self, id: OpId) -> Option<Rollback> {
+    pub(crate) fn create_rollback(&self, id: OpId) -> Option<Rollback> {
         let mut ops = self.get_slice_extra(id, 1)?;
         ops.ops.iter_mut().skip(1).for_each(|op| op.active = false);
         Some(Rollback { ops })
@@ -188,7 +188,7 @@ impl OpLog {
     ///
     /// NOTE: An OpSync is returned as the error data because the sender needs to have an
     /// up-to-date history before sendings a rollback.
-    pub fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), RollbackError> {
+    pub(crate) fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), RollbackError> {
         let slice = self
             .slice_from_slice(&rollback.ops)
             .map_err(RollbackError::SliceError)?;
@@ -219,47 +219,47 @@ impl OpLog {
 
 impl OpSlice {
     /// Creates a new slice
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         OpSlice {
             ops: VecDeque::new(),
         }
     }
 
     /// Calculates the length of inner `Vec` of `FullOp`s
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.ops.len()
     }
 
     /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
 
     /// Adds an operation to the end of the OpSlice
-    pub fn add_op(&mut self, op: FullOp) {
+    pub(crate) fn add_op(&mut self, op: FullOp) {
         self.ops.push_back(op);
     }
 
     /// Returns the index of the first stored operation.
-    pub fn start_op(&self) -> Option<FullOp> {
+    pub(crate) fn start_op(&self) -> Option<FullOp> {
         self.ops.front().cloned()
     }
 
     /// Returns the index of the first stored operation.
-    pub fn start_id(&self) -> Option<OpId> {
+    pub(crate) fn start_id(&self) -> Option<OpId> {
         self.ops.front().map(|o| o.id)
     }
 
     /// Takes the slice and strips all inactive operations. This is only needed in the unlikely
     /// scenerio where a client rollbacks without communicating with the server and then tries to
     /// sync with the server.
-    pub fn squash(self) -> Self {
+    pub(crate) fn squash(self) -> Self {
         self.ops.into_iter().filter(|o| o.active).collect()
     }
 
     /// Splits the slice into two halves. The first operation in the second half will have the same
     /// id as the given id (if that id can be found).
-    pub fn split_at(&self, id: OpId) -> (OpSlice, OpSlice) {
+    pub(crate) fn split_at(&self, id: OpId) -> (OpSlice, OpSlice) {
         let mut left = OpSlice::new();
         let mut right = OpSlice::new();
         let mut found = false;
@@ -274,15 +274,15 @@ impl OpSlice {
         (left, right)
     }
 
-    pub fn iter(&self) -> Iter<'_, FullOp> {
+    pub(crate) fn iter(&self) -> Iter<'_, FullOp> {
         self.ops.iter()
     }
 
-    pub fn drain(&mut self) -> Drain<'_, FullOp> {
+    pub(crate) fn drain(&mut self) -> Drain<'_, FullOp> {
         self.ops.drain(0..)
     }
 
-    pub fn pop_front(&mut self) -> Option<FullOp> {
+    pub(crate) fn pop_front(&mut self) -> Option<FullOp> {
         self.ops.pop_front()
     }
 }
@@ -308,5 +308,19 @@ impl FromIterator<FullOp> for OpSlice {
 impl Extend<FullOp> for OpSlice {
     fn extend<T: IntoIterator<Item = FullOp>>(&mut self, iter: T) {
         self.ops.extend(iter)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use squire_tests::{spoof_account, get_seed};
+
+    use super::OpLog;
+
+    #[test]
+    fn new_and_init_tourn_test() {
+        let owner = spoof_account();
+        let seed = get_seed();
+        let log = OpLog::new(owner, seed);
     }
 }

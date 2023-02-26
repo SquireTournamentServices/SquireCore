@@ -1,15 +1,13 @@
-mod utils;
-
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+
+    use squire_tests::spoof_data;
 
     use squire_lib::{
         rounds::{RoundContext, RoundResult},
         settings::SwissPairingsSetting,
     };
-
-    use crate::utils::spoof_data;
 
     #[test]
     fn check_ins_function() {

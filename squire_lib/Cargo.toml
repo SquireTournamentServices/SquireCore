@@ -2,16 +2,15 @@
 name = "squire_lib"
 version = "0.1.0-pre-alpha.1"
 edition = "2021"
-license = "GPL-3.0"
+license = "AGPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 # The following allows DWARF-4 to work with Rust
 dwarf-version = 4
 
 [features]
-default = ["deck_sites"]
+default = []
 deck_sites = ["mtgjson/deck_sites"]
-wasm = ["chrono/wasmbind", "getrandom/js"]
 
 [dependencies]
 #In-house deps
@@ -29,8 +28,13 @@ num-rational = { version = "0.4.1", features = ["serde"] }
 html-escape = { version = "0.2.12" }
 getrandom = { version = "0.2" }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+chrono = { version = "0.4", features = ["serde", "wasmbind"] }
+
 [dev-dependencies]
 serde_json = { version = "1.0.68" }
+squire_tests = { path = "../squire_tests" }
 
 # This ensures that when the program crashes a usable stack trace can be generated
 [profile.release]

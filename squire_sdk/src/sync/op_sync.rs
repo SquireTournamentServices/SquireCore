@@ -14,19 +14,19 @@ pub struct OpSync {
 
 impl OpSync {
     /// Calculates the length of inner `Vec` of `FullOps`
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.ops.len()
     }
 
     /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
 
     /// Slipts an `OpLog` into two pieces based off the first operation in this sync. The first
     /// operation of this sync will be the first operation of the second half. If this log is empty
     /// or the first operation can't be found, an error is returned.
-    pub fn bisect_log(&self, log: &OpLog) -> Result<(OpSlice, OpSlice), SyncError> {
+    pub(crate) fn bisect_log(&self, log: &OpLog) -> Result<(OpSlice, OpSlice), SyncError> {
         let id = self.first_id()?;
         let slices = log.split_at(id);
         if slices.1.is_empty() {
@@ -38,13 +38,13 @@ impl OpSync {
 
     /// Returns the first operation, if it exists. Otherwise, a `SyncError::EmptySync` is
     /// returned.
-    pub fn first_op(&self) -> Result<FullOp, SyncError> {
+    pub(crate) fn first_op(&self) -> Result<FullOp, SyncError> {
         self.ops.start_op().ok_or(SyncError::EmptySync)
     }
 
     /// Returns the first operation's id, if it exists. Otherwise, a `SyncError::EmptySync` is
     /// returned.
-    pub fn first_id(&self) -> Result<OpId, SyncError> {
+    pub(crate) fn first_id(&self) -> Result<OpId, SyncError> {
         self.ops.start_id().ok_or(SyncError::EmptySync)
     }
 }

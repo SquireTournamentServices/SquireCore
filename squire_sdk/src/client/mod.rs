@@ -25,6 +25,7 @@ use crate::{
         CREATE_TOURNAMENT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
         VERSION_ROUTE,
     },
+    client::{error::ClientError, state::ClientState},
     model::{
         accounts::SquireAccount,
         identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
@@ -38,54 +39,18 @@ use crate::{
     COOKIE_NAME,
 };
 
+pub mod error;
 pub mod simple_state;
-
-pub trait ClientState {
-    fn query_tournament<Q, R>(&self, id: &TournamentId, query: Q) -> Option<R>
-    where
-        Q: FnOnce(&TournamentManager) -> R;
-
-    fn import_tournament(&mut self, tourn: TournamentManager);
-
-    fn query_player<Q, R>(
-        &self,
-        t_id: &TournamentId,
-        p_ident: &PlayerIdentifier,
-        query: Q,
-    ) -> Option<Option<R>>
-    where
-        Q: FnOnce(&Player) -> R,
-    {
-        self.query_tournament(t_id, |t| t.get_player(p_ident).ok().map(query))
-    }
-
-    fn query_round<Q, R>(
-        &self,
-        t_id: &TournamentId,
-        r_ident: &RoundIdentifier,
-        query: Q,
-    ) -> Option<Option<R>>
-    where
-        Q: FnOnce(&Round) -> R,
-    {
-        self.query_tournament(t_id, |t| t.get_round(r_ident).ok().map(query))
-    }
-}
-
-#[derive(Debug)]
-pub enum ClientError {
-    Reqwest(reqwest::Error),
-    RequestStatus(StatusCode),
-    NotLoggedIn,
-    LogInFailed,
-    FailedToConnect,
-}
+pub mod state;
 
 #[derive(Debug, Clone)]
 pub struct SquireClient<S> {
     client: Client,
     url: String,
     user: SquireAccount,
+    #[cfg(target_family = "wasm")]
+    session: Option<()>,
+    #[cfg(not(target_family = "wasm"))]
     session: Option<Cookie<'static>>,
     verification: Option<VerificationData>,
     server_mode: ServerMode,
@@ -167,6 +132,18 @@ where
     pub async fn login(&mut self) -> Result<(), ClientError> {
         let body = LoginRequest { id: self.user.id };
         let resp = self.post_request(LOGOUT_ROUTE.as_str(), body).await?;
+        self.store_cred(&resp)
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn store_cred(&mut self, _: &Response) -> Result<(), ClientError> {
+        // TODO: This is really all that we can do because of the browser?
+        self.session = Some(());
+        Ok(())
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    fn store_cred(&mut self, resp: &Response) -> Result<(), ClientError> {
         let session = resp
             .cookies()
             .find(|c| c.name() == COOKIE_NAME)
@@ -202,14 +179,9 @@ where
         let resp = self
             .post_request(VERIFY_ACCOUNT_ROUTE.as_str(), body)
             .await?;
-        let session = resp
-            .cookies()
-            .find(|c| c.name() == COOKIE_NAME)
-            .ok_or(ClientError::LogInFailed)?;
-        let cookie = Cookie::build(COOKIE_NAME, session.value().to_string()).finish();
+        self.store_cred(&resp)?;
         let digest: VerificationResponse = resp.json().await?;
         let digest = digest.0.map_err(|_| ClientError::LogInFailed)?;
-        self.session = Some(cookie);
         Ok(digest)
     }
 
@@ -246,17 +218,30 @@ where
     }
 
     async fn get_request_with_cookie(&self, path: &str) -> Result<Response, ClientError> {
-        let cookie = self
-            .session
-            .as_ref()
-            .ok_or(ClientError::NotLoggedIn)?
-            .to_string();
         self.client
             .get(format!("{}{path}", self.url))
-            .header(COOKIE, cookie.to_string())
+            .header(COOKIE, self.cred_string()?)
             .send()
             .await
             .map_err(Into::into)
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn cred_string(&self) -> Result<String, ClientError> {
+        self
+            .session
+            .as_ref()
+            .map(|_| String::new())
+            .ok_or(ClientError::NotLoggedIn)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    fn cred_string(&self) -> Result<String, ClientError> {
+        self
+            .session
+            .as_ref()
+            .map(|c| c.to_string())
+            .ok_or(ClientError::NotLoggedIn)
     }
 
     async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {
@@ -272,14 +257,9 @@ where
     where
         B: Serialize,
     {
-        let cookie = self
-            .session
-            .as_ref()
-            .ok_or(ClientError::NotLoggedIn)?
-            .to_string();
         self.client
             .post(format!("{}{path}", self.url))
-            .header(COOKIE, cookie.to_string())
+            .header(COOKIE, self.cred_string()?)
             .header(CONTENT_TYPE, "application/json")
             .body(serde_json::to_string(&body).unwrap())
             .send()

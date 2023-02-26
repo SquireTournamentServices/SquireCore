@@ -26,7 +26,7 @@ impl OpAlign {
     /// Consumes two op slices that are being used in the sync process. The first slice is the
     /// "known" slice that the other will be compared against. The other slice will be mutated if
     /// they contain operations that are functionality identical.
-    pub fn new(known: OpSlice, foreign: OpSlice) -> Result<Self, SyncError> {
+    pub(crate) fn new(known: OpSlice, foreign: OpSlice) -> Result<Self, SyncError> {
         /* ---- Updates to the foreign slice ---- */
         let player_updates = RefCell::new(Vec::<(PlayerId, PlayerId)>::new());
         let round_updates = RefCell::new(Vec::<(RoundId, RoundId)>::new());
@@ -114,38 +114,38 @@ impl OpAlign {
 
     /// Removed the next chunk of aligned operations. If `None` is returned, then there are no more
     /// chunks
-    pub fn next(&mut self) -> Option<OpAlignment> {
+    pub(crate) fn next(&mut self) -> Option<OpAlignment> {
         self.ops.pop()
     }
 
     /// Calculates how many chunks of the slices are contained
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.ops.len()
     }
 
     /// Calculates if any chunks are contained
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
 
-    pub fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
+    pub(crate) fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
         self.ops.iter().rev().map(|al| al.iter_known()).flatten()
     }
 
-    pub fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
+    pub(crate) fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
         self.ops.iter().rev().map(|al| al.iter_foreign()).flatten()
     }
 }
 
 impl OpAlignment {
-    pub fn iter_known(&self) -> AlignmentIter<'_> {
+    pub(crate) fn iter_known(&self) -> AlignmentIter<'_> {
         match self {
             OpAlignment::Agreed(op) => AlignmentIter::Agreed(Some(op)),
             OpAlignment::ToMerge((known, _)) => AlignmentIter::ToMerge(known.iter()),
         }
     }
 
-    pub fn iter_foreign(&self) -> AlignmentIter<'_> {
+    pub(crate) fn iter_foreign(&self) -> AlignmentIter<'_> {
         match self {
             OpAlignment::Agreed(op) => AlignmentIter::Agreed(Some(op)),
             OpAlignment::ToMerge((_, foreign)) => AlignmentIter::ToMerge(foreign.iter()),

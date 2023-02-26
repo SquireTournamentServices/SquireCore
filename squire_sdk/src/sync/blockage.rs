@@ -32,7 +32,7 @@ pub struct Problem<'a> {
 
 impl Blockage {
     /// Returns the problematic pair of operations.
-    pub fn problem(&self) -> Problem<'_> {
+    pub(crate) fn problem(&self) -> Problem<'_> {
         Problem {
             other: &self.problem,
             known: &self.known_in_progress.ops[self.blocks],
@@ -40,7 +40,7 @@ impl Blockage {
     }
 
     /// Ignores the problematic operation and continues the syncing process
-    pub fn ignore(self) -> SyncStatus {
+    pub(crate) fn ignore(self) -> SyncStatus {
         let Self {
             mut base,
             known,
@@ -54,7 +54,7 @@ impl Blockage {
 
     /// Accepts that the problematic operation is meant to occur after the operation it blocks and
     /// continues the syncing process
-    pub fn push(mut self) -> SyncStatus {
+    pub(crate) fn push(mut self) -> SyncStatus {
         let Self {
             base,
             known,

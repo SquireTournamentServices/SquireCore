@@ -1,4 +1,4 @@
-use squire_sdk::{client::ClientError, tournaments::TournamentPreset};
+use squire_sdk::{client::error::ClientError, tournaments::TournamentPreset};
 
 use crate::client_server::get_client;
 
