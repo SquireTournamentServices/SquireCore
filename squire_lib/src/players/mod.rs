@@ -132,3 +132,68 @@ impl Display for PlayerStatus {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_player_test() {
+        let player = Player::new("Morgan");
+        assert_eq!(player.name, "Morgan");
+    }
+
+    #[test]
+    fn adding_a_deck() {
+        let mut player = Player::new("Morgan");
+        player.add_deck("Edric", Deck::new("Edric"));
+        assert_eq!(player.deck_ordering, vec!["Edric"]);
+        
+    }
+    #[test]
+    fn getting_a_deck() {
+        let mut player = Player::new("Morgan");
+        player.add_deck("Edric", Deck::new("Edric"));
+        assert_eq!(player.get_deck("Edric"), Some(&Deck::new("Edric")));
+    }
+    #[test]
+    fn removing_a_deck() { 
+        let mut player = Player::new("Morgan");
+        player.add_deck("Edric", Deck::new("Edric"));
+        player.remove_deck("Edric");
+        assert_eq!(player.get_deck("Edric"), None);
+    }
+
+    #[test]
+    fn updating_status() {
+        let mut player = Player::new("Morgan");
+        player.update_status(PlayerStatus::Dropped);
+        assert_eq!(player.status, PlayerStatus::Dropped);
+    }
+    #[test]
+    fn can_play() {
+        let mut player = Player::new("Morgan");
+        assert!(!player.can_play());
+    }
+    #[test]
+    fn cant_play_if_dropped() {
+        let mut player = Player::new("Morgan");
+        player.update_status(PlayerStatus::Dropped);
+        assert_eq!(!player.can_play(),false); //I want the test to succeed if this is false
+    }
+    #[test]
+    fn adding_two_decks() {
+        let mut player = Player::new("Morgan");
+        player.add_deck("Edric", Deck::new("Edric"));
+        player.add_deck("Sisay", Deck::new("Sisay"));
+        assert_eq!(player.deck_ordering, vec!["Edric", "Sisay"]);
+    }
+    #[test]
+    fn removing_two_decks() {
+        let mut player = Player::new("Morgan");
+        player.add_deck("Edric", Deck::new("Edric"));
+        player.add_deck("Sisay", Deck::new("Sisay"));
+        player.remove_deck("Sisay");
+        assert_eq!(player.deck_ordering, vec!["Edric"]);
+    }
+}
