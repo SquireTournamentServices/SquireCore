@@ -1,0 +1,27 @@
+name: SquireCore CI
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  squire_core_build_tests:
+    name: SquireCore - Build Tests - Linux
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [nightly]
+        os: [ubuntu-latest]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
+      - run: cargo build --package squire_core --verbose
+      - run: cargo test --package squire_core --verbose
+      - run: cargo doc --package squire_core --verbose

@@ -3,7 +3,7 @@ use std::{
     fmt::Display,
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ops::Deref,
+    ops::Deref, str::FromStr,
 };
 
 use chrono::{DateTime, Utc};
@@ -181,6 +181,14 @@ impl<T> Serialize for TypeId<T> {
         S: Serializer,
     {
         self.0.serialize(serializer)
+    }
+}
+
+impl<T> FromStr for TypeId<T> {
+    type Err = <Uuid as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Uuid::from_str(s).map(Into::into)
     }
 }
 

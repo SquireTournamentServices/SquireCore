@@ -1,0 +1,42 @@
+name: SquireLib CI
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  squire_lib_build_tests:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [stable, beta, nightly]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
+      - run: cargo build --package squire_lib --verbose
+      - run: cargo test --package squire_lib --verbose
+      - run: cargo doc --package squire_lib --verbose
+  squire_lib_wasm_tests:
+    name: Wasm Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
+      - uses: actions/checkout@v2
+      - run: cargo build --package squire_lib --target=wasm32_unknown_unkown --verbose
+      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: wasm-pack test --headless --chrome --firefox --safari ./squire_lib/ --verbose

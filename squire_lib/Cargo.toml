@@ -36,6 +36,9 @@ chrono = { version = "0.4", features = ["serde", "wasmbind"] }
 serde_json = { version = "1.0.68" }
 squire_tests = { path = "../squire_tests" }
 
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.2"
+
 # This ensures that when the program crashes a usable stack trace can be generated
 [profile.release]
 debug = true

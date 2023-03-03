@@ -1,0 +1,43 @@
+name: SquireSDK CI
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  squire_sdk_build_tests:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [nightly]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: taiki-e/install-action@cargo-hack
+      - uses: actions/checkout@v2
+      - run: cargo hack build --package squire_sdk --verbose
+      - run: cargo hack test --package squire_sdk --verbose
+      - run: cargo hack doc --package squire_sdk --verbose
+  squire_lib_wasm_tests:
+    name: Wasm Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
+      - uses: actions/checkout@v2
+      - run: cargo build --package squire_sdk --target=wasm32_unknown_unkown --verbose
+      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: wasm-pack test --headless --chrome --firefox --safari ./squire_sdk/ --features="client" --verbose

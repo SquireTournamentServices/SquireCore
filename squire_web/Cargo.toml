@@ -1,0 +1,21 @@
+[package]
+name = "squire_web"
+version = "0.1.0-pre-alpha.1"
+edition = "2021"
+license = "AGPL-3.0"
+authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
+
+[build]
+target = "wasm32-unknown-unknown"
+
+[profile.release]
+lto = true
+opt-level="z"
+
+[dependencies]
+# In-House deps
+squire_sdk = { path = "../squire_sdk", features = ["client"] }
+
+yew = { version = "0.20", features = ["csr"] }
+yew-router = { version = "0.17.0" }
+once_cell = { version = "1.17" }
