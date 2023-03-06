@@ -653,8 +653,8 @@ impl Tournament {
             return Err(TournamentError::RegClosed);
         }
         let p = self.player_reg.get_player(ident)?;
-        if p.decks.len() as u8 >= self.max_deck_count {
-            return Err(TournamentError::InvalidDeckCount);
+        if plyr.decks.len() >= self.max_deck_count as usize {
+            return Err(TournamentError::MaxDecksReached);
         }
         let plyr = self.player_reg.get_mut_player(ident)?;
         plyr.add_deck(name, deck);
@@ -820,6 +820,9 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let plyr = self.player_reg.get_mut_player(&id)?;
+        if plyr.decks.len() >= self.max_deck_count as usize {
+            return Err(TournamentError::MaxDecksReached);
+        }
         plyr.add_deck(name, deck);
         Ok(OpData::Nothing)
     }

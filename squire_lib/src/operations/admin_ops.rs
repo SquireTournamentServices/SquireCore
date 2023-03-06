@@ -45,8 +45,6 @@ pub enum AdminOp {
     PairRound(Pairings),
     /// Operation to cut to the top N players (by standings)
     Cut(usize),
-    /// Operation to prune excess decks from players
-    PruneDecks,
     /// Operation to prune players that aren't fully registered
     PrunePlayers,
     /// Operation to confirm the results of all active rounds

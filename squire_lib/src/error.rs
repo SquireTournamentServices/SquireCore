@@ -43,6 +43,8 @@ pub enum TournamentError {
     InvalidDeckCount,
     /// There is at least one active match without a result
     NoMatchResult,
+    /// A player already had the max number of decks
+    MaxDecksReached,
 }
 
 impl fmt::Display for TournamentError {
