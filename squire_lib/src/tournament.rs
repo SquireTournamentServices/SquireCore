@@ -652,7 +652,7 @@ impl Tournament {
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        let p = self.player_reg.get_player(ident)?;
+        let plyr = self.player_reg.get_player(ident)?;
         if plyr.decks.len() >= self.max_deck_count as usize {
             return Err(TournamentError::MaxDecksReached);
         }
