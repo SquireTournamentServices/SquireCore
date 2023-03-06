@@ -7,7 +7,7 @@ use axum::{
     extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
     http::StatusCode,
     routing::get,
-    RequestPartsExt, Router, TypedHeader,
+    RequestPartsExt, Router, TypedHeader, response::Html,
 };
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
@@ -41,12 +41,17 @@ pub async fn init() {
     //cards::init().await;
 }
 
+const INDEX_HTML: &str = include_str!("../../assets/index.html");
+
+async fn landing() -> Html<&'static str> {
+    Html(INDEX_HTML)
+}
+
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
-        //.route("/api/v1/cards", get(cards::atomics))
-        //.route("/api/v1/meta", get(cards::meta))
         .into()
+        .route("/", get(landing))
         .with_state(state)
 }
 

@@ -3,6 +3,11 @@ Cargo.lock
 ./cbindgen.toml
 ./squire_core.h
 
+assets/*.js
+assets/*.wasm
+
+squire_web/dist
+
 squire_core.h
 
 cbindgen.toml

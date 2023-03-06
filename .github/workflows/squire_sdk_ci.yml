@@ -38,6 +38,6 @@ jobs:
           rust-version: ${{ matrix.rust }}
           target: wasm32-unknown-unknown
       - uses: actions/checkout@v2
-      - run: cargo build --package squire_sdk --target=wasm32_unknown_unkown --verbose
+      - run: cargo build --package squire_sdk --target=wasm32-unknown-unknown --verbose
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: wasm-pack test --headless --chrome --firefox --safari ./squire_sdk/ --features="client" --verbose

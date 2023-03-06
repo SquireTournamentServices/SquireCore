@@ -1,4 +1,4 @@
-name: Squire
+name: Squire CI
 
 on:
   push:
