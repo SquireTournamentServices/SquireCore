@@ -69,6 +69,7 @@ impl fmt::Display for TournamentError {
             InvalidDeckCount => "InvalidDeckCount",
             RoundConfirmed => "RoundConfirmed",
             NoMatchResult => "NoMatchResult",
+            MaxDecksReached => "MaxDecksReached",
         };
         write!(f, "{s}")
     }
