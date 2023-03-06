@@ -108,7 +108,7 @@ impl Tournament {
             use_table_number: true,
             format,
             min_deck_count: 1,
-            max_deck_count: 2,
+            max_deck_count: 1,
             player_reg: PlayerRegistry::new(),
             round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
             pairing_sys: PairingSystem::new(preset),
@@ -190,7 +190,6 @@ impl Tournament {
             AdminOp::CreateRound(p_ids) => self.create_round(salt, p_ids),
             AdminOp::PairRound(pairings) => self.pair(salt, pairings),
             AdminOp::Cut(n) => self.cut_to_top(n),
-            AdminOp::PruneDecks => self.prune_decks(),
             AdminOp::PrunePlayers => self.prune_players(),
             AdminOp::RegisterJudge(account) => self.register_judge(account),
             AdminOp::RegisterAdmin(account) => self.register_admin(account),
@@ -344,23 +343,6 @@ impl Tournament {
     pub fn get_standings(&self) -> Standings<StandardScore> {
         self.scoring_sys
             .get_standings(&self.player_reg, &self.round_reg)
-    }
-
-    /// Removes excess decks for players (as defined by `max_deck_count`). The newest decks are
-    /// kept.
-    pub(crate) fn prune_decks(&mut self) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        if self.require_deck_reg {
-            for (_, p) in self.player_reg.players.iter_mut() {
-                while p.decks.len() > self.max_deck_count as usize {
-                    let name = p.deck_ordering[0].clone();
-                    let _ = p.remove_deck(name);
-                }
-            }
-        }
-        Ok(OpData::Nothing)
     }
 
     /// Removes players from the tournament that did not complete registration.
@@ -670,6 +652,10 @@ impl Tournament {
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
+        let plyr = self.player_reg.get_player(ident)?;
+        if plyr.decks.len() >= self.max_deck_count as usize {
+            return Err(TournamentError::MaxDecksReached);
+        }
         let plyr = self.player_reg.get_mut_player(ident)?;
         plyr.add_deck(name, deck);
         Ok(OpData::Nothing)
@@ -834,6 +820,9 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let plyr = self.player_reg.get_mut_player(&id)?;
+        if plyr.decks.len() >= self.max_deck_count as usize {
+            return Err(TournamentError::MaxDecksReached);
+        }
         plyr.add_deck(name, deck);
         Ok(OpData::Nothing)
     }
