@@ -8,7 +8,7 @@ use super::{FullOp, OpDiff, OpSlice, SyncError};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OpAlignment {
     ToMerge((OpSlice, OpSlice)),
-    Agreed(FullOp),
+    Agreed(Box<FullOp>),
 }
 
 /// A struct to help in the tournament sync process. The struct aligns `OpSlice`s so that they can
@@ -102,7 +102,7 @@ impl OpAlign {
                     // Pop (from the front) the first op of the second half of the known slice and insert
                     // into ops
                     let k_op = right.pop_front().unwrap();
-                    ops.push(OpAlignment::Agreed(k_op));
+                    ops.push(OpAlignment::Agreed(Box::new(k_op)));
                 }
             }
         }
@@ -119,21 +119,21 @@ impl OpAlign {
     }
 
     /// Calculates how many chunks of the slices are contained
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.ops.len()
     }
 
     /// Calculates if any chunks are contained
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
 
-    pub(crate) fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
-        self.ops.iter().rev().map(|al| al.iter_known()).flatten()
+    pub fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
+        self.ops.iter().rev().flat_map(|al| al.iter_known())
     }
 
-    pub(crate) fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
-        self.ops.iter().rev().map(|al| al.iter_foreign()).flatten()
+    pub fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
+        self.ops.iter().rev().flat_map(|al| al.iter_foreign())
     }
 }
 

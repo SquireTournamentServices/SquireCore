@@ -45,38 +45,18 @@ impl OpLog {
     }
 
     /// Calculates the length of inner `Vec` of `FullOp`s
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.ops.len()
     }
 
     /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.ops.is_empty()
-    }
-
-    /// Adds an operation to the end of the OpLog
-    pub(crate) fn add_op(&mut self, op: FullOp) {
-        self.ops.push(op);
     }
 
     /// Returns an iterator over the log
     pub(crate) fn iter(&self) -> slice::Iter<'_, FullOp> {
         self.ops.iter()
-    }
-
-    /// Splits the log into two halves. The first operation in the second half will have the same
-    /// id as the given id (if that id can be found).
-    pub(crate) fn split_at(&self, id: OpId) -> (OpSlice, OpSlice) {
-        let index = self
-            .ops
-            .iter()
-            .position(|op| id == op.id)
-            .unwrap_or(self.ops.len());
-        let (left, right) = self.ops.split_at(index);
-        (
-            left.iter().cloned().collect(),
-            right.iter().cloned().collect(),
-        )
     }
 
     /// Splits the log into two halves and returns the first half. The returned slice will stop at
@@ -112,20 +92,6 @@ impl OpLog {
         Ok(tourn)
     }
 
-    pub(crate) fn slice_up_to(&self, id: OpId) -> Option<OpSlice> {
-        let mut found = false;
-        let ops = self
-            .ops
-            .iter()
-            .cloned()
-            .take_while(|op| {
-                found &= op.id == id;
-                found
-            })
-            .collect();
-        found.then_some(OpSlice { ops })
-    }
-
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
     pub(crate) fn get_slice(&self, id: OpId) -> Option<OpSlice> {
@@ -153,7 +119,7 @@ impl OpLog {
         let op = ops.start_op().ok_or(SyncError::EmptySync)?;
         let slice = self
             .get_slice(op.id)
-            .ok_or_else(|| SyncError::UnknownOperation(op.id))?;
+            .ok_or(SyncError::UnknownOperation(op.id))?;
         match slice.start_op().unwrap() == op {
             true => Ok(slice),
             false => Err(SyncError::RollbackFound(op.id)),
@@ -188,16 +154,17 @@ impl OpLog {
     ///
     /// NOTE: An OpSync is returned as the error data because the sender needs to have an
     /// up-to-date history before sendings a rollback.
-    pub(crate) fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), RollbackError> {
+    #[allow(dead_code)]
+    pub(crate) fn apply_rollback(&mut self, rollback: Rollback) -> Result<(), Box<RollbackError>> {
         let slice = self
             .slice_from_slice(&rollback.ops)
             .map_err(RollbackError::SliceError)?;
         if slice.ops.len() > rollback.ops.ops.len() {
-            return Err(RollbackError::OutOfSync(OpSync {
+            return Err(Box::new(RollbackError::OutOfSync(OpSync {
                 owner: self.owner.clone(),
                 seed: self.seed.clone(),
                 ops: slice,
-            }));
+            })));
         }
         let mut r_op = rollback.ops.ops.iter();
         for i_op in slice.ops.iter() {
@@ -213,7 +180,7 @@ impl OpLog {
         }
         // This should never return an Err
         self.overwrite(rollback.ops)
-            .map_err(RollbackError::SliceError)
+            .map_err(|e| Box::new(RollbackError::SliceError(e)))
     }
 }
 
@@ -248,13 +215,6 @@ impl OpSlice {
     /// Returns the index of the first stored operation.
     pub(crate) fn start_id(&self) -> Option<OpId> {
         self.ops.front().map(|o| o.id)
-    }
-
-    /// Takes the slice and strips all inactive operations. This is only needed in the unlikely
-    /// scenerio where a client rollbacks without communicating with the server and then tries to
-    /// sync with the server.
-    pub(crate) fn squash(self) -> Self {
-        self.ops.into_iter().filter(|o| o.active).collect()
     }
 
     /// Splits the slice into two halves. The first operation in the second half will have the same
@@ -321,6 +281,6 @@ mod tests {
     fn new_and_init_tourn_test() {
         let owner = spoof_account();
         let seed = get_seed();
-        let log = OpLog::new(owner, seed);
+        let _log = OpLog::new(owner, seed);
     }
 }

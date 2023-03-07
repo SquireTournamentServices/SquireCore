@@ -5,9 +5,6 @@ edition = "2021"
 license = "AGPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
-# The following allows DWARF-4 to work with Rust
-dwarf-version = 4
-
 [features]
 default = []
 deck_sites = ["mtgjson/deck_sites"]
@@ -38,7 +35,3 @@ squire_tests = { path = "../squire_tests" }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.2"
-
-# This ensures that when the program crashes a usable stack trace can be generated
-[profile.release]
-debug = true

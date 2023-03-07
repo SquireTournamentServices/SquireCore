@@ -34,8 +34,8 @@ mod tests {
                     UpdateTournSetting(TournamentSetting::MinDeckCount(2))
                 )
             )
-            .is_ok());
-        assert_eq!(2, tourn.min_deck_count);
+            .is_err());
+        assert_eq!(1, tourn.min_deck_count);
         assert!(tourn
             .apply_op(
                 Utc::now(),
@@ -44,7 +44,7 @@ mod tests {
                     UpdateTournSetting(TournamentSetting::MaxDeckCount(1))
                 )
             )
-            .is_err());
+            .is_ok());
         assert!(tourn
             .apply_op(
                 Utc::now(),
@@ -55,6 +55,16 @@ mod tests {
             )
             .is_ok());
         assert_eq!(42, tourn.max_deck_count);
+        assert!(tourn
+            .apply_op(
+                Utc::now(),
+                TournOp::AdminOp(
+                    admin_id,
+                    UpdateTournSetting(TournamentSetting::MinDeckCount(40))
+                )
+            )
+            .is_ok());
+        assert_eq!(40, tourn.min_deck_count);
     }
 
     #[test]

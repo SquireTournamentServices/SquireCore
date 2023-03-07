@@ -1,5 +1,4 @@
 [workspace]
-
 members = [
     "squire_lib",
     "squire_core",
@@ -7,3 +6,13 @@ members = [
     "squire_tests",
     "squire_web",
 ]
+
+[profile.release]
+lto = true
+
+# This ensures that when the program crashes a usable stack trace can be generated
+[profile.release.package.squire_lib]
+debug = true
+
+[profile.release.package.squire_web]
+opt-level="z"

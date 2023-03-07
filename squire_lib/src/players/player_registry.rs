@@ -118,9 +118,8 @@ impl PlayerRegistry {
         if self.name_and_id.contains_left(&name) {
             Err(PlayerAlreadyRegistered)
         } else {
-            let id = Player::create_guest_id(salt, &name);
             let mut plyr = Player::new(name.clone());
-            plyr.id = id.into();
+            plyr.id = Player::create_guest_id(salt, &name);
             let digest = Ok(plyr.id);
             self.name_and_id.insert(name, plyr.id);
             self.players.insert(plyr.id, plyr);

@@ -37,7 +37,7 @@ impl SyncProcessor {
             match alignment {
                 OpAlignment::Agreed(op) => {
                     tourn.apply_op(op.salt, op.op.clone())?;
-                    self.agreed.add_op(op);
+                    self.agreed.add_op(*op);
                 }
                 OpAlignment::ToMerge((known, foriegn)) => {
                     self.process_slices(&mut tourn, known, foriegn)?;
@@ -50,7 +50,7 @@ impl SyncProcessor {
 
     /// Processes the sync request by simulating different possible tournament histories. The log
     /// is used to recreate the initial tournament history.
-    pub(crate) fn add_agreed_and_process(&mut self, ops: OpSlice, log: &OpLog) -> Result<(), MergeError> {
+    pub fn add_agreed_and_process(&mut self, ops: OpSlice, log: &OpLog) -> Result<(), MergeError> {
         let mut tourn = log.split_at_tourn(self.start_at)?;
 
         // This shouldn't error. If it does, it is likely that the wrong log was passed in
@@ -64,7 +64,7 @@ impl SyncProcessor {
             match alignment {
                 OpAlignment::Agreed(op) => {
                     tourn.apply_op(op.salt, op.op.clone())?;
-                    self.agreed.add_op(op);
+                    self.agreed.add_op(*op);
                 }
                 OpAlignment::ToMerge((known, foriegn)) => {
                     self.process_slices(&mut tourn, known, foriegn)?;
@@ -103,11 +103,11 @@ impl SyncProcessor {
         }
     }
 
-    pub(crate) fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
+    pub fn iter_known(&self) -> impl Iterator<Item = &'_ FullOp> {
         self.agreed.iter().chain(self.align.iter_known())
     }
 
-    pub(crate) fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
+    pub fn iter_foreign(&self) -> impl Iterator<Item = &'_ FullOp> {
         self.agreed.iter().chain(self.align.iter_foreign())
     }
 }
