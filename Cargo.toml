@@ -4,8 +4,9 @@ members = [
     "squire_core",
     "squire_sdk",
     "squire_tests",
-    "squire_web",
 ]
+
+exclude = ["squire_web"]
 
 [profile.release]
 lto = true
@@ -13,6 +14,3 @@ lto = true
 # This ensures that when the program crashes a usable stack trace can be generated
 [profile.release.package.squire_lib]
 debug = true
-
-[profile.release.package.squire_web]
-opt-level="z"

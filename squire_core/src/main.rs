@@ -7,13 +7,12 @@ use axum::{
     extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
     http::StatusCode,
     routing::get,
-    RequestPartsExt, Router, TypedHeader, response::Html,
+    RequestPartsExt, Router, TypedHeader, response::{Html, IntoResponse, Response},
 };
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use state::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use http::{header, request::Parts};
 
 use squire_sdk::{
@@ -34,24 +33,24 @@ mod tests;
 
 mod accounts;
 mod tournaments;
-//mod cards;
 mod state;
+mod assets;
 
 pub async fn init() {
-    //cards::init().await;
 }
 
 const INDEX_HTML: &str = include_str!("../../assets/index.html");
-
-async fn landing() -> Html<&'static str> {
-    Html(INDEX_HTML)
-}
+const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm");
+const APP_JS: &str = include_str!("../../assets/squire_web.js");
 
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
         .into()
-        .route("/", get(landing))
+        .route("/", get(assets::landing))
+        .route("/squire_web_bg.wasm", get(assets::get_wasm))
+        .route("/squire_web.js", get(assets::get_js))
+        .fallback(assets::landing)
         .with_state(state)
 }
 

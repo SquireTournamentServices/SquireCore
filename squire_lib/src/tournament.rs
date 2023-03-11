@@ -139,7 +139,7 @@ impl Tournament {
             PlayerOp::RecordResult(r_id, result) => self.record_result(&r_id, result),
             PlayerOp::ConfirmResult(r_id) => self.confirm_round(r_id, p_id),
             PlayerOp::DropPlayer => self.drop_player(p_id),
-            PlayerOp::AddDeck(name, deck) => self.player_add_deck(&p_id, name, deck),
+            PlayerOp::AddDeck(name, deck) => self.player_add_deck(p_id, name, deck),
             PlayerOp::RemoveDeck(name) => self.remove_player_deck(&p_id, name),
             PlayerOp::SetGamerTag(tag) => self.player_set_game_name(&p_id, tag),
             PlayerOp::ReadyPlayer => self.ready_player(salt, &p_id),
@@ -200,6 +200,11 @@ impl Tournament {
     /// Calculates if the tournament is planned
     pub fn is_planned(&self) -> bool {
         self.status == TournamentStatus::Planned
+    }
+
+    /// Calculates if the tournament is planned
+    pub fn is_ongoing(&self) -> bool {
+        self.status == TournamentStatus::Planned || self.status == TournamentStatus::Started
     }
 
     /// Calculates if the tournament is frozen
@@ -315,8 +320,8 @@ impl Tournament {
         Ok(self
             .round_reg
             .rounds
-            .iter()
-            .filter_map(|(_, r)| r.players.contains(&id).then_some(r))
+            .values()
+            .filter_map(|r| r.players.contains(&id).then_some(r))
             .collect())
     }
 
@@ -349,11 +354,11 @@ impl Tournament {
     /// This include players that did not submit enough decks (defined by `require_deck_reg` and
     /// `min_deck_count`) and that didn't check in (defined by `require_check_in`).
     pub(crate) fn prune_players(&mut self) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
+        if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if self.require_deck_reg {
-            for (_, p) in self.player_reg.players.iter_mut() {
+            for p in self.player_reg.players.values_mut() {
                 if p.decks.len() < self.min_deck_count as usize {
                     p.update_status(PlayerStatus::Dropped);
                 }
@@ -371,7 +376,7 @@ impl Tournament {
 
     /// Adds a time extension to a round
     pub(crate) fn give_time_extension(&mut self, rnd: &RoundId, ext: Duration) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
+        if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let round = self.round_reg.get_mut_round(rnd)?;
@@ -381,7 +386,7 @@ impl Tournament {
 
     /// Checks in a player for the tournament.
     pub(crate) fn check_in(&mut self, id: PlayerId) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
+        if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if self.is_planned() {
@@ -546,23 +551,24 @@ impl Tournament {
 
     /// Adds a player to the tournament
     pub(crate) fn register_player(&mut self, account: SquireAccount) -> OpResult {
-        if !(self.is_active() || self.is_planned()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if !self.is_ongoing() {
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else if !self.reg_open {
+            Err(TournamentError::RegClosed)
+        } else {
+            let id = self.player_reg.register_player(account)?;
+            Ok(OpData::RegisterPlayer(id))
         }
-        if !self.reg_open {
-            return Err(TournamentError::RegClosed);
-        }
-        let id = self.player_reg.register_player(account)?;
-        Ok(OpData::RegisterPlayer(id))
     }
 
     /// Records part of the result of a round
     pub(crate) fn record_result(&mut self, r_id: &RoundId, result: RoundResult) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus(self.status));
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else {
+            self.round_reg.get_mut_round(r_id)?.record_result(result)?;
+            Ok(OpData::Nothing)
         }
-        self.round_reg.get_mut_round(r_id)?.record_result(result)?;
-        Ok(OpData::Nothing)
     }
 
     /// A player confirms the round record
@@ -640,30 +646,19 @@ impl Tournament {
     }
 
     /// Adds a deck to a player's registration data
-    pub(crate) fn player_add_deck(
-        &mut self,
-        ident: &PlayerId,
-        name: String,
-        deck: Deck,
-    ) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
+    pub(crate) fn player_add_deck(&mut self, id: PlayerId, name: String, deck: Deck) -> OpResult {
+        if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if !self.reg_open {
             return Err(TournamentError::RegClosed);
         }
-        let plyr = self.player_reg.get_player(ident)?;
-        if plyr.decks.len() >= self.max_deck_count as usize {
-            return Err(TournamentError::MaxDecksReached);
-        }
-        let plyr = self.player_reg.get_mut_player(ident)?;
-        plyr.add_deck(name, deck);
-        Ok(OpData::Nothing)
+        self.add_deck(id, name, deck)
     }
 
     /// Removes a player's deck from their registration data
     pub(crate) fn remove_player_deck(&mut self, ident: &PlayerId, name: String) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
+        if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let plyr = self.player_reg.get_mut_player(ident)?;
@@ -673,7 +668,7 @@ impl Tournament {
 
     /// Sets a player's gamer tag
     pub(crate) fn player_set_game_name(&mut self, ident: &PlayerId, name: String) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
+        if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let plyr = self.player_reg.get_mut_player(ident)?;
@@ -772,55 +767,68 @@ impl Tournament {
     }
 
     fn admin_register_player(&mut self, account: SquireAccount) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if !self.is_ongoing() {
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else {
+            Ok(OpData::RegisterPlayer(
+                self.player_reg.register_player(account)?,
+            ))
         }
-        Ok(OpData::RegisterPlayer(
-            self.player_reg.register_player(account)?,
-        ))
     }
 
     fn register_guest(&mut self, salt: DateTime<Utc>, name: String) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if !self.is_ongoing() {
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else {
+            Ok(OpData::RegisterPlayer(
+                self.player_reg.add_guest(salt, name)?,
+            ))
         }
-        Ok(OpData::RegisterPlayer(
-            self.player_reg.add_guest(salt, name)?,
-        ))
     }
 
     fn reregister_guest(&mut self, name: String) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if !self.is_ongoing() {
+             Err(TournamentError::IncorrectStatus(self.status))
+        } else {
+            self.player_reg.reregister_guest(name)?;
+            Ok(OpData::Nothing)
         }
-        self.player_reg.reregister_guest(name)?;
-        Ok(OpData::Nothing)
     }
 
     fn register_judge(&mut self, account: SquireAccount) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if !self.is_ongoing() {
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else {
+            let judge = Judge::new(account);
+            self.judges.insert(judge.id, judge.clone());
+            Ok(OpData::RegisterJudge(judge))
         }
-        let judge = Judge::new(account);
-        self.judges.insert(judge.id, judge.clone());
-        Ok(OpData::RegisterJudge(judge))
     }
 
     fn register_admin(&mut self, account: SquireAccount) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if !self.is_ongoing() {
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else {
+            let admin = Admin::new(account);
+            self.admins.insert(admin.id, admin.clone());
+            Ok(OpData::RegisterAdmin(admin))
         }
-        let admin = Admin::new(account);
-        self.admins.insert(admin.id, admin.clone());
-        Ok(OpData::RegisterAdmin(admin))
     }
 
     fn admin_add_deck(&mut self, id: PlayerId, name: String, deck: Deck) -> OpResult {
-        if !(self.is_planned() || self.is_active()) {
-            return Err(TournamentError::IncorrectStatus(self.status));
+        if self.is_ongoing() {
+            self.add_deck(id, name, deck)
+        } else {
+            Err(TournamentError::IncorrectStatus(self.status))
         }
+    }
+
+    // Common code between admin and player versions.
+    // NOTE: Does *not* contain checks for tournament/player validity. Those are handled by the
+    // admin and player versions
+    fn add_deck(&mut self, id: PlayerId, name: String, deck: Deck) -> OpResult {
         let plyr = self.player_reg.get_mut_player(&id)?;
-        if plyr.decks.len() >= self.max_deck_count as usize {
+        if !plyr.decks.contains_key(&name) && plyr.decks.len() >= self.max_deck_count as usize {
             return Err(TournamentError::MaxDecksReached);
         }
         plyr.add_deck(name, deck);

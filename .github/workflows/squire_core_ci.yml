@@ -21,7 +21,9 @@ jobs:
       - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+          targets: wasm32-unknown-unknown
       - uses: actions/checkout@v2
+      - run: wget -qO- https://github.com/thedodd/trunk/releases/download/0.16.0/.tar.gz | tar -xzf-
       - run: cargo build --package squire_core --verbose
       - run: cargo test --package squire_core --verbose
       - run: cargo doc --package squire_core --verbose
