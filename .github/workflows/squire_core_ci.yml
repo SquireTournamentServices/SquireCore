@@ -11,7 +11,7 @@ env:
 
 jobs:
   squire_core_build_tests:
-    name: SquireCore - Build Tests - Linux
+    name: Tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,7 +23,8 @@ jobs:
           rust-version: ${{ matrix.rust }}
           targets: wasm32-unknown-unknown
       - uses: actions/checkout@v2
-      - run: wget -qO- https://github.com/thedodd/trunk/releases/download/0.16.0/.tar.gz | tar -xzf-
+      - run: wget -qO- https://github.com/thedodd/trunk/releases/download/v0.16.0/.tar.gz | tar -xzf-
+      - run: pwd >> $GITHUB_PATH
       - run: cargo build --package squire_core --verbose
       - run: cargo test --package squire_core --verbose
       - run: cargo doc --package squire_core --verbose
