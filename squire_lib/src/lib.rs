@@ -15,7 +15,7 @@
 )]
 
 #[allow(non_camel_case_types)]
-pub(crate) type r64 = num_rational::Rational32;
+pub type r64 = num_rational::Rational32;
 
 mod utils;
 
