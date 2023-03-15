@@ -15,6 +15,7 @@
 )]
 
 #[allow(non_camel_case_types)]
+/// The numerical type used in the scoring systems
 pub type r64 = num_rational::Rational32;
 
 mod utils;

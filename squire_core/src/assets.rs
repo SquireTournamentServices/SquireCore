@@ -2,8 +2,6 @@ use axum::response::{Response, Html};
 use http::header;
 use hyper::{body::Bytes, Body};
 
-use crate::{APP_JS, APP_WASM, INDEX_HTML};
-
 #[cfg(debug_assertions)]
 pub async fn landing() -> Html<String> {
     Html(
@@ -38,6 +36,13 @@ pub async fn get_js() -> Response<String> {
         .body(js)
         .unwrap()
 }
+
+#[cfg(not(debug_assertions))]
+const INDEX_HTML: &str = include_str!("../../assets/index.html");
+#[cfg(not(debug_assertions))]
+const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm");
+#[cfg(not(debug_assertions))]
+const APP_JS: &str = include_str!("../../assets/squire_web.js");
 
 #[cfg(not(debug_assertions))]
 pub async fn landing() -> Html<&'static str> {

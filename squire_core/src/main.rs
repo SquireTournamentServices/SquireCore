@@ -39,10 +39,6 @@ mod assets;
 pub async fn init() {
 }
 
-const INDEX_HTML: &str = include_str!("../../assets/index.html");
-const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm");
-const APP_JS: &str = include_str!("../../assets/squire_web.js");
-
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
