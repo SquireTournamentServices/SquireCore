@@ -3,6 +3,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::utils::TextInput;
+use crate::Route;
 
 pub enum RegisterMessage {
     NameInput(String),
@@ -19,7 +20,7 @@ impl Component for Register {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            input: (None, None)
+            input: (None, None),
         }
     }
 
@@ -27,7 +28,7 @@ impl Component for Register {
         match msg {
             RegisterMessage::NameInput(s) => {
                 self.input.0 = Some(s);
-            },
+            }
             RegisterMessage::DisplayInput(s) => {
                 self.input.1 = Some(s);
             }
@@ -36,28 +37,25 @@ impl Component for Register {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let do_submit = self.input.0.is_some() && self.input.1.is_some();
+        let navigator = ctx.link().navigator().unwrap();
+        let submit_callback = Callback::from(move |_| {
+            if do_submit {
+                navigator.push(&Route::Create);
+            }
+        });
         let name_callback = ctx.link().callback(RegisterMessage::NameInput);
         let display_callback = ctx.link().callback(RegisterMessage::DisplayInput);
         let form = html! {
             <div>
-                <TextInput label = {"Data"} process = { name_callback }/>
-                <TextInput label = {"Data"} process = { display_callback }/>
+                <TextInput label = {"Your name"} process = { name_callback }/>
+                <TextInput label = {"Display name"} process = { display_callback }/>
             </div>
-        };
-        let data = match &self.input {
-            (Some(name), Some(display)) => {
-                html! {
-                    <div>
-                        <p>{ format!("Hello {name}! '{display}' is a great user name!") }</p>
-                    </div>
-                }
-            },
-            _ => Default::default()
         };
         html! {
             <div>
                 { form }
-                { data }
+                <button onclick={submit_callback}>{ "Register" }</button>
             </div>
         }
     }
