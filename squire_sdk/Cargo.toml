@@ -24,7 +24,7 @@ array-concat = { version = "0.5.1" }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Client || Server deps
-cookie = { version = "0.16", optional = true }
+cookie = { version = "0.17", optional = true }
 serde_json = { version = "1.0.68", optional = true }
 
 # Client deps
