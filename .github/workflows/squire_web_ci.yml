@@ -21,7 +21,7 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           targets: wasm32-unknown-unknown
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: wget -qO- https://github.com/thedodd/trunk/releases/download/v0.16.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
       - run: pwd >> $GITHUB_PATH
       - run: cargo build --manifest-path squire_web/Cargo.toml --verbose
