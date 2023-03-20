@@ -46,7 +46,7 @@ hashbag = { version = "0.1.10", features = ["serde"] }
 
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.2"
+wasm-bindgen-test = "0.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 # Server deps
