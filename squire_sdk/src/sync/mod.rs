@@ -56,6 +56,23 @@ impl TournamentManager {
         }
     }
 
+    pub fn insert(tourn: Tournament) -> Self {
+        let name = tourn.name.clone();
+        let format = tourn.name.clone();
+        Self {
+            tourn,
+            log: OpLog::new(
+                SquireAccount::new("Temp".to_owned(), "Temp".to_owned()),
+                TournamentSeed {
+                    name,
+                    preset: TournamentPreset::Swiss,
+                    format,
+                },
+            ),
+            last_sync: None,
+        }
+    }
+
     /// Read only accesses to tournaments don't need to be wrapped, so we can freely provide
     /// references to them
     pub fn tourn(&self) -> &Tournament {

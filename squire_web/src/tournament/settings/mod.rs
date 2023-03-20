@@ -20,6 +20,6 @@ impl Component for SettingsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        html!{ <h2> { "Settings" } </h2> }
+        html! { <h2> { "Settings" } </h2> }
     }
 }

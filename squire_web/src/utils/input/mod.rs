@@ -5,6 +5,10 @@ use yew::prelude::*;
 mod text;
 pub use text::*;
 
+//mod transformer;
+//pub use transformer::*;
+
+/*
 pub enum InputType {
     Text(TextInput),
 }
@@ -14,3 +18,4 @@ pub struct InputBox {
     // This should also include making the map a constant size
     data: HashMap<String, InputType>,
 }
+*/

@@ -17,3 +17,8 @@ yew = { version = "0.20", features = ["csr"] }
 yew-router = { version = "0.17.0" }
 once_cell = { version = "1.17" }
 web-sys = { version = "0.3.61", features = ["Element", "HtmlCollection"] }
+js-sys = "0.3.61"
+wasm-bindgen = "0.2.84"
+wasm-bindgen-futures = "0.4.34"
+futures = "0.3.27"
+gloo-net = "0.2.6"

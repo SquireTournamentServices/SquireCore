@@ -25,23 +25,11 @@ pub async fn get_wasm() -> Response<Body> {
         .unwrap()
 }
 
-#[cfg(debug_assertions)]
-pub async fn get_js() -> Response<String> {
-    let js = tokio::fs::read_to_string("../assets/squire_web.js")
-        .await
-        .unwrap();
-
-    Response::builder()
-        .header(header::CONTENT_TYPE, "application/javascript;charset=utf-8")
-        .body(js)
-        .unwrap()
-}
-
 #[cfg(not(debug_assertions))]
 const INDEX_HTML: &str = include_str!("../../assets/index.html");
 #[cfg(not(debug_assertions))]
 const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm");
-#[cfg(not(debug_assertions))]
+//#[cfg(not(debug_assertions))]
 const APP_JS: &str = include_str!("../../assets/squire_web.js");
 
 #[cfg(not(debug_assertions))]
@@ -61,9 +49,21 @@ pub async fn get_wasm() -> Response<Body> {
 }
 
 #[cfg(not(debug_assertions))]
-pub async fn get_js() -> Response<&'static str> {
+pub async fn get_js() -> Response<String> {
     Response::builder()
         .header(header::CONTENT_TYPE, "application/javascript;charset=utf-8")
-        .body(APP_JS)
+        .body(APP_JS.to_string())
+        .unwrap()
+}
+
+#[cfg(debug_assertions)]
+pub async fn get_js() -> Response<String> {
+    let js = tokio::fs::read_to_string("../assets/squire_web.js")
+        .await
+        .unwrap();
+
+    Response::builder()
+        .header(header::CONTENT_TYPE, "application/javascript;charset=utf-8")
+        .body(js)
         .unwrap()
 }

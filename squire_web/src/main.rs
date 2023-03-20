@@ -1,5 +1,6 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code, unused)]
+#![feature(if_let_guard)]
 
 use once_cell::sync::OnceCell;
 use yew::prelude::*;
@@ -7,16 +8,16 @@ use yew_router::prelude::*;
 
 use squire_sdk::{accounts::SquireAccount, client::SquireClient, tournaments::TournamentId};
 
-mod client;
-mod tournament;
 mod account;
+mod client;
 mod index;
+mod tournament;
 mod utils;
 
+use account::{Login, Register};
 use client::WebState;
-use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
-use account::{Register, Login};
 use index::Index;
+use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 
 static CLIENT: OnceCell<SquireClient<WebState>> = OnceCell::new();
 
@@ -36,9 +37,9 @@ enum Route {
 
 fn switch(routes: Route) -> Html {
     match routes {
-        Route::Index => html!{ <Index /> },
-        Route::Login => html!{ <Login /> },
-        Route::Register => html!{ <Register /> },
+        Route::Index => html! { <Index /> },
+        Route::Login => html! { <Login /> },
+        Route::Register => html! { <Register /> },
         Route::Create => html! { <TournamentCreator /> },
         Route::Tourn { id } => html! { <TournamentViewer id = { id } /> },
     }

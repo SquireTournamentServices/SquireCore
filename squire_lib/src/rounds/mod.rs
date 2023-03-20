@@ -1,7 +1,9 @@
 use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet},
-    fmt,
+    error::Error,
+    fmt::{self, Display},
+    str::FromStr,
     time::Duration,
 };
 
@@ -329,6 +331,31 @@ impl RoundContext {
                     Multiple(ctx)
                 }
             },
+        }
+    }
+}
+
+/// Error type returned when parsing a string into a `RoundStatus`
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct RoundStatusParseError;
+
+impl Error for RoundStatusParseError {}
+
+impl Display for RoundStatusParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "error while parsing string to RoundStatus")
+    }
+}
+
+impl FromStr for RoundStatus {
+    type Err = RoundStatusParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Open" | "open" => Ok(Self::Open),
+            "Certified" | "certified" => Ok(Self::Certified),
+            "Dead" | "dead" => Ok(Self::Dead),
+            _ => Err(RoundStatusParseError),
         }
     }
 }

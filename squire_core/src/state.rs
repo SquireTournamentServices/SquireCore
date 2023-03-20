@@ -87,7 +87,13 @@ impl ServerState for AppState {
     where
         F: Send + FnOnce(&TournamentManager) -> O,
     {
-        todo!()
+        let mut cursor = self.get_tourns().find(None, None).await.unwrap();
+        while let Some(tourn) = cursor.try_next().await.unwrap() {
+            if tourn.id == *id {
+                return Some(f(&tourn));
+            }
+        }
+        None
     }
 
     async fn query_all_tournaments<F, O, Out>(&self, mut f: F) -> Out

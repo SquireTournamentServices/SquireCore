@@ -7,14 +7,10 @@ use crate::Route;
 #[function_component(Index)]
 pub fn index() -> Html {
     let navigator = use_navigator().unwrap();
-    let register_callback = Callback::from(move |_| {
-        navigator.push(&Route::Register)
-    });
+    let register_callback = Callback::from(move |_| navigator.push(&Route::Register));
 
     let navigator = use_navigator().unwrap();
-    let login_callback = Callback::from(move |_| {
-        navigator.push(&Route::Login)
-    });
+    let login_callback = Callback::from(move |_| navigator.push(&Route::Login));
 
     html! {
         <div>

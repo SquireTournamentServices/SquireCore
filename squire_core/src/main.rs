@@ -39,6 +39,7 @@ mod assets;
 pub async fn init() {
 }
 
+//#[axum::debug_handler]
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes())

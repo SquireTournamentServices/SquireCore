@@ -4,10 +4,11 @@ use yew::prelude::*;
 
 #[derive(PartialEq, Properties)]
 pub struct TextInputProps<T = ()>
-    where T: PartialEq
+where
+    T: PartialEq,
 {
     pub label: &'static str,
-    pub process: Callback<String, T>
+    pub process: Callback<String, T>,
 }
 
 pub struct TextInput<T = ()> {
@@ -18,11 +19,18 @@ pub struct TextInput<T = ()> {
 
 impl<T> TextInput<T> {
     pub fn new(label: &'static str, process: Callback<String, T>) -> Self {
-        Self { label, process, input: Default::default() }
+        Self {
+            label,
+            process,
+            input: Default::default(),
+        }
     }
 
     pub fn get_data(&self) -> String {
-        self.input.cast::<HtmlInputElement>().map(|e| e.value()).unwrap_or_default()
+        self.input
+            .cast::<HtmlInputElement>()
+            .map(|e| e.value())
+            .unwrap_or_default()
     }
 
     pub fn process(&self) -> T {
@@ -31,7 +39,8 @@ impl<T> TextInput<T> {
 }
 
 impl<T> Component for TextInput<T>
-where T: 'static + PartialEq
+where
+    T: 'static + PartialEq,
 {
     type Message = ();
     type Properties = TextInputProps<T>;

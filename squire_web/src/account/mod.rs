@@ -1,5 +1,5 @@
-pub mod register;
 pub mod login;
+pub mod register;
 
-pub use register::Register;
 pub use login::Login;
+pub use register::Register;

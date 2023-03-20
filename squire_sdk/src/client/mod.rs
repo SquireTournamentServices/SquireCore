@@ -22,8 +22,8 @@ use crate::{
         VerificationRequest, VerificationResponse,
     },
     api::{
-        CREATE_TOURNAMENT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
-        VERSION_ROUTE,
+        CREATE_TOURNAMENT_ENDPOINT, GET_TOURNAMENT_ROUTE, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE,
+        VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
     },
     client::{error::ClientError, state::ClientState},
     model::{
@@ -40,7 +40,7 @@ use crate::{
 };
 
 pub mod error;
-pub mod simple_state;
+//pub mod simple_state;
 pub mod state;
 
 #[derive(Debug, Clone)]
@@ -217,6 +217,16 @@ where
         }
     }
 
+    pub async fn fetch_tournament(&self, id: TournamentId) -> Result<(), ClientError> {
+        let tourn = self
+            .get_request(&GET_TOURNAMENT_ROUTE.replace(&[id.to_string().as_str()]))
+            .await?
+            .json()
+            .await?;
+        self.state.import_tournament(tourn);
+        Ok(())
+    }
+
     async fn get_request_with_cookie(&self, path: &str) -> Result<Response, ClientError> {
         self.client
             .get(format!("{}{path}", self.url))
@@ -228,8 +238,7 @@ where
 
     #[cfg(target_family = "wasm")]
     fn cred_string(&self) -> Result<String, ClientError> {
-        self
-            .session
+        self.session
             .as_ref()
             .map(|_| String::new())
             .ok_or(ClientError::NotLoggedIn)
@@ -237,8 +246,7 @@ where
 
     #[cfg(not(target_family = "wasm"))]
     fn cred_string(&self) -> Result<String, ClientError> {
-        self
-            .session
+        self.session
             .as_ref()
             .map(|c| c.to_string())
             .ok_or(ClientError::NotLoggedIn)

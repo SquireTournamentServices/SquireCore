@@ -1,11 +1,19 @@
+use futures::executor::block_on;
+use gloo_net::http::Request;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::RequestInit;
 use yew::{html, Callback, Component, Context, Html, Properties};
 
-use squire_sdk::{client::state::ClientState, tournaments::TournamentId};
+use squire_sdk::{
+    api::GET_TOURNAMENT_ROUTE,
+    client::state::ClientState,
+    tournaments::{TournamentId, TournamentManager},
+};
 
 use crate::{
     client,
     tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
-    CLIENT,
+    CLIENT, utils::fetch_tournament,
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +28,7 @@ pub enum TournViewMode {
 
 #[derive(Debug)]
 pub enum TournViewMessage {
+    DataReady,
     SwitchModes(TournViewMode),
 }
 
@@ -50,7 +59,6 @@ impl TournamentViewer {
                 let tourn = t.tourn();
                 html! {
                     <div>
-                        <h1 align="center">{ format!("Welcome to {}", tourn.name) }</h1>
                         <ul>
                             <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
                             <li>{ make_button("Players"  , TournViewMode::Players) }</li>
@@ -70,7 +78,7 @@ impl TournamentViewer {
                 html! { <TournOverview id = { self.id }/> }
             }
             TournViewMode::Players => {
-                html! { <PlayersView id = { self.id }/> }
+                html! { <PlayerFilter id = { self.id }/> }
             }
             TournViewMode::Rounds => {
                 html! { <RoundsView id = { self.id }/> }
@@ -91,13 +99,18 @@ impl Component for TournamentViewer {
 
     fn create(ctx: &Context<Self>) -> Self {
         let TournProps { id } = ctx.props();
+        let id = *id;
+        ctx.link().send_future(async move {
+            fetch_tournament(id).await;
+            TournViewMessage::DataReady
+        });
         Self {
-            id: *id,
+            id,
             mode: TournViewMode::default(),
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TournViewMessage::SwitchModes(mode) => {
                 if mode != self.mode {
@@ -105,6 +118,19 @@ impl Component for TournamentViewer {
                     true
                 } else {
                     false
+                }
+            }
+            TournViewMessage::DataReady => {
+                let client = CLIENT.get().unwrap();
+                if client.state.query_tournament(&self.id, |_| ()).is_none() {
+                    let id = self.id;
+                    ctx.link().send_future(async move {
+                        fetch_tournament(id).await;
+                        TournViewMessage::DataReady
+                    });
+                    false
+                } else {
+                    true
                 }
             }
         }

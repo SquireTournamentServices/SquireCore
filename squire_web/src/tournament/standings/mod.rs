@@ -20,6 +20,6 @@ impl Component for StandingsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        html!{ <h2> { "Standings" } </h2> }
+        html! { <h2> { "Standings" } </h2> }
     }
 }

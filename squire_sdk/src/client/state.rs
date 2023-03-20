@@ -13,7 +13,7 @@ pub trait ClientState {
     where
         Q: FnOnce(&TournamentManager) -> R;
 
-    fn import_tournament(&mut self, tourn: TournamentManager);
+    fn import_tournament(&self, tourn: TournamentManager);
 
     fn query_player<Q, R>(
         &self,

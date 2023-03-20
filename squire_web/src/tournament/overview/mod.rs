@@ -1,6 +1,8 @@
 use yew::prelude::*;
 
-use squire_sdk::tournaments::TournamentId;
+use squire_sdk::{client::state::ClientState, tournaments::TournamentId};
+
+use crate::CLIENT;
 
 #[derive(Debug, Properties, PartialEq, Eq)]
 pub struct OverviewProps {
@@ -20,6 +22,15 @@ impl Component for TournOverview {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        html!{ <h2> { "Overview" } </h2> }
+        CLIENT
+            .get()
+            .unwrap()
+            .state
+            .query_tournament(&self.id, |t| {
+                html! {
+                    <h1 align="center">{ format!("Welcome to {}", t.name) }</h1>
+                }
+            })
+            .unwrap_or_default()
     }
 }

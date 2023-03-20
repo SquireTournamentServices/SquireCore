@@ -20,6 +20,6 @@ impl Component for RoundsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        html!{ <h2> { "Rounds" } </h2> }
+        html! { <h2> { "Rounds" } </h2> }
     }
 }

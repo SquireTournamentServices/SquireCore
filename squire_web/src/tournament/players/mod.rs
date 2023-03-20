@@ -2,6 +2,15 @@ use yew::prelude::*;
 
 use squire_sdk::tournaments::TournamentId;
 
+pub mod filter;
+pub mod input;
+pub mod scroll;
+pub mod selected;
+pub use filter::*;
+pub use input::*;
+pub use scroll::*;
+pub use selected::*;
+
 #[derive(Debug, Properties, PartialEq, Eq)]
 pub struct PlayersProps {
     pub id: TournamentId,
@@ -20,6 +29,6 @@ impl Component for PlayersView {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        html!{ <h2> { "Players" } </h2> }
+        html! { <h2> { "Players" } </h2> }
     }
 }

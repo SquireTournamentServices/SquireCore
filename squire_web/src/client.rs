@@ -50,7 +50,8 @@ impl ClientState for WebState {
         self.tourns.read().unwrap().get(id).map(query)
     }
 
-    fn import_tournament(&mut self, tourn: TournamentManager) {
-        todo!()
+    fn import_tournament(&self, tourn: TournamentManager) {
+        web_sys::console::log_1(&format!("Importing tournament id: {}", tourn.id).into());
+        self.tourns.write().unwrap().insert(tourn.id, tourn);
     }
 }
