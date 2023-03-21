@@ -13,6 +13,7 @@ pub struct PlayerFilterInputProps {
     pub process: Callback<PlayerFilterReport>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub enum PlayerFilterInputMessage {
     PlayerName(String),
     PlayerStatus(String),
@@ -54,13 +55,12 @@ impl PlayerFilterInput {
                 self.name = Some(name);
                 true
             },
-            PlayerFilterInputMessage::PlayerStatus(s) if let Ok(status) = s.parse() => {
-                self.status = Some(status);
-                true
+            PlayerFilterInputMessage::PlayerStatus(s) => {
+                let status = s.parse().ok();
+                let digest = self.status != status;
+                self.status = status;
+                digest
             },
-            _ => {
-                false
-            }
         }
     }
 

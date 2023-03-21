@@ -78,7 +78,7 @@ impl TournamentViewer {
                 html! { <TournOverview id = { self.id }/> }
             }
             TournViewMode::Players => {
-                html! { <PlayerFilter id = { self.id }/> }
+                html! { <PlayerView id = { self.id }/> }
             }
             TournViewMode::Rounds => {
                 html! { <RoundsView id = { self.id }/> }

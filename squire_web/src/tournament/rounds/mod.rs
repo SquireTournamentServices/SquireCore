@@ -1,25 +1,85 @@
+use squire_sdk::{
+    client::state::ClientState,
+    model::{identifiers::RoundIdentifier, rounds::{RoundId, RoundStatus}},
+
+    tournaments::TournamentId,
+};
+
 use yew::prelude::*;
 
-use squire_sdk::tournaments::TournamentId;
+use crate::{utils::TextInput, CLIENT};
 
-#[derive(Debug, Properties, PartialEq, Eq)]
-pub struct RoundsProps {
+pub mod creator;
+pub mod input;
+pub mod scroll;
+pub mod selected;
+pub use creator::*;
+pub use input::*;
+pub use scroll::*;
+pub use selected::*;
+
+#[derive(Debug, PartialEq, Properties)]
+pub struct RoundsFilterProps {
     pub id: TournamentId,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum RoundsFilterMessage {
+    RoundSelected(RoundId),
+    FilterInput(RoundFilterInputMessage),
 }
 
 pub struct RoundsView {
     pub id: TournamentId,
+    input: RoundFilterInput,
+    scroll: RoundScroll,
+    selected: SelectedRound,
 }
 
 impl Component for RoundsView {
-    type Message = ();
-    type Properties = RoundsProps;
+    type Message = RoundsFilterMessage;
+    type Properties = RoundsFilterProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        RoundsView { id: ctx.props().id }
+        Self {
+            id: ctx.props().id,
+            input: RoundFilterInput::new(ctx.link().callback(RoundsFilterMessage::FilterInput)),
+            scroll: RoundScroll::new(ctx.link().callback(RoundsFilterMessage::RoundSelected)),
+            selected: SelectedRound::new(),
+        }
+    }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        web_sys::console::log_1(&format!("New filter message: {msg:?}").into());
+        match msg {
+            RoundsFilterMessage::FilterInput(msg) => {
+                if self.input.update(msg) {
+                    self.scroll.update(self.input.get_report())
+                } else {
+                    false
+                }
+            }
+            RoundsFilterMessage::RoundSelected(p_id) => {
+                self.selected.update(Some(p_id))
+            }
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        html! { <h2> { "Rounds" } </h2> }
+        CLIENT
+            .get()
+            .unwrap()
+            .state
+            .query_tournament(&self.id, |t| {
+                let process = ctx.link().callback(RoundsFilterMessage::FilterInput);
+                html! {
+                    <div>
+                        { self.input.view() }
+                        { self.scroll.view(t) }
+                        { self.selected.view(t) }
+                    </div>
+                }
+            })
+            .unwrap_or_default()
     }
 }
