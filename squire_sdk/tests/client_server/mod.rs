@@ -5,17 +5,16 @@ use std::{
 };
 
 use once_cell::sync::OnceCell;
-use squire_sdk::{
-    accounts::SquireAccount,
-    client::{simple_state::SimpleState, SquireClient},
-    server::User,
-};
+use squire_sdk::{accounts::SquireAccount, client::SquireClient, server::User};
 use tokio::time::interval;
 
 use crate::server::AppState;
 
+pub mod simple_state;
 pub mod startup;
 pub mod tournaments;
+
+use simple_state::SimpleState;
 
 static STARTING_UP: AtomicBool = AtomicBool::new(false);
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
