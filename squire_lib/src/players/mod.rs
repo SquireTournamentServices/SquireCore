@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{error::Error, collections::HashMap, fmt::{self, Display}, str::FromStr};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -121,7 +121,7 @@ impl Player {
 }
 
 impl Display for PlayerStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -130,5 +130,28 @@ impl Display for PlayerStatus {
                 PlayerStatus::Dropped => "Dropped",
             }
         )
+    }
+}
+/// Error type returned when parsing a string into a `PlayerStatus`
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct PlayerStatusParseError;
+
+impl Error for PlayerStatusParseError {}
+
+impl Display for PlayerStatusParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "error while parsing string to PlayerStatus")
+    }
+}
+
+impl FromStr for PlayerStatus {
+    type Err = PlayerStatusParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Active" | "active" | "Registered" | "registered" => Ok(Self::Registered),
+            "Dropped" | "dropped" => Ok(Self::Dropped),
+            _ => Err(PlayerStatusParseError),
+        }
     }
 }

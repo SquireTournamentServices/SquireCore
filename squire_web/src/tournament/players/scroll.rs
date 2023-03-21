@@ -25,21 +25,28 @@ impl PlayerScroll {
     }
 
     pub fn update(&mut self, report: PlayerFilterReport) -> bool {
-        let digest = self.report == report;
+        let digest = self.report != report;
         self.report = report;
         digest
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        tourn
-            .player_reg
-            .players
-            .values()
-            .map(|p| {
-                let id = p.id;
-                let cb = self.process.clone();
-                html! { <button onclick = { move |_| cb.emit(id) }>{ &p.name }</button> }
-            })
-            .collect()
+        html! {
+            <ul>
+            {
+                tourn
+                    .player_reg
+                    .players
+                    .values()
+                    .filter(|p| self.report.matches(p))
+                    .map(|p| {
+                        let id = p.id;
+                        let cb = self.process.clone();
+                        html! { <li><a align="center" class="vert" onclick = { move |_| cb.emit(id) }>{ p.name.as_str() }</a></li> }
+                    })
+                    .collect::<Html>()
+            }
+            </ul>
+        }
     }
 }

@@ -1,4 +1,7 @@
-use squire_sdk::model::{identifiers::RoundIdentifier, rounds::RoundStatus};
+use squire_sdk::{
+    model::{identifiers::RoundIdentifier, players::PlayerStatus, rounds::RoundStatus},
+    players::Player,
+};
 use web_sys::HtmlInputElement;
 
 use yew::prelude::*;
@@ -11,26 +14,26 @@ pub struct PlayerFilterInputProps {
 }
 
 pub enum PlayerFilterInputMessage {
-    RoundNumber(String),
-    RoundStatus(String),
+    PlayerName(String),
+    PlayerStatus(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct PlayerFilterReport {
-    ident: Option<RoundIdentifier>,
-    status: Option<RoundStatus>,
+    name: Option<String>,
+    status: Option<PlayerStatus>,
 }
 
 pub struct PlayerFilterInput {
-    ident: Option<RoundIdentifier>,
-    status: Option<RoundStatus>,
+    name: Option<String>,
+    status: Option<PlayerStatus>,
     process: Callback<PlayerFilterInputMessage>,
 }
 
 impl PlayerFilterInput {
     pub fn get_report(&self) -> PlayerFilterReport {
         PlayerFilterReport {
-            ident: self.ident,
+            name: self.name.clone(),
             status: self.status,
         }
     }
@@ -39,7 +42,7 @@ impl PlayerFilterInput {
 impl PlayerFilterInput {
     pub fn new(process: Callback<PlayerFilterInputMessage>) -> Self {
         Self {
-            ident: None,
+            name: None,
             status: None,
             process,
         }
@@ -47,11 +50,11 @@ impl PlayerFilterInput {
 
     pub fn update(&mut self, msg: PlayerFilterInputMessage) -> bool {
         match msg {
-            PlayerFilterInputMessage::RoundNumber(s) if let Ok(num) = s.parse() => {
-                self.ident = Some(RoundIdentifier::Number(num));
+            PlayerFilterInputMessage::PlayerName(name) => {
+                self.name = Some(name);
                 true
             },
-            PlayerFilterInputMessage::RoundStatus(s) if let Ok(status) = s.parse() => {
+            PlayerFilterInputMessage::PlayerStatus(s) if let Ok(status) = s.parse() => {
                 self.status = Some(status);
                 true
             },
@@ -63,14 +66,34 @@ impl PlayerFilterInput {
 
     pub fn view(&self) -> Html {
         let number = self.process.clone();
-        let number = Callback::from(move |s| number.emit(PlayerFilterInputMessage::RoundNumber(s)));
+        let number = Callback::from(move |s| number.emit(PlayerFilterInputMessage::PlayerName(s)));
         let status = self.process.clone();
-        let status = Callback::from(move |s| status.emit(PlayerFilterInputMessage::RoundStatus(s)));
+        let status =
+            Callback::from(move |s| status.emit(PlayerFilterInputMessage::PlayerStatus(s)));
         html! {
             <div>
-                <TextInput label = { "Round Number:" } process = { number }/>
-                <TextInput label = { "Round Status:" } process = { status }/>
+                <TextInput label = { "Player Name:" } process = { number }/>
+                <TextInput label = { "Player Status:" } process = { status }/>
             </div>
         }
+    }
+}
+
+impl PlayerFilterReport {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn matches(&self, plyr: &Player) -> bool {
+        web_sys::console::log_1(&format!("Checking {:?}", plyr.name).into());
+        self.status
+            .as_ref()
+            .map(|status| plyr.status == *status)
+            .unwrap_or(true)
+            && self
+                .name
+                .as_ref()
+                .map(|name| plyr.name.contains(name))
+                .unwrap_or(true)
     }
 }
