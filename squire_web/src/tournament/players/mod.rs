@@ -75,8 +75,16 @@ impl Component for PlayerView {
                 html! {
                     <div>
                         { self.input.view() }
-                        { self.scroll.view(t) }
-                        { self.selected.view(t) }
+                        <div class="row">
+                            <div class="col">
+                                <div class="overflow-auto player-scroll-box">
+                                    { self.scroll.view(t) }
+                                </div>
+                            </div>
+                            <div class="col">
+                                { self.selected.view(t) }
+                            </div>
+                        </div>
                     </div>
                 }
             })
