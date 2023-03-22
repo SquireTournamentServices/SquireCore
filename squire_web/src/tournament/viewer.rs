@@ -67,6 +67,7 @@ impl TournamentViewer {
                             <li>{ make_button("Rounds"   , TournViewMode::Rounds) }</li>
                             <li>{ make_button("Standings", TournViewMode::Standings) }</li>
                             <li>{ make_button("Settings" , TournViewMode::Settings) }</li>
+                            <hr/>
                         </ul>
                     </div>
                 }
