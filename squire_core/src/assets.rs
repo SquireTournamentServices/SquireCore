@@ -1,7 +1,7 @@
 use axum::response::{Response, Html};
 use http::header;
 use hyper::{body::Bytes, Body};
-use std::{env, process::Command};
+use std::env;
 
 
 #[cfg(debug_assertions)]
