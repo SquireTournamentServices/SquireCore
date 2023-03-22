@@ -11,12 +11,14 @@ use squire_sdk::{accounts::SquireAccount, client::SquireClient, tournaments::Tou
 mod account;
 mod client;
 mod index;
+mod header;
 mod tournament;
 mod utils;
 
 use account::{Login, Register};
 use client::WebState;
 use index::Index;
+use header::Header;
 use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 
 static CLIENT: OnceCell<SquireClient<WebState>> = OnceCell::new();
@@ -49,32 +51,7 @@ fn switch(routes: Route) -> Html {
 fn app() -> Html {
     html! {
         <BrowserRouter>
-            <header>
-                <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-                    <div class="container-fluid">
-                        <a class="navbar-brand" href="#">{ "Squire Web" }</a>
-                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-                            <span class="navbar-toggler-icon"></span>
-                        </button>
-                        <div class="collapse navbar-collapse" id="navbarCollapse">
-                            <ul class="navbar-nav ms-auto">
-                                <li class="nav-item">
-                                    <a class="nav-link">{ "Login" }</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link">{ "Register" }</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link">{ "Create Tournament" }</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link">{ "Veiw Tournaments" }</a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </nav>
-            </header>
+            <Header />
             <Switch<Route> render={switch} />
         </BrowserRouter>
     }
