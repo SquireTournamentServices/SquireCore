@@ -1,11 +1,14 @@
 use axum::response::{Response, Html};
 use http::header;
 use hyper::{body::Bytes, Body};
+use std::{env, process::Command};
+
 
 #[cfg(debug_assertions)]
 pub async fn landing() -> Html<String> {
+    let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
     Html(
-        tokio::fs::read_to_string("../assets/index.html")
+        tokio::fs::read_to_string(format!("{wd}/../assets/index.html"))
             .await
             .unwrap(),
     )
@@ -13,7 +16,8 @@ pub async fn landing() -> Html<String> {
 
 #[cfg(debug_assertions)]
 pub async fn get_wasm() -> Response<Body> {
-    let wasm = tokio::fs::read("../assets/squire_web_bg.wasm")
+    let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let wasm = tokio::fs::read(format!("{wd}/../assets/squire_web_bg.wasm"))
         .await
         .unwrap();
     let bytes = Bytes::copy_from_slice(&wasm);
@@ -58,7 +62,8 @@ pub async fn get_js() -> Response<String> {
 
 #[cfg(debug_assertions)]
 pub async fn get_js() -> Response<String> {
-    let js = tokio::fs::read_to_string("../assets/squire_web.js")
+    let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let js = tokio::fs::read_to_string(format!("{wd}/../assets/squire_web.js"))
         .await
         .unwrap();
 
