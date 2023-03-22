@@ -28,7 +28,15 @@ impl Component for TournOverview {
             .state
             .query_tournament(&self.id, |t| {
                 html! {
+                    <>
                     <h1 align="center">{ format!("Welcome to {}", t.name) }</h1>
+                    <p align="center">{ format!("Format : {}", t.format) }</p>
+                    <p align="center">{ format!("Status : {}", t.status) }</p>
+                    <p align="center">{ format!("Number of players : {}", t.player_reg.players.len()) }</p>
+                    <p align="center">{ format!("Number of rounds : {}", t.round_reg.rounds.len()) }</p>
+                    <p align="center">{ format!("Number of judges : {}", t.judges.len()) }</p>
+                    <p align="center">{ format!("Number of admins : {}", t.admins.len()) }</p>
+                    </>
                 }
             })
             .unwrap_or_default()

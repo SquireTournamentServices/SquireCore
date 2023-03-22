@@ -50,7 +50,7 @@ impl TournamentViewer {
                 TournViewMessage::SwitchModes(mode)
             })
         };
-        let make_button = |name, mode| html! { <a align="center" class="vert" onclick = { make_callback(mode) }>{name}</a> };
+        let make_button = |name, mode| html! { <a class="text-center text-lg-start" onclick = { make_callback(mode) }>{name}</a> };
         CLIENT
             .get()
             .unwrap()
@@ -60,11 +60,14 @@ impl TournamentViewer {
                 html! {
                     <div>
                         <ul>
+                            <h4 class="text-center text-lg-start">{ tourn.name.clone() }</h4>
+                            <hr/>
                             <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
                             <li>{ make_button("Players"  , TournViewMode::Players) }</li>
                             <li>{ make_button("Rounds"   , TournViewMode::Rounds) }</li>
                             <li>{ make_button("Standings", TournViewMode::Standings) }</li>
                             <li>{ make_button("Settings" , TournViewMode::Settings) }</li>
+                            <hr/>
                         </ul>
                     </div>
                 }
@@ -143,9 +146,15 @@ impl Component for TournamentViewer {
             .query_tournament(&self.id, |t| {
                 let tourn = t.tourn();
                 html! {
-                    <div>
-                        { self.get_header(ctx) }
-                        { self.get_control_plane() }
+                    <div class="my-4 container-fluid">
+                        <div class="row tviewer">
+                            <aside class="col-md-2 tveiwer_sidebar px-md-3">
+                                { self.get_header(ctx) }
+                            </aside>
+                            <main class="col-md-10 conatiner">
+                                { self.get_control_plane() }
+                            </main>
+                        </div>
                     </div>
                 }
             })
