@@ -19,6 +19,21 @@ pub struct SelectedRound {
     id: Option<RoundId>,
 }
 
+pub struct SelectedRoundViewResult {
+    found: bool,
+    match_number: u64,
+    table_number: u64,
+}
+impl Default for SelectedRoundViewResult {
+    fn default() -> Self {
+        SelectedRoundViewResult {
+            found : false,
+            match_number : 0,
+            table_number : 0
+        }
+    }
+}
+
 impl SelectedRound {
     pub fn new() -> Self {
         Self { id: None }
