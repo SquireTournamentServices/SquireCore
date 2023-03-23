@@ -39,19 +39,16 @@ impl SelectedRound {
                     .map(|rnd| {
                         html! {
                             <>
-                            <>{round_info_display(rnd)}</>
+                            <h4>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</h4>
+                            <p>{ format!("# of players : {}", rnd.players.len()) }</p>
+                            <p>{ format!("Active : {}", rnd.is_active()) }</p>
+                            <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
+                            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
                             <ul>
                             {
                                 rnd.players.clone().into_iter()
-                                    // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
                                     .map(|pid| {
-                                        let player_in_round = { ||
-                                            tourn
-                                            .get_player(&pid.into())
-                                            .map(|p| p.name.as_str())
-                                            .unwrap_or_else( |_| "Player not found")
-                                        };
-                                        html! { <li>{ format!( "{}", player_in_round() ) }</li>}
+                                        html! { <li>{ format!( "{}", tourn.get_player(&pid.into()).map(|p| p.name.as_str()).unwrap_or_else(|_| "Player not found") ) }</li>}
                                     })
                                     .collect::<Html>()
                             }
