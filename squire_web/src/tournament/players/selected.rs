@@ -8,21 +8,6 @@ pub struct SelectedPlayer {
     id: Option<PlayerId>,
 }
 
-pub struct SelectedPlayerViewResult {
-    found: bool,
-    name: String,
-    gamertag: String,
-}
-impl Default for SelectedPlayerViewResult {
-    fn default() -> Self {
-        SelectedPlayerViewResult {
-            found : false,
-            name : "...".to_owned(),
-            gamertag : "...".to_owned()
-        }
-    }
-}
-
 impl SelectedPlayer {
     pub fn new() -> Self {
         Self { id: None }
@@ -35,26 +20,30 @@ impl SelectedPlayer {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        let result: SelectedPlayerViewResult = self
+        let returnhtml = self
             .id
             .map(|id| {
                 tourn
                     .get_player(&id.into())
                     .map(|plyr| {
-                        SelectedPlayerViewResult {
-                            found : true,
-                            name : plyr.name.to_string(),
-                            gamertag : plyr.game_name.clone().unwrap_or("None".to_string())
+                        html! {
+                            <>
+                            <h4>{ plyr.name.as_str() }</h4>
+                            <p>{ format!("Gamertag : {}", plyr.game_name.clone().unwrap_or_else(|| "None".to_string())) }</p>
+                            <p>{ format!("Can play : {}", plyr.can_play()) }</p>
+                            <p>{ format!("# of decks : {}", plyr.decks.len()) }</p>
+                            </>
                         }
                     })
-                    .unwrap_or_default()
+                    .unwrap_or_else(|_| html!{
+                        <h4>{"Player not found"}</h4>
+                    })
             })
-            .unwrap_or_default();
-        html! {
-            <div class="my-1 mx-3">
-                <h4>{ result.name }</h4>
-                <p>{ format!("Gamertag : {}", result.gamertag) }</p>
-            </div>
-        }
+            .unwrap_or_else(|| html!{
+                <h4>{"No player selected"}</h4>
+            });
+        return html!{
+            <div class="m-2">{returnhtml}</div>
+        };
     }
 }

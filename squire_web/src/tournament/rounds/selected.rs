@@ -8,21 +8,6 @@ pub struct SelectedRound {
     id: Option<RoundId>,
 }
 
-pub struct SelectedRoundViewResult {
-    found: bool,
-    match_number: u64,
-    table_number: u64,
-}
-impl Default for SelectedRoundViewResult {
-    fn default() -> Self {
-        SelectedRoundViewResult {
-            found : false,
-            match_number : 0,
-            table_number : 0
-        }
-    }
-}
-
 impl SelectedRound {
     pub fn new() -> Self {
         Self { id: None }
@@ -35,25 +20,30 @@ impl SelectedRound {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        let result: SelectedRoundViewResult = self
+        let returnhtml = self
             .id
             .map(|id| {
                 tourn
                     .get_round(&id.into())
                     .map(|rnd| {
-                        SelectedRoundViewResult {
-                            found : true,
-                            match_number : rnd.match_number,
-                            table_number : rnd.table_number
+                        html! {
+                            <>
+                            <h4>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</h4>
+                            <p>{ format!("# of players : {}", rnd.players.len()) }</p>
+                            <p>{ format!("Active : {}", rnd.is_active()) }</p>
+                            <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
+                            </>
                         }
                     })
-                    .unwrap_or_default()
+                    .unwrap_or_else(|_| html!{
+                        <h4>{"Round not found"}</h4>
+                    })
             })
-            .unwrap_or_default();
-        html! {
-            <div class="my-1 mx-3">
-                <h4>{ format!("Round #{} at Table #{}", result.match_number, result.table_number) }</h4>
-            </div>
-        }
+            .unwrap_or_else(|| html!{
+                <h4>{"No round selected"}</h4>
+            });
+        return html!{
+            <div class="m-2">{returnhtml}</div>
+        };
     }
 }
