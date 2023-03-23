@@ -44,21 +44,6 @@ pub struct SelectedPlayer {
     spi: Option<SelectedPlayerInfo>,
 }
 
-pub struct SelectedPlayerViewResult {
-    found: bool,
-    name: String,
-    gamertag: String,
-}
-impl Default for SelectedPlayerViewResult {
-    fn default() -> Self {
-        SelectedPlayerViewResult {
-            found : false,
-            name : "...".to_owned(),
-            gamertag : "...".to_owned()
-        }
-    }
-}
-
 impl SelectedPlayer {
     pub fn new(process: Callback<SelectedPlayerInfo>) -> Self {
         Self {
