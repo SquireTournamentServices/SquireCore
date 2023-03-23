@@ -122,25 +122,21 @@ impl SelectedPlayer {
                     .get_player(&id.into())
                     .map(|plyr| {
                         html! {
-                            <div class="row">
-                                <div class="col">
-                                    <>{player_info_display(tourn, plyr)}</>
-                                    <ul>
-                                    {
-                                        tourn.get_player_rounds(&id.into())
-                                        .unwrap_or_default()
-                                        .into_iter()
-                                        .map(|r| {
-                                            let rid = r.id;
-                                            let cb = self.process.clone();
-                                            html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(rid)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
-                                        })
-                                        .collect::<Html>()
-                                    }
-                                    </ul>
-                                </div>
-                                <div class="col">{ self.subview(tourn) }</div>
-                            </div>
+                            <>
+                            <h4>{ plyr.name.as_str() }</h4>
+                            <p>{ format!("Gamertag : {}", plyr.game_name.clone().unwrap_or_else(|| "None".to_string())) }</p>
+                            <p>{ format!("Can play : {}", plyr.can_play()) }</p>
+                            <p>{ format!("Rounds : {}", tourn.get_player_rounds(&id.into()).unwrap_or_default().len() ) }</p>
+                            <ul>
+                            {
+                                tourn.get_player_rounds(&id.into()).unwrap_or_default().into_iter()
+                                    .map(|r| {
+                                        html! {<li>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
+                                    })
+                                    .collect::<Html>()
+                            }
+                            </ul>
+                            </>
                         }
                     })
                     .unwrap_or_else(|_| html!{
