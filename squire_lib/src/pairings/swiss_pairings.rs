@@ -39,6 +39,11 @@ impl SwissPairings {
         }
     }
 
+    /// Returns if this pairing method requires checkins
+    pub fn do_check_ins(&self) -> bool {
+        self.do_check_ins
+    }
+
     /// Marks a player as ready to play in their next round
     pub fn ready_player(&mut self, plyr: PlayerId) {
         self.check_ins.insert(plyr);

@@ -60,24 +60,25 @@ struct ScoreCounter {
     pub(crate) opponents: HashSet<PlayerId>,
 }
 
+#[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 /// The scoring stuct that uses the standard match point model
 pub struct StandardScoring {
-    match_win_points: r64,
-    match_draw_points: r64,
-    match_loss_points: r64,
-    game_win_points: r64,
-    game_draw_points: r64,
-    game_loss_points: r64,
-    bye_points: r64,
-    include_byes: bool,
-    include_match_points: bool,
-    include_game_points: bool,
-    include_mwp: bool,
-    include_gwp: bool,
-    include_opp_mwp: bool,
-    include_opp_gwp: bool,
+    pub match_win_points: r64,
+    pub match_draw_points: r64,
+    pub match_loss_points: r64,
+    pub game_win_points: r64,
+    pub game_draw_points: r64,
+    pub game_loss_points: r64,
+    pub bye_points: r64,
+    pub include_byes: bool,
+    pub include_match_points: bool,
+    pub include_game_points: bool,
+    pub include_mwp: bool,
+    pub include_gwp: bool,
+    pub include_opp_mwp: bool,
+    pub include_opp_gwp: bool,
 }
 
 impl StandardScoring {
