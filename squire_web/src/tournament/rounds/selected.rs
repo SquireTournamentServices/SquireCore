@@ -8,6 +8,21 @@ pub struct SelectedRound {
     id: Option<RoundId>,
 }
 
+pub struct SelectedRoundViewResult {
+    found: bool,
+    match_number: u64,
+    table_number: u64,
+}
+impl Default for SelectedRoundViewResult {
+    fn default() -> Self {
+        SelectedRoundViewResult {
+            found : false,
+            match_number : 0,
+            table_number : 0
+        }
+    }
+}
+
 impl SelectedRound {
     pub fn new() -> Self {
         Self { id: None }
@@ -20,15 +35,25 @@ impl SelectedRound {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        html! { <p>{ self
+        let result: SelectedRoundViewResult = self
             .id
             .map(|id| {
                 tourn
                     .get_round(&id.into())
-                    .map(|rnd| format!("Round #{} at table #{}", rnd.match_number, rnd.table_number))
-                    .unwrap_or_else(|_| "Round not found!!!".to_owned())
+                    .map(|rnd| {
+                        SelectedRoundViewResult {
+                            found : true,
+                            match_number : rnd.match_number,
+                            table_number : rnd.table_number
+                        }
+                    })
+                    .unwrap_or_default()
             })
-            .unwrap_or_else(|| "No round selected!!".to_owned())
-        }</p> }
+            .unwrap_or_default();
+        html! {
+            <div class="my-1 mx-3">
+                <h4>{ format!("Round #{} at Table #{}", result.match_number, result.table_number) }</h4>
+            </div>
+        }
     }
 }

@@ -42,7 +42,7 @@ impl PlayerScroll {
                     .map(|p| {
                         let id = p.id;
                         let cb = self.process.clone();
-                        html! { <li><a align="center" class="vert" onclick = { move |_| cb.emit(id) }>{ p.name.as_str() }</a></li> }
+                        html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(id) }>{ p.name.as_str() }</a></li> }
                     })
                     .collect::<Html>()
             }

@@ -1,11 +1,26 @@
 use squire_sdk::{
     players::{Player, PlayerId},
-    tournaments::Tournament,
+    tournaments::Tournament, model::identifiers::{PlayerIdentifier, TypeId},
 };
 use yew::prelude::*;
 
 pub struct SelectedPlayer {
     id: Option<PlayerId>,
+}
+
+pub struct SelectedPlayerViewResult {
+    found: bool,
+    name: String,
+    gamertag: String,
+}
+impl Default for SelectedPlayerViewResult {
+    fn default() -> Self {
+        SelectedPlayerViewResult {
+            found : false,
+            name : "...".to_owned(),
+            gamertag : "...".to_owned()
+        }
+    }
 }
 
 impl SelectedPlayer {
@@ -20,15 +35,26 @@ impl SelectedPlayer {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        let txt = self
+        let result: SelectedPlayerViewResult = self
             .id
             .map(|id| {
                 tourn
                     .get_player(&id.into())
-                    .map(|plyr| plyr.name.as_str())
-                    .unwrap_or("Player not found!!!")
+                    .map(|plyr| {
+                        SelectedPlayerViewResult {
+                            found : true,
+                            name : plyr.name.to_string(),
+                            gamertag : plyr.game_name.clone().unwrap_or("None".to_string())
+                        }
+                    })
+                    .unwrap_or_default()
             })
-            .unwrap_or("No player selected!!");
-        html! { <p>{ txt }</p> }
+            .unwrap_or_default();
+        html! {
+            <div class="my-1 mx-3">
+                <h4>{ result.name }</h4>
+                <p>{ format!("Gamertag : {}", result.gamertag) }</p>
+            </div>
+        }
     }
 }
