@@ -75,8 +75,16 @@ impl Component for RoundsView {
                 html! {
                     <div>
                         { self.input.view() }
-                        { self.scroll.view(t) }
-                        { self.selected.view(t) }
+                        <div class="d-flex flex-row my-4">
+                            <div>
+                                <div class="overflow-auto player-scroll-box">
+                                    { self.scroll.view(t) }
+                                </div>
+                            </div>
+                            <div>
+                                { self.selected.view(t) }
+                            </div>
+                        </div>
                     </div>
                 }
             })

@@ -72,8 +72,12 @@ impl PlayerFilterInput {
             Callback::from(move |s| status.emit(PlayerFilterInputMessage::PlayerStatus(s)));
         html! {
             <div>
-                <TextInput label = { "Player Name:" } process = { number }/>
-                <TextInput label = { "Player Status:" } process = { status }/>
+                <div class="my-1">
+                    <TextInput label = { "Player Name:" } process = { number }/>
+                </div>
+                <div class="my-1">
+                    <TextInput label = { "Player Status:" } process = { status }/>
+                </div>
             </div>
         }
     }

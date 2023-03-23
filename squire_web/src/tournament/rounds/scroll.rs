@@ -44,7 +44,7 @@ impl RoundScroll {
                     .map(|r| {
                         let id = r.id;
                         let cb = self.process.clone();
-                        html! { <li><a align="center" class="vert" onclick = { move |_| cb.emit(id) }>{ r.match_number }</a></li> }
+                        html! { <li><a class="vert py-1" onclick = { move |_| cb.emit(id) }>{ r.match_number }</a></li> }
                     })
                     .collect::<Html>()
             }

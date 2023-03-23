@@ -73,8 +73,12 @@ impl RoundFilterInput {
         let status = Callback::from(move |s| status.emit(RoundFilterInputMessage::RoundStatus(s)));
         html! {
             <div>
-                <TextInput label = { "Round Number:" } process = { number }/>
-                <TextInput label = { "Round Status:" } process = { status }/>
+                <div class="m-1">
+                    <TextInput label = { "Round Number:" } process = { number }/>
+                </div>
+                <div class="m-1">
+                    <TextInput label = { "Round Status:" } process = { status }/>
+                </div>
             </div>
         }
     }

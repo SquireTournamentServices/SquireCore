@@ -75,13 +75,13 @@ impl Component for PlayerView {
                 html! {
                     <div>
                         { self.input.view() }
-                        <div class="row">
-                            <div class="col">
+                        <div class="d-flex flex-row my-4">
+                            <div>
                                 <div class="overflow-auto player-scroll-box">
                                     { self.scroll.view(t) }
                                 </div>
                             </div>
-                            <div class="col">
+                            <div>
                                 { self.selected.view(t) }
                             </div>
                         </div>
