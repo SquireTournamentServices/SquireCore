@@ -32,6 +32,16 @@ impl SelectedRound {
                             <p>{ format!("# of players : {}", rnd.players.len()) }</p>
                             <p>{ format!("Active : {}", rnd.is_active()) }</p>
                             <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
+                            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+                            <ul>
+                            {
+                                rnd.players.clone().into_iter()
+                                    .map(|pid| {
+                                        html! { <li>{ format!( "{}", tourn.get_player(&pid.into()).map(|p| p.name.as_str()).unwrap_or_else(|_| "Player not found") ) }</li>}
+                                    })
+                                    .collect::<Html>()
+                            }
+                            </ul>
                             </>
                         }
                     })
