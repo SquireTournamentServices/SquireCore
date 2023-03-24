@@ -25,10 +25,13 @@ jobs:
         uses: jetli/trunk-action@v0.4.0
         with:
           version: 'latest'
-      - name: Fetch and run Tarpaulin
-        uses: actions-rs/tarpaulin@v0.1
+      - name: Fetch Tarpaulin
+        uses: actions-rs/install@v0.1
         with:
-            version: '0.25.1'
-            args: '--verbose --all-features --workspace --timeout 120'
+          crate: cargo-tarpaulin
+          version: 'latest'
+      - name: Generate code coverage
+        run: |
+          cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
