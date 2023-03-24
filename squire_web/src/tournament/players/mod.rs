@@ -2,7 +2,7 @@ use squire_sdk::{
     client::state::ClientState,
     model::{identifiers::RoundIdentifier, rounds::RoundStatus},
     players::PlayerId,
-    tournaments::TournamentId,
+    tournaments::{Tournament, TournamentId}, model::{identifiers::{PlayerIdentifier, TypeId}, rounds::RoundId},
 };
 
 use yew::prelude::*;
@@ -18,6 +18,8 @@ pub use input::*;
 pub use scroll::*;
 pub use selected::*;
 
+use super::rounds::SelectedRound;
+
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerFilterProps {
     pub id: TournamentId,
@@ -27,6 +29,7 @@ pub struct PlayerFilterProps {
 pub enum PlayerFilterMessage {
     PlayerSelected(PlayerId),
     FilterInput(PlayerFilterInputMessage),
+    RoundSelected(RoundId),
 }
 
 pub struct PlayerView {
@@ -45,7 +48,7 @@ impl Component for PlayerView {
             id: ctx.props().id,
             input: PlayerFilterInput::new(ctx.link().callback(PlayerFilterMessage::FilterInput)),
             scroll: PlayerScroll::new(ctx.link().callback(PlayerFilterMessage::PlayerSelected)),
-            selected: SelectedPlayer::new(),
+            selected: SelectedPlayer::new(ctx.link().callback(PlayerFilterMessage::RoundSelected)),
         }
     }
 
@@ -60,7 +63,11 @@ impl Component for PlayerView {
                 }
             }
             PlayerFilterMessage::PlayerSelected(p_id) => {
+                self.selected.update_round(None);
                 self.selected.update(Some(p_id))
+            }
+            PlayerFilterMessage::RoundSelected(r_id) => {
+                self.selected.update_round(Some(r_id))
             }
         }
     }
