@@ -28,6 +28,7 @@ jobs:
       - name: Fetch and run Tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
+            version: '0.25.1'
             args: '--verbose --all-features --workspace --timeout 120'
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
