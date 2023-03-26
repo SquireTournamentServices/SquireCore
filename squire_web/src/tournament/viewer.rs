@@ -60,7 +60,7 @@ impl TournamentViewer {
                 html! {
                     <div>
                         <ul>
-                            <h4 class="text-center text-lg-start">{ tourn.name.clone() }</h4>
+                            <h4 class="text-center text-lg-start">{ tourn.name.as_str() }</h4>
                             <hr/>
                             <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
                             <li>{ make_button("Players"  , TournViewMode::Players) }</li>
