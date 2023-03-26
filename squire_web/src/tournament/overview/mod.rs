@@ -28,7 +28,7 @@ impl Component for TournOverview {
             .unwrap()
             .state
             .query_tournament(&self.id, |t| {
-                let (activeRnds, certifiedRnds) = t.round_reg.rounds.values().fold((0, 0), |mut acc, r| {
+                let (active_rnds, certified_rnds) = t.round_reg.rounds.values().fold((0, 0), |mut acc, r| {
                     match r.status {
                         RoundStatus::Open => acc.0 += 1,
                         RoundStatus::Certified => acc.1 += 1,
@@ -37,7 +37,7 @@ impl Component for TournOverview {
                     acc
                 });
 
-                let (registeredPlyrs, droppedPlyrs) = t.player_reg.players.values().fold((0, 0), |mut acc, p| {
+                let (registered_plyrs, dropped_plyrs) = t.player_reg.players.values().fold((0, 0), |mut acc, p| {
                     match p.status {
                         PlayerStatus::Registered => acc.0 += 1,
                         PlayerStatus::Dropped => acc.1 += 1,
@@ -54,14 +54,14 @@ impl Component for TournOverview {
                                 <hr class="my-4"/>
                                 <p>{ format!("Format : {}", t.format) }</p>
                                 <p>{ format!("Status : {}", t.status) }</p>
-                                <p>{ format!("Registered players : {registeredPlyrs}") }</p>
+                                <p>{ format!("Registered players : {registered_plyrs}") }</p>
 
-                                if droppedPlyrs > 0 {
-                                    <p>{ format!("Dropped players : {droppedPlyrs}") }</p>
+                                if dropped_plyrs > 0 {
+                                    <p>{ format!("Dropped players : {dropped_plyrs}") }</p>
                                 }
 
-                                <p>{ format!("Active rounds : {activeRnds}") }</p>
-                                <p>{ format!("Certified rounds : {certifiedRnds}") }</p>
+                                <p>{ format!("Active rounds : {active_rnds}") }</p>
+                                <p>{ format!("Certified rounds : {certified_rnds}") }</p>
                                 <p>{ format!("Number of judges : {}", t.judges.len()) }</p>
                                 <p>{ format!("Number of admins : {}", t.admins.len()) }</p>
                             </div>
