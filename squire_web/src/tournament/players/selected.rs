@@ -32,7 +32,7 @@ impl SelectedPlayer {
     }
 
     fn subview_match(&self, tourn: &Tournament) -> Html {
-        let returnhtml = self
+        self
             .round_id
             .map(|round_id| {
                 tourn
@@ -61,8 +61,7 @@ impl SelectedPlayer {
             })
             .unwrap_or_else(|| html!{
                 <p>{"No match selected"}</p>
-            });
-        return html!{returnhtml}
+            })
         }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
