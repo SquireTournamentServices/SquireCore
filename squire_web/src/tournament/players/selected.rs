@@ -131,8 +131,8 @@ impl SelectedPlayer {
             .unwrap_or_else(|| html!{
                 <h4>{"No player selected"}</h4>
             });
-        return html!{
+        html!{
             <div class="m-2">{returnhtml}</div>
-        };
+        }
     }
 }
