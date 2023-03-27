@@ -29,7 +29,7 @@ pub struct PlayerViewProps {
 pub enum PlayerViewMessage {
     PlayerSelected(PlayerId),
     FilterInput(PlayerFilterInputMessage),
-    RoundSelected(RoundId),
+    PlayerInfoSelected(SelectedPlayerInfo),
 }
 
 pub struct PlayerView {
@@ -48,7 +48,7 @@ impl Component for PlayerView {
             id: ctx.props().id,
             input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput)),
             scroll: PlayerScroll::new(ctx.link().callback(PlayerViewMessage::PlayerSelected)),
-            selected: SelectedPlayer::new(ctx.link().callback(PlayerViewMessage::RoundSelected)),
+            selected: SelectedPlayer::new(ctx.link().callback(PlayerViewMessage::PlayerInfoSelected)),
         }
     }
 
@@ -63,11 +63,10 @@ impl Component for PlayerView {
                 }
             }
             PlayerViewMessage::PlayerSelected(p_id) => {
-                self.selected.update_round(None);
-                self.selected.update(Some(p_id))
+                self.selected.update( SelectedPlayerMessage::PlayerSelected(Some(p_id)) )
             }
-            PlayerViewMessage::RoundSelected(r_id) => {
-                self.selected.update_round(Some(r_id))
+            PlayerViewMessage::PlayerInfoSelected(spi) => {
+                self.selected.update( SelectedPlayerMessage::InfoSelected(Some(spi)) )
             }
         }
     }

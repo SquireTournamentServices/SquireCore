@@ -4,39 +4,92 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum SelectedPlayerInfo {
+    Round(RoundId),
+    Deck(String),
+}
+pub enum SelectedPlayerMessage {
+    PlayerSelected(Option<PlayerId>),
+    InfoSelected(Option<SelectedPlayerInfo>),
+}
+
 pub struct SelectedPlayer {
-    pub process: Callback<RoundId>,
+    pub process: Callback<SelectedPlayerInfo>,
     id: Option<PlayerId>,
-    round_id: Option<RoundId>,
+    spi: Option<SelectedPlayerInfo>,
 }
 
 impl SelectedPlayer {
-    pub fn new(process: Callback<RoundId>) -> Self {
+    pub fn new(process: Callback<SelectedPlayerInfo>) -> Self {
         Self { 
             process,
             id: None,
-            round_id: None,
+            spi: None,
         }
     }
 
-    pub fn update(&mut self, id: Option<PlayerId>) -> bool {
-        let digest = self.id != id;
-        self.id = id;
-        digest
+    pub fn update(&mut self, msg: SelectedPlayerMessage) -> bool {
+        match msg {
+            SelectedPlayerMessage::PlayerSelected(p_id) => {
+                let digest = self.id != p_id;
+                self.spi = None;
+                self.id = p_id;
+                digest
+            }
+            SelectedPlayerMessage::InfoSelected(spi) => {
+                let digest = self.spi != spi;
+                self.spi = spi;
+                digest
+            }
+        }
     }
 
-    pub fn update_round(&mut self, rid: Option<RoundId>) -> bool {
-        let digest = self.round_id != rid;
-        self.round_id = rid;
-        digest
-    }
 
-    fn subview_match(&self, tourn: &Tournament) -> Html {
+    fn subview_round(&self, tourn: &Tournament, rid: RoundId) -> Html {
+        tourn.get_round(&rid.into()).map(|rnd|{
+            html! {
+                html! {
+                    <>
+                    <p>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</p>
+                    <p>{ format!("Active : {}", rnd.is_active()) }</p>
+                    <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+                    <ul>
+                    {
+                        rnd.players.clone().into_iter()
+                            .map(|pid| {
+                                html! { <li>{ format!( "{}", tourn.get_player(&pid.into()).map(|p| p.name.as_str()).unwrap_or_else(|_| "Player not found") ) }</li>}
+                            })
+                            .collect::<Html>()
+                    }
+                    </ul>
+                    </>
+                }
+            }
+        })
+        .unwrap_or_else(|_| html!{
+            <p>{ "Round not found." }</p>
+        })
+    }
+    fn subview(&self, tourn: &Tournament) -> Html {
+        let spi = self.spi.clone();
+        match spi {
+            None => {
+                html!{ <h3>{" No info selected "}</h3> }
+            }
+            Some(SelectedPlayerInfo::Round(rid)) => {
+                self.subview_round(tourn, rid)
+            }
+            Some(SelectedPlayerInfo::Deck(d_name)) => {
+                html!{ <p>{" Deck view hasn't been implemented :/ sorry."}</p> }
+            }
+        }
+        /*
         self
-            .round_id
-            .map(|round_id| {
+            .selected_player_info
+            .map(|spi| {
                 tourn
-                    .get_round(&round_id.into())
+                    .get_round(&spi.into())
                     .map(|rnd| {
                         html! {
                             <>
@@ -62,6 +115,7 @@ impl SelectedPlayer {
             .unwrap_or_else(|| html!{
                 <p>{"No match selected"}</p>
             })
+        */
         }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
@@ -84,13 +138,13 @@ impl SelectedPlayer {
                                             .map(|r| {
                                                 let rid = r.id;
                                                 let cb = self.process.clone();
-                                                html! {<li class="sub_option" onclick={ move |_| cb.emit(rid) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
+                                                html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(rid)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
                                             })
                                             .collect::<Html>()
                                     }
                                     </ul>
                                 </div>
-                                <div class="col">{ self.subview_match(tourn) }</div>
+                                <div class="col">{ self.subview(tourn) }</div>
                             </div>
                         }
                     })
