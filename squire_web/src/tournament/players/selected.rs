@@ -7,12 +7,23 @@ use yew::prelude::*;
 use crate::tournament::rounds::round_info_display;
 
 pub fn player_info_display(tourn: &Tournament, plyr: &Player) -> Html {
+    let gamertag = { |plyr: &Player|
+        plyr.game_name.
+        clone()
+        .unwrap_or_else(|| "None".to_string())
+    };
+    let round_number = { |plyr: &Player|
+        tourn.
+        get_player_rounds(&plyr.id.into()).
+        unwrap_or_default().
+        len()
+    };
     html! {
         <>
             <h4>{ plyr.name.as_str() }</h4>
-            <p>{ format!("Gamertag : {}", plyr.game_name.clone().unwrap_or_else(|| "None".to_string())) }</p>
+            <p>{ format!("Gamertag : {}", gamertag(plyr) ) }</p>
             <p>{ format!("Can play : {}", plyr.can_play()) }</p>
-            <p>{ format!("Rounds : {}", tourn.get_player_rounds(&plyr.id.into()).unwrap_or_default().len() ) }</p>
+            <p>{ format!("Rounds : {}", round_number(plyr) ) }</p>
         </>
     }
 }
@@ -69,7 +80,13 @@ impl SelectedPlayer {
                     {
                         rnd.players.clone().into_iter()
                             .map(|pid| {
-                                html! { <li>{ format!( "{}", tourn.get_player(&pid.into()).map(|p| p.name.as_str()).unwrap_or_else(|_| "Player not found") ) }</li>}
+                                let player_in_round = { ||
+                                    tourn
+                                    .get_player(&pid.into())
+                                    .map(|p| p.name.as_str())
+                                    .unwrap_or_else( |_| "Player not found")
+                                };
+                                html! { <li>{ format!( "{}", player_in_round() ) }</li> }
                             })
                             .collect::<Html>()
                     }
@@ -110,13 +127,15 @@ impl SelectedPlayer {
                                     <>{player_info_display(tourn, plyr)}</>
                                     <ul>
                                     {
-                                        tourn.get_player_rounds(&id.into()).unwrap_or_default().into_iter()
-                                            .map(|r| {
-                                                let rid = r.id;
-                                                let cb = self.process.clone();
-                                                html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(rid)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
-                                            })
-                                            .collect::<Html>()
+                                        tourn.get_player_rounds(&id.into())
+                                        .unwrap_or_default()
+                                        .into_iter()
+                                        .map(|r| {
+                                            let rid = r.id;
+                                            let cb = self.process.clone();
+                                            html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(rid)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
+                                        })
+                                        .collect::<Html>()
                                     }
                                     </ul>
                                 </div>
