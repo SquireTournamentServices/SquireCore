@@ -2,7 +2,7 @@ use squire_sdk::{
     client::state::ClientState,
     model::{identifiers::RoundIdentifier, rounds::RoundStatus},
     players::PlayerId,
-    tournaments::{Tournament, TournamentId}, model::{identifiers::{PlayerIdentifier, TypeId}, rounds::RoundId},
+    tournaments::{Tournament, TournamentId}, model::{identifiers::{PlayerIdentifier}, rounds::RoundId},
 };
 
 use yew::prelude::*;
@@ -21,12 +21,12 @@ pub use selected::*;
 use super::rounds::SelectedRound;
 
 #[derive(Debug, PartialEq, Properties)]
-pub struct PlayerFilterProps {
+pub struct PlayerViewProps {
     pub id: TournamentId,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum PlayerFilterMessage {
+pub enum PlayerViewMessage {
     PlayerSelected(PlayerId),
     FilterInput(PlayerFilterInputMessage),
     RoundSelected(RoundId),
@@ -40,33 +40,33 @@ pub struct PlayerView {
 }
 
 impl Component for PlayerView {
-    type Message = PlayerFilterMessage;
-    type Properties = PlayerFilterProps;
+    type Message = PlayerViewMessage;
+    type Properties = PlayerViewProps;
 
     fn create(ctx: &Context<Self>) -> Self {
         Self {
             id: ctx.props().id,
-            input: PlayerFilterInput::new(ctx.link().callback(PlayerFilterMessage::FilterInput)),
-            scroll: PlayerScroll::new(ctx.link().callback(PlayerFilterMessage::PlayerSelected)),
-            selected: SelectedPlayer::new(ctx.link().callback(PlayerFilterMessage::RoundSelected)),
+            input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput)),
+            scroll: PlayerScroll::new(ctx.link().callback(PlayerViewMessage::PlayerSelected)),
+            selected: SelectedPlayer::new(ctx.link().callback(PlayerViewMessage::RoundSelected)),
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         web_sys::console::log_1(&format!("New filter message: {msg:?}").into());
         match msg {
-            PlayerFilterMessage::FilterInput(msg) => {
+            PlayerViewMessage::FilterInput(msg) => {
                 if self.input.update(msg) {
                     self.scroll.update(self.input.get_report())
                 } else {
                     false
                 }
             }
-            PlayerFilterMessage::PlayerSelected(p_id) => {
+            PlayerViewMessage::PlayerSelected(p_id) => {
                 self.selected.update_round(None);
                 self.selected.update(Some(p_id))
             }
-            PlayerFilterMessage::RoundSelected(r_id) => {
+            PlayerViewMessage::RoundSelected(r_id) => {
                 self.selected.update_round(Some(r_id))
             }
         }
@@ -78,7 +78,7 @@ impl Component for PlayerView {
             .unwrap()
             .state
             .query_tournament(&self.id, |t| {
-                let process = ctx.link().callback(PlayerFilterMessage::FilterInput);
+                let process = ctx.link().callback(PlayerViewMessage::FilterInput);
                 html! {
                     <div>
                         { self.input.view() }
