@@ -68,8 +68,8 @@ impl Component for PlayerView {
             PlayerViewMessage::PlayerInfoSelected(spi) => {
                 self.selected.update( SelectedPlayerMessage::InfoSelected(Some(spi)) )
             }
-            PlayerViewMessage::RoundSelected(r_id) => {
-                self.selected.update_round(Some(r_id))
+            PlayerViewMessage::PlayerInfoSelected(spi) => {
+                self.selected.update( SelectedPlayerMessage::InfoSelected(Some(spi)) )
             }
         }
     }
