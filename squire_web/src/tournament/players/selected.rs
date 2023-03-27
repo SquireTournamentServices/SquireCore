@@ -84,39 +84,7 @@ impl SelectedPlayer {
                 html!{ <p>{" Deck view hasn't been implemented :/ sorry."}</p> }
             }
         }
-        /*
-        self
-            .selected_player_info
-            .map(|spi| {
-                tourn
-                    .get_round(&spi.into())
-                    .map(|rnd| {
-                        html! {
-                            <>
-                            <p>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</p>
-                            <p>{ format!("Active : {}", rnd.is_active()) }</p>
-                            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
-                            <ul>
-                            {
-                                rnd.players.clone().into_iter()
-                                    .map(|pid| {
-                                        html! { <li>{ format!( "{}", tourn.get_player(&pid.into()).map(|p| p.name.as_str()).unwrap_or_else(|_| "Player not found") ) }</li>}
-                                    })
-                                    .collect::<Html>()
-                            }
-                            </ul>
-                            </>
-                        }
-                    })
-                    .unwrap_or_else(|_| html!{
-                        <p>{"Match not found"}</p>
-                    })
-            })
-            .unwrap_or_else(|| html!{
-                <p>{"No match selected"}</p>
-            })
-        */
-        }
+    }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
         let returnhtml = self
