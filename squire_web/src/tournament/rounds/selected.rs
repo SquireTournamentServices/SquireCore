@@ -39,11 +39,7 @@ impl SelectedRound {
                     .map(|rnd| {
                         html! {
                             <>
-                            <h4>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</h4>
-                            <p>{ format!("# of players : {}", rnd.players.len()) }</p>
-                            <p>{ format!("Active : {}", rnd.is_active()) }</p>
-                            <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
-                            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+                            <>{round_info_display(rnd)}</>
                             <ul>
                             {
                                 rnd.players.clone().into_iter()

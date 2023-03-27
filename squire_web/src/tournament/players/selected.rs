@@ -197,10 +197,7 @@ impl SelectedPlayer {
                         html! {
                             <div class="row">
                                 <div class="col">
-                                    <h4>{ plyr.name.as_str() }</h4>
-                                    <p>{ format!("Gamertag : {}", plyr.game_name.clone().unwrap_or_else(|| "None".to_string())) }</p>
-                                    <p>{ format!("Can play : {}", plyr.can_play()) }</p>
-                                    <p>{ format!("Rounds : {}", tourn.get_player_rounds(&id.into()).unwrap_or_default().len() ) }</p>
+                                    <>{player_info_display(tourn, plyr)}</>
                                     <ul>
                                     {
                                         tourn.get_player_rounds(&id.into()).unwrap_or_default().into_iter()
