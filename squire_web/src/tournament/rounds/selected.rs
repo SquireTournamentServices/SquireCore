@@ -43,8 +43,15 @@ impl SelectedRound {
                             <ul>
                             {
                                 rnd.players.clone().into_iter()
+                                    // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
                                     .map(|pid| {
-                                        html! { <li>{ format!( "{}", tourn.get_player(&pid.into()).map(|p| p.name.as_str()).unwrap_or_else(|_| "Player not found") ) }</li>}
+                                        let player_in_round = { ||
+                                            tourn
+                                            .get_player(&pid.into())
+                                            .map(|p| p.name.as_str())
+                                            .unwrap_or_else( |_| "Player not found")
+                                        };
+                                        html! { <li>{ format!( "{}", player_in_round() ) }</li>}
                                     })
                                     .collect::<Html>()
                             }
