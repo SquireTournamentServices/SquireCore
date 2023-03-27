@@ -4,6 +4,17 @@ use squire_sdk::model::{
 };
 use yew::prelude::*;
 
+pub fn round_info_display(rnd: &Round) -> Html {
+    html! {
+        <>
+            <p>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</p>
+            <p>{ format!("Active : {}", rnd.is_active()) }</p>
+            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+            <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
+        </>
+    }
+}
+
 pub struct SelectedRound {
     id: Option<RoundId>,
 }
@@ -28,11 +39,7 @@ impl SelectedRound {
                     .map(|rnd| {
                         html! {
                             <>
-                            <h4>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</h4>
-                            <p>{ format!("# of players : {}", rnd.players.len()) }</p>
-                            <p>{ format!("Active : {}", rnd.is_active()) }</p>
-                            <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
-                            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+                            <>{round_info_display(rnd)}</>
                             <ul>
                             {
                                 rnd.players.clone().into_iter()

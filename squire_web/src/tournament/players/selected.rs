@@ -4,6 +4,19 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
+use crate::tournament::rounds::round_info_display;
+
+pub fn player_info_display(tourn: &Tournament, plyr: &Player) -> Html {
+    html! {
+        <>
+            <h4>{ plyr.name.as_str() }</h4>
+            <p>{ format!("Gamertag : {}", plyr.game_name.clone().unwrap_or_else(|| "None".to_string())) }</p>
+            <p>{ format!("Can play : {}", plyr.can_play()) }</p>
+            <p>{ format!("Rounds : {}", tourn.get_player_rounds(&plyr.id.into()).unwrap_or_default().len() ) }</p>
+        </>
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum SelectedPlayerInfo {
     Round(RoundId),
@@ -51,9 +64,7 @@ impl SelectedPlayer {
             html! {
                 html! {
                     <>
-                    <p>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</p>
-                    <p>{ format!("Active : {}", rnd.is_active()) }</p>
-                    <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+                    <>{round_info_display(rnd)}</>
                     <ul>
                     {
                         rnd.players.clone().into_iter()
@@ -96,10 +107,7 @@ impl SelectedPlayer {
                         html! {
                             <div class="row">
                                 <div class="col">
-                                    <h4>{ plyr.name.as_str() }</h4>
-                                    <p>{ format!("Gamertag : {}", plyr.game_name.clone().unwrap_or_else(|| "None".to_string())) }</p>
-                                    <p>{ format!("Can play : {}", plyr.can_play()) }</p>
-                                    <p>{ format!("Rounds : {}", tourn.get_player_rounds(&id.into()).unwrap_or_default().len() ) }</p>
+                                    <>{player_info_display(tourn, plyr)}</>
                                     <ul>
                                     {
                                         tourn.get_player_rounds(&id.into()).unwrap_or_default().into_iter()
