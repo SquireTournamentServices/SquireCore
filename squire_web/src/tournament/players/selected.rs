@@ -200,13 +200,15 @@ impl SelectedPlayer {
                                     <>{player_info_display(tourn, plyr)}</>
                                     <ul>
                                     {
-                                        tourn.get_player_rounds(&id.into()).unwrap_or_default().into_iter()
-                                            .map(|r| {
-                                                let rid = r.id;
-                                                let cb = self.process.clone();
-                                                html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(rid)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
-                                            })
-                                            .collect::<Html>()
+                                        tourn.get_player_rounds(&id.into())
+                                        .unwrap_or_default()
+                                        .into_iter()
+                                        .map(|r| {
+                                            let rid = r.id;
+                                            let cb = self.process.clone();
+                                            html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(rid)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
+                                        })
+                                        .collect::<Html>()
                                     }
                                     </ul>
                                 </div>
