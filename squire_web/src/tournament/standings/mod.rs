@@ -30,30 +30,59 @@ pub struct StandingsView {
     pub process: Callback<i32>,
 }
 
-fn gen_popout_page(tourn : &Tournament) -> Html {
+fn gen_popout_page(tourn : &Tournament, vert_scroll_time : u32) -> Html {
     html! {
         <html>
             <head>
-                <title>{ "Title works!" }</title>
-                <style>{"
-                    h1 {
-                        color: red;
-                    }
-                "}</style>
+                <title>{ "Standings!" }</title>
+                <style>{format!("
+                html, body {{
+                    overflow: hidden;
+                }}
+                .scroll_holder {{
+                    overflow: hidden;
+                    box-sizing: border-box;
+                    position: relative;
+                    box-sizing: border-box;
+                }} 
+                .vert_scroller {{
+                    position: relative;
+                    box-sizing: border-box;
+                    animation: vert_scroller {}s linear infinite;
+                }}
+                .scroll_item {{
+                    display: block;
+                    font-size: 3em;
+                    font-family: Arial, Helvetica, sans-serif;
+                    margin: auto;
+                    height: 4em;
+                    text-align: center;
+                }}
+                @keyframes vert_scroller {{
+                    0%   {{ top:  120vh }}
+                    100% {{ top: -100% }}
+                }}
+                ", vert_scroll_time)}</style>
             </head>
             <body>
-                <ol>
-                {
-                    tourn.get_standings().scores
-                    .into_iter()
-                    .map(|pid| {
-                        let playername = tourn.get_player(&pid.0.into())
-                        .map(|p| p.clone().name ).unwrap_or("Not Found".to_owned());
-                        html! {<li>{ format!("- {} -", playername) }</li>}
-                    })
-                    .collect::<Html>()
-                }
-                </ol>
+                <div class="scroll_holder">
+                    <div class="vert_scroller">
+                    {
+                            tourn.get_standings().scores
+                            .into_iter().enumerate()
+                            .map(|(i, s)| {
+                                let playername = tourn.get_player(&s.0.into())
+                                .map(|p| p.clone().name ).unwrap_or("Not Found".to_owned());
+                                html! {
+                                    <div class="scroll_item">
+                                        <p>{ format!("#{} : {}", i, playername) }</p>
+                                    </div>
+                                }
+                            })
+                            .collect::<Html>()
+                    }
+                    </div>
+                </div>
             </body>
         </html>
     }
@@ -79,7 +108,7 @@ impl Component for StandingsView {
                 .unwrap()
                 .state
                 .query_tournament(&self.id, |t| {
-                    self.scroll_vnode = Some(gen_popout_page(t));
+                    self.scroll_vnode = Some(gen_popout_page(t, 120));
                 });
                 window().map(|w|
                     w.open().map(|new_w_o| new_w_o.map( |new_w|
