@@ -34,21 +34,36 @@ impl RoundScroll {
 
     pub fn view(&self, tourn: &Tournament) -> Html {
         html! {
-            <ul>
-            {
-                tourn
-                    .round_reg
-                    .rounds
-                    .values()
-                    .filter(|r| self.report.matches(r))
-                    .map(|r| {
-                        let id = r.id;
-                        let cb = self.process.clone();
-                        html! { <li><a class="vert py-1" onclick = { move |_| cb.emit(id) }>{ r.match_number }</a></li> }
-                    })
-                    .collect::<Html>()
-            }
-            </ul>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>{ "Round" }</th>
+                        <th>{ "Table" }</th>
+                        <th>{ "Status" }</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {
+                    tourn
+                        .round_reg
+                        .rounds
+                        .values()
+                        .filter(|r| self.report.matches(r))
+                        .map(|r| {
+                            let id = r.id;
+                            let cb = self.process.clone();
+                            html! { 
+                                <tr onclick = { move |_| cb.emit(id) }>
+                                    <td>{ r.match_number }</td>
+                                    <td>{ r.table_number }</td> 
+                                    <td>{ r.status }</td>
+                                </tr>
+                            }
+                        })
+                        .collect::<Html>()
+                    }
+                </tbody>
+            </table>
         }
     }
 }
