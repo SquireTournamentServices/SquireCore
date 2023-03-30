@@ -1,3 +1,4 @@
+use js_sys::Math::round;
 use squire_sdk::{
     client::state::ClientState,
     model::{
@@ -33,8 +34,18 @@ impl RoundScroll {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
+        let unsorted_rounds = 
+        tourn
+        .round_reg
+        .rounds
+        .values()
+        .filter(|r| self.report.matches(r));
+        let mut rounds_vec = unsorted_rounds.collect::<Vec<_>>();
+        rounds_vec.sort_by_cached_key(|r| r.match_number);
+        rounds_vec.sort_by_cached_key(|r| r.status);
+        let sorted_rounds = rounds_vec.into_iter();
         html! {
-            <table class="table table-bordered">
+            <table class="table">
                 <thead>
                     <tr>
                         <th>{ "Round" }</th>
@@ -42,27 +53,19 @@ impl RoundScroll {
                         <th>{ "Status" }</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {
-                    tourn
-                        .round_reg
-                        .rounds
-                        .values()
-                        .filter(|r| self.report.matches(r))
-                        .map(|r| {
-                            let id = r.id;
-                            let cb = self.process.clone();
-                            html! { 
-                                <tr onclick = { move |_| cb.emit(id) }>
-                                    <td>{ r.match_number }</td>
-                                    <td>{ r.table_number }</td> 
-                                    <td>{ r.status }</td>
-                                </tr>
-                            }
-                        })
-                        .collect::<Html>()
-                    }
-                </tbody>
+                <tbody>{
+                    sorted_rounds.map(|r| {
+                        let id = r.id;
+                        let cb = self.process.clone();
+                        html! { 
+                            <tr onclick = { move |_| cb.emit(id) }>
+                                <td>{ r.match_number }</td>
+                                <td>{ r.table_number }</td> 
+                                <td>{ r.status }</td>
+                            </tr>
+                        }
+                    }).collect::<Html>()
+                }</tbody>
             </table>
         }
     }
