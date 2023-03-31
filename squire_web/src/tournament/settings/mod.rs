@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use yew::prelude::*;
 
-use squire_sdk::{client::state::ClientState, tournaments::TournamentId};
+use squire_sdk::{client::state::ClientState, tournaments::TournamentId, model::settings::TournamentSetting};
 
 mod general;
+mod panel;
 mod pairings;
 mod scoring;
 
@@ -11,6 +14,11 @@ use pairings::*;
 use scoring::*;
 
 use crate::CLIENT;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SettingsMessage{
+    Setting(TournamentSetting)
+}
 
 #[derive(Debug, Properties, PartialEq, Eq)]
 pub struct SettingsProps {
@@ -22,19 +30,29 @@ pub struct SettingsView {
     general: GeneralSettings,
     pairings: PairingsSettings,
     scoring: ScoringSettings,
+    to_change: HashSet<TournamentSetting>,
 }
 
 impl Component for SettingsView {
-    type Message = ();
+    type Message = SettingsMessage;
     type Properties = SettingsProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+        let emitter = ctx.link().callback(SettingsMessage::Setting);
         SettingsView {
             id: ctx.props().id,
-            general: Default::default(),
+            general: GeneralSettings::new(emitter),
             pairings: Default::default(),
             scoring: Default::default(),
+            to_change: Default::default(),
         }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            SettingsMessage::Setting(setting) => self.to_change.insert(setting),
+        };
+        false
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
