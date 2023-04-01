@@ -1,15 +1,23 @@
 use squire_sdk::model::{
-    rounds::{Round, RoundId},
+    rounds::{Round, RoundId, RoundStatus},
     tournament::Tournament,
 };
 use yew::prelude::*;
 
 pub fn round_info_display(rnd: &Round) -> Html {
+    let round_status = { ||
+        match rnd.status {
+            RoundStatus::Open => "Open",
+            RoundStatus::Certified => "Certified",
+            RoundStatus::Dead => "Dead"
+
+        }
+    };
+
     html! {
         <>
             <p>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</p>
-            <p>{ format!("Active : {}", rnd.is_active()) }</p>
-            <p>{ format!("Players : {}", rnd.players.len() ) }</p>
+            <p>{ format!("Status : {}", round_status()) }</p>
             <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
         </>
     }
@@ -67,6 +75,9 @@ impl SelectedRound {
                                     .collect::<Html>()
                             }
                             </ul>
+                            <p>
+                            { format!("Draws : {}", rnd.draws) }
+                            </p>
                             </>
                         }
                     })
