@@ -51,7 +51,9 @@ impl SelectedRound {
                                             .map(|p| p.name.as_str())
                                             .unwrap_or_else( |_| "Player not found")
                                         };
-                                        html! { <li>{ format!( "{}", player_in_round() ) }</li>}
+                                        let player_wins = rnd.results.get(&pid.into()).unwrap_or(&0);
+                                        let player_confirm = rnd.confirmations.get(&pid.into()).is_some();
+                                        html! { <li>{ format!( "{} - w:{} c:{}", player_in_round(), player_wins, player_confirm ) }</li>}
                                     })
                                     .collect::<Html>()
                             }
