@@ -53,7 +53,16 @@ impl SelectedRound {
                                         };
                                         let player_wins = rnd.results.get(&pid.into()).unwrap_or(&0);
                                         let player_confirm = rnd.confirmations.get(&pid.into()).is_some();
-                                        html! { <li>{ format!( "{} - w:{} c:{}", player_in_round(), player_wins, player_confirm ) }</li>}
+                                        html! { 
+                                            <li>
+                                            <div>
+                                            { format!( "{}", player_in_round()) }
+                                            </div>
+                                            <div>
+                                            { format!( "wins : {}, confirmed : {}", player_wins, player_confirm ) }
+                                            </div>
+                                            </li>
+                                        }
                                     })
                                     .collect::<Html>()
                             }
