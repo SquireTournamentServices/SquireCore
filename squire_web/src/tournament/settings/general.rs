@@ -17,7 +17,6 @@ pub struct GeneralSettings {
 impl GeneralSettings {
     pub fn new(emitter: Callback<TournamentSetting>) -> Self {
         let make_panel = |label, item| SettingPanel::new(label, item, emitter.clone());
-        SettingPanel::new("Starting table #", TournamentSetting::StartingTableNumber, emitter.clone());
         Self {
             starting_table: make_panel("Starting table #", TournamentSetting::StartingTableNumber),
             use_table_num: make_panel("Use table #", TournamentSetting::StartingTableNumber),

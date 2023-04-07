@@ -1,7 +1,10 @@
+use chrono::{DateTime, Utc};
 use squire_sdk::{
     client::state::ClientState,
-    model::{identifiers::RoundIdentifier, rounds::{RoundId, RoundStatus}},
-
+    model::{
+        identifiers::RoundIdentifier,
+        rounds::{RoundId, RoundStatus},
+    },
     tournaments::TournamentId,
 };
 
@@ -27,14 +30,14 @@ pub struct RoundsFilterProps {
 pub enum RoundsFilterMessage {
     RoundSelected(RoundId),
     FilterInput(RoundFilterInputMessage),
-    TimerTick(),
+    TimerTick,
 }
 
 pub struct RoundsView {
     pub id: TournamentId,
     input: RoundFilterInput,
     scroll: RoundScroll,
-    selected: SelectedRound,
+    selected: Option<SelectedRound>,
 }
 
 impl Component for RoundsView {
@@ -42,11 +45,15 @@ impl Component for RoundsView {
     type Properties = RoundsFilterProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+        ctx.link().send_future(async move {
+            async_std::task::sleep(std::time::Duration::from_secs(1)).await;
+            RoundsFilterMessage::TimerTick
+        });
         Self {
             id: ctx.props().id,
             input: RoundFilterInput::new(ctx.link().callback(RoundsFilterMessage::FilterInput)),
             scroll: RoundScroll::new(ctx.link().callback(RoundsFilterMessage::RoundSelected)),
-            selected: SelectedRound::new(),
+            selected: None,
         }
     }
 
@@ -60,12 +67,21 @@ impl Component for RoundsView {
                     false
                 }
             }
-            RoundsFilterMessage::RoundSelected(p_id) => {
-                self.selected.update(Some(p_id))
+            RoundsFilterMessage::RoundSelected(r_id) => {
+                if self.selected.is_none() {
+                    self.selected.insert(SelectedRound::new(r_id));
+                }
+                self.selected
+                    .as_mut()
+                    .map(|sr| sr.update(r_id))
+                    .unwrap_or_default()
             }
-            RoundsFilterMessage::TimerTick() => {
-                ctx.link().send_future(async move { async_std::task::sleep(std::time::Duration::from_secs(1)).await; (RoundsFilterMessage::TimerTick()) });
-                true
+            RoundsFilterMessage::TimerTick => {
+                ctx.link().send_future(async move {
+                    async_std::task::sleep(std::time::Duration::from_secs(1)).await;
+                    RoundsFilterMessage::TimerTick
+                });
+                self.selected.is_some()
             }
         }
     }
@@ -87,7 +103,7 @@ impl Component for RoundsView {
                                 </div>
                             </div>
                             <div>
-                                { self.selected.view(t) }
+                                { self.selected.as_ref().map(|sr| sr.view(t)).unwrap_or_default() }
                             </div>
                         </div>
                     </div>
