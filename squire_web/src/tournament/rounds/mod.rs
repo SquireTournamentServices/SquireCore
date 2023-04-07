@@ -27,6 +27,7 @@ pub struct RoundsFilterProps {
 pub enum RoundsFilterMessage {
     RoundSelected(RoundId),
     FilterInput(RoundFilterInputMessage),
+    TimerTick(),
 }
 
 pub struct RoundsView {
@@ -61,6 +62,10 @@ impl Component for RoundsView {
             }
             RoundsFilterMessage::RoundSelected(p_id) => {
                 self.selected.update(Some(p_id))
+            }
+            RoundsFilterMessage::TimerTick() => {
+                ctx.link().send_future(async move { async_std::task::sleep(std::time::Duration::from_secs(1)).await; (RoundsFilterMessage::TimerTick()) });
+                true
             }
         }
     }
