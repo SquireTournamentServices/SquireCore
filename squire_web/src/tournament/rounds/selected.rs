@@ -1,9 +1,11 @@
 use chrono::{Duration, Utc};
-use squire_sdk::model::{
+use squire_sdk::{model::{
     rounds::{Round, RoundId, RoundStatus},
     tournament::Tournament,
-};
+}, tournaments::TournamentId, client::state::ClientState};
 use yew::prelude::*;
+
+use crate::CLIENT;
 
 pub fn round_info_display(rnd: &Round) -> Html {
     let round_status = { ||
@@ -26,28 +28,42 @@ pub fn round_info_display(rnd: &Round) -> Html {
 
 pub struct SelectedRound {
     pub(crate) id: RoundId,
+    pub t_id: TournamentId,
+    round_data_buffer: Option<Round>,
 }
 
 impl SelectedRound {
-    pub fn new(id: RoundId) -> Self {
-        Self { id }
+    pub fn new(id: RoundId, t_id: TournamentId) -> Self {
+        Self {
+            id,
+            t_id,
+            round_data_buffer : None,
+        }
     }
 
     pub fn update(&mut self, id: RoundId) -> bool {
         let digest = self.id != id;
         self.id = id;
+        CLIENT
+            .get()
+            .unwrap()
+            .state
+            .query_tournament(&self.t_id, |t| {
+                self.round_data_buffer = t.get_round(&self.id.into())
+                    .map(|r| Some(r.clone()))
+                    .unwrap_or(None)
+            });
         digest
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        let returnhtml = tourn
-            .get_round(&self.id.into())
+        let returnhtml = self.round_data_buffer.as_ref()
             .map(|rnd| {
                 // TODO: Remove unwrap here
                 let dur_left = Duration::from_std(rnd.length + rnd.extension).unwrap() - (Utc::now() - rnd.timer);
                 html! {
                     <>
-                    <>{round_info_display(rnd)}</>
+                    <>{round_info_display(&rnd)}</>
                     <ul>
                     {
                         rnd.players.clone().into_iter()
@@ -86,7 +102,7 @@ impl SelectedRound {
                     </>
                 }
             })
-            .unwrap_or_else(|_| html!{
+            .unwrap_or_else(|| html!{
                 <h4>{"Round not found"}</h4>
             });
         return html!{
