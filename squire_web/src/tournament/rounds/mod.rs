@@ -16,10 +16,12 @@ pub mod creator;
 pub mod input;
 pub mod scroll;
 pub mod selected;
+pub mod roundresultticker;
 pub use creator::*;
 pub use input::*;
 pub use scroll::*;
 pub use selected::*;
+pub use roundresultticker::*;
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct RoundsFilterProps {
