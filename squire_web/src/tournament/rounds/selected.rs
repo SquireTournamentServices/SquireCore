@@ -1,11 +1,13 @@
 use chrono::{Duration, Utc};
 use squire_sdk::{model::{
-    rounds::{Round, RoundId, RoundStatus},
+    rounds::{Round, RoundId, RoundStatus, RoundResult},
     tournament::Tournament,
 }, tournaments::TournamentId, client::state::ClientState};
 use yew::prelude::*;
 
 use crate::CLIENT;
+
+use super::{roundresultticker, RoundResultTicker};
 
 pub fn round_info_display(rnd: &Round) -> Html {
     let round_status = { ||
@@ -30,6 +32,7 @@ pub struct SelectedRound {
     pub(crate) id: RoundId,
     pub t_id: TournamentId,
     round_data_buffer: Option<Round>,
+    draw_ticker: RoundResultTicker,
 }
 
 impl SelectedRound {
@@ -38,6 +41,11 @@ impl SelectedRound {
             id,
             t_id,
             round_data_buffer : None,
+            draw_ticker : RoundResultTicker{
+                label : "Draws",
+                result_type : RoundResult::Draw(0),
+                stored_value : 0,
+            }
         }
     }
 
@@ -92,7 +100,9 @@ impl SelectedRound {
                     }
                     </ul>
                     <p>
-                    { format!("Draws : {}", rnd.draws) }
+                    {
+                        self.draw_ticker.view(rnd.draws)
+                    }
                     </p>
                     <p>
                     { 
