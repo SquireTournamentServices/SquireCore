@@ -69,7 +69,7 @@ impl Component for RoundsView {
             }
             RoundsFilterMessage::RoundSelected(r_id) => {
                 if self.selected.is_none() {
-                    self.selected.insert(SelectedRound::new(r_id));
+                    self.selected.insert(SelectedRound::new(r_id, self.id));
                 }
                 self.selected
                     .as_mut()

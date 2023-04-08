@@ -115,6 +115,7 @@ impl SelectedPlayer {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
+
         let returnhtml = self
             .id
             .map(|id| {
