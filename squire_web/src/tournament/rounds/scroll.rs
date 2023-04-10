@@ -34,12 +34,11 @@ impl RoundScroll {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        let unsorted_rounds = 
-        tourn
-        .round_reg
-        .rounds
-        .values()
-        .filter(|r| self.report.matches(r));
+        let unsorted_rounds = tourn
+            .round_reg
+            .rounds
+            .values()
+            .filter(|r| self.report.matches(r));
         let mut rounds_vec = unsorted_rounds.collect::<Vec<_>>();
         rounds_vec.sort_by_cached_key(|r| r.match_number);
         rounds_vec.sort_by_cached_key(|r| r.status);
@@ -57,10 +56,10 @@ impl RoundScroll {
                     sorted_rounds.map(|r| {
                         let id = r.id;
                         let cb = self.process.clone();
-                        html! { 
+                        html! {
                             <tr onclick = { move |_| cb.emit(id) }>
                                 <td>{ r.match_number }</td>
-                                <td>{ r.table_number }</td> 
+                                <td>{ r.table_number }</td>
                                 <td>{ r.status }</td>
                             </tr>
                         }

@@ -1,22 +1,24 @@
 use squire_sdk::{
+    model::{
+        identifiers::{PlayerIdentifier, TypeId},
+        rounds::RoundId,
+    },
     players::{Player, PlayerId, Round},
-    tournaments::Tournament, model::{identifiers::{PlayerIdentifier, TypeId}, rounds::RoundId},
+    tournaments::Tournament,
 };
 use yew::prelude::*;
 
 use crate::tournament::rounds::round_info_display;
 
 pub fn player_info_display(tourn: &Tournament, plyr: &Player) -> Html {
-    let gamertag = { |plyr: &Player|
-        plyr.game_name.
-        clone()
-        .unwrap_or_else(|| "None".to_string())
-    };
-    let round_number = { |plyr: &Player|
-        tourn.
-        get_player_rounds(&plyr.id.into()).
-        unwrap_or_default().
-        len()
+    let gamertag = { |plyr: &Player| plyr.game_name.clone().unwrap_or_else(|| "None".to_string()) };
+    let round_number = {
+        |plyr: &Player| {
+            tourn
+                .get_player_rounds(&plyr.id.into())
+                .unwrap_or_default()
+                .len()
+        }
     };
     html! {
         <>
@@ -69,47 +71,48 @@ impl SelectedPlayer {
         }
     }
 
-
     fn subview_round(&self, tourn: &Tournament, rid: RoundId) -> Html {
-        tourn.get_round(&rid.into()).map(|rnd|{
-            html! {
+        tourn
+            .get_round(&rid.into())
+            .map(|rnd| {
                 html! {
-                    <>
-                    <>{round_info_display(rnd)}</>
-                    <ul>
-                    {
-                        rnd.players.clone().into_iter()
-                            .map(|pid| {
-                                let player_in_round = { ||
-                                    tourn
-                                    .get_player(&pid.into())
-                                    .map(|p| p.name.as_str())
-                                    .unwrap_or_else( |_| "Player not found")
-                                };
-                                html! { <li>{ format!( "{}", player_in_round() ) }</li> }
-                            })
-                            .collect::<Html>()
+                    html! {
+                        <>
+                        <>{round_info_display(rnd)}</>
+                        <ul>
+                        {
+                            rnd.players.clone().into_iter()
+                                .map(|pid| {
+                                    let player_in_round = { ||
+                                        tourn
+                                        .get_player(&pid.into())
+                                        .map(|p| p.name.as_str())
+                                        .unwrap_or_else( |_| "Player not found")
+                                    };
+                                    html! { <li>{ format!( "{}", player_in_round() ) }</li> }
+                                })
+                                .collect::<Html>()
+                        }
+                        </ul>
+                        </>
                     }
-                    </ul>
-                    </>
                 }
-            }
-        })
-        .unwrap_or_else(|_| html!{
-            <p>{ "Round not found." }</p>
-        })
+            })
+            .unwrap_or_else(|_| {
+                html! {
+                    <p>{ "Round not found." }</p>
+                }
+            })
     }
     fn subview(&self, tourn: &Tournament) -> Html {
         let spi = self.spi.clone();
         match spi {
             None => {
-                html!{ <h3>{" No info selected "}</h3> }
+                html! { <h3>{" No info selected "}</h3> }
             }
-            Some(SelectedPlayerInfo::Round(rid)) => {
-                self.subview_round(tourn, rid)
-            }
+            Some(SelectedPlayerInfo::Round(rid)) => self.subview_round(tourn, rid),
             Some(SelectedPlayerInfo::Deck(d_name)) => {
-                html!{ <p>{" Deck view hasn't been implemented :/ sorry."}</p> }
+                html! { <p>{" Deck view hasn't been implemented :/ sorry."}</p> }
             }
         }
     }
@@ -188,7 +191,6 @@ impl SelectedPlayer {
         }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-
         let returnhtml = self
             .id
             .map(|id| {
@@ -224,7 +226,7 @@ impl SelectedPlayer {
             .unwrap_or_else(|| html!{
                 <h4>{"No player selected"}</h4>
             });
-        html!{
+        html! {
             <div class="m-2">{returnhtml}</div>
         }
     }

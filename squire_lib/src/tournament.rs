@@ -15,8 +15,8 @@ use crate::{
     pairings::{PairingStyle, PairingSystem, Pairings},
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundRegistry, RoundResult, RoundStatus},
-    scoring::{ScoringSystem, StandardScore, StandardScoring, Standings},
-    settings::{self, TournamentSetting},
+    scoring::{ScoringSystem, StandardScore, Standings},
+    settings::{GeneralSettingsTree, TournamentSetting},
 };
 
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
@@ -66,14 +66,6 @@ pub struct Tournament {
     pub id: TournamentId,
     /// The tournament's name
     pub name: String,
-    /// Whether or not the tournament will assign table numbers
-    pub use_table_number: bool,
-    /// The format the tournament will be played in (meta data)
-    pub format: String,
-    /// The minimum number of decks a player needs
-    pub min_deck_count: u8,
-    /// The maximum number of decks a player can have
-    pub max_deck_count: u8,
     /// The system for tracking players, their reg status, etc
     pub player_reg: PlayerRegistry,
     /// The system for creating and tracking rounds
@@ -84,10 +76,10 @@ pub struct Tournament {
     pub scoring_sys: ScoringSystem,
     /// Whether or not new players can sign up for the tournament
     pub reg_open: bool,
-    /// Whether or not a player must check in after signing up
-    pub require_check_in: bool,
-    /// Whether or not deck registration is required
-    pub require_deck_reg: bool,
+    /// General settings for the tournament, including round length and whether or not to use table
+    /// numbers
+    #[serde(default)]
+    pub settings: GeneralSettingsTree,
     /// The status of the tournament
     pub status: TournamentStatus,
     /// The set of judges for the tournament
@@ -105,17 +97,12 @@ impl Tournament {
             // TODO: This should be calculated from some salt and the name
             id: TournamentId::new(Uuid::new_v4()),
             name,
-            use_table_number: true,
-            format,
-            min_deck_count: 1,
-            max_deck_count: 1,
+            settings: GeneralSettingsTree::with_format(format),
             player_reg: PlayerRegistry::new(),
             round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
             pairing_sys: PairingSystem::new(preset),
-            scoring_sys: scoring_system_factory(preset),
+            scoring_sys: ScoringSystem::new(preset),
             reg_open: true,
-            require_check_in: false,
-            require_deck_reg: false,
             status: TournamentStatus::Planned,
             judges: HashMap::new(),
             admins: HashMap::new(),
@@ -357,14 +344,14 @@ impl Tournament {
         if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if self.require_deck_reg {
+        if self.settings.require_deck_reg {
             for p in self.player_reg.players.values_mut() {
-                if p.decks.len() < self.min_deck_count as usize {
+                if p.decks.len() < self.settings.min_deck_count as usize {
                     p.update_status(PlayerStatus::Dropped);
                 }
             }
         }
-        if self.require_check_in {
+        if self.settings.require_check_in {
             for (id, p) in self.player_reg.players.iter_mut() {
                 if !self.player_reg.check_ins.contains(id) {
                     p.update_status(PlayerStatus::Dropped);
@@ -443,51 +430,13 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         match setting {
-            Format(f) => {
-                self.format = f;
+            GeneralSetting(setting) => {
+                self.settings.update(setting);
+                Ok(OpData::Nothing)
             }
-            StartingTableNumber(n) => {
-                self.round_reg.starting_table = n;
-            }
-            UseTableNumbers(b) => {
-                self.use_table_number = b;
-            }
-            MinDeckCount(c) => {
-                if c > self.max_deck_count {
-                    return Err(TournamentError::InvalidDeckCount);
-                }
-                self.min_deck_count = c;
-            }
-            MaxDeckCount(c) => {
-                if c < self.min_deck_count {
-                    return Err(TournamentError::InvalidDeckCount);
-                }
-                self.max_deck_count = c;
-            }
-            RequireCheckIn(b) => {
-                self.require_check_in = b;
-            }
-            RequireDeckReg(b) => {
-                self.require_deck_reg = b;
-            }
-            RoundLength(dur) => {
-                self.round_reg.length = dur;
-            }
-            PairingSetting(setting) => {
-                self.pairing_sys.update_setting(setting)?;
-            }
-            ScoringSetting(setting) => match setting {
-                settings::ScoringSetting::Standard(s) => {
-                    #[allow(irrefutable_let_patterns)]
-                    if let ScoringSystem::Standard(sys) = &mut self.scoring_sys {
-                        sys.update_setting(s);
-                    } else {
-                        return Err(TournamentError::IncompatibleScoringSystem);
-                    }
-                }
-            },
+            PairingSetting(setting) => self.pairing_sys.update_setting(setting),
+            ScoringSetting(setting) => self.scoring_sys.update_setting(setting),
         }
-        Ok(OpData::Nothing)
     }
 
     /// Changes the registration status
@@ -792,7 +741,7 @@ impl Tournament {
 
     fn reregister_guest(&mut self, name: String) -> OpResult {
         if !self.is_ongoing() {
-             Err(TournamentError::IncorrectStatus(self.status))
+            Err(TournamentError::IncorrectStatus(self.status))
         } else {
             self.player_reg.reregister_guest(name)?;
             Ok(OpData::Nothing)
@@ -832,7 +781,9 @@ impl Tournament {
     // admin and player versions
     fn add_deck(&mut self, id: PlayerId, name: String, deck: Deck) -> OpResult {
         let plyr = self.player_reg.get_mut_player(&id)?;
-        if !plyr.decks.contains_key(&name) && plyr.decks.len() >= self.max_deck_count as usize {
+        if !plyr.decks.contains_key(&name)
+            && plyr.decks.len() >= self.settings.max_deck_count as usize
+        {
             return Err(TournamentError::MaxDecksReached);
         }
         plyr.add_deck(name, deck);
@@ -920,15 +871,15 @@ impl Tournament {
     /// Second number is not checked in.
     pub fn count_to_prune_players(&self) -> (usize, usize) {
         let mut digest = (0, 0);
-        if self.require_deck_reg {
+        if self.settings.require_deck_reg {
             digest.0 = self
                 .player_reg
                 .players
                 .values()
-                .filter(|p| p.decks.len() < self.min_deck_count as usize)
+                .filter(|p| p.decks.len() < self.settings.min_deck_count as usize)
                 .count();
         }
-        if self.require_check_in {
+        if self.settings.require_check_in {
             digest.1 = self.player_reg.len() - self.player_reg.check_ins.len();
         }
         digest
@@ -954,7 +905,7 @@ impl Tournament {
             let _ = write!(ret, "{}", r.match_number);
             let _ = write!(ret, "</td>");
 
-            if self.use_table_number {
+            if self.settings.use_table_number {
                 let _ = write!(ret, "<td>Table #");
                 let _ = write!(ret, "{}", &r.table_number.to_string());
                 let _ = write!(ret, "</td><tr>");
@@ -1008,15 +959,6 @@ impl From<TournamentSeed> for Tournament {
             format,
         } = seed;
         Tournament::from_preset(name, preset, format)
-    }
-}
-
-/// Creates scoring systems from a tournament preset
-pub fn scoring_system_factory(preset: TournamentPreset) -> ScoringSystem {
-    use TournamentPreset::*;
-    match preset {
-        Swiss => StandardScoring::new().into(),
-        Fluid => StandardScoring::new().into(),
     }
 }
 

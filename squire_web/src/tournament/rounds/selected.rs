@@ -1,8 +1,12 @@
 use chrono::{Duration, Utc};
-use squire_sdk::{model::{
-    rounds::{Round, RoundId, RoundStatus, RoundResult},
-    tournament::Tournament,
-}, tournaments::TournamentId, client::state::ClientState};
+use squire_sdk::{
+    client::state::ClientState,
+    model::{
+        rounds::{Round, RoundId, RoundResult, RoundStatus},
+        tournament::Tournament,
+    },
+    tournaments::TournamentId,
+};
 use yew::prelude::*;
 
 use crate::CLIENT;
@@ -10,19 +14,10 @@ use crate::CLIENT;
 use super::{roundresultticker, RoundResultTicker};
 
 pub fn round_info_display(rnd: &Round) -> Html {
-    let round_status = { ||
-        match rnd.status {
-            RoundStatus::Open => "Open",
-            RoundStatus::Certified => "Certified",
-            RoundStatus::Dead => "Dead"
-
-        }
-    };
-
     html! {
         <>
             <p>{ format!("Round #{} at table #{}", rnd.match_number, rnd.table_number) }</p>
-            <p>{ format!("Status : {}", round_status()) }</p>
+            <p>{ format!("Status : {}", rnd.status) }</p>
             <p>{ format!("Bye : {}", rnd.is_bye()) }</p>
         </>
     }
@@ -40,27 +35,30 @@ impl SelectedRound {
         Self {
             id,
             t_id,
-            round_data_buffer : None,
-            draw_ticker : RoundResultTicker{
-                label : "Draws",
-                result_type : RoundResult::Draw(0),
-                stored_value : 0,
-            }
+            round_data_buffer: None,
+            draw_ticker: RoundResultTicker {
+                label: "Draws",
+                result_type: RoundResult::Draw(0),
+                stored_value: 0,
+            },
         }
     }
 
     pub fn update(&mut self, id: RoundId) -> bool {
         let digest = self.id != id;
-        self.id = id;
-        CLIENT
-            .get()
-            .unwrap()
-            .state
-            .query_tournament(&self.t_id, |t| {
-                self.round_data_buffer = t.get_round(&self.id.into())
-                    .map(|r| Some(r.clone()))
-                    .unwrap_or(None)
-            });
+        if digest {
+            self.id = id;
+            CLIENT
+                .get()
+                .unwrap()
+                .state
+                .query_tournament(&self.t_id, |t| {
+                    self.round_data_buffer = t
+                        .get_round(&self.id.into())
+                        .map(|r| Some(r.clone()))
+                        .unwrap_or(None)
+                });
+        }
         digest
     }
 
@@ -85,7 +83,7 @@ impl SelectedRound {
                                 };
                                 let player_wins = rnd.results.get(&pid.into()).unwrap_or(&0);
                                 let player_confirm = rnd.confirmations.get(&pid.into()).is_some();
-                                html! { 
+                                html! {
                                     <li>
                                     <div>
                                     { format!( "{}", player_in_round()) }
@@ -105,9 +103,7 @@ impl SelectedRound {
                     }
                     </p>
                     <p>
-                    { 
-                        pretty_print_duration(dur_left)
-                    }
+                    { pretty_print_duration(dur_left) }
                     </p>
                     </>
                 }
@@ -115,7 +111,7 @@ impl SelectedRound {
             .unwrap_or_else(|| html!{
                 <h4>{"Round not found"}</h4>
             });
-        return html!{
+        return html! {
             <div class="m-2">{returnhtml}</div>
         };
     }
@@ -128,6 +124,11 @@ fn pretty_print_duration(dur: Duration) -> String {
     if hours < 0 {
         format!("Time left: {hours}:{}:{}", mins.abs() % 60, secs.abs() % 60)
     } else {
-        format!("Over time: {}:{}:{}", hours.abs(), mins.abs() % 60, secs.abs() % 60)
+        format!(
+            "Over time: {}:{}:{}",
+            hours.abs(),
+            mins.abs() % 60,
+            secs.abs() % 60
+        )
     }
 }

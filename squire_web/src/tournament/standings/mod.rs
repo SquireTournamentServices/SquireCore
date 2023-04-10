@@ -1,14 +1,17 @@
 use web_sys::window;
 use yew::{prelude::*, virtual_dom::VNode};
 
-use squire_sdk::{client::state::ClientState, tournaments::{TournamentId, Tournament}};
 use crate::CLIENT;
+use squire_sdk::{
+    client::state::ClientState,
+    tournaments::{Tournament, TournamentId},
+};
 
 use self::_StandingsPopoutProps::display_vnode;
 
 #[derive(Properties, PartialEq)]
 struct StandingsPopoutProps {
-    pub display_vnode : VNode,
+    pub display_vnode: VNode,
 }
 #[function_component]
 fn StandingsPopout(props: &StandingsPopoutProps) -> Html {
@@ -30,7 +33,7 @@ pub struct StandingsView {
     pub process: Callback<i32>,
 }
 
-fn gen_popout_page(tourn : &Tournament, vert_scroll_time : u32) -> Html {
+fn gen_popout_page(tourn: &Tournament, vert_scroll_time: u32) -> Html {
     html! {
         <html>
             <head>
@@ -93,7 +96,7 @@ impl Component for StandingsView {
     type Properties = StandingsProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        StandingsView { 
+        StandingsView {
             id: ctx.props().id,
             scroll_vnode: None,
             process: ctx.link().callback(StandingsMessage::SpawnPopout),
@@ -103,26 +106,28 @@ impl Component for StandingsView {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             StandingsMessage::SpawnPopout(num) => {
-                CLIENT
-                .get()
-                .unwrap()
-                .state
-                .query_tournament(&self.id, |t| {
+                CLIENT.get().unwrap().state.query_tournament(&self.id, |t| {
                     self.scroll_vnode = Some(gen_popout_page(t, 120));
                 });
-                window().map(|w|
-                    w.open().map(|new_w_o| new_w_o.map( |new_w|
-                        new_w.document().map( |doc|
-                            doc.get_elements_by_tag_name("html").get_with_index(0).map( |r| {
-                                yew::Renderer::<StandingsPopout>::with_root_and_props(r.into(),
-                                    StandingsPopoutProps {
-                                        display_vnode : self.scroll_vnode.clone().unwrap(),
-                                    }
-                                ).render()
+                window().map(|w| {
+                    w.open().map(|new_w_o| {
+                        new_w_o.map(|new_w| {
+                            new_w.document().map(|doc| {
+                                doc.get_elements_by_tag_name("html")
+                                    .get_with_index(0)
+                                    .map(|r| {
+                                        yew::Renderer::<StandingsPopout>::with_root_and_props(
+                                            r.into(),
+                                            StandingsPopoutProps {
+                                                display_vnode: self.scroll_vnode.clone().unwrap(),
+                                            },
+                                        )
+                                        .render()
+                                    })
                             })
-                        )
-                    ))
-                );
+                        })
+                    })
+                });
             }
         }
         false
@@ -142,10 +147,10 @@ impl Component for StandingsView {
                     </div>
                 }
             })
-            .unwrap_or_else( ||
+            .unwrap_or_else(|| {
                 html! {
                     <p>{ "Whoops!" }</p>
                 }
-            )
+            })
     }
 }

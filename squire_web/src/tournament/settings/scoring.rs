@@ -1,6 +1,9 @@
 use yew::prelude::*;
 
-use squire_sdk::{tournaments::Tournament, model::scoring::{ScoringSystem, StandardScoring}};
+use squire_sdk::{
+    model::scoring::{ScoringSystem, StandardScoring},
+    tournaments::Tournament,
+};
 
 #[derive(Debug, Default)]
 pub struct ScoringSettings {}

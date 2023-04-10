@@ -10,15 +10,15 @@ use squire_sdk::{accounts::SquireAccount, client::SquireClient, tournaments::Tou
 
 mod account;
 mod client;
-mod index;
 mod header;
+mod index;
 mod tournament;
 mod utils;
 
 use account::{Login, Register};
 use client::WebState;
-use index::Index;
 use header::Header;
+use index::Index;
 use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 
 static CLIENT: OnceCell<SquireClient<WebState>> = OnceCell::new();

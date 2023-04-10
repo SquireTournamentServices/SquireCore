@@ -1,5 +1,5 @@
-use std::{marker::PhantomData, str::FromStr, rc::Rc, fmt::Display};
 use squire_sdk::{model::rounds::RoundResult, players::Round};
+use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
 
 pub struct RoundResultTicker {
@@ -10,15 +10,12 @@ pub struct RoundResultTicker {
 }
 
 impl RoundResultTicker {
-
     pub fn new(
         label: &'static str,
         // TODO : Some kind of callback to the RoundsView context with a RoundResult
         result_type: RoundResult,
         stored_value: u32,
-
-    ) -> Self
-    {
+    ) -> Self {
         Self {
             label,
             result_type,
@@ -46,9 +43,8 @@ impl RoundResultTicker {
             <>
                 <>{format!("{} {data}", self.label)}</>
                 <button onclick={up}>{"+"}</button>
-                <button onclick={down}>{"-"}</button> 
+                <button onclick={down}>{"-"}</button>
             </>
         }
     }
-
 }

@@ -56,13 +56,13 @@ impl RoundFilterInput {
                 let digest = self.ident != ident;
                 self.ident = ident;
                 digest
-            },
+            }
             RoundFilterInputMessage::RoundStatus(s) => {
                 let status = s.parse().ok();
                 let digest = self.status != status;
                 self.status = status;
                 digest
-            },
+            }
         }
     }
 
@@ -109,12 +109,12 @@ fn round_ident_soft_matches(ident: &RoundIdentifier, rnd: &Round) -> bool {
             let temp_num = num.to_string();
             let temp_rnd = rnd.match_number.to_string();
             temp_rnd.contains(&temp_num)
-        },
+        }
         RoundIdentifier::Table(num) => {
             let temp_num = num.to_string();
             let temp_rnd = rnd.table_number.to_string();
             temp_rnd.contains(&temp_num)
-        },
-        RoundIdentifier::Id(_) => { true },
+        }
+        RoundIdentifier::Id(_) => true,
     }
 }
