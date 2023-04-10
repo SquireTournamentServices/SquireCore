@@ -10,8 +10,7 @@ use crate::{
     players::PlayerRegistry,
     r64,
     rounds::{RoundContext, RoundRegistry},
-    scoring::{Score, Standings},
-    settings::SwissPairingsSetting,
+    scoring::{Score, Standings}, settings::SwissPairingSetting,
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, Hash, PartialEq, Eq)]
@@ -55,8 +54,8 @@ impl SwissPairings {
     }
 
     /// Updates a single pairings setting
-    pub fn update_setting(&mut self, setting: SwissPairingsSetting) {
-        use SwissPairingsSetting::*;
+    pub fn update_setting(&mut self, setting: SwissPairingSetting) {
+        use SwissPairingSetting::*;
         match setting {
             DoCheckIns(b) => {
                 self.do_check_ins = b;

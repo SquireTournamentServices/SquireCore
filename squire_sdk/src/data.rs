@@ -8,7 +8,7 @@ use squire_lib::{
     pairings::PairingSystem,
     players::{Deck, Player, PlayerId, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundContext, RoundId, RoundRegistry, RoundStatus},
-    scoring::{ScoringSystem, StandardScore, Standings},
+    scoring::{ScoringStyle, StandardScore, Standings},
     tournament::{Tournament, TournamentId, TournamentStatus},
 };
 
@@ -22,7 +22,7 @@ pub struct CompressedTournament {
     pub player_reg: CompressedPlayerReg,
     pub round_reg: CompressedRoundReg,
     pub pairing_sys: PairingSystem,
-    pub scoring_sys: ScoringSystem,
+    pub scoring_sys: ScoringStyle,
     pub require_check_in: bool,
     pub require_deck_reg: bool,
     pub final_standings: Standings<StandardScore>,

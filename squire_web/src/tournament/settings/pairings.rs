@@ -1,6 +1,9 @@
 use yew::prelude::*;
 
-use squire_sdk::{tournaments::Tournament, model::pairings::{PairingStyle, SwissPairings, FluidPairings}};
+use squire_sdk::{
+    model::pairings::{FluidPairings, PairingStyle, SwissPairings},
+    tournaments::Tournament,
+};
 
 #[derive(Debug, Default)]
 pub struct PairingsSettings {}

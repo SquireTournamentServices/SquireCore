@@ -14,7 +14,7 @@ use crate::{
     settings::StandardScoringSetting,
 };
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq, PartialOrd)]
 #[repr(C)]
 /// The score type used by the standard scoring system
 pub struct StandardScore {

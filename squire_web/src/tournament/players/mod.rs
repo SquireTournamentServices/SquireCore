@@ -1,8 +1,9 @@
 use squire_sdk::{
     client::state::ClientState,
+    model::{identifiers::PlayerIdentifier, rounds::RoundId},
     model::{identifiers::RoundIdentifier, rounds::RoundStatus},
     players::PlayerId,
-    tournaments::{Tournament, TournamentId}, model::{identifiers::{PlayerIdentifier}, rounds::RoundId},
+    tournaments::{Tournament, TournamentId},
 };
 
 use yew::prelude::*;
@@ -48,7 +49,9 @@ impl Component for PlayerView {
             id: ctx.props().id,
             input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput)),
             scroll: PlayerScroll::new(ctx.link().callback(PlayerViewMessage::PlayerSelected)),
-            selected: SelectedPlayer::new(ctx.link().callback(PlayerViewMessage::PlayerInfoSelected)),
+            selected: SelectedPlayer::new(
+                ctx.link().callback(PlayerViewMessage::PlayerInfoSelected),
+            ),
         }
     }
 
@@ -62,12 +65,12 @@ impl Component for PlayerView {
                     false
                 }
             }
-            PlayerViewMessage::PlayerSelected(p_id) => {
-                self.selected.update( SelectedPlayerMessage::PlayerSelected(Some(p_id)) )
-            }
-            PlayerViewMessage::PlayerInfoSelected(spi) => {
-                self.selected.update( SelectedPlayerMessage::InfoSelected(Some(spi)) )
-            }
+            PlayerViewMessage::PlayerSelected(p_id) => self
+                .selected
+                .update(SelectedPlayerMessage::PlayerSelected(Some(p_id))),
+            PlayerViewMessage::PlayerInfoSelected(spi) => self
+                .selected
+                .update(SelectedPlayerMessage::InfoSelected(Some(spi))),
         }
     }
 

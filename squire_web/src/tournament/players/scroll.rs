@@ -31,12 +31,11 @@ impl PlayerScroll {
     }
 
     pub fn view(&self, tourn: &Tournament) -> Html {
-        let unsorted_players = 
-        tourn
-        .player_reg
-        .players
-        .values()
-        .filter(|p| self.report.matches(p));
+        let unsorted_players = tourn
+            .player_reg
+            .players
+            .values()
+            .filter(|p| self.report.matches(p));
         let mut players_vec = unsorted_players.collect::<Vec<_>>();
         players_vec.sort_by_cached_key(|p| p.name.clone());
         players_vec.sort_by_cached_key(|p| p.status);

@@ -54,13 +54,13 @@ impl PlayerFilterInput {
             PlayerFilterInputMessage::PlayerName(name) => {
                 self.name = Some(name);
                 true
-            },
+            }
             PlayerFilterInputMessage::PlayerStatus(s) => {
                 let status = s.parse().ok();
                 let digest = self.status != status;
                 self.status = status;
                 digest
-            },
+            }
         }
     }
 

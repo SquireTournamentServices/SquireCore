@@ -2,11 +2,13 @@ use std::collections::HashSet;
 
 use yew::prelude::*;
 
-use squire_sdk::{client::state::ClientState, tournaments::TournamentId, model::settings::TournamentSetting};
+use squire_sdk::{
+    client::state::ClientState, model::settings::{TournamentSetting, builder::TournamentSettingsTreeBuilder}, tournaments::TournamentId, accounts::TournamentSettingsTree,
+};
 
 mod general;
-mod panel;
 mod pairings;
+mod panel;
 mod scoring;
 
 use general::*;
@@ -16,8 +18,8 @@ use scoring::*;
 use crate::CLIENT;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum SettingsMessage{
-    Setting(TournamentSetting)
+pub enum SettingsMessage {
+    Setting(TournamentSetting),
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
@@ -30,7 +32,7 @@ pub struct SettingsView {
     general: GeneralSettings,
     pairings: PairingsSettings,
     scoring: ScoringSettings,
-    to_change: HashSet<TournamentSetting>,
+    to_change: TournamentSettingsTreeBuilder,
 }
 
 impl Component for SettingsView {
@@ -50,7 +52,7 @@ impl Component for SettingsView {
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            SettingsMessage::Setting(setting) => self.to_change.insert(setting),
+            SettingsMessage::Setting(setting) => self.to_change.add_setting(setting),
         };
         false
     }

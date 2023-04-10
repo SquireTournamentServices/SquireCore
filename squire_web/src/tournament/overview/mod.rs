@@ -1,7 +1,7 @@
 use yew::prelude::*;
 
-use squire_sdk::{client::state::ClientState, tournaments::TournamentId};
 use squire_sdk::model::{players::PlayerStatus, rounds::RoundStatus};
+use squire_sdk::{client::state::ClientState, tournaments::TournamentId};
 
 use crate::CLIENT;
 
