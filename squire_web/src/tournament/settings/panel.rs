@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, str::FromStr, rc::Rc, fmt::Display};
+use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 
 use squire_sdk::model::settings::{PairingSetting, TournamentSetting};
 use yew::prelude::*;

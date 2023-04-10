@@ -6,8 +6,7 @@ use crate::{
     identifiers::PlayerId,
     pairings::{PairingAlgorithm, Pairings},
     players::PlayerRegistry,
-    rounds::{RoundContext, RoundRegistry},
-    settings::FluidPairingsSetting,
+    rounds::{RoundContext, RoundRegistry}, settings::FluidPairingSetting,
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
@@ -54,7 +53,7 @@ impl FluidPairings {
     }
 
     /// Updates a pairing setting
-    pub fn update_setting(&mut self, setting: FluidPairingsSetting) {
+    pub fn update_setting(&mut self, setting: FluidPairingSetting) {
         //use FluidPairingsSetting::*;
         match setting {}
     }
