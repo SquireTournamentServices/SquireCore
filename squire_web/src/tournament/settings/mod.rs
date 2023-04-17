@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use yew::prelude::*;
 
 use squire_sdk::{
-    client::state::ClientState, model::settings::{TournamentSetting, builder::TournamentSettingsTreeBuilder}, tournaments::TournamentId, accounts::TournamentSettingsTree,
+    accounts::TournamentSettingsTree, client::state::ClientState,
+    model::settings::TournamentSetting, tournaments::TournamentId,
 };
 
 mod general;

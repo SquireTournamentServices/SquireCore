@@ -6,7 +6,10 @@ use crate::{
     players::PlayerRegistry,
     r64,
     rounds::RoundRegistry,
-    settings::ScoringSetting,
+    settings::{
+        CommonScoringSettingsTree, ScoringSetting, ScoringSettingsTree, ScoringStyleSetting,
+        ScoringStyleSettingsTree,
+    },
     tournament::TournamentPreset,
 };
 
@@ -24,26 +27,59 @@ where
     fn primary_score(&self) -> r64;
 }
 
-/// A scoring system that contain a style of calcualting and ordering scores as well as some common
-/// settings upon all scoring styles
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct ScoringSystem {
-    style: ScoringStyle,
-}
-
-/// An enum that encodes all the possible scoring systems a tournament can have.
-/// (So many, much wow)
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub enum ScoringStyle {
-    /// The tournament has a standard scoring system
-    Standard(StandardScoring),
-}
-
 /// An ordered collection of scores
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Standings<S> {
     /// The player, score pairings
     pub scores: Vec<(PlayerId, S)>,
+}
+
+/// A scoring system that contain a style of calculating and ordering scores as well as some common
+/// settings upon all scoring styles
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ScoringSystem {
+    common: CommonScoringSettingsTree,
+    style: ScoringStyle,
+}
+
+/// An enum that encodes all the possible scoring systems a tournament can have.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum ScoringStyle {
+    /// The tournament is using standard-style scoring
+    Standard(StandardScoring),
+}
+
+impl ScoringStyle {
+    /// Creates a new scoring style for a tournament preset
+    pub fn new(_: TournamentPreset) -> Self {
+        Self::Standard(Default::default())
+    }
+
+    /// Returns the current standings for all players
+    pub fn get_standings(&self, plyrs: &PlayerRegistry, rnds: &RoundRegistry) -> Standings<StandardScore> {
+        match self {
+            ScoringStyle::Standard(style) => style.get_standings(plyrs, rnds),
+        }
+    }
+
+    /// Returns a copy of the current settings
+    pub fn settings(&self) -> ScoringStyleSettingsTree {
+        match self {
+            ScoringStyle::Standard(tree) => {
+                ScoringStyleSettingsTree::Standard(tree.settings())
+            }
+        }
+    }
+
+    /// Updates the current settings of the held scoring style
+    pub fn update(&mut self, setting: ScoringStyleSetting) -> OpResult {
+        match (self, setting) {
+            (ScoringStyle::Standard(style), ScoringStyleSetting::Standard(setting)) => {
+                style.update_setting(setting)
+            }
+        }
+        Ok(OpData::Nothing)
+    }
 }
 
 impl<S> Standings<S>
@@ -58,29 +94,35 @@ where
 
 impl ScoringSystem {
     /// Creates a new scoring system
-    pub fn new(_: TournamentPreset) -> Self {
+    pub fn new(preset: TournamentPreset) -> Self {
         Self {
-            style: ScoringStyle::Standard(StandardScoring::new()),
+            common: CommonScoringSettingsTree::new(),
+            style: ScoringStyle::new(preset),
         }
     }
+
+    /// Returns a copy of the current settings
+    pub fn settings(&self) -> ScoringSettingsTree {
+        ScoringSettingsTree {
+            common: self.common.clone(),
+            style: self.style.settings(),
+        }
+    }
+
     /// Gets the current standings of all players
     pub fn get_standings(
         &self,
         player_reg: &PlayerRegistry,
         round_reg: &RoundRegistry,
     ) -> Standings<StandardScore> {
-        match &self.style {
-            ScoringStyle::Standard(s) => s.get_standings(player_reg, round_reg),
-        }
+        self.style.get_standings(player_reg, round_reg)
     }
 
     /// Updates a given setting for the scoring system
     pub fn update_setting(&mut self, setting: ScoringSetting) -> OpResult {
-        match (&mut self.style, setting) {
-            (ScoringStyle::Standard(style), ScoringSetting::Standard(setting)) => {
-                style.update_setting(setting);
-                Ok(OpData::Nothing)
-            }
+        match setting {
+            ScoringSetting::Common(setting) => self.common.update(setting),
+            ScoringSetting::Style(setting) => self.style.update(setting),
         }
     }
 }

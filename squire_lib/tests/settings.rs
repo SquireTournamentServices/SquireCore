@@ -22,7 +22,9 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::MinDeckCount(5))
+                    UpdateTournSetting(TournamentSetting::GeneralSetting(
+                        GeneralSetting::MinDeckCount(5)
+                    ))
                 )
             )
             .is_err());
@@ -31,17 +33,21 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::MinDeckCount(2))
+                    UpdateTournSetting(TournamentSetting::GeneralSetting(
+                        GeneralSetting::MinDeckCount(2)
+                    ))
                 )
             )
             .is_err());
-        assert_eq!(1, tourn.min_deck_count);
+        assert_eq!(0, tourn.settings.min_deck_count);
         assert!(tourn
             .apply_op(
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::MaxDeckCount(1))
+                    UpdateTournSetting(TournamentSetting::GeneralSetting(
+                        GeneralSetting::MaxDeckCount(1)
+                    ))
                 )
             )
             .is_ok());
@@ -50,21 +56,25 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::MaxDeckCount(42))
+                    UpdateTournSetting(TournamentSetting::GeneralSetting(
+                        GeneralSetting::MaxDeckCount(42)
+                    ))
                 )
             )
             .is_ok());
-        assert_eq!(42, tourn.max_deck_count);
+        assert_eq!(42, tourn.settings.max_deck_count);
         assert!(tourn
             .apply_op(
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::MinDeckCount(40))
+                    UpdateTournSetting(TournamentSetting::GeneralSetting(
+                        GeneralSetting::MinDeckCount(40)
+                    ))
                 )
             )
             .is_ok());
-        assert_eq!(40, tourn.min_deck_count);
+        assert_eq!(40, tourn.settings.min_deck_count);
     }
 
     #[test]
@@ -77,9 +87,9 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::PairingSetting(
-                        PairingSetting::MatchSize(10)
-                    ))
+                    UpdateTournSetting(TournamentSetting::PairingSetting(PairingSetting::Common(
+                        CommonPairingSetting::MatchSize(10)
+                    )))
                 )
             )
             .is_ok());
@@ -88,7 +98,7 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(SwissPairingsSetting::DoCheckIns(true).into())
+                    UpdateTournSetting(SwissPairingSetting::DoCheckIns(true).into())
                 )
             )
             .is_ok());
@@ -98,9 +108,9 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(TournamentSetting::PairingSetting(
-                        PairingSetting::MatchSize(10)
-                    ))
+                    UpdateTournSetting(TournamentSetting::PairingSetting(PairingSetting::Common(
+                        CommonPairingSetting::MatchSize(10)
+                    )))
                 )
             )
             .is_ok());
@@ -110,7 +120,7 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(SwissPairingsSetting::DoCheckIns(true).into())
+                    UpdateTournSetting(SwissPairingSetting::DoCheckIns(true).into())
                 )
             )
         );

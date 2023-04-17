@@ -6,7 +6,7 @@ mod tests {
 
     use squire_lib::{
         rounds::{RoundContext, RoundResult},
-        settings::SwissPairingsSetting,
+        settings::SwissPairingSetting,
     };
 
     #[test]
@@ -24,7 +24,7 @@ mod tests {
         }
 
         let (mut sys, plyrs, rnds, _) = spoof_data(4);
-        sys.update_setting(SwissPairingsSetting::DoCheckIns(true).into())
+        sys.update_setting(SwissPairingSetting::DoCheckIns(true).into())
             .unwrap();
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         for id in plyrs.players.keys() {
@@ -138,7 +138,7 @@ mod tests {
         let mut pairings = sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
             .unwrap();
-        sys.repair_tolerance = 0;
+        sys.common.repair_tolerance = 0;
         while count < goal && pairings.rejected.len() < 3 {
             count += 1;
             println!("The current count is {count}");

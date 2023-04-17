@@ -11,7 +11,7 @@ use crate::{
     r64,
     rounds::{Round, RoundRegistry},
     scoring::{Score, Standings},
-    settings::StandardScoringSetting,
+    settings::{StandardScoringSetting, StandardScoringSettingsTree},
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq, PartialOrd)]
@@ -60,125 +60,78 @@ struct ScoreCounter {
     pub(crate) opponents: HashSet<PlayerId>,
 }
 
-#[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 /// The scoring stuct that uses the standard match point model
 pub struct StandardScoring {
-    pub match_win_points: r64,
-    pub match_draw_points: r64,
-    pub match_loss_points: r64,
-    pub game_win_points: r64,
-    pub game_draw_points: r64,
-    pub game_loss_points: r64,
-    pub bye_points: r64,
-    pub include_byes: bool,
-    pub include_match_points: bool,
-    pub include_game_points: bool,
-    pub include_mwp: bool,
-    pub include_gwp: bool,
-    pub include_opp_mwp: bool,
-    pub include_opp_gwp: bool,
+    settings: StandardScoringSettingsTree,
 }
 
 impl StandardScoring {
     /// Creates a new standard scorig system
     pub fn new() -> Self {
         StandardScoring {
-            match_win_points: r64::from_integer(3),
-            match_draw_points: r64::from_integer(1),
-            match_loss_points: r64::from_integer(0),
-            game_win_points: r64::from_integer(3),
-            game_draw_points: r64::from_integer(1),
-            game_loss_points: r64::from_integer(0),
-            bye_points: r64::from_integer(3),
-            include_byes: true,
-            include_match_points: true,
-            include_game_points: true,
-            include_mwp: true,
-            include_gwp: true,
-            include_opp_mwp: true,
-            include_opp_gwp: true,
+            settings: StandardScoringSettingsTree::default(),
         }
+    }
+
+    /// Returns a copy of the current settings
+    pub fn settings(&self) -> StandardScoringSettingsTree {
+        self.settings.clone()
     }
 
     fn new_score(&self) -> StandardScore {
         StandardScore::new(
-            self.include_match_points,
-            self.include_game_points,
-            self.include_mwp,
-            self.include_gwp,
-            self.include_opp_mwp,
-            self.include_opp_gwp,
+            self.settings.include_match_points,
+            self.settings.include_game_points,
+            self.settings.include_mwp,
+            self.settings.include_gwp,
+            self.settings.include_opp_mwp,
+            self.settings.include_opp_gwp,
         )
     }
 
     fn calculate_match_points_with_byes(&self, counter: &ScoreCounter) -> r64 {
-        self.match_win_points * counter.wins
-            + self.match_draw_points * counter.draws
-            + self.match_loss_points * counter.losses
-            + self.bye_points * counter.byes
+        let StandardScoringSettingsTree {
+            match_win_points,
+            match_draw_points,
+            match_loss_points,
+            bye_points,
+            ..
+        } = self.settings;
+        match_win_points * counter.wins
+            + match_draw_points * counter.draws
+            + match_loss_points * counter.losses
+            + bye_points * counter.byes
     }
 
     fn calculate_match_points_without_byes(&self, counter: &ScoreCounter) -> r64 {
-        self.match_win_points * counter.wins
-            + self.match_draw_points * counter.draws
-            + self.match_loss_points * counter.losses
+        let StandardScoringSettingsTree {
+            match_win_points,
+            match_draw_points,
+            match_loss_points,
+            ..
+        } = self.settings;
+        match_win_points * counter.wins
+            + match_draw_points * counter.draws
+            + match_loss_points * counter.losses
     }
 
     fn calculate_game_points(&self, counter: &ScoreCounter) -> r64 {
-        self.game_win_points * counter.game_wins
-            + self.game_draw_points * counter.game_draws
-            + self.game_loss_points * counter.game_losses
+        let StandardScoringSettingsTree {
+            game_win_points,
+            game_draw_points,
+            game_loss_points,
+            ..
+        } = self.settings;
+        game_win_points * counter.game_wins
+            + game_draw_points * counter.game_draws
+            + game_loss_points * counter.game_losses
     }
 
     /// Updates a single scoring setting
     pub fn update_setting(&mut self, setting: StandardScoringSetting) {
-        use StandardScoringSetting::*;
-        match setting {
-            MatchWinPoints(p) => {
-                self.match_win_points = p;
-            }
-            MatchDrawPoints(p) => {
-                self.match_draw_points = p;
-            }
-            MatchLossPoints(p) => {
-                self.match_loss_points = p;
-            }
-            GameWinPoints(p) => {
-                self.game_win_points = p;
-            }
-            GameDrawPoints(p) => {
-                self.game_draw_points = p;
-            }
-            GameLossPoints(p) => {
-                self.game_loss_points = p;
-            }
-            ByePoints(p) => {
-                self.bye_points = p;
-            }
-            IncludeByes(b) => {
-                self.include_byes = b;
-            }
-            IncludeMatchPoints(b) => {
-                self.include_match_points = b;
-            }
-            IncludeGamePoints(b) => {
-                self.include_game_points = b;
-            }
-            IncludeMwp(b) => {
-                self.include_mwp = b;
-            }
-            IncludeGwp(b) => {
-                self.include_gwp = b;
-            }
-            IncludeOppMwp(b) => {
-                self.include_opp_mwp = b;
-            }
-            IncludeOppGwp(b) => {
-                self.include_opp_gwp = b;
-            }
-        }
+        self.settings.update(setting)
     }
 
     /// Calculates all the standing for the active players
@@ -187,6 +140,11 @@ impl StandardScoring {
         player_reg: &PlayerRegistry,
         round_reg: &RoundRegistry,
     ) -> Standings<StandardScore> {
+        let StandardScoringSettingsTree {
+            match_win_points,
+            game_win_points,
+            ..
+        } = self.settings;
         let mut counters: HashMap<PlayerId, ScoreCounter> = player_reg
             .players
             .keys()
@@ -196,7 +154,7 @@ impl StandardScoring {
             .rounds
             .values()
             .filter(|r| r.is_certified())
-            .filter(|r| !r.is_bye() || self.include_byes)
+            .filter(|r| !r.is_bye() || self.settings.include_byes)
             .flat_map(|r| r.players.iter().map(move |p| (p, r)))
             .for_each(|(p, r)| {
                 counters.entry(*p).and_modify(|c| c.add_round(r));
@@ -210,8 +168,8 @@ impl StandardScoring {
             // If your only round was a bye, your percentages stay at 0
             // This also filters out folks that haven't played a match yet
             if counter.rounds != counter.byes {
-                score.mwp = score.match_points / (self.match_win_points * counter.rounds);
-                score.gwp = score.game_points / (self.game_win_points * counter.games);
+                score.mwp = score.match_points / (match_win_points * counter.rounds);
+                score.gwp = score.game_points / (game_win_points * counter.games);
             }
 
             // technically this might be wrong because or_insert doesn't overwrite entries,
@@ -237,12 +195,12 @@ impl StandardScoring {
             score.opp_mwp = if opp_matches == 0 {
                 Default::default()
             } else {
-                opp_mp / (self.match_win_points * opp_matches)
+                opp_mp / (match_win_points * opp_matches)
             };
             score.opp_gwp = if opp_games == 0 {
                 Default::default()
             } else {
-                opp_gp / (self.game_win_points * opp_games)
+                opp_gp / (game_win_points * opp_games)
             };
         }
         let mut results: Vec<(PlayerId, StandardScore)> = digest
