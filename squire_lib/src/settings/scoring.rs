@@ -1,38 +1,113 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::r64;
-
+use crate::{r64, tournament::TournamentPreset, operations::{OpResult, OpData}};
 
 /// An enum that encodes all the adjustable settings of all scoring systems
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub enum ScoringSetting {
-    /// Settings for the standard scoring system
+    /// Settings common to all scoring systems
+    Common(CommonScoringSetting),
+    /// Settings for the scoring style
+    Style(ScoringStyleSetting),
+}
+
+/// Settings for a given scoring style
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
+pub enum ScoringStyleSetting {
+    /// Settings for the standard scoring style
     Standard(StandardScoringSetting),
+}
+
+/// An enum that captures common settings of all scoring systems
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
+pub enum CommonScoringSetting {}
+
+/// The set of settings common to all scoring systems
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
+pub struct CommonScoringSettingsTree;
+
+/// A enum that holds settings for the active scoring sytle
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
+pub enum ScoringStyleSettingsTree {
+    /// The set of settings for standard-style scoring
+    Standard(StandardScoringSettingsTree),
 }
 
 /// A structure that holds a value for each scoring setting
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ScoringSettingsTree {
-    standard: StandardScoringSettingsTree,
+    /// Settings used by all scoring methods
+    pub common: CommonScoringSettingsTree,
+    /// The settings for the style of scoring being used
+    pub style: ScoringStyleSettingsTree,
 }
 
 impl ScoringSettingsTree {
+    /// Creates a new, default settings tree
+    pub fn new(preset: TournamentPreset) -> Self {
+        Self {
+            common: CommonScoringSettingsTree,
+            style: ScoringStyleSettingsTree::new(preset),
+        }
+    }
+
+    /// Creates a new settings tree with the given format field
+    pub fn update(&mut self, setting: ScoringSetting) -> OpResult {
+        match setting {
+            ScoringSetting::Common(setting) => self.common.update(setting),
+            ScoringSetting::Style(setting) => self.style.update(setting),
+        }
+    }
+
+    /// Returns an iterator over all the contained settings
+    pub fn iter(&self) -> impl Iterator<Item = ScoringSetting> {
+        self.common
+            .iter()
+            .map(Into::into)
+            .chain(self.style.iter().map(Into::into))
+    }
+}
+
+impl CommonScoringSettingsTree {
     /// Creates a new, default settings tree
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: ScoringSetting) {
-        #[allow(irrefutable_let_patterns)]
-        match setting {
-            ScoringSetting::Standard(setting) => self.standard.update(setting),
-        }
+    pub fn update(&mut self, setting: CommonScoringSetting) -> ! {
+        match setting {}
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = ScoringSetting> {
-        self.standard.iter().map(Into::into)
+    pub fn iter(&self) -> impl Iterator<Item = CommonScoringSetting> {
+        Option::<CommonScoringSetting>::None
+            .into_iter()
+            .map(Into::into)
+    }
+}
+
+impl ScoringStyleSettingsTree {
+    /// Creates a new, default settings tree
+    pub fn new(_: TournamentPreset) -> Self {
+        Self::Standard(Default::default())
+    }
+
+    /// Creates a new settings tree with the given format field
+    pub fn update(&mut self, setting: ScoringStyleSetting) -> OpResult {
+        match (self, setting) {
+            (ScoringStyleSettingsTree::Standard(style), ScoringStyleSetting::Standard(setting)) => {
+                style.update(setting)
+            }
+        }
+        Ok(OpData::Nothing)
+    }
+
+    /// Returns an iterator over all the contained settings
+    pub fn iter(&self) -> impl Iterator<Item = ScoringStyleSetting> {
+        match self {
+            ScoringStyleSettingsTree::Standard(tree) => tree.iter().map(Into::into),
+        }
     }
 }
 
@@ -71,28 +146,44 @@ pub enum StandardScoringSetting {
 }
 
 /// A structure that holds a value for each scoring setting
+#[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct StandardScoringSettingsTree {
-    match_win_points: r64,
-    match_draw_points: r64,
-    match_loss_points: r64,
-    game_win_points: r64,
-    game_draw_points: r64,
-    game_loss_points: r64,
-    bye_points: r64,
-    include_byes: bool,
-    include_match_points: bool,
-    include_game_points: bool,
-    include_mwp: bool,
-    include_gwp: bool,
-    include_opp_mwp: bool,
-    include_opp_gwp: bool,
+    pub match_win_points: r64,
+    pub match_draw_points: r64,
+    pub match_loss_points: r64,
+    pub game_win_points: r64,
+    pub game_draw_points: r64,
+    pub game_loss_points: r64,
+    pub bye_points: r64,
+    pub include_byes: bool,
+    pub include_match_points: bool,
+    pub include_game_points: bool,
+    pub include_mwp: bool,
+    pub include_gwp: bool,
+    pub include_opp_mwp: bool,
+    pub include_opp_gwp: bool,
 }
 
 impl StandardScoringSettingsTree {
     /// Creates a new, default settings tree
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            match_win_points: r64::from_integer(3),
+            match_draw_points: r64::from_integer(1),
+            match_loss_points: r64::from_integer(0),
+            game_win_points: r64::from_integer(3),
+            game_draw_points: r64::from_integer(1),
+            game_loss_points: r64::from_integer(0),
+            bye_points: r64::from_integer(3),
+            include_byes: true,
+            include_match_points: true,
+            include_game_points: true,
+            include_mwp: true,
+            include_gwp: true,
+            include_opp_mwp: true,
+            include_opp_gwp: true,
+        }
     }
 
     /// Creates a new settings tree with the given format field
@@ -106,8 +197,12 @@ impl StandardScoringSettingsTree {
             StandardScoringSetting::GameLossPoints(points) => self.game_loss_points = points,
             StandardScoringSetting::ByePoints(points) => self.bye_points = points,
             StandardScoringSetting::IncludeByes(include) => self.include_byes = include,
-            StandardScoringSetting::IncludeMatchPoints(include) => self.include_match_points = include,
-            StandardScoringSetting::IncludeGamePoints(include) => self.include_game_points = include,
+            StandardScoringSetting::IncludeMatchPoints(include) => {
+                self.include_match_points = include
+            }
+            StandardScoringSetting::IncludeGamePoints(include) => {
+                self.include_game_points = include
+            }
             StandardScoringSetting::IncludeMwp(include) => self.include_mwp = include,
             StandardScoringSetting::IncludeGwp(include) => self.include_gwp = include,
             StandardScoringSetting::IncludeOppMwp(include) => self.include_opp_mwp = include,
@@ -132,6 +227,7 @@ impl StandardScoringSettingsTree {
             StandardScoringSetting::IncludeGwp(self.include_gwp),
             StandardScoringSetting::IncludeOppMwp(self.include_opp_mwp),
             StandardScoringSetting::IncludeOppGwp(self.include_opp_gwp),
-        ].into_iter()
+        ]
+        .into_iter()
     }
 }

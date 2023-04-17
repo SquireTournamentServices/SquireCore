@@ -16,7 +16,7 @@ use crate::{
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundRegistry, RoundResult, RoundStatus},
     scoring::{ScoringSystem, StandardScore, Standings},
-    settings::{GeneralSettingsTree, TournamentSetting},
+    settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree},
 };
 
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
@@ -426,10 +426,7 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         match setting {
-            GeneralSetting(setting) => {
-                self.settings.update(setting);
-                Ok(OpData::Nothing)
-            }
+            GeneralSetting(setting) => self.settings.update(setting),
             PairingSetting(setting) => self.pairing_sys.update_setting(setting),
             ScoringSetting(setting) => self.scoring_sys.update_setting(setting),
         }
@@ -686,7 +683,7 @@ impl Tournament {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
-        if plyrs.len() == self.pairing_sys.match_size as usize
+        if plyrs.len() == self.pairing_sys.common.match_size as usize
             && plyrs.iter().all(|p| self.player_reg.is_registered(p))
         {
             let context = self.pairing_sys.get_context();
@@ -881,6 +878,15 @@ impl Tournament {
         digest
     }
 
+    /// Returns the complete set of all current settings in the tournament
+    pub fn settings(&self) -> TournamentSettingsTree {
+        TournamentSettingsTree {
+            general: self.settings.clone(),
+            pairing: self.pairing_sys.settings(),
+            scoring: self.scoring_sys.settings(),
+        }
+    }
+
     /// Generates a round slip in HTML
     pub fn round_slips_html(&self, css: &str) -> String {
         let mut ret: String = "<!DOCTPYE HTML>".to_string();
@@ -1005,7 +1011,7 @@ mod tests {
     fn players_in_paired_rounds() {
         let mut tourn =
             Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
-        assert_eq!(tourn.pairing_sys.match_size, 2);
+        assert_eq!(tourn.pairing_sys.common.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);
         tourn.admins.insert(admin.id, admin.clone());
@@ -1040,7 +1046,7 @@ mod tests {
     fn confirm_all_rounds_test() {
         let mut tourn =
             Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
-        assert_eq!(tourn.pairing_sys.match_size, 2);
+        assert_eq!(tourn.pairing_sys.common.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);
         tourn.admins.insert(admin.id, admin.clone());

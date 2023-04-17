@@ -8,7 +8,7 @@ mod tests {
         accounts::SquireAccount,
         identifiers::AdminId,
         operations::{AdminOp, JudgeOp, TournOp},
-        settings::{PairingSetting, TournamentSetting},
+        settings::{PairingSetting, TournamentSetting, CommonPairingSetting},
     };
 
     #[test]
@@ -20,9 +20,9 @@ mod tests {
         let now = Utc::now();
         let op = TournOp::AdminOp(
             a_id,
-            AdminOp::UpdateTournSetting(TournamentSetting::PairingSetting(
-                PairingSetting::MatchSize(2),
-            )),
+            AdminOp::UpdateTournSetting(TournamentSetting::PairingSetting(PairingSetting::Common(
+                CommonPairingSetting::MatchSize(2),
+            ))),
         );
         tourn_one
             .apply_op(now, op.clone())

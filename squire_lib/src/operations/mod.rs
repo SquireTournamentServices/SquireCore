@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_variables)]
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

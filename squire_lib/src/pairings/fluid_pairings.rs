@@ -4,15 +4,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     identifiers::PlayerId,
-    pairings::{PairingAlgorithm, Pairings},
+    pairings::Pairings,
     players::PlayerRegistry,
-    rounds::{RoundContext, RoundRegistry}, settings::FluidPairingSetting,
+    rounds::{RoundContext, RoundRegistry},
+    settings::{FluidPairingSetting, FluidPairingSettingsTree, PairingCommonSettingsTree},
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 /// Fluid pairings are also known as a looking-for-game queue and are used for on-the-fly pairings
 /// between players.
 pub struct FluidPairings {
+    settings: FluidPairingSettingsTree,
     check_ins: HashSet<PlayerId>,
     queue: Vec<PlayerId>,
 }
@@ -21,9 +23,15 @@ impl FluidPairings {
     /// Creates a new fluid pairings struct
     pub fn new() -> Self {
         FluidPairings {
+            settings: Default::default(),
             check_ins: HashSet::new(),
             queue: Vec::new(),
         }
+    }
+
+    /// Returns the current settings
+    pub fn settings(&self) -> FluidPairingSettingsTree {
+        FluidPairingSettingsTree {}
     }
 
     /// Marks a player as ready to play a game
@@ -53,7 +61,7 @@ impl FluidPairings {
     }
 
     /// Updates a pairing setting
-    pub fn update_setting(&mut self, setting: FluidPairingSetting) {
+    pub fn update_setting(&mut self, setting: FluidPairingSetting) -> ! {
         //use FluidPairingsSetting::*;
         match setting {}
     }
@@ -74,13 +82,16 @@ impl FluidPairings {
     /// NOTE: This does not create any round, only pairings.
     pub fn pair(
         &self,
-        alg: PairingAlgorithm,
+        common: &PairingCommonSettingsTree,
         _players: &PlayerRegistry,
         matches: &RoundRegistry,
-        match_size: usize,
-        repair_tolerance: u64,
     ) -> Option<Pairings> {
-        if !self.ready_to_pair(match_size) {
+        let PairingCommonSettingsTree {
+            match_size,
+            repair_tolerance,
+            algorithm,
+        } = common;
+        if !self.ready_to_pair(*match_size as usize) {
             return None;
         }
         let plyrs = self
@@ -89,7 +100,12 @@ impl FluidPairings {
             .chain(self.check_ins.iter())
             .cloned()
             .collect();
-        let mut digest = (alg.as_alg())(plyrs, &matches.opponents, match_size, repair_tolerance);
+        let mut digest = (algorithm.as_alg())(
+            plyrs,
+            &matches.opponents,
+            *match_size as usize,
+            *repair_tolerance,
+        );
         digest.rejected.drain(0..);
         Some(digest)
     }

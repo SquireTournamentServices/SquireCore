@@ -57,7 +57,7 @@ pub fn spoof_data(
     }
 
     let mut sys = PairingSystem::new(TournamentPreset::Swiss);
-    sys.match_size = 4;
+    sys.common.match_size = 4;
     (
         sys,
         plyrs,
@@ -68,6 +68,6 @@ pub fn spoof_data(
 
 pub fn spoof_fluid_pairings() -> PairingSystem {
     let mut sys = PairingSystem::new(TournamentPreset::Fluid);
-    sys.match_size = 4;
+    sys.common.match_size = 4;
     sys
 }

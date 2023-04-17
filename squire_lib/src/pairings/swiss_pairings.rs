@@ -6,11 +6,13 @@ use cycle_map::GroupMap;
 
 use crate::{
     identifiers::PlayerId,
-    pairings::{PairingAlgorithm, Pairings},
+    operations::OpResult,
+    pairings::Pairings,
     players::PlayerRegistry,
     r64,
     rounds::{RoundContext, RoundRegistry},
-    scoring::{Score, Standings}, settings::SwissPairingSetting,
+    scoring::{Score, Standings},
+    settings::{PairingCommonSettingsTree, SwissPairingSetting, SwissPairingSettingsTree},
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, Hash, PartialEq, Eq)]
@@ -22,7 +24,7 @@ pub struct SwissContext {
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 /// Swiss pairings are the "traditional" pairings system for Magic tournaments
 pub struct SwissPairings {
-    do_check_ins: bool,
+    settings: SwissPairingSettingsTree,
     check_ins: HashSet<PlayerId>,
     #[serde(default)]
     swiss_round_number: u8,
@@ -32,15 +34,20 @@ impl SwissPairings {
     /// Creates a new swiss pairings struct
     pub fn new() -> Self {
         SwissPairings {
-            do_check_ins: false,
+            settings: Default::default(),
             check_ins: HashSet::new(),
             swiss_round_number: 0,
         }
     }
 
     /// Returns if this pairing method requires checkins
+    pub fn settings(&self) -> SwissPairingSettingsTree {
+        self.settings.clone()
+    }
+
+    /// Returns if this pairing method requires checkins
     pub fn do_check_ins(&self) -> bool {
-        self.do_check_ins
+        self.settings.do_checkins
     }
 
     /// Marks a player as ready to play in their next round
@@ -54,13 +61,8 @@ impl SwissPairings {
     }
 
     /// Updates a single pairings setting
-    pub fn update_setting(&mut self, setting: SwissPairingSetting) {
-        use SwissPairingSetting::*;
-        match setting {
-            DoCheckIns(b) => {
-                self.do_check_ins = b;
-            }
-        }
+    pub fn update_setting(&mut self, setting: SwissPairingSetting) -> OpResult {
+        self.settings.update(setting)
     }
 
     /// Calculates if the system can pair more rounds
@@ -70,11 +72,12 @@ impl SwissPairings {
         plyr_reg: &PlayerRegistry,
         rnd_reg: &RoundRegistry,
     ) -> bool {
+        let SwissPairingSettingsTree { do_checkins } = self.settings;
         let count = plyr_reg.active_player_count();
         let mut digest = rnd_reg.active_round_count() == 0;
         digest &= count >= match_size;
-        if self.do_check_ins {
-            digest &= self.do_check_ins && count == self.check_ins.len();
+        if do_checkins {
+            digest &= do_checkins && count == self.check_ins.len();
         }
         digest
     }
@@ -103,17 +106,20 @@ impl SwissPairings {
     /// NOTE: This does not create new rounds, only pairings
     pub fn pair<S>(
         &self,
-        alg: PairingAlgorithm,
+        common: &PairingCommonSettingsTree,
         players: &PlayerRegistry,
         matches: &RoundRegistry,
         mut standings: Standings<S>,
-        match_size: usize,
-        repair_tol: u64,
     ) -> Option<Pairings>
     where
         S: Score,
     {
-        if !self.ready_to_pair(match_size, players, matches) {
+        let PairingCommonSettingsTree {
+            match_size,
+            repair_tolerance,
+            algorithm,
+        } = common;
+        if !self.ready_to_pair(*match_size as usize, players, matches) {
             return None;
         }
         let max_count = 100;
@@ -131,11 +137,11 @@ impl SwissPairings {
             .rev()
             .collect();
         let mut plyrs: Vec<PlayerId> = plyrs_and_scores.iter().map(|(p, _)| p).cloned().collect();
-        let mut pairings = (alg.as_alg())(
+        let mut pairings = (*algorithm).as_alg()(
             plyrs.drain(0..).collect(),
             &matches.opponents,
-            match_size,
-            repair_tol,
+            *match_size as usize,
+            *repair_tolerance,
         );
         while count < max_count && !pairings.rejected.is_empty() {
             count += 1;
@@ -146,11 +152,11 @@ impl SwissPairings {
                     .flat_map(|r| grouped_plyrs.get_left_iter(r).unwrap())
                     .cloned(),
             );
-            let buffer = (alg.as_alg())(
+            let buffer = (*algorithm).as_alg()(
                 plyrs.drain(0..).collect(),
                 &matches.opponents,
-                match_size,
-                repair_tol,
+                *match_size as usize,
+                *repair_tolerance,
             );
             if buffer.rejected.len() < pairings.rejected.len() {
                 pairings = buffer;

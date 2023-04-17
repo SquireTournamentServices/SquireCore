@@ -9,11 +9,14 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::TournamentError,
     identifiers::{PlayerId, RoundId},
-    operations::{OpData, OpResult},
+    operations::OpResult,
     players::PlayerRegistry,
     rounds::{Round, RoundContext, RoundRegistry},
     scoring::{Score, Standings},
-    settings::PairingSetting,
+    settings::{
+        PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
+        PairingStyleSettingsTree,
+    },
     tournament::TournamentPreset,
 };
 
@@ -35,8 +38,8 @@ pub use greedy::greedy_pairings;
 pub use rotary::rotary_pairings;
 pub use swiss_pairings::SwissPairings;
 
-#[derive(Serialize, Deserialize, Debug, Default, Hash, Clone, PartialEq, Eq)]
 /// A struct for communicating new pairings information
+#[derive(Serialize, Deserialize, Debug, Default, Hash, Clone, PartialEq, Eq)]
 pub struct Pairings {
     /// The players that are paired and their groupings
     pub paired: Vec<Vec<PlayerId>>,
@@ -82,22 +85,17 @@ pub enum PairingAlgorithm {
     Rotary,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An enum that encodes all the possible pairing systems a tournament can have.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct PairingSystem {
-    /// The number of players that will be in new Rounds
-    pub match_size: u8,
-    /// The number of pairs of players that have already played against each other that can be in a
-    /// valid pairing
-    pub repair_tolerance: u64,
-    /// The algorithm used to pair players
-    pub alg: PairingAlgorithm,
+    /// Settings common to all pairing styles
+    pub common: PairingCommonSettingsTree,
     /// The style of pairings that is used
     pub style: PairingStyle,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An enum that encodes all the possible pairing systems a tournament can have.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum PairingStyle {
     /// The tournament has a swiss pairing system
     Swiss(SwissPairings),
@@ -134,15 +132,23 @@ impl PairingSystem {
     /// Creates a new pairing system
     pub fn new(preset: TournamentPreset) -> Self {
         use TournamentPreset::*;
+        let common = PairingCommonSettingsTree {
+            match_size: 2,
+            repair_tolerance: 0,
+            algorithm: PairingAlgorithm::Branching,
+        };
         let style: PairingStyle = match preset {
             Swiss => SwissPairings::new().into(),
             Fluid => FluidPairings::new().into(),
         };
-        PairingSystem {
-            match_size: 2,
-            repair_tolerance: 0,
-            alg: PairingAlgorithm::Branching,
-            style,
+        PairingSystem { common, style }
+    }
+
+    /// Returns a copy of the current set of settings
+    pub fn settings(&self) -> PairingSettingsTree {
+        PairingSettingsTree {
+            common: self.common.clone(),
+            style: self.style.settings(),
         }
     }
 
@@ -168,8 +174,8 @@ impl PairingSystem {
     pub fn ready_to_pair(&self, plyr_reg: &PlayerRegistry, rnd_reg: &RoundRegistry) -> bool {
         use PairingStyle::*;
         match &self.style {
-            Swiss(sys) => sys.ready_to_pair(self.match_size as usize, plyr_reg, rnd_reg),
-            Fluid(sys) => sys.ready_to_pair(self.match_size as usize),
+            Swiss(sys) => sys.ready_to_pair(self.common.match_size as usize, plyr_reg, rnd_reg),
+            Fluid(sys) => sys.ready_to_pair(self.common.match_size as usize),
         }
     }
 
@@ -203,21 +209,8 @@ impl PairingSystem {
     {
         use PairingStyle::*;
         match &self.style {
-            Swiss(sys) => sys.pair(
-                self.alg,
-                plyr_reg,
-                rnd_reg,
-                standings,
-                self.match_size as usize,
-                self.repair_tolerance,
-            ),
-            Fluid(sys) => sys.pair(
-                self.alg,
-                plyr_reg,
-                rnd_reg,
-                self.match_size as usize,
-                self.repair_tolerance,
-            ),
+            Swiss(sys) => sys.pair(&self.common, plyr_reg, rnd_reg, standings),
+            Fluid(sys) => sys.pair(&self.common, plyr_reg, rnd_reg),
         }
     }
 
@@ -225,31 +218,40 @@ impl PairingSystem {
     pub fn update_setting(&mut self, setting: PairingSetting) -> OpResult {
         use PairingSetting::*;
         match setting {
-            MatchSize(size) => {
-                self.match_size = size;
-            }
-            RepairTolerance(tol) => {
-                self.repair_tolerance = tol;
-            }
-            Algorithm(alg) => {
-                self.alg = alg;
-            }
-            Swiss(s) => {
-                if let PairingStyle::Swiss(sys) = &mut self.style {
-                    sys.update_setting(s);
-                } else {
-                    return Err(TournamentError::IncompatiblePairingSystem);
-                }
-            }
-            Fluid(s) => {
-                if let PairingStyle::Fluid(sys) = &mut self.style {
-                    sys.update_setting(s);
-                } else {
-                    return Err(TournamentError::IncompatiblePairingSystem);
-                }
-            }
+            Common(setting) => self.common.update(setting),
+            Style(s) => self.style.update(s),
         }
-        Ok(OpData::Nothing)
+    }
+}
+
+impl PairingStyle {
+    /// Creates empty pairings
+    pub fn new(preset: TournamentPreset) -> Self {
+        match preset {
+            TournamentPreset::Swiss => Self::Swiss(Default::default()),
+            TournamentPreset::Fluid => Self::Fluid(Default::default()),
+        }
+    }
+
+    /// Returns a copy of the current set of settings
+    pub fn settings(&self) -> PairingStyleSettingsTree {
+        match self {
+            PairingStyle::Swiss(style) => PairingStyleSettingsTree::Swiss(style.settings()),
+            PairingStyle::Fluid(style) => PairingStyleSettingsTree::Fluid(style.settings()),
+        }
+    }
+
+    /// Attempts to update the settings of the held pairing style
+    pub fn update(&mut self, setting: PairingStyleSetting) -> OpResult {
+        match (self, setting) {
+            (PairingStyle::Swiss(style), PairingStyleSetting::Swiss(setting)) => {
+                style.update_setting(setting)
+            }
+            (PairingStyle::Fluid(style), PairingStyleSetting::Fluid(setting)) => {
+                style.update_setting(setting)
+            }
+            _ => Err(TournamentError::IncompatiblePairingSystem),
+        }
     }
 }
 

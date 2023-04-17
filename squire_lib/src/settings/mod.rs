@@ -8,6 +8,8 @@ pub use general::*;
 pub use pairing::*;
 pub use scoring::*;
 
+use crate::{operations::OpResult, tournament::TournamentPreset};
+
 /// An enum that encodes all the adjustable settings of a tournament
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub enum TournamentSetting {
@@ -19,29 +21,29 @@ pub enum TournamentSetting {
     ScoringSetting(ScoringSetting),
 }
 
-/// A structure that contains 
+/// A structure that contains
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct TournamentSettingsTree {
     /// The set of tournament general settings
-    general: GeneralSettingsTree,
+    pub general: GeneralSettingsTree,
     /// The set of tournament settings related to pairing
-    pairing: PairingSettingsTree,
+    pub pairing: PairingSettingsTree,
     /// The set of tournament settings related to scoring
-    scoring: ScoringSettingsTree,
+    pub scoring: ScoringSettingsTree,
 }
 
 impl TournamentSettingsTree {
     /// Creates a new tournament settings tree with default values for all settings
-    pub fn new() -> Self {
+    pub fn new(preset: TournamentPreset) -> Self {
         Self {
             general: Default::default(),
-            pairing: Default::default(),
-            scoring: Default::default(),
+            pairing: PairingSettingsTree::new(preset),
+            scoring: ScoringSettingsTree::new(preset),
         }
     }
 
     /// Updates the tournament settings tree, replacing one setting with the given setting
-    pub fn update(&mut self, setting: TournamentSetting) {
+    pub fn update(&mut self, setting: TournamentSetting) -> OpResult {
         match setting {
             TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
             TournamentSetting::PairingSetting(setting) => self.pairing.update(setting),
