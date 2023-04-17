@@ -2,6 +2,11 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use crate::{
+    error::TournamentError,
+    operations::{OpData, OpResult},
+};
+
 /// An enum that encode all of the general tournament settings
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub enum GeneralSetting {
@@ -26,31 +31,30 @@ pub enum GeneralSetting {
 /// A structure that holds a value for each general tournament setting
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct GeneralSettingsTree {
-    pub(crate) format: String,
-    pub(crate) starting_table_number: u64,
-    pub(crate) use_table_number: bool,
-    pub(crate) min_deck_count: u8,
-    pub(crate) max_deck_count: u8,
-    pub(crate) require_check_in: bool,
-    pub(crate) require_deck_reg: bool,
-    pub(crate) round_length: Duration,
+    /// The format that is being played at the tournament
+    pub format: String,
+    /// The first table number to use when accessing table numbers
+    pub starting_table_number: u64,
+    /// Whether or not to use table numbers
+    pub use_table_number: bool,
+    /// The minimum number of decks that a player needs to have for the tournament
+    pub min_deck_count: u8,
+    /// The maximum number of decks that a player can have at a time
+    pub max_deck_count: u8,
+    /// Whether or not players must check into the tournament
+    pub require_check_in: bool,
+    /// Whether or not players must submit at least the minimum number of decks
+    pub require_deck_reg: bool,
+    /// The length of all new rounds
+    pub round_length: Duration,
 }
 
 impl GeneralSettingsTree {
     /// Creates a new, default settings tree
     pub fn new() -> Self {
-        Self {
-            format: "Pioneer".into(),
-            starting_table_number: 1,
-            use_table_number: true,
-            min_deck_count: 0,
-            max_deck_count: 1,
-            require_check_in: false,
-            require_deck_reg: false,
-            round_length: Duration::from_secs(3000),
-        }
+        Self::default()
     }
-    
+
     /// Creates a new settings tree with the given format field
     pub fn with_format(format: String) -> Self {
         let mut digest = Self::new();
@@ -59,17 +63,24 @@ impl GeneralSettingsTree {
     }
 
     /// Updates the settings tree, replacing one setting with the given setting
-    pub fn update(&mut self, setting: GeneralSetting) {
+    pub fn update(&mut self, setting: GeneralSetting) -> OpResult {
         match setting {
             GeneralSetting::Format(format) => self.format = format,
             GeneralSetting::StartingTableNumber(num) => self.starting_table_number = num,
             GeneralSetting::UseTableNumbers(num) => self.use_table_number = num,
-            GeneralSetting::MinDeckCount(count) => self.min_deck_count = count,
-            GeneralSetting::MaxDeckCount(count) => self.max_deck_count = count,
+            GeneralSetting::MinDeckCount(count) if count <= self.max_deck_count => {
+                self.min_deck_count = count
+            }
+            GeneralSetting::MinDeckCount(_) => return Err(TournamentError::InvalidDeckCount),
+            GeneralSetting::MaxDeckCount(count) if count >= self.min_deck_count => {
+                self.max_deck_count = count
+            }
+            GeneralSetting::MaxDeckCount(_) => return Err(TournamentError::InvalidDeckCount),
             GeneralSetting::RequireCheckIn(check_in) => self.require_check_in = check_in,
             GeneralSetting::RequireDeckReg(deck_reg) => self.require_deck_reg = deck_reg,
             GeneralSetting::RoundLength(len) => self.round_length = len,
         }
+        Ok(OpData::Nothing)
     }
 
     /// Returns an iterator over all the contained settings
@@ -83,6 +94,7 @@ impl GeneralSettingsTree {
             GeneralSetting::RequireCheckIn(self.require_check_in),
             GeneralSetting::RequireDeckReg(self.require_deck_reg),
             GeneralSetting::RoundLength(self.round_length),
-        ].into_iter()
+        ]
+        .into_iter()
     }
 }

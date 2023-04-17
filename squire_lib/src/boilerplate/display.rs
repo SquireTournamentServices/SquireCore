@@ -1,115 +1,10 @@
 use std::fmt::{self, Display, Formatter};
 
-use crate::{
-    scoring::{ScoringStyle, StandardScoring},
-    settings::{
-        PairingSetting, PairingSettingsTree,
-        ScoringSetting, ScoringSettingsTree, StandardScoringSetting, StandardScoringSettingsTree,
-        TournamentSetting, TournamentSettingsTree, SwissPairingSetting, FluidPairingSetting, FluidPairingSettingsTree, GeneralSetting, SwissPairingSettingsTree, GeneralSettingsTree,
-    },
+use crate::settings::{
+    CommonPairingSetting, CommonScoringSetting, FluidPairingSetting, GeneralSetting,
+    PairingSetting, ScoringSetting, ScoringStyleSetting, StandardScoringSetting,
+    SwissPairingSetting, TournamentSetting, PairingStyleSetting,
 };
-
-impl From<GeneralSetting> for TournamentSetting {
-    fn from(other: GeneralSetting) -> Self {
-        TournamentSetting::GeneralSetting(other)
-    }
-}
-
-impl From<PairingSetting> for TournamentSetting {
-    fn from(other: PairingSetting) -> Self {
-        TournamentSetting::PairingSetting(other)
-    }
-}
-
-impl From<ScoringSetting> for TournamentSetting {
-    fn from(other: ScoringSetting) -> Self {
-        TournamentSetting::ScoringSetting(other)
-    }
-}
-
-impl From<SwissPairingSetting> for PairingSetting {
-    fn from(other: SwissPairingSetting) -> Self {
-        PairingSetting::Swiss(other)
-    }
-}
-
-impl From<FluidPairingSetting> for PairingSetting {
-    fn from(other: FluidPairingSetting) -> Self {
-        PairingSetting::Fluid(other)
-    }
-}
-
-impl From<StandardScoringSetting> for ScoringSetting {
-    fn from(other: StandardScoringSetting) -> Self {
-        ScoringSetting::Standard(other)
-    }
-}
-
-impl From<SwissPairingSetting> for TournamentSetting {
-    fn from(other: SwissPairingSetting) -> Self {
-        TournamentSetting::PairingSetting(other.into())
-    }
-}
-
-impl From<FluidPairingSetting> for TournamentSetting {
-    fn from(other: FluidPairingSetting) -> Self {
-        TournamentSetting::PairingSetting(other.into())
-    }
-}
-
-impl From<StandardScoringSetting> for TournamentSetting {
-    fn from(other: StandardScoringSetting) -> Self {
-        TournamentSetting::ScoringSetting(other.into())
-    }
-}
-
-impl From<StandardScoring> for ScoringStyle {
-    fn from(other: StandardScoring) -> Self {
-        Self::Standard(other)
-    }
-}
-
-impl Default for TournamentSettingsTree {
-    fn default() -> TournamentSettingsTree {
-        TournamentSettingsTree::new()
-    }
-}
-
-impl Default for GeneralSettingsTree {
-    fn default() -> GeneralSettingsTree {
-        GeneralSettingsTree::new()
-    }
-}
-
-impl Default for PairingSettingsTree {
-    fn default() -> PairingSettingsTree {
-        PairingSettingsTree::new()
-    }
-}
-
-impl Default for SwissPairingSettingsTree {
-    fn default() -> SwissPairingSettingsTree {
-        SwissPairingSettingsTree::new()
-    }
-}
-
-impl Default for FluidPairingSettingsTree {
-    fn default() -> FluidPairingSettingsTree {
-        FluidPairingSettingsTree::new()
-    }
-}
-
-impl Default for ScoringSettingsTree {
-    fn default() -> ScoringSettingsTree {
-        ScoringSettingsTree::new()
-    }
-}
-
-impl Default for StandardScoringSettingsTree {
-    fn default() -> StandardScoringSettingsTree {
-        StandardScoringSettingsTree::new()
-    }
-}
 
 impl Display for TournamentSetting {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -164,11 +59,17 @@ impl fmt::Display for PairingSetting {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use PairingSetting::*;
         match self {
-            MatchSize(size) => write!(f, "Match size: {size}"),
-            RepairTolerance(tol) => write!(f, "Repair tolerance: {tol}"),
-            Algorithm(alg) => write!(f, "Algorithm: {alg}"),
-            Swiss(s) => write!(f, "{s}"),
-            Fluid(s) => write!(f, "{s}"),
+            Common(s) => write!(f, "{s}"),
+            Style(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+impl fmt::Display for PairingStyleSetting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PairingStyleSetting::Swiss(s) => write!(f, "{s}"),
+            PairingStyleSetting::Fluid(s) => write!(f, "{s}"),
         }
     }
 }
@@ -177,7 +78,34 @@ impl fmt::Display for ScoringSetting {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ScoringSetting::*;
         match self {
+            Common(s) => write!(f, "{s}"),
+            Style(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+impl fmt::Display for CommonScoringSetting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CommonScoring Setting")
+    }
+}
+
+impl fmt::Display for ScoringStyleSetting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ScoringStyleSetting::*;
+        match self {
             Standard(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+impl fmt::Display for CommonPairingSetting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use CommonPairingSetting::*;
+        match self {
+            MatchSize(size) => write!(f, "Match Size: {size}"),
+            RepairTolerance(tol) => write!(f, "Repair Tolerance: {tol}"),
+            Algorithm(alg) => write!(f, "Algorithm: {alg}"),
         }
     }
 }

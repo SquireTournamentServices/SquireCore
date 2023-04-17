@@ -8,7 +8,8 @@ use squire_lib::{
     pairings::PairingSystem,
     players::{Deck, Player, PlayerId, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundContext, RoundId, RoundRegistry, RoundStatus},
-    scoring::{ScoringStyle, StandardScore, Standings},
+    scoring::{StandardScore, Standings, ScoringSystem},
+    settings::GeneralSettingsTree,
     tournament::{Tournament, TournamentId, TournamentStatus},
 };
 
@@ -22,7 +23,7 @@ pub struct CompressedTournament {
     pub player_reg: CompressedPlayerReg,
     pub round_reg: CompressedRoundReg,
     pub pairing_sys: PairingSystem,
-    pub scoring_sys: ScoringStyle,
+    pub scoring_sys: ScoringSystem,
     pub require_check_in: bool,
     pub require_deck_reg: bool,
     pub final_standings: Standings<StandardScore>,
@@ -35,18 +36,22 @@ impl From<Tournament> for CompressedTournament {
         let Tournament {
             id,
             name,
-            format,
-            min_deck_count,
-            max_deck_count,
+            settings,
             player_reg,
             round_reg,
             pairing_sys,
             scoring_sys,
-            require_check_in,
-            require_deck_reg,
             status,
             ..
         } = tourn;
+        let GeneralSettingsTree {
+            format,
+            min_deck_count,
+            max_deck_count,
+            require_check_in,
+            require_deck_reg,
+            ..
+        } = settings;
         Self {
             id,
             name,

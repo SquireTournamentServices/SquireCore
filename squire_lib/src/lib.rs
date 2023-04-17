@@ -1,7 +1,6 @@
 //! SquireLib implements all the core tournament logic used by all Squire services. This includes
 //! models for players, rounds, scoring and pairings systems, and tournaments. The client-server
 //! sync protocol is also implemented here.
-#![allow(dead_code, irrefutable_let_patterns)]
 #![warn(rust_2018_idioms)]
 #![deny(
     dead_code,
@@ -18,7 +17,7 @@
 /// The numerical type used in the scoring systems
 pub type r64 = num_rational::Rational32;
 
-mod utils;
+mod boilerplate;
 
 /// Contains the models for user and organization accounts
 pub mod accounts;
