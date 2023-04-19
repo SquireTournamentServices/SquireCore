@@ -38,8 +38,16 @@ pub struct Standings<S> {
 /// settings upon all scoring styles
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ScoringSystem {
-    common: CommonScoringSettingsTree,
-    style: ScoringStyle,
+    /// Settings common to call scoring systems
+    #[serde(default)]
+    pub common: CommonScoringSettingsTree,
+    /// Settings of the active scoring system
+    #[serde(default = "default_style")]
+    pub style: ScoringStyle,
+}
+
+fn default_style() -> ScoringStyle {
+    ScoringStyle::Standard(Default::default())
 }
 
 /// An enum that encodes all the possible scoring systems a tournament can have.
@@ -56,7 +64,11 @@ impl ScoringStyle {
     }
 
     /// Returns the current standings for all players
-    pub fn get_standings(&self, plyrs: &PlayerRegistry, rnds: &RoundRegistry) -> Standings<StandardScore> {
+    pub fn get_standings(
+        &self,
+        plyrs: &PlayerRegistry,
+        rnds: &RoundRegistry,
+    ) -> Standings<StandardScore> {
         match self {
             ScoringStyle::Standard(style) => style.get_standings(plyrs, rnds),
         }
@@ -65,9 +77,7 @@ impl ScoringStyle {
     /// Returns a copy of the current settings
     pub fn settings(&self) -> ScoringStyleSettingsTree {
         match self {
-            ScoringStyle::Standard(tree) => {
-                ScoringStyleSettingsTree::Standard(tree.settings())
-            }
+            ScoringStyle::Standard(tree) => ScoringStyleSettingsTree::Standard(tree.settings()),
         }
     }
 

@@ -1,6 +1,11 @@
+use std::{str::FromStr, time::Duration};
+
 use yew::prelude::*;
 
-use squire_sdk::{model::settings::TournamentSetting, tournaments::Tournament};
+use squire_sdk::{
+    model::settings::{GeneralSetting, GeneralSettingsTree, TournamentSetting},
+    tournaments::Tournament,
+};
 
 use super::{panel::SettingPanel, SettingsMessage};
 
@@ -16,31 +21,31 @@ pub struct GeneralSettings {
 
 impl GeneralSettings {
     pub fn new(emitter: Callback<TournamentSetting>) -> Self {
-        let make_panel = |label, item| SettingPanel::new(label, item, emitter.clone());
+        use GeneralSetting::*;
         Self {
-            starting_table: make_panel("Starting table #", TournamentSetting::StartingTableNumber),
-            use_table_num: make_panel("Use table #", TournamentSetting::StartingTableNumber),
-            min_decks: make_panel("Min deck count", TournamentSetting::StartingTableNumber),
-            max_decks: make_panel("Max deck count", TournamentSetting::StartingTableNumber),
-            require_checkin: make_panel("Require check in", TournamentSetting::StartingTableNumber),
-            require_decks: make_panel("Require deck reg.", TournamentSetting::StartingTableNumber),
-            round_length: make_panel("Round length", TournamentSetting::StartingTableNumber),
+            starting_table: SettingPanel::new(&emitter, "Starting table #", StartingTableNumber),
+            use_table_num: make_panel(&emitter, "Use table #", UseTableNumbers),
+            min_decks: make_panel(&emitter, "Min deck count", MinDeckCount),
+            max_decks: make_panel(&emitter, "Max deck count", MaxDeckCount),
+            require_checkin: make_panel(&emitter, "Require check in", RequireCheckIn),
+            require_decks: make_panel(&emitter, "Require deck reg.", RequireDeckReg),
+            round_length: make_panel(&emitter, "Round length", |l: u64| {
+                RoundLength(Duration::from_secs(l * 60))
+            }),
         }
     }
 
-    pub fn view(&self, tourn: &Tournament) -> Html {
+    pub fn view(&self, settings: &GeneralSettingsTree) -> Html {
         html! {
             <div>
                 <h2>{ "General Settings:" }</h2>
-                <p>{ format!("Status: {}", tourn.status) }</p>
-                <p>{ format!("Registration open: {}", tourn.reg_open) }</p>
-                { self.starting_table.view(tourn.round_reg.starting_table) }
-                { self.use_table_num.view(tourn.use_table_number) }
-                { self.min_decks.view(tourn.min_deck_count) }
-                { self.max_decks.view(tourn.max_deck_count) }
-                { self.require_checkin.view(tourn.require_check_in) }
-                { self.require_decks.view(tourn.require_deck_reg) }
-                { self.round_length.view(tourn.round_reg.length.as_secs()/60) }
+                { self.starting_table.view(settings.starting_table_number) }
+                { self.use_table_num.view(settings.use_table_number) }
+                { self.min_decks.view(settings.min_deck_count) }
+                { self.max_decks.view(settings.max_deck_count) }
+                { self.require_checkin.view(settings.require_check_in) }
+                { self.require_decks.view(settings.require_deck_reg) }
+                { self.round_length.view(settings.round_length.as_secs()/60) }
             </div>
         }
     }

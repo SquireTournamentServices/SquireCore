@@ -64,7 +64,9 @@ struct ScoreCounter {
 #[repr(C)]
 /// The scoring stuct that uses the standard match point model
 pub struct StandardScoring {
-    settings: StandardScoringSettingsTree,
+    /// The settings for the scoring system
+    #[serde(default)]
+    pub settings: StandardScoringSettingsTree,
 }
 
 impl StandardScoring {

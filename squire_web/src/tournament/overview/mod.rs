@@ -52,7 +52,7 @@ impl Component for TournOverview {
                             <div class="container-fluid p-md-5">
                                 <h1 class="display-5 fw-bold">{ format!("Welcome to {}", t.name) }</h1>
                                 <hr class="my-4"/>
-                                <p>{ format!("Format : {}", t.format) }</p>
+                                <p>{ format!("Format : {}", t.settings.format) }</p>
                                 <p>{ format!("Status : {}", t.status) }</p>
                                 <p>{ format!("Registered players : {registered_plyrs}") }</p>
 

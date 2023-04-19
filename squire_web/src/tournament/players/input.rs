@@ -89,7 +89,6 @@ impl PlayerFilterReport {
     }
 
     pub fn matches(&self, plyr: &Player) -> bool {
-        web_sys::console::log_1(&format!("Checking {:?}", plyr.name).into());
         self.status
             .as_ref()
             .map(|status| plyr.status == *status)
