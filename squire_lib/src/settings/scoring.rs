@@ -37,6 +37,7 @@ pub enum ScoringStyleSettingsTree {
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct ScoringSettingsTree {
     /// Settings used by all scoring methods
+    #[serde(default)]
     pub common: CommonScoringSettingsTree,
     /// The settings for the style of scoring being used
     pub style: ScoringStyleSettingsTree,

@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 use squire_sdk::{
     accounts::TournamentSettingsTree, client::state::ClientState,
-    model::settings::TournamentSetting, tournaments::TournamentId,
+    model::settings::TournamentSetting, tournaments::{TournamentId, TournamentPreset},
 };
 
 mod general;
@@ -33,7 +33,8 @@ pub struct SettingsView {
     general: GeneralSettings,
     pairings: PairingsSettings,
     scoring: ScoringSettings,
-    to_change: TournamentSettingsTreeBuilder,
+    current: TournamentSettingsTree,
+    to_change: TournamentSettingsTree,
 }
 
 impl Component for SettingsView {
@@ -42,20 +43,32 @@ impl Component for SettingsView {
 
     fn create(ctx: &Context<Self>) -> Self {
         let emitter = ctx.link().callback(SettingsMessage::Setting);
+        let id = ctx.props().id;
+        let tree = CLIENT
+            .get()
+            .unwrap()
+            .state
+            .query_tournament(&id, |tourn| tourn.settings())
+            .unwrap_or_else(|| TournamentSettingsTree::new(TournamentPreset::Swiss));
         SettingsView {
-            id: ctx.props().id,
+            id,
             general: GeneralSettings::new(emitter),
             pairings: Default::default(),
             scoring: Default::default(),
-            to_change: Default::default(),
+            current: tree.clone(),
+            to_change: tree,
         }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            SettingsMessage::Setting(setting) => self.to_change.add_setting(setting),
-        };
-        false
+            SettingsMessage::Setting(setting) => {
+                self.to_change.update(setting).is_ok();
+                let count = self.to_change.diff(&self.current).count();
+                web_sys::console::log_1(&format!("Different settings: {count}").into());
+                false
+            }
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -66,7 +79,7 @@ impl Component for SettingsView {
             .query_tournament(&self.id, |tourn| {
                 html! {
                     <div>
-                        { self.general.view(tourn) }
+                        { self.general.view(&self.current.general) }
                         { self.pairings.view(tourn) }
                         { self.scoring.view(tourn) }
                     </div>

@@ -60,7 +60,6 @@ impl Component for RoundsView {
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
-        web_sys::console::log_1(&format!("New filter message: {msg:?}").into());
         match msg {
             RoundsFilterMessage::FilterInput(msg) => {
                 if self.input.update(msg) {

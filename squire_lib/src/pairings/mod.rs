@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
+    fmt::Display, str::FromStr,
 };
 
 use chrono::{DateTime, Utc};
@@ -89,9 +89,15 @@ pub enum PairingAlgorithm {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct PairingSystem {
     /// Settings common to all pairing styles
+    #[serde(default)]
     pub common: PairingCommonSettingsTree,
     /// The style of pairings that is used
+    #[serde(default = "default_style")]
     pub style: PairingStyle,
+}
+
+fn default_style() -> PairingStyle {
+    PairingStyle::Swiss(SwissPairings::default())
 }
 
 /// An enum that encodes all the possible pairing systems a tournament can have.
@@ -333,4 +339,17 @@ pub fn count_opps(plyrs: &[PlayerId], opps: &HashMap<PlayerId, HashSet<PlayerId>
         }
     }
     digest
+}
+
+impl FromStr for PairingAlgorithm {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Greedy" | "greedy" => Ok(Self::Greedy),
+            "Branching" | "branching" => Ok(Self::Branching),
+            "Rotary" | "rotary" => Ok(Self::Rotary),
+            _ => Err("Unable to convert string to pairing algorithm".to_owned()),
+        }
+    }
 }
