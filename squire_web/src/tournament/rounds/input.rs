@@ -90,7 +90,6 @@ impl RoundFilterReport {
     }
 
     pub fn matches(&self, rnd: &Round) -> bool {
-        web_sys::console::log_1(&format!("Checking round #{:?}", rnd.match_number).into());
         self.status
             .as_ref()
             .map(|status| rnd.status == *status)

@@ -24,6 +24,7 @@ pub struct SwissContext {
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 /// Swiss pairings are the "traditional" pairings system for Magic tournaments
 pub struct SwissPairings {
+    #[serde(default)]
     settings: SwissPairingSettingsTree,
     check_ins: HashSet<PlayerId>,
     #[serde(default)]

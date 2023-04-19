@@ -14,6 +14,7 @@ use crate::{
 /// Fluid pairings are also known as a looking-for-game queue and are used for on-the-fly pairings
 /// between players.
 pub struct FluidPairings {
+    #[serde(default)]
     settings: FluidPairingSettingsTree,
     check_ins: HashSet<PlayerId>,
     queue: Vec<PlayerId>,

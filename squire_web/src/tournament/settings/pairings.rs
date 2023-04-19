@@ -1,48 +1,130 @@
 use yew::prelude::*;
 
 use squire_sdk::{
-    model::pairings::{FluidPairings, PairingStyle, SwissPairings},
+    model::{
+        pairings::{FluidPairings, PairingStyle, SwissPairings},
+        settings::{
+            CommonPairingSetting, FluidPairingSettingsTree, PairingCommonSettingsTree,
+            PairingSettingsTree, PairingStyleSettingsTree, SwissPairingSetting,
+            SwissPairingSettingsTree, TournamentSetting,
+        },
+    },
     tournaments::Tournament,
 };
 
-#[derive(Debug, Default)]
-pub struct PairingsSettings {}
+use super::panel::{make_panel, SettingPanel};
+
+pub struct PairingsSettings {
+    match_size: SettingPanel,
+    repair_tolerance: SettingPanel,
+    algorithm: SettingPanel,
+    current: PairingCommonSettingsTree,
+    to_change: PairingCommonSettingsTree,
+    style: PairingStyleSection,
+}
 
 impl PairingsSettings {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(emitter: Callback<TournamentSetting>, settings: PairingSettingsTree) -> Self {
+        let PairingSettingsTree { common, style } = settings;
+        Self {
+            match_size: make_panel(&emitter, "Match size: ", CommonPairingSetting::MatchSize),
+            repair_tolerance: make_panel(
+                &emitter,
+                "Repair Tolerance: ",
+                CommonPairingSetting::RepairTolerance,
+            ),
+            algorithm: make_panel(
+                &emitter,
+                "Pairing Algorithm: ",
+                CommonPairingSetting::Algorithm,
+            ),
+            style: PairingStyleSection::new(emitter, style),
+            current: common.clone(),
+            to_change: common,
+        }
     }
 
-    pub fn view(&self, tourn: &Tournament) -> Html {
-        let sys = &tourn.pairing_sys;
+    pub fn view(&self) -> Html {
         html! {
             <div>
                 <h2>{ "Pairings Settings:" }</h2>
-                <p>{ format!("Match size: {}", sys.match_size) }</p>
-                <p>{ format!("Repair tolerance: {}", sys.repair_tolerance) }</p>
-                <p>{ format!("Algorithm: {}", sys.alg) }</p>
-                { pairings_style_view(&sys.style) }
+                <p>{ format!("Match size: {}", self.current.match_size) }</p>
+                <p>{ format!("Repair tolerance: {}", self.current.repair_tolerance) }</p>
+                <p>{ format!("Algorithm: {}", self.current.algorithm) }</p>
+                { self.style.view() }
             </div>
         }
     }
 }
 
-fn pairings_style_view(style: &PairingStyle) -> Html {
-    match &style {
-        PairingStyle::Swiss(style) => swiss_style_view(style),
-        PairingStyle::Fluid(style) => fluid_style_view(style),
+enum PairingStyleSection {
+    Swiss(SwissPairingSection),
+    Fluid(FluidPairingSection),
+}
+
+struct SwissPairingSection {
+    do_checkins: SettingPanel,
+    current: SwissPairingSettingsTree,
+    to_change: SwissPairingSettingsTree,
+}
+
+struct FluidPairingSection {
+    current: FluidPairingSettingsTree,
+    to_change: FluidPairingSettingsTree,
+}
+
+impl PairingStyleSection {
+    fn new(emitter: Callback<TournamentSetting>, style: PairingStyleSettingsTree) -> Self {
+        match style {
+            PairingStyleSettingsTree::Swiss(settings) => {
+                Self::Swiss(SwissPairingSection::new(emitter, settings))
+            }
+            PairingStyleSettingsTree::Fluid(settings) => {
+                Self::Fluid(FluidPairingSection::new(emitter, settings))
+            }
+        }
+    }
+
+    fn view(&self) -> Html {
+        match self {
+            PairingStyleSection::Swiss(style) => style.view(),
+            PairingStyleSection::Fluid(style) => style.view(),
+        }
     }
 }
 
-fn swiss_style_view(style: &SwissPairings) -> Html {
-    html! {
-        <div>
-            <h3>{ "Swiss Settings" }</h3>
-            <p>{ format!("Do check ins: {}", style.do_check_ins()) }</p>
-        </div>
+impl SwissPairingSection {
+    fn new(emitter: Callback<TournamentSetting>, settings: SwissPairingSettingsTree) -> Self {
+        Self {
+            current: settings.clone(),
+            to_change: settings.clone(),
+            do_checkins: make_panel(&emitter, "Do checkins?", SwissPairingSetting::DoCheckIns),
+        }
+    }
+
+    fn view(&self) -> Html {
+        html! {
+            <div>
+                <h3>{ "Swiss Pairing Settings:" }</h3>
+                <p>{ format!("Match size: {}", self.current.do_checkins) }</p>
+            </div>
+        }
     }
 }
 
-fn fluid_style_view(style: &FluidPairings) -> Html {
-    html! {}
+impl FluidPairingSection {
+    fn new(emitter: Callback<TournamentSetting>, settings: FluidPairingSettingsTree) -> Self {
+        Self {
+            current: settings.clone(),
+            to_change: settings,
+        }
+    }
+
+    fn view(&self) -> Html {
+        html! {
+            <div>
+                <h3>{ "Fluid Pairing Settings:" }</h3>
+            </div>
+        }
+    }
 }

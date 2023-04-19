@@ -13,6 +13,20 @@ pub struct SettingPanel {
     emitter: Callback<TournamentSetting>,
 }
 
+pub fn make_panel<T, G, S>(
+    emitter: &Callback<TournamentSetting>,
+    label: &'static str,
+    item: G,
+) -> SettingPanel
+where
+    T: 'static + FromStr,
+    G: 'static + Copy + Fn(T) -> S,
+    S: 'static + Into<TournamentSetting>,
+{
+    SettingPanel::new(label, item, emitter.clone())
+}
+
+
 fn make_chain<T, F, S>(f: F) -> impl Clone + Fn(String) -> Option<TournamentSetting>
 where
     T: 'static + FromStr,

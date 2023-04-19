@@ -46,10 +46,8 @@ pub struct TournamentViewer {
 impl TournamentViewer {
     fn get_header(&self, ctx: &Context<Self>) -> Html {
         let make_callback = |mode| {
-            ctx.link().callback(move |_| {
-                web_sys::console::log_1(&format!("{mode:?}").into());
-                TournViewMessage::SwitchModes(mode)
-            })
+            ctx.link()
+                .callback(move |_| TournViewMessage::SwitchModes(mode))
         };
         let make_button = |name, mode| html! { <a class="py-2 px-1 text-center text-lg-start" onclick = { make_callback(mode) }>{name}</a> };
         CLIENT
@@ -116,12 +114,9 @@ impl Component for TournamentViewer {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TournViewMessage::SwitchModes(mode) => {
-                if mode != self.mode {
-                    self.mode = mode;
-                    true
-                } else {
-                    false
-                }
+                let digest = mode != self.mode;
+                self.mode = mode;
+                digest
             }
             TournViewMessage::DataReady => {
                 let client = CLIENT.get().unwrap();

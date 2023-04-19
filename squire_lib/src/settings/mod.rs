@@ -64,6 +64,6 @@ impl TournamentSettingsTree {
     pub fn diff(&self, other: &Self) -> impl Iterator<Item = TournamentSetting> {
         self.iter()
             .zip(other.iter())
-            .filter_map(|(new, old)| (new == old).then_some(new))
+            .filter_map(|(new, old)| (new != old).then_some(new))
     }
 }

@@ -40,6 +40,7 @@ pub enum PairingStyleSetting {
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct PairingSettingsTree {
     /// Settings used by all pairing methods
+    #[serde(default)]
     pub common: PairingCommonSettingsTree,
     /// The settings for the style of pairings being used
     pub style: PairingStyleSettingsTree,
