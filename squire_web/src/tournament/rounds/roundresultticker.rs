@@ -1,47 +1,77 @@
-use squire_sdk::{model::rounds::RoundResult, players::Round};
-use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
+use std::{marker::PhantomData, str::FromStr, rc::Rc, fmt::Display};
+use squire_sdk::{model::rounds::RoundResult, players::{Round, PlayerId}};
 use yew::prelude::*;
+
+use crate::tournament::rounds::roundchangesbuffer::RoundChangesBufferMessage;
+
+use super::SelectedRoundMessage;
 
 pub struct RoundResultTicker {
     pub label: &'static str,
-    // TODO : Some kind of callback to the RoundsView context with a RoundResult
-    pub result_type: RoundResult,
-    pub stored_value: u32,
+    pub pid: Option<PlayerId>,
+    pub stored_result: RoundResult,
+    pub was_changed: bool,
+    pub process: Callback<SelectedRoundMessage>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum RoundResultTickerMessage {
+    Increment,
+    Decrement,
+    SetChanged(bool),
 }
 
 impl RoundResultTicker {
     pub fn new(
         label: &'static str,
-        // TODO : Some kind of callback to the RoundsView context with a RoundResult
-        result_type: RoundResult,
-        stored_value: u32,
-    ) -> Self {
+        pid: Option<PlayerId>,
+        stored_result: RoundResult,
+        process: Callback<SelectedRoundMessage>
+    ) -> Self
+    {
         Self {
             label,
-            result_type,
-            stored_value,
+            pid,
+            stored_result,
+            was_changed: false,
+            process,
         }
     }
 
-    pub fn update(&mut self, dir: u32) -> bool {
-        self.stored_value += dir;
+    pub fn update(&mut self, msg: RoundResultTickerMessage) -> bool {
+        match msg {
+            RoundResultTickerMessage::Increment => {
+                self.stored_result.inc_result();
+                self.was_changed = true;
+            }
+            RoundResultTickerMessage::Decrement => {
+                self.stored_result.dec_result();
+                self.was_changed = true;
+            }
+            RoundResultTickerMessage::SetChanged(val) => {
+                self.was_changed = val;
+            }
+        }
         true
     }
 
     #[allow(clippy::option_map_unit_fn)]
-    pub fn view<T: Display>(&self, data: T) -> Html {
-        // Here we would clone the callback
+    pub fn view(&self) -> Html {
+        let pid = self.pid.clone();
+        let cb = self.process.clone();
         let up = move |s| {
-            // TODO : Emit message ticking stored value up;
-            todo!();
+            cb.emit(SelectedRoundMessage::BufferMessage(RoundChangesBufferMessage::TickClicked( pid, RoundResultTickerMessage::Increment )));
         };
+        let pid = self.pid.clone();
+        let cb = self.process.clone();
         let down = move |s| {
-            // TODO : Emit message ticking stored value down;
-            todo!();
+            cb.emit(SelectedRoundMessage::BufferMessage(RoundChangesBufferMessage::TickClicked( pid, RoundResultTickerMessage::Decrement )));
         };
+        let label = self.label;
+        let stored_result_value =  self.stored_result.get_result();
         html! {
             <>
-                <>{format!("{} {data}", self.label)}</>
+                <>{format!( "{} {}", label, stored_result_value )}</>
                 <button onclick={up}>{"+"}</button>
                 <button onclick={down}>{"-"}</button>
             </>
