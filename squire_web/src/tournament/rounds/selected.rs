@@ -13,7 +13,7 @@ use yew::prelude::*;
 
 use crate::{tournament::players::RoundProfile, CLIENT};
 
-use super::{roundresultticker, RoundResultTicker, RoundsView, RoundsViewMessage};
+use super::{roundresultticker::*, roundchangesbuffer::*, RoundResultTicker, RoundsView, RoundsViewMessage};
 
 pub fn round_info_display(rnd: &Round) -> Html {
     html! {
@@ -37,6 +37,9 @@ pub struct SelectedRound {
     pub round_data_buffer: Option<Round>,
     round: Option<RoundProfile>,
     draw_ticker: RoundResultTicker,
+    round_data_buffer: Option<Round>,
+    round_changes_buffer: Option<RoundChangesBuffer>,
+    pub process: Callback<SelectedRoundMessage>,
 }
 
 impl SelectedRound {
@@ -46,11 +49,13 @@ impl SelectedRound {
             t_id,
             round_data_buffer: None,
             round: None,
-            draw_ticker: RoundResultTicker {
-                label: "Draws",
-                result_type: RoundResult::Draw(0),
-                stored_value: 0,
-            },
+            draw_ticker: RoundResultTicker::new(
+                "Draws",
+                None,
+                RoundResult::Draw(0),
+                0),
+            round_changes_buffer : None,
+            process: ctx.link().callback(RoundsViewMessage::SelectedRound),
         }
     }
 
@@ -131,12 +136,14 @@ impl SelectedRound {
                     </ul>
                     <p>
                     {
-                        self.draw_ticker.view(rnd.draws)
+                        self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
                     }
                     </p>
                     <p>
                     { pretty_print_duration(dur_left) }
                     </p>
+                    <br/>
+                    <button onclick={pushdata}>{"Submit changes"}</button>
                     </>
                 }
             })
