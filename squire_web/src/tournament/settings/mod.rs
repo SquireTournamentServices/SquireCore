@@ -21,6 +21,7 @@ use crate::CLIENT;
 #[derive(Debug, PartialEq, Eq)]
 pub enum SettingsMessage {
     Setting(TournamentSetting),
+    Submitted,
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
@@ -67,6 +68,17 @@ impl Component for SettingsView {
                 let count = self.to_change.diff(&self.current).count();
                 web_sys::console::log_1(&format!("Different settings: {count}").into());
                 false
+            }
+            SettingsMessage::Submitted => {
+                /* Diff the current and to_change lists of settings
+                 * Create a Vec of the changed settings
+                 *              ^^^^^^^^^^^^^^^^^^ Look different for you
+                 *
+                 * Submit bulk update to CLIENT
+                 * Create listener to follow the UpdateTracker
+                 * ^^^^^^^^^^^^^^^^^^ Look same between Rounds and Settings pages
+                 */
+                todo!()
             }
         }
     }

@@ -288,9 +288,3 @@ where
             .await
     }
 }
-
-impl From<reqwest::Error> for ClientError {
-    fn from(value: reqwest::Error) -> Self {
-        ClientError::Reqwest(value)
-    }
-}

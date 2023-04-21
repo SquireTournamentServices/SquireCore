@@ -3,11 +3,15 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use tokio::sync::oneshot::{channel, Receiver, Sender, self};
+
 use squire_sdk::{
     accounts::SquireAccount,
     client::state::ClientState,
     model::tournament::TournamentSeed,
-    tournaments::{Tournament, TournamentId, TournamentManager, TournamentPreset},
+    tournaments::{
+        OpResult, TournOp, Tournament, TournamentId, TournamentManager, TournamentPreset,
+    },
 };
 
 #[derive(Debug)]
@@ -40,6 +44,20 @@ impl WebState {
         self.tourns.write().unwrap().insert(id, tourn);
         id
     }
+
+    pub fn submit_update(&self, id: TournamentId, op: TournOp) -> UpdateTracker {
+        /* Submit update message to channel, contains send half of oneshot channel
+         * Return tracker
+         */
+        todo!()
+    }
+
+    pub fn submit_bulk_update(&self, id: TournamentId, ops: Vec<TournOp>) -> UpdateTracker {
+        /* Submit update message to channel, contains send half of oneshot channels
+         * Return tracker
+         */
+        todo!()
+    }
 }
 
 impl ClientState for WebState {
@@ -51,7 +69,32 @@ impl ClientState for WebState {
     }
 
     fn import_tournament(&self, tourn: TournamentManager) {
-        web_sys::console::log_1(&format!("Importing tournament id: {}", tourn.id).into());
         self.tourns.write().unwrap().insert(tourn.id, tourn);
     }
 }
+
+pub struct UpdateTracker {
+    local: oneshot::Receiver<OpResult>,
+    remote: oneshot::Receiver<ClientResult>,
+}
+
+pub struct UpdateMessage {
+    local: oneshot::Sender<OpResult>,
+    remote: oneshot::Sender<ClientResult>,
+    id: TournamentId,
+    update_type: UpdateType,
+}
+
+pub enum UpdateType {
+    Single(TournOp),
+    Bulk(Vec<TournOp>),
+}
+
+pub enum UpdateStatus {
+    Working,
+    ChangedLocally(OpResult),
+    PushedRemotely(ClientResult),
+    Complete(OpResult, ClientResult),
+}
+
+pub enum ClientResult {}
