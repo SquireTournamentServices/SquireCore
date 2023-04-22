@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use yew::prelude::*;
 
 use squire_sdk::{
-    accounts::TournamentSettingsTree, client::state::ClientState,
-    model::settings::TournamentSetting, tournaments::{TournamentId, TournamentPreset},
+    accounts::TournamentSettingsTree,
+    model::settings::{PairingStyleSettingsTree, TournamentSetting, PairingSettingsTree},
+    tournaments::{TournamentId, TournamentPreset},
 };
 
 mod general;
@@ -48,13 +49,16 @@ impl Component for SettingsView {
         let tree = CLIENT
             .get()
             .unwrap()
-            .state
-            .query_tournament(&id, |tourn| tourn.settings())
+            .query_tourn(id, |tourn| tourn.settings())
+            .process()
             .unwrap_or_else(|| TournamentSettingsTree::new(TournamentPreset::Swiss));
         SettingsView {
             id,
             general: GeneralSettings::new(emitter),
-            pairings: Default::default(),
+            pairings: PairingsSettings::new(
+                Default::default(),
+                PairingSettingsTree::new(TournamentPreset::Swiss),
+            ),
             scoring: Default::default(),
             current: tree.clone(),
             to_change: tree,
@@ -87,8 +91,7 @@ impl Component for SettingsView {
         CLIENT
             .get()
             .unwrap()
-            .state
-            .query_tournament(&self.id, |tourn| {
+            .query_tourn(&self.id, |tourn| {
                 html! {
                     <div>
                         { self.general.view(&self.current.general) }

@@ -7,7 +7,7 @@ use squire_sdk::{
     tournaments::Tournament,
 };
 
-use super::{panel::SettingPanel, SettingsMessage};
+use super::{panel::{make_panel, SettingPanel}, SettingsMessage};
 
 pub struct GeneralSettings {
     starting_table: SettingPanel,
@@ -23,7 +23,7 @@ impl GeneralSettings {
     pub fn new(emitter: Callback<TournamentSetting>) -> Self {
         use GeneralSetting::*;
         Self {
-            starting_table: SettingPanel::new(&emitter, "Starting table #", StartingTableNumber),
+            starting_table: make_panel(&emitter, "Starting table #", StartingTableNumber),
             use_table_num: make_panel(&emitter, "Use table #", UseTableNumbers),
             min_decks: make_panel(&emitter, "Min deck count", MinDeckCount),
             max_decks: make_panel(&emitter, "Max deck count", MaxDeckCount),

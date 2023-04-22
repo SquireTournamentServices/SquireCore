@@ -1,5 +1,4 @@
 use squire_sdk::{
-    client::state::ClientState,
     model::{identifiers::RoundIdentifier, rounds::RoundStatus},
     players::PlayerId,
     tournaments::{Tournament, TournamentId},

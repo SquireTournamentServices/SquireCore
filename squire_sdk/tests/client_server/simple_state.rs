@@ -4,7 +4,7 @@ use std::{
 };
 
 use squire_sdk::{
-    client::state::ClientState, model::identifiers::TournamentId, sync::TournamentManager,
+    model::identifiers::TournamentId, sync::TournamentManager,
 };
 
 #[derive(Debug, Default, Clone)]

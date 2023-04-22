@@ -9,12 +9,16 @@
     unreachable_pub
 )]
 
+use std::sync::Arc;
+
 use cookie::Cookie;
 use reqwest::{
     header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
     Client, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
+use squire_lib::{operations::{OpResult, TournOp}, players::PlayerRegistry, rounds::RoundRegistry};
+use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     accounts::{
@@ -25,7 +29,7 @@ use crate::{
         CREATE_TOURNAMENT_ENDPOINT, GET_TOURNAMENT_ROUTE, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE,
         VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
     },
-    client::{error::ClientError, state::ClientState},
+    client::error::ClientError,
     model::{
         accounts::SquireAccount,
         identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
@@ -39,12 +43,16 @@ use crate::{
     COOKIE_NAME,
 };
 
+use self::{management_task::{spawn_management_task, ManagementTaskSender}, import::ImportTracker, update::{UpdateTracker, UpdateType}, query::QueryTracker};
+
 pub mod error;
-//pub mod simple_state;
-pub mod state;
+pub mod update;
+pub mod import;
+pub mod query;
+pub mod management_task;
 
 #[derive(Debug, Clone)]
-pub struct SquireClient<S> {
+pub struct SquireClient {
     client: Client,
     url: String,
     user: SquireAccount,
@@ -54,15 +62,12 @@ pub struct SquireClient<S> {
     session: Option<Cookie<'static>>,
     verification: Option<VerificationData>,
     server_mode: ServerMode,
-    pub state: S,
+    sender: ManagementTaskSender,
 }
 
-impl<S> SquireClient<S>
-where
-    S: ClientState,
-{
+impl SquireClient {
     /// Tries to create a client. Fails if a connection can not be made at the given URL
-    pub async fn new(url: String, user: SquireAccount, state: S) -> Result<Self, ClientError> {
+    pub async fn new(url: String, user: SquireAccount) -> Result<Self, ClientError> {
         let client = Client::builder().build()?;
         let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
@@ -70,6 +75,7 @@ where
         }
         let version: Version = resp.json().await?;
         let server_mode = version.mode;
+        let sender = spawn_management_task();
         Ok(Self {
             session: None,
             verification: None,
@@ -77,7 +83,7 @@ where
             url,
             user,
             server_mode,
-            state,
+            sender,
         })
     }
 
@@ -85,7 +91,6 @@ where
         url: String,
         user_name: String,
         display_name: String,
-        state: S,
     ) -> Result<Self, ClientError> {
         let client = Client::new();
         let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
@@ -107,7 +112,7 @@ where
             StatusCode::OK => {
                 let resp: CreateAccountResponse = resp.json().await?;
                 let user = resp.0;
-                let mut digest = Self::new_unchecked(url, user, state);
+                let mut digest = Self::new_unchecked(url, user);
                 digest.server_mode = server_mode;
                 digest.login().await?;
                 Ok(digest)
@@ -117,7 +122,8 @@ where
     }
 
     /// Creates a client and does not check if the URL is valid
-    pub fn new_unchecked(url: String, user: SquireAccount, state: S) -> Self {
+    pub fn new_unchecked(url: String, user: SquireAccount) -> Self {
+        let sender = spawn_management_task();
         Self {
             session: None,
             verification: None,
@@ -125,7 +131,7 @@ where
             server_mode: ServerMode::Extended,
             url,
             user,
-            state,
+            sender,
         }
     }
 
@@ -210,7 +216,7 @@ where
             StatusCode::OK => {
                 let tourn: TournamentManager = resp.json().await?;
                 let id = tourn.id;
-                self.state.import_tournament(tourn);
+                self.sender.import(tourn);
                 Ok(id)
             }
             status => Err(ClientError::RequestStatus(status)),
@@ -223,7 +229,7 @@ where
             .await?
             .json()
             .await?;
-        self.state.import_tournament(tourn);
+        self.sender.import(tourn);
         Ok(())
     }
 
@@ -286,5 +292,40 @@ where
             .body(serde_json::to_string(&body).unwrap())
             .send()
             .await
+    }
+
+    pub fn import_tourn(&self, tourn: TournamentManager) -> ImportTracker {
+        self.sender.import(tourn)
+    }
+
+    pub fn update_tourn(&self, id: TournamentId, op: TournOp) -> UpdateTracker {
+        self.sender.update(id, UpdateType::Single(op))
+    }
+
+    pub fn bulk_update<I>(&self, id: TournamentId, iter: I) -> UpdateTracker
+        where I: IntoIterator<Item = TournOp>,
+    {
+        self.sender.update(id, UpdateType::Bulk(iter.into_iter().collect()))
+    }
+
+    pub fn query_tourn<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+        where F: 'static + Send + FnOnce(&TournamentManager) -> T,
+              T: 'static + Send,
+    {
+        self.sender.query(id, query)
+    }
+
+    pub fn query_players<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+        where F: 'static + Send + FnOnce(&PlayerRegistry) -> T,
+              T: 'static + Send,
+    {
+        self.sender.query(id, move |tourn| query(&tourn.player_reg))
+    }
+
+    pub fn query_rounds<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+        where F: 'static + Send + FnOnce(&RoundRegistry) -> T,
+              T: 'static + Send,
+    {
+        self.sender.query(id, move |tourn| query(&tourn.round_reg))
     }
 }
