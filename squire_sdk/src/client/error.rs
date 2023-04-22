@@ -1,6 +1,8 @@
 use reqwest::StatusCode;
 use squire_lib::error::TournamentError;
 
+pub type ClientResult<T> = std::result::Result<T, ClientError>;
+
 #[derive(Debug)]
 pub enum ClientError {
     NotLoggedIn,
@@ -18,7 +20,7 @@ impl From<StatusCode> for ClientError {
 }
 
 impl From<reqwest::Error> for ClientError {
-    fn from(errro: reqwest::Error) -> Self {
+    fn from(error: reqwest::Error) -> Self {
         Self::Reqwest(error)
     }
 }

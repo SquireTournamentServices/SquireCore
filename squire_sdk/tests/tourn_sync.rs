@@ -5,13 +5,11 @@ mod tests {
     use squire_sdk::{
         model::{
             accounts::SquireAccount,
-            identifiers::AdminId,
-            operations::{JudgeOp, TournOp},
         },
         sync::TournamentManager,
     };
 
-    use crate::utils::{get_seed, spoof_account};
+    use crate::utils::{get_seed};
 
     fn create_managers(
         creator: SquireAccount,
