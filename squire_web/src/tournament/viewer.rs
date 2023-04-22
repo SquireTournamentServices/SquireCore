@@ -6,12 +6,10 @@ use yew::{html, Callback, Component, Context, Html, Properties};
 
 use squire_sdk::{
     api::GET_TOURNAMENT_ROUTE,
-    client::state::ClientState,
     tournaments::{TournamentId, TournamentManager},
 };
 
 use crate::{
-    client,
     tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
     utils::fetch_tournament,
     CLIENT,
@@ -53,8 +51,7 @@ impl TournamentViewer {
         CLIENT
             .get()
             .unwrap()
-            .state
-            .query_tournament(&self.id, |t| {
+            .query_tourn(&self.id, |t| {
                 let tourn = t.tourn();
                 html! {
                     <div>

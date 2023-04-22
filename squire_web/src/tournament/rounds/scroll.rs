@@ -1,6 +1,5 @@
 use js_sys::Math::round;
 use squire_sdk::{
-    client::state::ClientState,
     model::{
         identifiers::RoundIdentifier,
         rounds::{Round, RoundId, RoundStatus},

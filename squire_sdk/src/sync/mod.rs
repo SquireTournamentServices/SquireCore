@@ -150,6 +150,12 @@ impl TournamentManager {
         digest
     }
 
+    /// Takes an vector of operations and attempts to update the tournament. All operations must
+    /// succeed in order for the bulk update the succeed. The update is sandboxed to ensure this.
+    pub fn bulk_apply_ops(&mut self, ops: Vec<TournOp>) -> OpResult {
+        todo!()
+    }
+
     /// Returns an iterator over all the states of a tournament
     pub fn states(&self) -> StateIter<'_> {
         StateIter {

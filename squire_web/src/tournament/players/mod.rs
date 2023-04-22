@@ -1,5 +1,4 @@
 use squire_sdk::{
-    client::state::ClientState,
     model::{identifiers::PlayerIdentifier, rounds::RoundId},
     model::{identifiers::RoundIdentifier, rounds::RoundStatus},
     players::PlayerId,
@@ -79,7 +78,6 @@ impl Component for PlayerView {
             .unwrap()
             .state
             .query_tournament(&self.id, |t| {
-                let process = ctx.link().callback(PlayerViewMessage::FilterInput);
                 html! {
                     <div>
                         { self.input.view() }

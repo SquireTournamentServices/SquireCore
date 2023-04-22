@@ -72,13 +72,13 @@ impl SettingPanel {
 
 #[cfg(test)]
 mod tests {
-    use squire_sdk::model::settings::PairingSetting;
+    use squire_sdk::model::settings::CommonPairingSetting;
 
     use crate::tournament::settings::panel::make_chain;
 
     #[test]
     fn test_converter() {
-        let f = make_chain(PairingSetting::MatchSize);
+        let f = make_chain(CommonPairingSetting::MatchSize);
         let opt = f(Default::default());
         assert!(opt.is_none());
         let opt = f(String::from("abc"));

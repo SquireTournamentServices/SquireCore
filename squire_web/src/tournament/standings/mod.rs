@@ -1,11 +1,8 @@
 use web_sys::window;
 use yew::{prelude::*, virtual_dom::VNode};
 
-use crate::CLIENT;
-use squire_sdk::{
-    client::state::ClientState,
-    tournaments::{Tournament, TournamentId},
-};
+use crate::{tournament::standings, CLIENT};
+use squire_sdk::tournaments::{StandardScore, Standings, Tournament, TournamentId};
 
 use self::_StandingsPopoutProps::display_vnode;
 
@@ -33,7 +30,7 @@ pub struct StandingsView {
     pub process: Callback<i32>,
 }
 
-fn gen_popout_page(tourn: &Tournament, vert_scroll_time: u32) -> Html {
+fn gen_popout_page(standings: Vec<(usize, String)>, vert_scroll_time: u32) -> Html {
     html! {
         <html>
             <head>
@@ -47,7 +44,7 @@ fn gen_popout_page(tourn: &Tournament, vert_scroll_time: u32) -> Html {
                     box-sizing: border-box;
                     position: relative;
                     box-sizing: border-box;
-                }} 
+                }}
                 .vert_scroller {{
                     position: relative;
                     box-sizing: border-box;
@@ -71,17 +68,14 @@ fn gen_popout_page(tourn: &Tournament, vert_scroll_time: u32) -> Html {
                 <div class="scroll_holder">
                     <div class="vert_scroller">
                     {
-                            tourn.get_standings().scores
-                            .into_iter().enumerate()
-                            .map(|(i, s)| {
-                                let playername = tourn.get_player(&s.0.into())
-                                .map(|p| p.clone().name ).unwrap_or("Not Found".to_owned());
+                            standings
+                            .into_iter()
+                            .map(|(i, name)|
                                 html! {
                                     <div class="scroll_item">
-                                        <p>{ format!("#{} : {}", i, playername) }</p>
+                                        <p>{ format!("#{i} : {name}") }</p>
                                     </div>
-                                }
-                            })
+                                })
                             .collect::<Html>()
                     }
                     </div>
@@ -106,9 +100,23 @@ impl Component for StandingsView {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             StandingsMessage::SpawnPopout(num) => {
-                CLIENT.get().unwrap().state.query_tournament(&self.id, |t| {
-                    self.scroll_vnode = Some(gen_popout_page(t, 120));
-                });
+                let standings = CLIENT
+                    .get()
+                    .unwrap()
+                    .query_tourn(self.id, |t| {
+                        t.get_standings()
+                            .scores
+                            .into_iter()
+                            .map(|(p, _)| {
+                                t.get_player(&p.into())
+                                    .map(|p| p.name)
+                                    .unwrap_or_else(|_| "Not Found".to_owned())
+                            })
+                            .enumerate()
+                            .collect::<Vec<_>>()
+                    })
+                    .process();
+                self.scroll_vnode = standings.map(|s| gen_popout_page(s, 120));
                 window().map(|w| {
                     w.open().map(|new_w_o| {
                         new_w_o.map(|new_w| {
@@ -134,23 +142,18 @@ impl Component for StandingsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        CLIENT
+        let len = CLIENT
             .get()
             .unwrap()
-            .state
-            .query_tournament(&self.id, |t| {
-                let cb = self.process.clone();
-                html! {
-                    <div>
-                        <p>{ t.get_standings().scores.len() }</p>
-                        <button onclick={ move |_| cb.emit(0) }>{ "Standings Scroll" }</button>
-                    </div>
-                }
-            })
-            .unwrap_or_else(|| {
-                html! {
-                    <p>{ "Whoops!" }</p>
-                }
-            })
+            .query_tourn(self.id, |t| t.get_standings().scores.len())
+            .process()
+            .unwrap_or_default();
+        let cb = self.process.clone();
+        html! {
+            <div>
+                <p>{ len }</p>
+                <button onclick={ move |_| cb.emit(0) }>{ "Standings Scroll" }</button>
+            </div>
+        }
     }
 }

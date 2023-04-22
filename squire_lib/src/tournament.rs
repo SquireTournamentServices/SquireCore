@@ -42,11 +42,12 @@ pub struct TournamentSeed {
     pub format: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Default, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 /// An enum that encodes all the statuses of a tournament
 pub enum TournamentStatus {
     /// The tournament can not create rounds
+    #[default]
     Planned,
     /// All functionalities are unlocked
     Started,

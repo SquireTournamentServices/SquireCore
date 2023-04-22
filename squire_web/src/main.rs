@@ -9,19 +9,17 @@ use yew_router::prelude::*;
 use squire_sdk::{accounts::SquireAccount, client::SquireClient, tournaments::TournamentId};
 
 mod account;
-mod client;
 mod header;
 mod index;
 mod tournament;
 mod utils;
 
 use account::{Login, Register};
-use client::WebState;
 use header::Header;
 use index::Index;
 use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 
-static CLIENT: OnceCell<SquireClient<WebState>> = OnceCell::new();
+static CLIENT: OnceCell<SquireClient> = OnceCell::new();
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -58,11 +56,9 @@ fn app() -> Html {
 }
 
 fn main() {
-    let state = WebState::new();
     let client = SquireClient::new_unchecked(
         "/".to_string(),
         SquireAccount::new("Tester".into(), "Tester".into()),
-        state,
     );
     CLIENT.set(client).unwrap();
     yew::Renderer::<app>::new().render();
