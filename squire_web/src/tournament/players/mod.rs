@@ -73,27 +73,42 @@ impl Component for PlayerView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        CLIENT
+        let report = self.scroll.report.clone();
+        let selected_pid = self.selected.id;
+        match CLIENT
             .get()
             .unwrap()
-            .state
-            .query_tournament(&self.id, |t| {
+            .query_tourn(self.id, move |tourn| {
+                (
+                    PlayerScrollQuery::new(report, tourn),
+                    selected_pid.map(|pid| SelectedPlayerQuery::new(pid, tourn)),
+                )
+            })
+            .process()
+        {
+            Some((scroll_query, selected_query)) => {
                 html! {
                     <div>
                         { self.input.view() }
                         <div class="d-flex flex-row my-4">
                             <div>
                                 <div class="overflow-auto player-scroll-box">
-                                    { self.scroll.view(t) }
+                                    { self.scroll.view(scroll_query) }
                                 </div>
                             </div>
                             <div>
-                                { self.selected.view(t) }
+                                {
+                                    match selected_query {
+                                        Some(query) => self.selected.view(query),
+                                        None => Html::default(),
+                                    }
+                                }
                             </div>
                         </div>
                     </div>
                 }
-            })
-            .unwrap_or_default()
+            }
+            None => Html::default(),
+        }
     }
 }

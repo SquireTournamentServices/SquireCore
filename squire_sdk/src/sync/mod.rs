@@ -152,7 +152,7 @@ impl TournamentManager {
 
     /// Takes an vector of operations and attempts to update the tournament. All operations must
     /// succeed in order for the bulk update the succeed. The update is sandboxed to ensure this.
-    pub fn bulk_apply_ops(&mut self, ops: Vec<TournOp>) -> OpResult {
+    pub fn bulk_apply_ops(&mut self, _ops: Vec<TournOp>) -> OpResult {
         todo!()
     }
 

@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use chrono::{Duration, Utc};
 use squire_sdk::{
-    client::state::ClientState,
     model::{
         rounds::{Round, RoundId, RoundResult, RoundStatus},
         tournament::Tournament,
     },
+    players::PlayerId,
     tournaments::TournamentId,
 };
 use yew::prelude::*;
@@ -26,7 +28,7 @@ pub fn round_info_display(rnd: &Round) -> Html {
 pub struct SelectedRound {
     pub(crate) id: RoundId,
     pub t_id: TournamentId,
-    round_data_buffer: Option<Round>,
+    pub round_data_buffer: Option<Round>,
     draw_ticker: RoundResultTicker,
 }
 
@@ -46,23 +48,19 @@ impl SelectedRound {
 
     pub fn update(&mut self, id: RoundId) -> bool {
         let digest = self.id != id;
+        self.id = id;
         if digest {
-            self.id = id;
-            CLIENT
+            self.round_data_buffer = CLIENT
                 .get()
                 .unwrap()
-                .state
-                .query_tournament(&self.t_id, |t| {
-                    self.round_data_buffer = t
-                        .get_round(&self.id.into())
-                        .map(|r| Some(r.clone()))
-                        .unwrap_or(None)
-                });
+                .query_tourn(self.t_id, move |t| t.get_round(&id.into()).cloned().ok())
+                .process()
+                .flatten();
         }
         digest
     }
 
-    pub fn view(&self, tourn: &Tournament) -> Html {
+    pub fn view(&self, query: SelectedRoundQuery) -> Html {
         let returnhtml = self.round_data_buffer.as_ref()
             .map(|rnd| {
                 // TODO: Remove unwrap here
@@ -72,24 +70,18 @@ impl SelectedRound {
                     <>{round_info_display(&rnd)}</>
                     <ul>
                     {
-                        rnd.players.clone().into_iter()
+                        query.plyr_names.into_iter()
                             // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
-                            .map(|pid| {
-                                let player_in_round = { ||
-                                    tourn
-                                    .get_player(&pid.into())
-                                    .map(|p| p.name.as_str())
-                                    .unwrap_or_else( |_| "Player not found")
-                                };
-                                let player_wins = rnd.results.get(&pid.into()).unwrap_or(&0);
-                                let player_confirm = rnd.confirmations.get(&pid.into()).is_some();
+                            .map(|(pid, name)| {
+                                let player_wins = rnd.results.get(&pid).cloned().unwrap_or_default();
+                                let player_confirm = rnd.confirmations.get(&pid).is_some();
                                 html! {
                                     <li>
                                     <div>
-                                    { format!( "{}", player_in_round()) }
+                                    { format!( "{name}") }
                                     </div>
                                     <div>
-                                    { format!( "wins : {}, confirmed : {}", player_wins, player_confirm ) }
+                                    { format!( "wins : {player_wins}, confirmed : {player_confirm}") }
                                     </div>
                                     </li>
                                 }
@@ -130,5 +122,24 @@ fn pretty_print_duration(dur: Duration) -> String {
             mins.abs() % 60,
             secs.abs() % 60
         )
+    }
+}
+
+pub struct SelectedRoundQuery {
+    plyr_names: HashMap<PlayerId, String>,
+}
+
+impl SelectedRoundQuery {
+    pub fn new(plyrs: Vec<PlayerId>, tourn: &Tournament) -> Self {
+        let plyr_names = plyrs
+            .into_iter()
+            .filter_map(|pid| {
+                tourn
+                    .get_player(&pid.into())
+                    .map(|p| (pid, p.name.clone()))
+                    .ok()
+            })
+            .collect();
+        SelectedRoundQuery { plyr_names }
     }
 }

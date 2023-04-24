@@ -4,9 +4,10 @@ use squire_sdk::{
     model::{
         pairings::{FluidPairings, PairingStyle, SwissPairings},
         settings::{
-            CommonPairingSetting, FluidPairingSettingsTree, PairingCommonSettingsTree,
-            PairingSettingsTree, PairingStyleSettingsTree, SwissPairingSetting,
-            SwissPairingSettingsTree, TournamentSetting,
+            CommonPairingSetting, FluidPairingSetting, FluidPairingSettingsTree,
+            PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
+            PairingStyleSettingsTree, SwissPairingSetting, SwissPairingSettingsTree,
+            TournamentSetting,
         },
     },
     tournaments::Tournament,
@@ -18,9 +19,9 @@ pub struct PairingsSettings {
     match_size: SettingPanel,
     repair_tolerance: SettingPanel,
     algorithm: SettingPanel,
+    style: PairingStyleSection,
     current: PairingCommonSettingsTree,
     to_change: PairingCommonSettingsTree,
-    style: PairingStyleSection,
 }
 
 impl PairingsSettings {
@@ -42,6 +43,18 @@ impl PairingsSettings {
             current: common.clone(),
             to_change: common,
         }
+    }
+
+    pub fn update(&mut self, setting: PairingSetting) -> bool {
+        match setting {
+            PairingSetting::Common(setting) => {
+                self.to_change.update(setting);
+            }
+            PairingSetting::Style(setting) => {
+                self.style.update(setting);
+            }
+        };
+        false
     }
 
     pub fn view(&self) -> Html {
@@ -85,6 +98,18 @@ impl PairingStyleSection {
         }
     }
 
+    fn update(&mut self, setting: PairingStyleSetting) {
+        match (self, setting) {
+            (PairingStyleSection::Swiss(style), PairingStyleSetting::Swiss(setting)) => {
+                style.update(setting)
+            }
+            (PairingStyleSection::Fluid(style), PairingStyleSetting::Fluid(setting)) => {
+                style.update(setting)
+            }
+            _ => {}
+        }
+    }
+
     fn view(&self) -> Html {
         match self {
             PairingStyleSection::Swiss(style) => style.view(),
@@ -100,6 +125,10 @@ impl SwissPairingSection {
             to_change: settings.clone(),
             do_checkins: make_panel(&emitter, "Do checkins?", SwissPairingSetting::DoCheckIns),
         }
+    }
+
+    fn update(&mut self, setting: SwissPairingSetting) {
+        self.to_change.update(setting);
     }
 
     fn view(&self) -> Html {
@@ -118,6 +147,10 @@ impl FluidPairingSection {
             current: settings.clone(),
             to_change: settings,
         }
+    }
+
+    fn update(&mut self, setting: FluidPairingSetting) {
+        self.to_change.update(setting);
     }
 
     fn view(&self) -> Html {

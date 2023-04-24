@@ -17,10 +17,12 @@ pub struct GeneralSettings {
     require_checkin: SettingPanel,
     require_decks: SettingPanel,
     round_length: SettingPanel,
+    current: GeneralSettingsTree,
+    to_change: GeneralSettingsTree,
 }
 
 impl GeneralSettings {
-    pub fn new(emitter: Callback<TournamentSetting>) -> Self {
+    pub fn new(emitter: Callback<TournamentSetting>, tree: GeneralSettingsTree) -> Self {
         use GeneralSetting::*;
         Self {
             starting_table: make_panel(&emitter, "Starting table #", StartingTableNumber),
@@ -32,20 +34,27 @@ impl GeneralSettings {
             round_length: make_panel(&emitter, "Round length", |l: u64| {
                 RoundLength(Duration::from_secs(l * 60))
             }),
+            current: tree.clone(),
+            to_change: tree,
         }
     }
 
-    pub fn view(&self, settings: &GeneralSettingsTree) -> Html {
+    pub fn update(&mut self, setting: GeneralSetting) -> bool {
+        self.to_change.update(setting);
+        false
+    }
+
+    pub fn view(&self) -> Html {
         html! {
             <div>
                 <h2>{ "General Settings:" }</h2>
-                { self.starting_table.view(settings.starting_table_number) }
-                { self.use_table_num.view(settings.use_table_number) }
-                { self.min_decks.view(settings.min_deck_count) }
-                { self.max_decks.view(settings.max_deck_count) }
-                { self.require_checkin.view(settings.require_check_in) }
-                { self.require_decks.view(settings.require_deck_reg) }
-                { self.round_length.view(settings.round_length.as_secs()/60) }
+                { self.starting_table.view(self.current.starting_table_number) }
+                { self.use_table_num.view(self.current.use_table_number) }
+                { self.min_decks.view(self.current.min_deck_count) }
+                { self.max_decks.view(self.current.max_deck_count) }
+                { self.require_checkin.view(self.current.require_check_in) }
+                { self.require_decks.view(self.current.require_deck_reg) }
+                { self.round_length.view(self.current.round_length.as_secs()/60) }
             </div>
         }
     }

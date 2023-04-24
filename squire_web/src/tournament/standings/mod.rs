@@ -109,7 +109,7 @@ impl Component for StandingsView {
                             .into_iter()
                             .map(|(p, _)| {
                                 t.get_player(&p.into())
-                                    .map(|p| p.name)
+                                    .map(|p| p.name.clone())
                                     .unwrap_or_else(|_| "Not Found".to_owned())
                             })
                             .enumerate()
@@ -125,7 +125,7 @@ impl Component for StandingsView {
                                     .get_with_index(0)
                                     .map(|r| {
                                         yew::Renderer::<StandingsPopout>::with_root_and_props(
-                                            r.into(),
+                                            r,
                                             StandingsPopoutProps {
                                                 display_vnode: self.scroll_vnode.clone().unwrap(),
                                             },
