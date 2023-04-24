@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, future::Future};
 
 use squire_lib::{
     operations::{OpResult, TournOp},
@@ -65,7 +65,7 @@ pub(super) fn spawn_management_task() -> ManagementTaskSender {
     let (update, update_recv) = unbounded_channel();
     let (import, import_recv) = unbounded_channel();
     // Spawn the task that will manage the tournaments and run forever
-    tokio::spawn(tournament_management_task(
+    spawn_task(tournament_management_task(
         query_recv,
         update_recv,
         import_recv,
@@ -75,6 +75,38 @@ pub(super) fn spawn_management_task() -> ManagementTaskSender {
         update,
         import,
     }
+}
+
+#[cfg(target_family = "wasm")]
+/// Spawns a future that will execute in the background of the current thread. WASM bindgen's
+/// `spawn_local` is used for this as tokio is caused problems in the browswer.
+fn spawn_task<F>(fut: F)
+where
+    F: 'static + Future<Output = ()>,
+{
+    wasm_bindgen_futures::spawn_local(fut);
+}
+
+#[cfg(target_family = "wasm")]
+async fn rest(dur: Duration) {
+    use std::time::Duration;
+    async_std::task::sleep(dur).await;
+}
+
+#[cfg(not(target_family = "wasm"))]
+/// Spawns a future that will execute. The future must return nothing for compatability with the
+/// WASM version.
+fn spawn_task<F>(fut: F)
+where
+    F: 'static + Send + Future<Output = ()>,
+{
+    tokio::spawn(fut);
+}
+
+use std::time::Duration;
+#[cfg(not(target_family = "wasm"))]
+async fn rest(dur: Duration) {
+    tokio::time::sleep(dur).await;
 }
 
 type TournamentCache = HashMap<TournamentId, TournamentManager>;
@@ -88,7 +120,7 @@ async fn tournament_management_task(
     mut queries: UnboundedReceiver<TournamentQuery>,
     mut updates: UnboundedReceiver<TournamentUpdate>,
     mut imports: UnboundedReceiver<TournamentImport>,
-) -> ! {
+) {
     let mut cache = TournamentCache::new();
     loop {
         if let Ok(import) = imports.try_recv() {
@@ -100,6 +132,7 @@ async fn tournament_management_task(
         if let Ok(query) = queries.try_recv() {
             handle_query(&cache, query);
         }
+        rest(Duration::from_secs(1)).await;
     }
 }
 

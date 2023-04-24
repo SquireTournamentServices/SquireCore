@@ -1,31 +1,37 @@
 use yew::prelude::*;
 
 use squire_sdk::{
-    model::{scoring::{ScoringSystem, StandardScoring, ScoringStyle}, settings::StandardScoringSettingsTree},
+    model::{scoring::{ScoringSystem, StandardScoring, ScoringStyle}, settings::{StandardScoringSettingsTree, ScoringSettingsTree, ScoringStyleSetting, ScoringStyleSettingsTree}},
     tournaments::Tournament,
 };
 
-#[derive(Debug, Default)]
-pub struct ScoringSettings {}
+#[derive(Debug)]
+pub struct ScoringSettings {
+    current: ScoringSettingsTree,
+    to_change: ScoringSettingsTree,
+}
 
 impl ScoringSettings {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(tree: ScoringSettingsTree) -> Self {
+        Self {
+            current: tree.clone(),
+            to_change: tree,
+        }
     }
 
-    pub fn view(&self, tourn: &Tournament) -> Html {
+    pub fn view(&self) -> Html {
         html! {
             <div>
                 <h2>{ "Scoring Settings:" }</h2>
-                <p>{ scoring_view(&tourn.scoring_sys) }</p>
+                <p>{ scoring_view(&self.current.style) }</p>
             </div>
         }
     }
 }
 
-fn scoring_view(sys: &ScoringSystem) -> Html {
-    match &sys.style {
-        ScoringStyle::Standard(standard) => standard_scoring_view(&standard.settings),
+fn scoring_view(style: &ScoringStyleSettingsTree) -> Html {
+    match &style {
+        ScoringStyleSettingsTree::Standard(style) => standard_scoring_view(style),
     }
 }
 

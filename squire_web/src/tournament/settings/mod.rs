@@ -4,7 +4,10 @@ use yew::prelude::*;
 
 use squire_sdk::{
     accounts::TournamentSettingsTree,
-    model::settings::{PairingStyleSettingsTree, TournamentSetting, PairingSettingsTree},
+    model::settings::{
+        GeneralSettingsTree, PairingSettingsTree, PairingStyleSettingsTree, ScoringSettingsTree,
+        TournamentSetting,
+    },
     tournaments::{TournamentId, TournamentPreset},
 };
 
@@ -35,8 +38,6 @@ pub struct SettingsView {
     general: GeneralSettings,
     pairings: PairingsSettings,
     scoring: ScoringSettings,
-    current: TournamentSettingsTree,
-    to_change: TournamentSettingsTree,
 }
 
 impl Component for SettingsView {
@@ -46,33 +47,24 @@ impl Component for SettingsView {
     fn create(ctx: &Context<Self>) -> Self {
         let emitter = ctx.link().callback(SettingsMessage::Setting);
         let id = ctx.props().id;
-        let tree = CLIENT
-            .get()
-            .unwrap()
-            .query_tourn(id, |tourn| tourn.settings())
-            .process()
-            .unwrap_or_else(|| TournamentSettingsTree::new(TournamentPreset::Swiss));
         SettingsView {
             id,
-            general: GeneralSettings::new(emitter),
+            general: GeneralSettings::new(emitter.clone(), GeneralSettingsTree::new()),
             pairings: PairingsSettings::new(
-                Default::default(),
+                emitter,
                 PairingSettingsTree::new(TournamentPreset::Swiss),
             ),
-            scoring: Default::default(),
-            current: tree.clone(),
-            to_change: tree,
+            scoring: ScoringSettings::new(ScoringSettingsTree::new(TournamentPreset::Swiss)),
         }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            SettingsMessage::Setting(setting) => {
-                self.to_change.update(setting).is_ok();
-                let count = self.to_change.diff(&self.current).count();
-                web_sys::console::log_1(&format!("Different settings: {count}").into());
-                false
-            }
+            SettingsMessage::Setting(setting) => match setting {
+                TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
+                TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
+                TournamentSetting::ScoringSetting(_) => false,
+            },
             SettingsMessage::Submitted => {
                 /* Diff the current and to_change lists of settings
                  * Create a Vec of the changed settings
@@ -88,18 +80,12 @@ impl Component for SettingsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        CLIENT
-            .get()
-            .unwrap()
-            .query_tourn(&self.id, |tourn| {
-                html! {
-                    <div>
-                        { self.general.view(&self.current.general) }
-                        { self.pairings.view(tourn) }
-                        { self.scoring.view(tourn) }
-                    </div>
-                }
-            })
-            .unwrap_or_default()
+        html! {
+            <div>
+                { self.general.view() }
+                { self.pairings.view() }
+                { self.scoring.view() }
+            </div>
+        }
     }
 }

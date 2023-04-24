@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use squire_sdk::{
-    client::state::ClientState,
     model::{
         identifiers::RoundIdentifier,
         rounds::{RoundId, RoundStatus},
@@ -88,28 +87,50 @@ impl Component for RoundsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        CLIENT
+        let report = self.scroll.report.clone();
+        let plyrs = self
+            .selected
+            .as_ref()
+            .map(|sr| {
+                sr.round_data_buffer
+                    .as_ref()
+                    .map(|rnd| rnd.players.iter().cloned().collect())
+            })
+            .flatten();
+        match CLIENT
             .get()
             .unwrap()
-            .state
-            .query_tournament(&self.id, |t| {
-                let process = ctx.link().callback(RoundsFilterMessage::FilterInput);
+            .query_tourn(self.id, |tourn| {
+                (
+                    RoundScrollQuery::new(report, tourn),
+                    plyrs.map(|plyrs| SelectedRoundQuery::new(plyrs, tourn)),
+                )
+            })
+            .process()
+        {
+            Some((scroll_query, selected_query)) => {
                 html! {
                     <div>
                         { self.input.view() }
                         <div class="d-flex flex-row my-4">
                             <div>
                                 <div class="overflow-auto player-scroll-box">
-                                    { self.scroll.view(t) }
+                                    { self.scroll.view(scroll_query) }
                                 </div>
                             </div>
                             <div>
-                                { self.selected.as_ref().map(|sr| sr.view(t)).unwrap_or_default() }
+                                {
+                                    match (self.selected.as_ref(), selected_query) {
+                                        (Some(sr), Some(query)) => sr.view(query),
+                                        _ => Html::default(),
+                                    }
+                                }
                             </div>
                         </div>
                     </div>
                 }
-            })
-            .unwrap_or_default()
+            }
+            None => Html::default(),
+        }
     }
 }

@@ -48,26 +48,25 @@ impl TournamentViewer {
                 .callback(move |_| TournViewMessage::SwitchModes(mode))
         };
         let make_button = |name, mode| html! { <a class="py-2 px-1 text-center text-lg-start" onclick = { make_callback(mode) }>{name}</a> };
-        CLIENT
+        let tourn_name = CLIENT
             .get()
             .unwrap()
-            .query_tourn(&self.id, |t| {
-                let tourn = t.tourn();
-                html! {
-                    <div>
-                        <ul>
-                            <h4 class="text-center text-lg-start">{ tourn.name.as_str() }</h4>
-                            <hr/>
-                            <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
-                            <li>{ make_button("Players"  , TournViewMode::Players) }</li>
-                            <li>{ make_button("Rounds"   , TournViewMode::Rounds) }</li>
-                            <li>{ make_button("Standings", TournViewMode::Standings) }</li>
-                            <li>{ make_button("Settings" , TournViewMode::Settings) }</li>
-                        </ul>
-                    </div>
-                }
-            })
-            .unwrap_or_default()
+            .query_tourn(self.id, |t| t.tourn().name.clone())
+            .process()
+            .unwrap_or_default();
+        html! {
+            <div>
+                <ul>
+                    <h4 class="text-center text-lg-start">{ tourn_name }</h4>
+                    <hr/>
+                    <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
+                    <li>{ make_button("Players"  , TournViewMode::Players) }</li>
+                    <li>{ make_button("Rounds"   , TournViewMode::Rounds) }</li>
+                    <li>{ make_button("Standings", TournViewMode::Standings) }</li>
+                    <li>{ make_button("Settings" , TournViewMode::Settings) }</li>
+                </ul>
+            </div>
+        }
     }
 
     fn get_control_plane(&self) -> Html {
@@ -116,8 +115,9 @@ impl Component for TournamentViewer {
                 digest
             }
             TournViewMessage::DataReady => {
+                web_sys::console::log_1(&format!("Data ready!!").into());
                 let client = CLIENT.get().unwrap();
-                if client.state.query_tournament(&self.id, |_| ()).is_none() {
+                if client.query_tourn(self.id, |_| ()).process().is_none() {
                     let id = self.id;
                     ctx.link().send_future(async move {
                         fetch_tournament(id).await;
@@ -133,23 +133,17 @@ impl Component for TournamentViewer {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let client = CLIENT.get().unwrap();
-        client
-            .state
-            .query_tournament(&self.id, |t| {
-                let tourn = t.tourn();
-                html! {
-                    <div class="my-4 container-fluid">
-                        <div class="row tviewer">
-                            <aside class="col-md-2 tveiwer_sidebar px-md-3">
-                                { self.get_header(ctx) }
-                            </aside>
-                            <main class="col-md-10 conatiner">
-                                { self.get_control_plane() }
-                            </main>
-                        </div>
-                    </div>
-                }
-            })
-            .unwrap_or_default()
+        html! {
+            <div class="my-4 container-fluid">
+                <div class="row tviewer">
+                    <aside class="col-md-2 tveiwer_sidebar px-md-3">
+                        { self.get_header(ctx) }
+                    </aside>
+                    <main class="col-md-10 conatiner">
+                        { self.get_control_plane() }
+                    </main>
+                </div>
+            </div>
+        }
     }
 }

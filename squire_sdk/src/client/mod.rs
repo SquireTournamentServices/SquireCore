@@ -17,7 +17,11 @@ use reqwest::{
     Client, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
-use squire_lib::{operations::{OpResult, TournOp}, players::PlayerRegistry, rounds::RoundRegistry};
+use squire_lib::{
+    operations::{OpResult, TournOp},
+    players::PlayerRegistry,
+    rounds::RoundRegistry,
+};
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
@@ -43,13 +47,18 @@ use crate::{
     COOKIE_NAME,
 };
 
-use self::{management_task::{spawn_management_task, ManagementTaskSender}, import::ImportTracker, update::{UpdateTracker, UpdateType}, query::QueryTracker};
+use self::{
+    import::ImportTracker,
+    management_task::{spawn_management_task, ManagementTaskSender},
+    query::QueryTracker,
+    update::{UpdateTracker, UpdateType},
+};
 
 pub mod error;
-pub mod update;
 pub mod import;
-pub mod query;
 pub mod management_task;
+pub mod query;
+pub mod update;
 
 #[derive(Debug, Clone)]
 pub struct SquireClient {
@@ -122,7 +131,8 @@ impl SquireClient {
     }
 
     /// Creates a client and does not check if the URL is valid
-    pub fn new_unchecked(url: String, user: SquireAccount) -> Self {
+    pub fn new_unchecked(url: String, user: SquireAccount) -> Self
+    {
         let sender = spawn_management_task();
         Self {
             session: None,
@@ -216,7 +226,7 @@ impl SquireClient {
             StatusCode::OK => {
                 let tourn: TournamentManager = resp.json().await?;
                 let id = tourn.id;
-                self.sender.import(tourn);
+                self.sender.import(tourn).process().await;
                 Ok(id)
             }
             status => Err(ClientError::RequestStatus(status)),
@@ -303,28 +313,33 @@ impl SquireClient {
     }
 
     pub fn bulk_update<I>(&self, id: TournamentId, iter: I) -> UpdateTracker
-        where I: IntoIterator<Item = TournOp>,
+    where
+        I: IntoIterator<Item = TournOp>,
     {
-        self.sender.update(id, UpdateType::Bulk(iter.into_iter().collect()))
+        self.sender
+            .update(id, UpdateType::Bulk(iter.into_iter().collect()))
     }
 
     pub fn query_tourn<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
-        where F: 'static + Send + FnOnce(&TournamentManager) -> T,
-              T: 'static + Send,
+    where
+        F: 'static + Send + FnOnce(&TournamentManager) -> T,
+        T: 'static + Send,
     {
         self.sender.query(id, query)
     }
 
     pub fn query_players<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
-        where F: 'static + Send + FnOnce(&PlayerRegistry) -> T,
-              T: 'static + Send,
+    where
+        F: 'static + Send + FnOnce(&PlayerRegistry) -> T,
+        T: 'static + Send,
     {
         self.sender.query(id, move |tourn| query(&tourn.player_reg))
     }
 
     pub fn query_rounds<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
-        where F: 'static + Send + FnOnce(&RoundRegistry) -> T,
-              T: 'static + Send,
+    where
+        F: 'static + Send + FnOnce(&RoundRegistry) -> T,
+        T: 'static + Send,
     {
         self.sender.query(id, move |tourn| query(&tourn.round_reg))
     }

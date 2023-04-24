@@ -10,15 +10,12 @@ use tokio::time::interval;
 
 use crate::server::AppState;
 
-pub mod simple_state;
 pub mod startup;
 pub mod tournaments;
 
-use simple_state::SimpleState;
-
 static STARTING_UP: AtomicBool = AtomicBool::new(false);
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
-static CLIENT: OnceCell<SquireClient<SimpleState>> = OnceCell::new();
+static CLIENT: OnceCell<SquireClient> = OnceCell::new();
 
 pub async fn init() {
     let account = SquireAccount::new("Test User".to_owned(), "Test User".to_owned());
@@ -47,7 +44,6 @@ pub async fn init() {
     match SquireClient::new(
         "http://localhost:8000".to_owned(),
         account,
-        SimpleState::new(),
     )
     .await
     {
@@ -61,7 +57,7 @@ pub async fn init() {
     STARTING_UP.store(false, Ordering::Relaxed);
 }
 
-pub async fn get_client() -> SquireClient<SimpleState> {
+pub async fn get_client() -> SquireClient {
     let mut counter = 0;
     let mut timer = interval(Duration::from_millis(50));
     loop {

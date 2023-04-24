@@ -30,7 +30,6 @@ impl<T> QueryTracker<T> {
                 Err(TryRecvError::Closed) => return None,
                 Err(TryRecvError::Empty) => {},
             }
-            std::thread::sleep(Duration::from_millis(5));
         }
     }
 }
