@@ -1,6 +1,6 @@
 use squire_sdk::{
-    model::{identifiers::RoundIdentifier, rounds::RoundStatus},
-    players::PlayerId,
+    model::{identifiers::RoundIdentifier, players::PlayerStatus, rounds::RoundStatus},
+    players::{Player, PlayerId},
     tournaments::{Tournament, TournamentId},
 };
 
@@ -12,7 +12,7 @@ use super::input::PlayerFilterReport;
 
 pub struct PlayerScroll {
     pub process: Callback<PlayerId>,
-    report: PlayerFilterReport,
+    pub report: PlayerFilterReport,
 }
 
 impl PlayerScroll {
@@ -29,27 +29,55 @@ impl PlayerScroll {
         digest
     }
 
-    pub fn view(&self, tourn: &Tournament) -> Html {
-        let unsorted_players = tourn
-            .player_reg
-            .players
-            .values()
-            .filter(|p| self.report.matches(p));
-        let mut players_vec = unsorted_players.collect::<Vec<_>>();
-        players_vec.sort_by_cached_key(|p| p.name.clone());
-        players_vec.sort_by_cached_key(|p| p.status);
+    pub fn view(&self, query: PlayerScrollQuery) -> Html {
+        let PlayerScrollQuery { sorted_players } = query;
         html! {
             <ul>
             {
-                players_vec.into_iter()
+                sorted_players.into_iter()
                     .map(|p| {
-                        let id = p.id;
                         let cb = self.process.clone();
-                        html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(id) }>{ p.name.as_str() }</a></li> }
+                        html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(p.id) }>{ p.name.as_str() }</a></li> }
                     })
                     .collect::<Html>()
             }
             </ul>
+        }
+    }
+}
+
+pub struct PlayerScrollQuery {
+    sorted_players: Vec<PlayerSummary>,
+}
+
+impl PlayerScrollQuery {
+    pub fn new(report: PlayerFilterReport, tourn: &Tournament) -> Self {
+        let mut players: Vec<_> = tourn
+            .player_reg
+            .players
+            .values()
+            .filter_map(|p| report.matches(p).then(|| PlayerSummary::new(p)))
+            .collect();
+        players.sort_by_cached_key(|p| p.name.clone());
+        players.sort_by_cached_key(|p| p.status);
+        Self {
+            sorted_players: players,
+        }
+    }
+}
+
+struct PlayerSummary {
+    name: String,
+    status: PlayerStatus,
+    id: PlayerId,
+}
+
+impl PlayerSummary {
+    fn new(plyr: &Player) -> Self {
+        Self {
+            name: plyr.name.clone(),
+            status: plyr.status,
+            id: plyr.id,
         }
     }
 }

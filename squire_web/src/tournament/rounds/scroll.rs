@@ -15,7 +15,7 @@ use super::input::RoundFilterReport;
 
 pub struct RoundScroll {
     pub process: Callback<RoundId>,
-    report: RoundFilterReport,
+    pub report: RoundFilterReport,
 }
 
 impl RoundScroll {
@@ -32,16 +32,8 @@ impl RoundScroll {
         digest
     }
 
-    pub fn view(&self, tourn: &Tournament) -> Html {
-        let unsorted_rounds = tourn
-            .round_reg
-            .rounds
-            .values()
-            .filter(|r| self.report.matches(r));
-        let mut rounds_vec = unsorted_rounds.collect::<Vec<_>>();
-        rounds_vec.sort_by_cached_key(|r| r.match_number);
-        rounds_vec.sort_by_cached_key(|r| r.status);
-        let sorted_rounds = rounds_vec.into_iter();
+    pub fn view(&self, query: RoundScrollQuery) -> Html {
+        let RoundScrollQuery { sorted_rounds } = query;
         html! {
             <table class="table">
                 <thead>
@@ -52,11 +44,10 @@ impl RoundScroll {
                     </tr>
                 </thead>
                 <tbody>{
-                    sorted_rounds.map(|r| {
-                        let id = r.id;
+                    sorted_rounds.into_iter().map(|r| {
                         let cb = self.process.clone();
                         html! {
-                            <tr onclick = { move |_| cb.emit(id) }>
+                            <tr onclick = { move |_| cb.emit(r.id) }>
                                 <td>{ r.match_number }</td>
                                 <td>{ r.table_number }</td>
                                 <td>{ r.status }</td>
@@ -65,6 +56,42 @@ impl RoundScroll {
                     }).collect::<Html>()
                 }</tbody>
             </table>
+        }
+    }
+}
+
+pub struct RoundSummary {
+    pub id: RoundId,
+    pub match_number: u64,
+    pub table_number: u64,
+    pub status: RoundStatus,
+}
+
+pub struct RoundScrollQuery {
+    sorted_rounds: Vec<RoundSummary>,
+}
+
+impl RoundScrollQuery {
+    pub fn new(report: RoundFilterReport, tourn: &Tournament) -> Self {
+        let unsorted_rounds = tourn
+            .round_reg
+            .rounds
+            .values()
+            .filter_map(|r| report.matches(r).then(|| RoundSummary::new(r)));
+        let mut sorted_rounds: Vec<_> = unsorted_rounds.collect();
+        sorted_rounds.sort_by_cached_key(|r| r.match_number);
+        sorted_rounds.sort_by_cached_key(|r| r.status);
+        RoundScrollQuery { sorted_rounds }
+    }
+}
+
+impl RoundSummary {
+    fn new(rnd: &Round) -> Self {
+        Self {
+            id: rnd.id,
+            match_number: rnd.match_number,
+            table_number: rnd.table_number,
+            status: rnd.status,
         }
     }
 }

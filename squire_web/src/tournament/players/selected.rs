@@ -8,26 +8,12 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-use crate::tournament::rounds::round_info_display;
+use crate::tournament::rounds::{round_info_display, RoundSummary};
 
-pub fn player_info_display(tourn: &Tournament, plyr: &Player) -> Html {
-    let gamertag = { |plyr: &Player| plyr.game_name.clone().unwrap_or_else(|| "None".to_string()) };
-    let round_number = {
-        |plyr: &Player| {
-            tourn
-                .get_player_rounds(&plyr.id.into())
-                .unwrap_or_default()
-                .len()
-        }
-    };
-    html! {
-        <>
-            <h4>{ plyr.name.as_str() }</h4>
-            <p>{ format!("Gamertag : {}", gamertag(plyr) ) }</p>
-            <p>{ format!("Can play : {}", plyr.can_play()) }</p>
-            <p>{ format!("Rounds : {}", round_number(plyr) ) }</p>
-        </>
-    }
+pub fn player_info_display(query: &SelectedPlayerQuery) -> Html {
+    todo!()
+    /*
+     */
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -42,7 +28,7 @@ pub enum SelectedPlayerMessage {
 
 pub struct SelectedPlayer {
     pub process: Callback<SelectedPlayerInfo>,
-    id: Option<PlayerId>,
+    pub id: Option<PlayerId>,
     spi: Option<SelectedPlayerInfo>,
 }
 
@@ -71,7 +57,9 @@ impl SelectedPlayer {
         }
     }
 
-    fn subview_round(&self, tourn: &Tournament, rid: RoundId) -> Html {
+    fn subview_round(&self) -> Html {
+        todo!()
+        /*
         tourn
             .get_round(&rid.into())
             .map(|rnd| {
@@ -103,14 +91,15 @@ impl SelectedPlayer {
                     <p>{ "Round not found." }</p>
                 }
             })
+        */
     }
-    fn subview(&self, tourn: &Tournament) -> Html {
-        let spi = self.spi.clone();
-        match spi {
+
+    fn subview(&self) -> Html {
+        match &self.spi {
             None => {
                 html! { <h3>{" No info selected "}</h3> }
             }
-            Some(SelectedPlayerInfo::Round(rid)) => self.subview_round(tourn, rid),
+            Some(SelectedPlayerInfo::Round(rid)) => self.subview_round(),
             Some(SelectedPlayerInfo::Deck(d_name)) => {
                 html! { <p>{" Deck view hasn't been implemented :/ sorry."}</p> }
             }
@@ -227,7 +216,47 @@ impl SelectedPlayer {
                 <h4>{"No player selected"}</h4>
             });
         html! {
-            <div class="m-2">{returnhtml}</div>
+            <div class="m-2">
+                <div class="row">
+                    <div class="col">
+                        <>{
+                            html! {
+                                <>
+                                    <h4>{ name.as_str() }</h4>
+                                    <p>{ format!("Gamertag : {}", gamer_tag.unwrap_or_default() ) }</p>
+                                    <p>{ format!("Can play : {can_play}") }</p>
+                                    <p>{ format!("Rounds : {}", rounds.len()) }</p>
+                                </>
+                            }
+                        }</>
+                        <ul>
+                        {
+                            rounds
+                            .into_iter()
+                            .map(|r| {
+                                let cb = self.process.clone();
+                                html! {<li class="sub_option" onclick={ move |_| cb.emit(SelectedPlayerInfo::Round(r.id)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
+                            })
+                            .collect::<Html>()
+                        }
+                        </ul>
+                    </div>
+                    <div class="col">{ self.subview() }</div>
+                </div>
+            </div>
         }
+    }
+}
+
+pub struct SelectedPlayerQuery {
+    name: String,
+    gamer_tag: Option<String>,
+    can_play: bool,
+    rounds: Vec<RoundSummary>,
+}
+
+impl SelectedPlayerQuery {
+    pub fn new(pid: PlayerId, tourn: &Tournament) -> Self {
+        todo!()
     }
 }

@@ -2,6 +2,8 @@
 #![allow(dead_code, unused)]
 #![feature(if_let_guard)]
 
+use std::time::Duration;
+
 use once_cell::sync::OnceCell;
 use yew::prelude::*;
 use yew_router::prelude::*;
