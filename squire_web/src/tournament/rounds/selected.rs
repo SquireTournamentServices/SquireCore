@@ -11,9 +11,9 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-use crate::CLIENT;
+use crate::{tournament::players::RoundProfile, CLIENT};
 
-use super::{roundresultticker, RoundResultTicker};
+use super::{roundresultticker, RoundResultTicker, RoundsView, RoundsViewMessage};
 
 pub fn round_info_display(rnd: &Round) -> Html {
     html! {
@@ -25,19 +25,27 @@ pub fn round_info_display(rnd: &Round) -> Html {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum SelectedRoundMessage {
+    RoundSelected(RoundId),
+    TimerTicked(RoundId),
+    RoundQueryReady(Option<RoundProfile>), // Optional because the lookup "may" fail
+}
+
 pub struct SelectedRound {
-    pub(crate) id: RoundId,
     pub t_id: TournamentId,
     pub round_data_buffer: Option<Round>,
+    round: Option<RoundProfile>,
     draw_ticker: RoundResultTicker,
 }
 
 impl SelectedRound {
-    pub fn new(id: RoundId, t_id: TournamentId) -> Self {
+    pub fn new(ctx: &Context<RoundsView>, t_id: TournamentId) -> Self {
+        send_ticker_future(Default::default(), ctx);
         Self {
-            id,
             t_id,
             round_data_buffer: None,
+            round: None,
             draw_ticker: RoundResultTicker {
                 label: "Draws",
                 result_type: RoundResult::Draw(0),
@@ -46,7 +54,50 @@ impl SelectedRound {
         }
     }
 
-    pub fn update(&mut self, id: RoundId) -> bool {
+    pub fn update(&mut self, ctx: &Context<RoundsView>, msg: SelectedRoundMessage) -> bool {
+        match msg {
+            SelectedRoundMessage::TimerTicked(r_id) => match self.round.as_ref() {
+                Some(rnd) => {
+                    let digest = rnd.id == r_id;
+                    if digest {
+                        send_ticker_future(r_id, ctx);
+                    }
+                    digest
+                }
+                None => {
+                    send_ticker_future(Default::default(), ctx);
+                    false
+                }
+            },
+            SelectedRoundMessage::RoundQueryReady(rnd) => {
+                let digest = self.round != rnd;
+                self.round = rnd;
+                digest
+            }
+            SelectedRoundMessage::RoundSelected(r_id) => {
+                if self.round.as_ref().map(|r| r.id != r_id).unwrap_or(true) {
+                    let id = self.t_id;
+                    ctx.link().send_future(async move {
+                        let data = CLIENT
+                            .get()
+                            .unwrap()
+                            .query_tourn(id, move |t| {
+                                t.tourn().round_reg.get_round(&r_id).map(RoundProfile::new)
+                            })
+                            .process()
+                            .await
+                            .transpose()
+                            .ok()
+                            .flatten();
+                        RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(
+                            data,
+                        ))
+                    });
+                }
+                false
+            }
+        }
+        /*
         let digest = self.id != id;
         self.id = id;
         if digest {
@@ -58,9 +109,12 @@ impl SelectedRound {
                 .flatten();
         }
         digest
+        */
     }
 
-    pub fn view(&self, query: SelectedRoundQuery) -> Html {
+    pub fn view(&self) -> Html {
+        todo!()
+        /*
         let returnhtml = self.round_data_buffer.as_ref()
             .map(|rnd| {
                 // TODO: Remove unwrap here
@@ -106,6 +160,7 @@ impl SelectedRound {
         return html! {
             <div class="m-2">{returnhtml}</div>
         };
+        */
     }
 }
 
@@ -125,21 +180,9 @@ fn pretty_print_duration(dur: Duration) -> String {
     }
 }
 
-pub struct SelectedRoundQuery {
-    plyr_names: HashMap<PlayerId, String>,
-}
-
-impl SelectedRoundQuery {
-    pub fn new(plyrs: Vec<PlayerId>, tourn: &Tournament) -> Self {
-        let plyr_names = plyrs
-            .into_iter()
-            .filter_map(|pid| {
-                tourn
-                    .get_player(&pid.into())
-                    .map(|p| (pid, p.name.clone()))
-                    .ok()
-            })
-            .collect();
-        SelectedRoundQuery { plyr_names }
-    }
+fn send_ticker_future(id: RoundId, ctx: &Context<RoundsView>) {
+    ctx.link().send_future(async move {
+        async_std::task::sleep(std::time::Duration::from_secs(1)).await;
+        RoundsViewMessage::SelectedRound(SelectedRoundMessage::TimerTicked(id))
+    });
 }

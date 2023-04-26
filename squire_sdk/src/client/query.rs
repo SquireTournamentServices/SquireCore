@@ -23,14 +23,8 @@ pub struct QueryTracker<T> {
 
 impl<T> QueryTracker<T> {
     /// Consumes self and waits for the task to finish processing the query
-    pub fn process(mut self) -> Option<T> {
-        loop {
-            match self.recv.try_recv() {
-                Ok(res) => return res,
-                Err(TryRecvError::Closed) => return None,
-                Err(TryRecvError::Empty) => {},
-            }
-        }
+    pub async fn process(self) -> Option<T> {
+        self.recv.await.ok().flatten()
     }
 }
 

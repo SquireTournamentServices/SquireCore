@@ -8,72 +8,83 @@ use yew::prelude::*;
 
 use crate::{utils::TextInput, CLIENT};
 
-use super::input::PlayerFilterReport;
+use super::{input::PlayerFilterReport, PlayerProfile, PlayerViewMessage, PlayerView, SelectedPlayerMessage};
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum PlayerScrollMessage {
+    ScrollQueryReady(Vec<PlayerSummary>),
+}
 
 pub struct PlayerScroll {
     pub process: Callback<PlayerId>,
-    pub report: PlayerFilterReport,
+    players: Vec<PlayerSummary>,
+}
+
+fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
+    ctx.link().send_future(async move {
+        let mut data = CLIENT
+            .get()
+            .unwrap()
+            .query_players(id, |plyrs| {
+                plyrs.players
+                    .values()
+                    .map(PlayerSummary::new)
+                    .collect::<Vec<_>>()
+            })
+            .process()
+            .await
+            .unwrap_or_default();
+        data.sort_by_cached_key(|p| p.name.clone());
+        data.sort_by_cached_key(|p| p.status);
+        PlayerViewMessage::PlayerScroll(PlayerScrollMessage::ScrollQueryReady(data))
+    })
 }
 
 impl PlayerScroll {
-    pub fn new(process: Callback<PlayerId>) -> Self {
+    pub fn new(ctx: &Context<PlayerView>, id: TournamentId) -> Self {
+        fetch_player_summaries(ctx, id);
         Self {
-            process,
-            report: Default::default(),
+            process: ctx.link().callback(SelectedPlayerMessage::PlayerSelected),
+            players: Vec::default(),
         }
     }
 
-    pub fn update(&mut self, report: PlayerFilterReport) -> bool {
-        let digest = self.report != report;
-        self.report = report;
-        digest
-    }
-
-    pub fn view(&self, query: PlayerScrollQuery) -> Html {
-        let PlayerScrollQuery { sorted_players } = query;
-        html! {
-            <ul>
-            {
-                sorted_players.into_iter()
-                    .map(|p| {
-                        let cb = self.process.clone();
-                        html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(p.id) }>{ p.name.as_str() }</a></li> }
-                    })
-                    .collect::<Html>()
+    pub fn update(&mut self, msg: PlayerScrollMessage) -> bool {
+        match msg {
+            PlayerScrollMessage::ScrollQueryReady(data) => {
+                web_sys::console::log_1(&format!("Player scroll data ready and loaded!!").into());
+                let digest = self.players != data;
+                self.players = data;
+                digest
             }
-            </ul>
         }
     }
-}
 
-pub struct PlayerScrollQuery {
-    sorted_players: Vec<PlayerSummary>,
-}
-
-impl PlayerScrollQuery {
-    pub fn new(report: PlayerFilterReport, tourn: &Tournament) -> Self {
-        let mut players: Vec<_> = tourn
-            .player_reg
+    pub fn view(&self, report: PlayerFilterReport) -> Html {
+        let mapper = |plyr: &PlayerSummary| {
+            let cb = self.process.clone();
+            let name = plyr.name.clone();
+            let id = plyr.id;
+            html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(id) }>{ name }</a></li> }
+        };
+        let inner = self
             .players
-            .values()
-            .filter_map(|p| report.matches(p).then(|| PlayerSummary::new(p)))
-            .collect();
-        players.sort_by_cached_key(|p| p.name.clone());
-        players.sort_by_cached_key(|p| p.status);
-        Self {
-            sorted_players: players,
-        }
+            .iter()
+            .filter_map(|p| report.matches(p).then(|| mapper(p)))
+            .collect::<Html>();
+        html! { <ul>{ inner }</ul> }
     }
 }
 
-struct PlayerSummary {
-    name: String,
-    status: PlayerStatus,
-    id: PlayerId,
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct PlayerSummary {
+    pub name: String,
+    pub status: PlayerStatus,
+    pub id: PlayerId,
 }
 
 impl PlayerSummary {
-    fn new(plyr: &Player) -> Self {
+    pub fn new(plyr: &Player) -> Self {
         Self {
             name: plyr.name.clone(),
             status: plyr.status,

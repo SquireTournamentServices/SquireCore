@@ -2,7 +2,7 @@ use squire_sdk::{
     model::{identifiers::PlayerIdentifier, rounds::RoundId},
     model::{identifiers::RoundIdentifier, rounds::RoundStatus},
     players::PlayerId,
-    tournaments::{Tournament, TournamentId},
+    tournaments::{Tournament, TournamentId, TournamentManager},
 };
 
 use yew::prelude::*;
@@ -27,9 +27,9 @@ pub struct PlayerViewProps {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerViewMessage {
-    PlayerSelected(PlayerId),
     FilterInput(PlayerFilterInputMessage),
-    PlayerInfoSelected(SelectedPlayerInfo),
+    PlayerScroll(PlayerScrollMessage),
+    SelectedPlayer(SelectedPlayerMessage),
 }
 
 pub struct PlayerView {
@@ -44,71 +44,55 @@ impl Component for PlayerView {
     type Properties = PlayerViewProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+        let id = ctx.props().id;
         Self {
-            id: ctx.props().id,
+            id,
             input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput)),
-            scroll: PlayerScroll::new(ctx.link().callback(PlayerViewMessage::PlayerSelected)),
+            scroll: PlayerScroll::new(ctx, id),
             selected: SelectedPlayer::new(
-                ctx.link().callback(PlayerViewMessage::PlayerInfoSelected),
+                ctx.link().callback(PlayerViewMessage::SelectedPlayer),
+                id,
             ),
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            PlayerViewMessage::FilterInput(msg) => {
-                if self.input.update(msg) {
-                    self.scroll.update(self.input.get_report())
-                } else {
-                    false
-                }
-            }
-            PlayerViewMessage::PlayerSelected(p_id) => self
-                .selected
-                .update(SelectedPlayerMessage::PlayerSelected(Some(p_id))),
-            PlayerViewMessage::PlayerInfoSelected(spi) => self
-                .selected
-                .update(SelectedPlayerMessage::InfoSelected(Some(spi))),
+            PlayerViewMessage::FilterInput(msg) => self.input.update(msg),
+            PlayerViewMessage::SelectedPlayer(msg) => self.selected.update(ctx, msg),
+            PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg),
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let report = self.scroll.report.clone();
+        let report = self.input.get_report();
         let selected_pid = self.selected.id;
-        match CLIENT
-            .get()
-            .unwrap()
-            .query_tourn(self.id, move |tourn| {
-                (
-                    PlayerScrollQuery::new(report, tourn),
-                    selected_pid.map(|pid| SelectedPlayerQuery::new(pid, tourn)),
-                )
-            })
-            .process()
-        {
-            Some((scroll_query, selected_query)) => {
-                html! {
+        html! {
+            <div>
+                { self.input.view() }
+                <div class="d-flex flex-row my-4">
                     <div>
-                        { self.input.view() }
-                        <div class="d-flex flex-row my-4">
-                            <div>
-                                <div class="overflow-auto player-scroll-box">
-                                    { self.scroll.view(scroll_query) }
-                                </div>
-                            </div>
-                            <div>
-                                {
-                                    match selected_query {
-                                        Some(query) => self.selected.view(query),
-                                        None => Html::default(),
-                                    }
-                                }
-                            </div>
+                        <div class="overflow-auto player-scroll-box">
+                            { self.scroll.view(report) }
                         </div>
                     </div>
-                }
-            }
-            None => Html::default(),
+                    <div>
+                        { self.selected.view() }
+                    </div>
+                </div>
+            </div>
         }
+    }
+}
+
+impl From<PlayerFilterInputMessage> for PlayerViewMessage {
+    fn from(msg: PlayerFilterInputMessage) -> Self {
+        Self::FilterInput(msg)
+    }
+}
+
+impl From<SelectedPlayerMessage> for PlayerViewMessage {
+    fn from(msg: SelectedPlayerMessage) -> Self {
+        Self::SelectedPlayer(msg)
     }
 }
