@@ -27,7 +27,8 @@ pub enum TournViewMode {
 
 #[derive(Debug)]
 pub enum TournViewMessage {
-    DataReady,
+    TournamentImported,
+    QueryReady(Option<String>),
     SwitchModes(TournViewMode),
 }
 
@@ -39,6 +40,7 @@ pub struct TournProps {
 pub struct TournamentViewer {
     pub id: TournamentId,
     pub mode: TournViewMode,
+    tourn_name: String,
 }
 
 impl TournamentViewer {
@@ -48,16 +50,10 @@ impl TournamentViewer {
                 .callback(move |_| TournViewMessage::SwitchModes(mode))
         };
         let make_button = |name, mode| html! { <a class="py-2 px-1 text-center text-lg-start" onclick = { make_callback(mode) }>{name}</a> };
-        let tourn_name = CLIENT
-            .get()
-            .unwrap()
-            .query_tourn(self.id, |t| t.tourn().name.clone())
-            .process()
-            .unwrap_or_default();
         html! {
             <div>
                 <ul>
-                    <h4 class="text-center text-lg-start">{ tourn_name }</h4>
+                    <h4 class="text-center text-lg-start">{ self.tourn_name.as_str() }</h4>
                     <hr/>
                     <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
                     <li>{ make_button("Players"  , TournViewMode::Players) }</li>
@@ -99,11 +95,12 @@ impl Component for TournamentViewer {
         let id = *id;
         ctx.link().send_future(async move {
             fetch_tournament(id).await;
-            TournViewMessage::DataReady
+            TournViewMessage::TournamentImported
         });
         Self {
             id,
             mode: TournViewMode::default(),
+            tourn_name: String::new(),
         }
     }
 
@@ -114,25 +111,38 @@ impl Component for TournamentViewer {
                 self.mode = mode;
                 digest
             }
-            TournViewMessage::DataReady => {
-                web_sys::console::log_1(&format!("Data ready!!").into());
-                let client = CLIENT.get().unwrap();
-                if client.query_tourn(self.id, |_| ()).process().is_none() {
-                    let id = self.id;
-                    ctx.link().send_future(async move {
-                        fetch_tournament(id).await;
-                        TournViewMessage::DataReady
-                    });
-                    false
-                } else {
-                    true
-                }
+            TournViewMessage::TournamentImported => {
+                web_sys::console::log_1(&"Data ready!!".into());
+                let id = self.id;
+                ctx.link().send_future(async move {
+                    let data = CLIENT
+                        .get()
+                        .unwrap()
+                        .query_tourn(id, |t| t.tourn().name.clone())
+                        .process()
+                        .await;
+                    TournViewMessage::QueryReady(data)
+                });
+                false
+            }
+            TournViewMessage::QueryReady(Some(name)) => {
+                web_sys::console::log_1(&format!("Tournament name ready and loaded!!").into());
+                let digest = self.tourn_name != name;
+                self.tourn_name = name;
+                digest
+            }
+            TournViewMessage::QueryReady(None) => {
+                let id = self.id;
+                ctx.link().send_future(async move {
+                    fetch_tournament(id).await;
+                    TournViewMessage::TournamentImported
+                });
+                false
             }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let client = CLIENT.get().unwrap();
         html! {
             <div class="my-4 container-fluid">
                 <div class="row tviewer">
