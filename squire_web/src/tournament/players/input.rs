@@ -8,6 +8,8 @@ use yew::prelude::*;
 
 use crate::utils::TextInput;
 
+use super::PlayerSummary;
+
 #[derive(PartialEq, Properties)]
 pub struct PlayerFilterInputProps {
     pub process: Callback<PlayerFilterReport>,
@@ -88,7 +90,7 @@ impl PlayerFilterReport {
         Self::default()
     }
 
-    pub fn matches(&self, plyr: &Player) -> bool {
+    pub fn matches(&self, plyr: &PlayerSummary) -> bool {
         self.status
             .as_ref()
             .map(|status| plyr.status == *status)

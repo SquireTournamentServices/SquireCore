@@ -58,10 +58,12 @@ fn app() -> Html {
 }
 
 fn main() {
+    web_sys::console::log_1(&format!("Starting everything up...").into());
     let client = SquireClient::new_unchecked(
         "/".to_string(),
         SquireAccount::new("Tester".into(), "Tester".into()),
     );
     CLIENT.set(client).unwrap();
+    web_sys::console::log_1(&format!("Client launched!! Starting yew app").into());
     yew::Renderer::<app>::new().render();
 }

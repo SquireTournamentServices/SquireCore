@@ -11,28 +11,60 @@ use yew::prelude::*;
 
 use crate::{utils::TextInput, CLIENT};
 
-use super::input::RoundFilterReport;
+use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum RoundScrollMessage {
+    ScrollQueryReady(Vec<RoundSummary>),
+}
 
 pub struct RoundScroll {
     pub process: Callback<RoundId>,
-    pub report: RoundFilterReport,
+    rounds: Vec<RoundSummary>,
+}
+
+fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
+    ctx.link().send_future(async move {
+        let mut data = CLIENT
+            .get()
+            .unwrap()
+            .query_rounds(id, |rnds| {
+                rnds.rounds
+                    .values()
+                    .map(RoundSummary::new)
+                    .collect::<Vec<_>>()
+            })
+            .process()
+            .await
+            .unwrap_or_default();
+        data.sort_by_cached_key(|r| r.match_number);
+        data.sort_by_cached_key(|r| r.status);
+        RoundsViewMessage::RoundScroll(RoundScrollMessage::ScrollQueryReady(data))
+    })
 }
 
 impl RoundScroll {
-    pub fn new(process: Callback<RoundId>) -> Self {
+    pub fn new(ctx: &Context<RoundsView>, id: TournamentId) -> Self {
+        fetch_round_summaries(ctx, id);
         Self {
-            process,
-            report: Default::default(),
+            process: ctx.link().callback(SelectedRoundMessage::RoundSelected),
+            rounds: Default::default(),
         }
     }
 
-    pub fn update(&mut self, report: RoundFilterReport) -> bool {
-        let digest = self.report != report;
-        self.report = report;
-        digest
+    pub fn update(&mut self, msg: RoundScrollMessage) -> bool {
+        match msg {
+            RoundScrollMessage::ScrollQueryReady(rounds) => {
+                let digest = self.rounds != rounds;
+                self.rounds = rounds;
+                digest
+            }
+        }
     }
 
-    pub fn view(&self, query: RoundScrollQuery) -> Html {
+    pub fn view(&self, report: RoundFilterReport) -> Html {
+        todo!()
+        /*
         let RoundScrollQuery { sorted_rounds } = query;
         html! {
             <table class="table">
@@ -57,32 +89,16 @@ impl RoundScroll {
                 }</tbody>
             </table>
         }
+        */
     }
 }
 
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RoundSummary {
     pub id: RoundId,
     pub match_number: u64,
     pub table_number: u64,
     pub status: RoundStatus,
-}
-
-pub struct RoundScrollQuery {
-    sorted_rounds: Vec<RoundSummary>,
-}
-
-impl RoundScrollQuery {
-    pub fn new(report: RoundFilterReport, tourn: &Tournament) -> Self {
-        let unsorted_rounds = tourn
-            .round_reg
-            .rounds
-            .values()
-            .filter_map(|r| report.matches(r).then(|| RoundSummary::new(r)));
-        let mut sorted_rounds: Vec<_> = unsorted_rounds.collect();
-        sorted_rounds.sort_by_cached_key(|r| r.match_number);
-        sorted_rounds.sort_by_cached_key(|r| r.status);
-        RoundScrollQuery { sorted_rounds }
-    }
 }
 
 impl RoundSummary {

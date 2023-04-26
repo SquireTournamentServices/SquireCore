@@ -84,13 +84,14 @@ fn spawn_task<F>(fut: F)
 where
     F: 'static + Future<Output = ()>,
 {
-    wasm_bindgen_futures::spawn_local(fut);
+    wasm_bindgen_futures::spawn_local(async {
+        fut.await
+    });
 }
 
 #[cfg(target_family = "wasm")]
 async fn rest(dur: Duration) {
-    use std::time::Duration;
-    async_std::task::sleep(dur).await;
+    gloo_timers::future::TimeoutFuture::new(dur.as_millis() as u32).await;
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -132,7 +133,7 @@ async fn tournament_management_task(
         if let Ok(query) = queries.try_recv() {
             handle_query(&cache, query);
         }
-        rest(Duration::from_secs(1)).await;
+        rest(Duration::from_millis(5)).await;
     }
 }
 
