@@ -1,4 +1,3 @@
-use js_sys::Math::round;
 use squire_sdk::{
     model::{
         identifiers::RoundIdentifier,
@@ -63,6 +62,23 @@ impl RoundScroll {
     }
 
     pub fn view(&self, report: RoundFilterReport) -> Html {
+        let list = self
+            .rounds
+            .iter()
+            .cloned()
+            .filter_map(|r| {
+                report.matches(&r).then(|| {
+                    let cb = self.process.clone();
+                    html! {
+                        <tr onclick = { move |_| cb.emit(r.id) }>
+                            <td>{ r.match_number }</td>
+                            <td>{ r.table_number }</td>
+                            <td>{ r.status }</td>
+                        </tr>
+                    }
+                })
+            })
+            .collect::<Html>();
         html! {
             <table class="table">
                 <thead>
@@ -72,18 +88,7 @@ impl RoundScroll {
                         <th>{ "Status" }</th>
                     </tr>
                 </thead>
-                <tbody>{
-                    self.rounds.iter().cloned().map(|r| {
-                        let cb = self.process.clone();
-                        html! {
-                            <tr onclick = { move |_| cb.emit(r.id) }>
-                                <td>{ r.match_number }</td>
-                                <td>{ r.table_number }</td>
-                                <td>{ r.status }</td>
-                            </tr>
-                        }
-                    }).collect::<Html>()
-                }</tbody>
+                <tbody> { list } </tbody>
             </table>
         }
     }

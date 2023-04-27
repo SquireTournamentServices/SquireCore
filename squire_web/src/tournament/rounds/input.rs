@@ -6,7 +6,9 @@ use web_sys::HtmlInputElement;
 
 use yew::prelude::*;
 
-use crate::utils::TextInput;
+use crate::{utils::TextInput, tournament::players::RoundProfile};
+
+use super::RoundSummary;
 
 #[derive(PartialEq, Properties)]
 pub struct RoundFilterInputProps {
@@ -89,7 +91,7 @@ impl RoundFilterReport {
         Self::default()
     }
 
-    pub fn matches(&self, rnd: &Round) -> bool {
+    pub fn matches(&self, rnd: &RoundSummary) -> bool {
         self.status
             .as_ref()
             .map(|status| rnd.status == *status)
@@ -102,7 +104,7 @@ impl RoundFilterReport {
     }
 }
 
-fn round_ident_soft_matches(ident: &RoundIdentifier, rnd: &Round) -> bool {
+fn round_ident_soft_matches(ident: &RoundIdentifier, rnd: &RoundSummary) -> bool {
     match ident {
         RoundIdentifier::Number(num) => {
             let temp_num = num.to_string();
