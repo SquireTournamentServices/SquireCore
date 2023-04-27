@@ -1,8 +1,11 @@
-use std::{marker::PhantomData, str::FromStr, rc::Rc, fmt::Display};
-use squire_sdk::{model::rounds::RoundResult, players::{Round, PlayerId}};
+use squire_sdk::{
+    model::rounds::RoundResult,
+    players::{PlayerId, Round},
+};
+use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
 
-use crate::tournament::rounds::roundchangesbuffer::RoundChangesBufferMessage;
+use crate::tournament::rounds::{RoundsViewMessage, roundchangesbuffer::RoundChangesBufferMessage};
 
 use super::SelectedRoundMessage;
 
@@ -26,9 +29,8 @@ impl RoundResultTicker {
         label: &'static str,
         pid: Option<PlayerId>,
         stored_result: RoundResult,
-        process: Callback<SelectedRoundMessage>
-    ) -> Self
-    {
+        process: Callback<SelectedRoundMessage>,
+    ) -> Self {
         Self {
             label,
             pid,
@@ -55,20 +57,23 @@ impl RoundResultTicker {
         true
     }
 
-    #[allow(clippy::option_map_unit_fn)]
     pub fn view(&self) -> Html {
         let pid = self.pid.clone();
         let cb = self.process.clone();
         let up = move |s| {
-            cb.emit(SelectedRoundMessage::BufferMessage(RoundChangesBufferMessage::TickClicked( pid, RoundResultTickerMessage::Increment )));
+            cb.emit(SelectedRoundMessage::BufferMessage(
+                RoundChangesBufferMessage::TickClicked(pid, RoundResultTickerMessage::Increment),
+            ));
         };
         let pid = self.pid.clone();
         let cb = self.process.clone();
         let down = move |s| {
-            cb.emit(SelectedRoundMessage::BufferMessage(RoundChangesBufferMessage::TickClicked( pid, RoundResultTickerMessage::Decrement )));
+            cb.emit(SelectedRoundMessage::BufferMessage(
+                RoundChangesBufferMessage::TickClicked(pid, RoundResultTickerMessage::Decrement),
+            ));
         };
         let label = self.label;
-        let stored_result_value =  self.stored_result.get_result();
+        let stored_result_value = self.stored_result.get_result();
         html! {
             <>
                 <>{format!( "{} {}", label, stored_result_value )}</>
