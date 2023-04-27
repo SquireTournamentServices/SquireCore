@@ -1,22 +1,24 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
+use chrono::{Duration, Utc, DateTime};
 use squire_sdk::{
     model::{
         identifiers::{PlayerIdentifier, TypeId},
-        rounds::RoundId,
+        rounds::{RoundId, RoundStatus},
     },
     players::{Deck, Player, PlayerId, Round},
     tournaments::{Tournament, TournamentId, TournamentManager},
 };
 use yew::prelude::*;
 
-use crate::{
-    tournament::rounds::{round_info_display, RoundSummary},
-    CLIENT,
-};
+use crate::{tournament::rounds::RoundSummary, CLIENT};
 
 use super::{PlayerView, PlayerViewMessage};
 
+/// The set of data needed by the UI to display a player. Should be capable of rendering itself in
+/// HTML.
+///
+/// NOTE: Under construction
 #[derive(Debug, PartialEq, Clone)]
 pub struct PlayerProfile {
     id: PlayerId,
@@ -26,15 +28,29 @@ pub struct PlayerProfile {
     rounds: Vec<RoundSummary>,
 }
 
+/// The set of data needed by the UI to display a deck. Should be capable of rendering itself in
+/// HTML.
+///
+/// NOTE: Under construction
 #[derive(Debug, PartialEq, Clone)]
 pub struct DeckProfile {
     name: String,
 }
 
+/// The set of data needed by the UI to display a round. Should be capable of rendering itself in
+/// HTML.
+///
+/// NOTE: Under construction
 #[derive(Debug, PartialEq, Clone)]
 pub struct RoundProfile {
     pub id: RoundId,
     pub player_names: HashMap<PlayerId, String>,
+    pub timer: DateTime<Utc>,
+    pub status: RoundStatus,
+    pub results: HashMap<PlayerId, u32>,
+    pub confirmations: HashSet<PlayerId>,
+    pub length: std::time::Duration,
+    pub extensions: std::time::Duration,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -53,8 +69,10 @@ pub enum SubviewInfo {
 pub enum SelectedPlayerMessage {
     PlayerSelected(PlayerId),
     SubviewSelected(SubviewInfo),
-    PlayerQueryReady(Option<PlayerProfile>), // Optional because the lookup "may" fail
-    SubviewQueryReady(Option<SubviewProfile>), // Optional because the lookup "may" fail
+    /// Optional because the lookup "may" fail
+    PlayerQueryReady(Option<PlayerProfile>),
+    /// Optional because the lookup "may" fail
+    SubviewQueryReady(Option<SubviewProfile>),
 }
 
 pub struct SelectedPlayer {
@@ -222,6 +240,7 @@ impl RoundProfile {
     pub fn new(tourn: &Tournament, rnd: &Round) -> Self {
         Self {
             id: rnd.id,
+            status: rnd.status,
             player_names: rnd
                 .players
                 .iter()
@@ -232,12 +251,48 @@ impl RoundProfile {
                         .get(p)
                         .map(|plyr| (*p, plyr.name.clone()))
                 })
-                .collect(),
+                .collect(), // This is not a Vec<(PlayerId, String)>. This is a HashMap
+            length: rnd.length,
+            extensions: rnd.extension,
+            timer: rnd.timer,
+            results: rnd.results.clone(),
+            confirmations: rnd.confirmations.clone(),
         }
     }
 
     pub fn view(&self) -> Html {
-        todo!()
+        // TODO: Remove unwrap here
+        let dur_left =
+            Duration::from_std(self.length + self.extensions).unwrap()
+            - (Utc::now() - self.timer);
+        html! {
+            <>
+            <p>
+            { pretty_print_duration(dur_left) }
+            </p>
+            <ul>
+            {
+                self.player_names.iter()
+                    // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
+                    .map(|(pid, name)| {
+                        let player_wins = self.results.get(pid).cloned().unwrap_or_default();
+                        let player_confirm = self.confirmations.get(pid).is_some();
+                        html! {
+                            <li>
+                            <div>
+                            { format!( "{name}") }
+                            </div>
+                            <div>
+                            { format!( "wins : {player_wins}, confirmed : {player_confirm}") }
+                            </div>
+                            </li>
+                        }
+                    })
+                    .collect::<Html>()
+            }
+            </ul>
+            </>
+        }
     }
 }
 
@@ -279,5 +334,15 @@ impl From<DeckProfile> for SubviewProfile {
 impl From<RoundProfile> for SubviewProfile {
     fn from(rnd: RoundProfile) -> Self {
         Self::Round(rnd)
+    }
+}
+fn pretty_print_duration(dur: Duration) -> String {
+    let hours = dur.num_hours();
+    let mins = dur.num_minutes().abs();
+    let secs = dur.num_seconds().abs();
+    if hours < 0 {
+        format!("Time left: {hours}:{}:{}", mins % 60, secs % 60)
+    } else {
+        format!("Over time: {}:{}:{}", hours, mins % 60, secs % 60)
     }
 }
