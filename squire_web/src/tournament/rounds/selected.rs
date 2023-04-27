@@ -13,7 +13,9 @@ use yew::prelude::*;
 
 use crate::{tournament::players::RoundProfile, CLIENT};
 
-use super::{roundresultticker::*, roundchangesbuffer::*, RoundResultTicker, RoundsView, RoundsViewMessage};
+use super::{
+    roundchangesbuffer::*, roundresultticker::*, RoundResultTicker, RoundsView, RoundsViewMessage,
+};
 
 pub fn round_info_display(rnd: &Round) -> Html {
     html! {
@@ -30,11 +32,11 @@ pub enum SelectedRoundMessage {
     RoundSelected(RoundId),
     TimerTicked(RoundId),
     RoundQueryReady(Option<RoundProfile>), // Optional because the lookup "may" fail
+    BufferMessage(RoundChangesBufferMessage),
 }
 
 pub struct SelectedRound {
     pub t_id: TournamentId,
-    pub round_data_buffer: Option<Round>,
     round: Option<RoundProfile>,
     draw_ticker: RoundResultTicker,
     round_data_buffer: Option<Round>,
@@ -53,8 +55,9 @@ impl SelectedRound {
                 "Draws",
                 None,
                 RoundResult::Draw(0),
-                0),
-            round_changes_buffer : None,
+                ctx.link().callback(RoundsViewMessage::SelectedRound),
+            ),
+            round_changes_buffer: None,
             process: ctx.link().callback(RoundsViewMessage::SelectedRound),
         }
     }
@@ -88,7 +91,10 @@ impl SelectedRound {
                             .unwrap()
                             .query_tourn(id, move |t| {
                                 let tourn = t.tourn();
-                                tourn.round_reg.get_round(&r_id).map(|r| RoundProfile::new(tourn, r))
+                                tourn
+                                    .round_reg
+                                    .get_round(&r_id)
+                                    .map(|r| RoundProfile::new(tourn, r))
                             })
                             .process()
                             .await
@@ -102,10 +108,22 @@ impl SelectedRound {
                 }
                 false
             }
+            SelectedRoundMessage::BufferMessage(msg) => {
+                match msg {
+                    RoundChangesBufferMessage::TickClicked(pid, msg) => {
+                        todo!()
+                    }
+                    RoundChangesBufferMessage::ResetAll() => todo!(),
+                }
+            }
         }
     }
 
     pub fn view(&self) -> Html {
+        let pushdata = move |_| {
+            // TODO: Push the buffer data to the actual round in the database
+            todo!();
+        };
         let returnhtml = self.round_data_buffer.as_ref()
             .map(|rnd| {
                 // TODO: Remove unwrap here
