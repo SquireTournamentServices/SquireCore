@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use squire_sdk::{
     model::{
         identifiers::{PlayerIdentifier, TypeId},
@@ -32,6 +34,7 @@ pub struct DeckProfile {
 #[derive(Debug, PartialEq, Clone)]
 pub struct RoundProfile {
     pub id: RoundId,
+    pub player_names: HashMap<PlayerId, String>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -216,8 +219,21 @@ impl DeckProfile {
 }
 
 impl RoundProfile {
-    pub fn new(rnd: &Round) -> Self {
-        Self { id: rnd.id }
+    pub fn new(tourn: &Tournament, rnd: &Round) -> Self {
+        Self {
+            id: rnd.id,
+            player_names: rnd
+                .players
+                .iter()
+                .filter_map(|p| {
+                    tourn
+                        .player_reg
+                        .players
+                        .get(p)
+                        .map(|plyr| (*p, plyr.name.clone()))
+                })
+                .collect(),
+        }
     }
 
     pub fn view(&self) -> Html {
@@ -242,7 +258,7 @@ impl SubviewInfo {
                 .round_reg
                 .rounds
                 .get(&r_id)
-                .map(|rnd| RoundProfile::new(rnd).into()),
+                .map(|rnd| RoundProfile::new(tourn, rnd).into()),
             SubviewInfo::Deck(p_id, name) => tourn
                 .player_reg
                 .players
