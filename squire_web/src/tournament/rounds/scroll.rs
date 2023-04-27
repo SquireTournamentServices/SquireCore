@@ -63,9 +63,6 @@ impl RoundScroll {
     }
 
     pub fn view(&self, report: RoundFilterReport) -> Html {
-        todo!()
-        /*
-        let RoundScrollQuery { sorted_rounds } = query;
         html! {
             <table class="table">
                 <thead>
@@ -76,7 +73,7 @@ impl RoundScroll {
                     </tr>
                 </thead>
                 <tbody>{
-                    sorted_rounds.into_iter().map(|r| {
+                    self.rounds.iter().cloned().map(|r| {
                         let cb = self.process.clone();
                         html! {
                             <tr onclick = { move |_| cb.emit(r.id) }>
@@ -89,7 +86,6 @@ impl RoundScroll {
                 }</tbody>
             </table>
         }
-        */
     }
 }
 

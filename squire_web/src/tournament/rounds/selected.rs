@@ -82,7 +82,8 @@ impl SelectedRound {
                             .get()
                             .unwrap()
                             .query_tourn(id, move |t| {
-                                t.tourn().round_reg.get_round(&r_id).map(RoundProfile::new)
+                                let tourn = t.tourn();
+                                tourn.round_reg.get_round(&r_id).map(|r| RoundProfile::new(tourn, r))
                             })
                             .process()
                             .await
@@ -97,38 +98,23 @@ impl SelectedRound {
                 false
             }
         }
-        /*
-        let digest = self.id != id;
-        self.id = id;
-        if digest {
-            self.round_data_buffer = CLIENT
-                .get()
-                .unwrap()
-                .query_tourn(self.t_id, move |t| t.get_round(&id.into()).cloned().ok())
-                .process()
-                .flatten();
-        }
-        digest
-        */
     }
 
     pub fn view(&self) -> Html {
-        todo!()
-        /*
         let returnhtml = self.round_data_buffer.as_ref()
             .map(|rnd| {
                 // TODO: Remove unwrap here
                 let dur_left = Duration::from_std(rnd.length + rnd.extension).unwrap() - (Utc::now() - rnd.timer);
                 html! {
                     <>
-                    <>{round_info_display(&rnd)}</>
+                    <>{round_info_display(rnd)}</>
                     <ul>
                     {
-                        query.plyr_names.into_iter()
+                        self.round.as_ref().map(|r| r.player_names.iter()
                             // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
                             .map(|(pid, name)| {
-                                let player_wins = rnd.results.get(&pid).cloned().unwrap_or_default();
-                                let player_confirm = rnd.confirmations.get(&pid).is_some();
+                                let player_wins = rnd.results.get(pid).cloned().unwrap_or_default();
+                                let player_confirm = rnd.confirmations.get(pid).is_some();
                                 html! {
                                     <li>
                                     <div>
@@ -140,7 +126,7 @@ impl SelectedRound {
                                     </li>
                                 }
                             })
-                            .collect::<Html>()
+                            .collect::<Html>()).unwrap_or_default()
                     }
                     </ul>
                     <p>
@@ -157,10 +143,9 @@ impl SelectedRound {
             .unwrap_or_else(|| html!{
                 <h4>{"Round not found"}</h4>
             });
-        return html! {
+        html! {
             <div class="m-2">{returnhtml}</div>
-        };
-        */
+        }
     }
 }
 

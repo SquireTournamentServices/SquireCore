@@ -22,7 +22,6 @@ pub struct TournOverview {
 
 pub fn fetch_overview_data(ctx: &Context<TournOverview>, id: TournamentId) {
     ctx.link().send_future(async move {
-        web_sys::console::log_1(&format!("Fetching tournament overview data...").into());
         let data = CLIENT
             .get()
             .unwrap()
@@ -46,9 +45,6 @@ impl Component for TournOverview {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TournOverviewMessage::OverviewQueryReady(data) => {
-                web_sys::console::log_1(
-                    &format!("Tournament overview data ready and loaded!!").into(),
-                );
                 let digest = self.profile != data || data.is_none();
                 self.profile = data;
                 digest
