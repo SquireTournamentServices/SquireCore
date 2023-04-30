@@ -4,6 +4,7 @@ use yew::prelude::*;
 
 use super::{RoundResultTickerMessage, RoundResultTicker};
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct RoundChangesBuffer {
     pub rid : RoundId,
     pub draw_ticker : RoundResultTicker,

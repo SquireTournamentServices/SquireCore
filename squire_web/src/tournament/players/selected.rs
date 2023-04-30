@@ -48,6 +48,7 @@ pub struct RoundProfile {
     pub timer: DateTime<Utc>,
     pub status: RoundStatus,
     pub results: HashMap<PlayerId, u32>,
+    pub draws: u32,
     pub confirmations: HashSet<PlayerId>,
     pub length: std::time::Duration,
     pub extensions: std::time::Duration,
@@ -256,6 +257,7 @@ impl RoundProfile {
             extensions: rnd.extension,
             timer: rnd.timer,
             results: rnd.results.clone(),
+            draws: rnd.draws,
             confirmations: rnd.confirmations.clone(),
         }
     }
