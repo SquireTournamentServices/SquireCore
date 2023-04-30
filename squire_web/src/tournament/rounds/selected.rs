@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use chrono::{Duration, Utc};
 use squire_sdk::{
@@ -14,7 +14,7 @@ use yew::prelude::*;
 use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
 
 use super::{
-    roundchangesbuffer::*, roundresultticker::*, RoundResultTicker, RoundsView, RoundsViewMessage,
+    roundchangesbuffer::{*, self}, roundresultticker::*, RoundResultTicker, RoundsView, RoundsViewMessage,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -28,10 +28,10 @@ pub enum SelectedRoundMessage {
 
 pub struct SelectedRound {
     pub t_id: TournamentId,
-    draw_ticker: RoundResultTicker,
+    // draw_ticker: RoundResultTicker,
     /// The data from the tournament that is used to display the round
     round: Option<(RoundProfile, RoundUpdater)>,
-    round_changes_buffer: Option<RoundChangesBuffer>,
+    // round_changes_buffer: Option<RoundChangesBuffer>,
     pub process: Callback<SelectedRoundMessage>,
 }
 
@@ -41,6 +41,7 @@ impl SelectedRound {
         Self {
             t_id,
             round: None,
+            /*
             draw_ticker: RoundResultTicker::new(
                 "Draws",
                 None,
@@ -48,6 +49,7 @@ impl SelectedRound {
                 ctx.link().callback(RoundsViewMessage::SelectedRound),
             ),
             round_changes_buffer: None,
+            */
             process: ctx.link().callback(RoundsViewMessage::SelectedRound),
         }
     }
@@ -70,7 +72,7 @@ impl SelectedRound {
             SelectedRoundMessage::RoundQueryReady(rnd) => {
                 let data = rnd.map(|rnd| {
                     send_ticker_future(rnd.id, ctx);
-                    let updater = RoundUpdater::new(&rnd);
+                    let updater = RoundUpdater::new(&rnd, self.process.clone());
                     (rnd, updater)
                 });
                 let digest = self.round != data;
@@ -110,7 +112,15 @@ impl SelectedRound {
                 }
                 false
             }
-            SelectedRoundMessage::BufferMessage(msg) => todo!(),
+            SelectedRoundMessage::BufferMessage(msg) => {
+                let Some((rnd, updater)) = self.round.as_mut() else { return false };
+                if (updater.round_changes_buffer.is_some()) {
+                    updater.round_changes_buffer.as_mut().unwrap().update(msg)
+                }
+                else {
+                    false
+                }
+            }
         }
     }
 
@@ -144,14 +154,33 @@ fn send_ticker_future(id: RoundId, ctx: &Context<RoundsView>) {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct RoundUpdater {}
+pub struct RoundUpdater {
+    /// Used to store changes to round
+    round_changes_buffer: Option<RoundChangesBuffer>,
+}
 
 impl RoundUpdater {
-    pub fn new(rnd: &RoundProfile) -> Self {
-        Self {}
+    pub fn new(rnd: &RoundProfile, process: Callback<SelectedRoundMessage>) -> Self {
+        Self {
+            round_changes_buffer: Some(RoundChangesBuffer::new(
+                rnd.id,
+                RoundResultTicker::new(
+                    "Draw",
+                    None,
+                    RoundResult::Draw(rnd.draws),
+                    process
+                ),
+            ))
+        }
     }
 
     pub fn view(&self) -> Html {
-        html! { "RoundUpdater view is under construction" }
+        html! {
+            <>
+                <p>{
+                    self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
+                }</p>
+            </>
+        }
     }
 }

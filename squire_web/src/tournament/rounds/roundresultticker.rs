@@ -9,6 +9,7 @@ use crate::tournament::rounds::{RoundsViewMessage, roundchangesbuffer::RoundChan
 
 use super::SelectedRoundMessage;
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct RoundResultTicker {
     pub label: &'static str,
     pub pid: Option<PlayerId>,
