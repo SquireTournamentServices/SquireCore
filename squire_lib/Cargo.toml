@@ -17,7 +17,7 @@ mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffcc
 
 uuid = { version = "1.1", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_with = { version = "2.2" }
+serde_with = { version = "3.0" }
 once_cell = { version = "1.8.0" }
 chrono = { version = "0.4", features = ["serde"] }
 itertools = { version = "0.10.0" }
