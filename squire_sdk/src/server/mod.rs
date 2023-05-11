@@ -31,6 +31,7 @@ pub mod accounts;
 //mod cards;
 pub mod state;
 pub mod tournaments;
+pub mod gathering;
 
 pub fn get_routes<S>() -> Router<S>
 where
@@ -92,7 +93,7 @@ where
     ServerVersionResponse::new(state.get_version())
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct User {
     pub account: SquireAccount,
 }
