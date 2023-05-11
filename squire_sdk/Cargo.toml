@@ -8,8 +8,8 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [features]
 default = []
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
-client = ["cookie", "reqwest", "serde_json"]
-server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio/full", "async-session", "headers", "http", "serde_json", "rand", "cookie"]
+client = ["cookie", "reqwest", "serde_json", "tokio-tungstenite"]
+server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio/full", "async-session", "headers", "http", "serde_json", "rand", "cookie", "futures"]
 
 [dependencies]
 # In-House deps
@@ -31,13 +31,15 @@ tokio = { version = "1.27.0", features = ["macros", "sync"] }
 # Client deps
 reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
 cookie_store = { version = "0.19", optional = true }
+tokio-tungstenite = { version = "0.18.0", optional = true }
 
 # Server deps
-axum = { version = "0.6.1", optional = true }
+axum = { version = "0.6.1", features = ["ws"], optional = true }
 rand = { version = "0.8.5", optional = true }
 async-session = { version = "3.0.0", optional = true }
 headers = { version = "0.3", optional = true }
 http = { version = "0.2", optional = true }
+futures = { version = "0.3", optional = true }
 
 # To be moved
 hashbag = { version = "0.1.10", features = ["serde"] }
