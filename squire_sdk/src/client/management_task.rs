@@ -1,12 +1,8 @@
-use std::{collections::HashMap, fmt::Debug, future::Future};
+use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
 
 use squire_lib::{
     operations::{OpResult, TournOp},
     tournament::TournamentId,
-};
-use tokio::sync::{
-    mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot,
 };
 
 use crate::tournaments::TournamentManager;
@@ -15,7 +11,7 @@ use super::{
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
-    update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
+    update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType}, compat::{spawn_task, rest, UnboundedSender, unbounded_channel, UnboundedReceiver},
 };
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";
@@ -75,39 +71,6 @@ pub(super) fn spawn_management_task() -> ManagementTaskSender {
         update,
         import,
     }
-}
-
-#[cfg(target_family = "wasm")]
-/// Spawns a future that will execute in the background of the current thread. WASM bindgen's
-/// `spawn_local` is used for this as tokio is caused problems in the browswer.
-fn spawn_task<F>(fut: F)
-where
-    F: 'static + Future<Output = ()>,
-{
-    wasm_bindgen_futures::spawn_local(async {
-        fut.await
-    });
-}
-
-#[cfg(target_family = "wasm")]
-async fn rest(dur: Duration) {
-    gloo_timers::future::TimeoutFuture::new(dur.as_millis() as u32).await;
-}
-
-#[cfg(not(target_family = "wasm"))]
-/// Spawns a future that will execute. The future must return nothing for compatability with the
-/// WASM version.
-fn spawn_task<F>(fut: F)
-where
-    F: 'static + Send + Future<Output = ()>,
-{
-    tokio::spawn(fut);
-}
-
-use std::time::Duration;
-#[cfg(not(target_family = "wasm"))]
-async fn rest(dur: Duration) {
-    tokio::time::sleep(dur).await;
 }
 
 type TournamentCache = HashMap<TournamentId, TournamentManager>;
