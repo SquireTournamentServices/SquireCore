@@ -26,7 +26,6 @@ where
     SettingPanel::new(label, item, emitter.clone())
 }
 
-
 fn make_chain<T, F, S>(f: F) -> impl Clone + Fn(String) -> Option<TournamentSetting>
 where
     T: 'static + FromStr,

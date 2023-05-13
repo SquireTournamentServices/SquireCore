@@ -1,7 +1,5 @@
 use gloo_net::http::Request;
-use squire_sdk::{
-    api::GET_TOURNAMENT_ROUTE, tournaments::TournamentId,
-};
+use squire_sdk::{api::GET_TOURNAMENT_ROUTE, tournaments::TournamentId};
 
 use crate::CLIENT;
 

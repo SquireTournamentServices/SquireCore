@@ -1,7 +1,13 @@
 use yew::prelude::*;
 
 use squire_sdk::{
-    model::{scoring::{ScoringSystem, StandardScoring, ScoringStyle}, settings::{StandardScoringSettingsTree, ScoringSettingsTree, ScoringStyleSetting, ScoringStyleSettingsTree}},
+    model::{
+        scoring::{ScoringStyle, ScoringSystem, StandardScoring},
+        settings::{
+            ScoringSettingsTree, ScoringStyleSetting, ScoringStyleSettingsTree,
+            StandardScoringSettingsTree,
+        },
+    },
     tournaments::Tournament,
 };
 

@@ -7,7 +7,10 @@ use squire_sdk::{
     tournaments::Tournament,
 };
 
-use super::{panel::{make_panel, SettingPanel}, SettingsMessage};
+use super::{
+    panel::{make_panel, SettingPanel},
+    SettingsMessage,
+};
 
 pub struct GeneralSettings {
     starting_table: SettingPanel,
