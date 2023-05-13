@@ -6,6 +6,7 @@ use yew::{html, Callback, Component, Context, Html, Properties};
 
 use squire_sdk::{
     api::GET_TOURNAMENT_ROUTE,
+    model::{admin::Admin, identifiers::AdminId},
     tournaments::{TournamentId, TournamentManager},
 };
 
@@ -28,7 +29,7 @@ pub enum TournViewMode {
 #[derive(Debug)]
 pub enum TournViewMessage {
     TournamentImported,
-    QueryReady(Option<String>),
+    QueryReady(Option<(String, AdminId)>),
     SwitchModes(TournViewMode),
 }
 
@@ -41,6 +42,7 @@ pub struct TournamentViewer {
     pub id: TournamentId,
     pub mode: TournViewMode,
     tourn_name: String,
+    admin_id: AdminId,
 }
 
 impl TournamentViewer {
@@ -74,7 +76,7 @@ impl TournamentViewer {
                 html! { <PlayerView id = { self.id }/> }
             }
             TournViewMode::Rounds => {
-                html! { <RoundsView id = { self.id }/> }
+                html! { <RoundsView id = { self.id } admin_id = { self.admin_id } /> }
             }
             TournViewMode::Standings => {
                 html! { <StandingsView id = { self.id }/> }
@@ -101,6 +103,7 @@ impl Component for TournamentViewer {
             id,
             mode: TournViewMode::default(),
             tourn_name: String::new(),
+            admin_id: AdminId::default(),
         }
     }
 
@@ -118,17 +121,24 @@ impl Component for TournamentViewer {
                     let data = CLIENT
                         .get()
                         .unwrap()
-                        .query_tourn(id, |t| t.tourn().name.clone())
+                        .query_tourn(id, |t| {
+                            let tourn = t.tourn();
+                            (
+                                tourn.name.clone(),
+                                tourn.admins.keys().next().cloned().unwrap_or_default(),
+                            )
+                        })
                         .process()
                         .await;
                     TournViewMessage::QueryReady(data)
                 });
                 false
             }
-            TournViewMessage::QueryReady(Some(name)) => {
+            TournViewMessage::QueryReady(Some((name, admin_id))) => {
                 web_sys::console::log_1(&format!("Tournament name ready and loaded!!").into());
                 let digest = self.tourn_name != name;
                 self.tourn_name = name;
+                self.admin_id = admin_id;
                 digest
             }
             TournViewMessage::QueryReady(None) => {

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use squire_sdk::{
     model::{
-        identifiers::RoundIdentifier,
+        identifiers::{AdminId, RoundIdentifier},
         rounds::{RoundId, RoundStatus},
     },
     tournaments::TournamentId,
@@ -13,8 +13,8 @@ use crate::{utils::TextInput, CLIENT};
 
 pub mod creator;
 pub mod input;
-pub mod roundresultticker;
 pub mod roundchangesbuffer;
+pub mod roundresultticker;
 pub mod scroll;
 pub mod selected;
 pub use creator::*;
@@ -23,9 +23,12 @@ pub use roundresultticker::*;
 pub use scroll::*;
 pub use selected::*;
 
+use self::_RoundsFilterProps::admin_id;
+
 #[derive(Debug, PartialEq, Properties)]
 pub struct RoundsFilterProps {
     pub id: TournamentId,
+    pub admin_id: AdminId,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -37,6 +40,7 @@ pub enum RoundsViewMessage {
 
 pub struct RoundsView {
     pub id: TournamentId,
+    pub admin_id: AdminId,
     input: RoundFilterInput,
     scroll: RoundScroll,
     selected: SelectedRound,
@@ -48,11 +52,13 @@ impl Component for RoundsView {
 
     fn create(ctx: &Context<Self>) -> Self {
         let id = ctx.props().id;
+        let aid = ctx.props().admin_id;
         Self {
             id,
             input: RoundFilterInput::new(ctx.link().callback(RoundsViewMessage::FilterInput)),
             scroll: RoundScroll::new(ctx, id),
-            selected: SelectedRound::new(ctx, id),
+            admin_id: aid,
+            selected: SelectedRound::new(ctx, id, aid),
         }
     }
 
@@ -80,7 +86,6 @@ impl Component for RoundsView {
         }
     }
 }
-
 
 impl From<RoundFilterInputMessage> for RoundsViewMessage {
     fn from(msg: RoundFilterInputMessage) -> Self {

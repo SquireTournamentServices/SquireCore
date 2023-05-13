@@ -6,7 +6,7 @@ use web_sys::HtmlInputElement;
 
 use yew::prelude::*;
 
-use crate::{utils::TextInput, tournament::players::RoundProfile};
+use crate::{tournament::players::RoundProfile, utils::TextInput};
 
 use super::RoundSummary;
 
