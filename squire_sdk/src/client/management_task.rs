@@ -8,10 +8,11 @@ use squire_lib::{
 use crate::tournaments::TournamentManager;
 
 use super::{
+    compat::{rest, spawn_task, unbounded_channel, UnboundedReceiver, UnboundedSender},
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
-    update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType}, compat::{spawn_task, rest, UnboundedSender, unbounded_channel, UnboundedReceiver},
+    update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
 };
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";

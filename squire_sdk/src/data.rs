@@ -8,7 +8,7 @@ use squire_lib::{
     pairings::PairingSystem,
     players::{Deck, Player, PlayerId, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundContext, RoundId, RoundRegistry, RoundStatus},
-    scoring::{StandardScore, Standings, ScoringSystem},
+    scoring::{ScoringSystem, StandardScore, Standings},
     settings::GeneralSettingsTree,
     tournament::{Tournament, TournamentId, TournamentStatus},
 };
