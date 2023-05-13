@@ -22,7 +22,6 @@ use squire_lib::{
     players::PlayerRegistry,
     rounds::RoundRegistry,
 };
-use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     accounts::{
@@ -51,10 +50,11 @@ use self::{
     import::ImportTracker,
     management_task::{spawn_management_task, ManagementTaskSender},
     query::QueryTracker,
-    update::{UpdateTracker, UpdateType},
+    update::{UpdateTracker, UpdateType}, compat::Session, error::ClientResult,
 };
 
 pub mod error;
+pub mod compat;
 pub mod import;
 pub mod management_task;
 pub mod query;
@@ -65,10 +65,7 @@ pub struct SquireClient {
     client: Client,
     url: String,
     user: SquireAccount,
-    #[cfg(target_family = "wasm")]
-    session: Option<()>,
-    #[cfg(not(target_family = "wasm"))]
-    session: Option<Cookie<'static>>,
+    session: Session,
     verification: Option<VerificationData>,
     server_mode: ServerMode,
     sender: ManagementTaskSender,
@@ -86,7 +83,7 @@ impl SquireClient {
         let server_mode = version.mode;
         let sender = spawn_management_task();
         Ok(Self {
-            session: None,
+            session: Session::default(),
             verification: None,
             client,
             url,
@@ -135,7 +132,7 @@ impl SquireClient {
     {
         let sender = spawn_management_task();
         Self {
-            session: None,
+            session: Session::default(),
             verification: None,
             client: Client::new(),
             server_mode: ServerMode::Extended,
@@ -151,22 +148,8 @@ impl SquireClient {
         self.store_cred(&resp)
     }
 
-    #[cfg(target_family = "wasm")]
-    fn store_cred(&mut self, _: &Response) -> Result<(), ClientError> {
-        // TODO: This is really all that we can do because of the browser?
-        self.session = Some(());
-        Ok(())
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    fn store_cred(&mut self, resp: &Response) -> Result<(), ClientError> {
-        let session = resp
-            .cookies()
-            .find(|c| c.name() == COOKIE_NAME)
-            .ok_or(ClientError::LogInFailed)?;
-        let cookie = Cookie::build(COOKIE_NAME, session.value().to_string()).finish();
-        self.session = Some(cookie);
-        Ok(())
+    fn store_cred(&mut self, resp: &Response) -> ClientResult<()> {
+        self.session.load_from_resp(resp)
     }
 
     pub fn is_verify(&self) -> bool {
@@ -252,20 +235,8 @@ impl SquireClient {
             .map_err(Into::into)
     }
 
-    #[cfg(target_family = "wasm")]
     fn cred_string(&self) -> Result<String, ClientError> {
-        self.session
-            .as_ref()
-            .map(|_| String::new())
-            .ok_or(ClientError::NotLoggedIn)
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    fn cred_string(&self) -> Result<String, ClientError> {
-        self.session
-            .as_ref()
-            .map(|c| c.to_string())
-            .ok_or(ClientError::NotLoggedIn)
+        self.session.cred_string()
     }
 
     async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {

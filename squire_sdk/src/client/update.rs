@@ -2,22 +2,21 @@ use squire_lib::{
     operations::{OpResult, TournOp},
     tournament::TournamentId,
 };
-use tokio::sync::oneshot;
 
-use super::error::ClientResult;
+use super::{error::ClientResult, compat::{OneshotSender, OneshotReceiver, oneshot}};
 
 #[derive(Debug)]
 pub(crate) struct TournamentUpdate {
-    pub(crate) local: oneshot::Sender<Option<OpResult>>,
-    pub(crate) remote: oneshot::Sender<Option<ClientResult<()>>>,
+    pub(crate) local: OneshotSender<Option<OpResult>>,
+    pub(crate) remote: OneshotSender<Option<ClientResult<()>>>,
     pub(crate) id: TournamentId,
     pub(crate) update: UpdateType,
 }
 
 #[derive(Debug)]
 pub struct UpdateTracker {
-    local: oneshot::Receiver<Option<OpResult>>,
-    remote: oneshot::Receiver<Option<ClientResult<()>>>,
+    local: OneshotReceiver<Option<OpResult>>,
+    remote: OneshotReceiver<Option<ClientResult<()>>>,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -31,8 +30,8 @@ pub(crate) fn update_channel(
     id: TournamentId,
     update: UpdateType,
 ) -> (TournamentUpdate, UpdateTracker) {
-    let (local_send, local_recv) = oneshot::channel();
-    let (remote_send, remote_recv) = oneshot::channel();
+    let (local_send, local_recv) = oneshot();
+    let (remote_send, remote_recv) = oneshot();
     let update = TournamentUpdate {
         local: local_send,
         remote: remote_send,
