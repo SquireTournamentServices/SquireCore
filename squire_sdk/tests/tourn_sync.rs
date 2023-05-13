@@ -2,14 +2,9 @@ mod utils;
 
 #[cfg(test)]
 mod tests {
-    use squire_sdk::{
-        model::{
-            accounts::SquireAccount,
-        },
-        sync::TournamentManager,
-    };
+    use squire_sdk::{model::accounts::SquireAccount, sync::TournamentManager};
 
-    use crate::utils::{get_seed};
+    use crate::utils::get_seed;
 
     fn create_managers(
         creator: SquireAccount,

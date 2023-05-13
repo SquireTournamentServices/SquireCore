@@ -5,23 +5,23 @@ use std::{
     time::Duration,
 };
 
-use tokio::sync::oneshot;
-
 use crate::tournaments::TournamentManager;
+
+use super::compat::{oneshot, OneshotReceiver, OneshotSender};
 
 #[derive(Debug)]
 pub struct TournamentImport {
     pub(crate) tourn: TournamentManager,
-    pub(crate) tracker: oneshot::Sender<()>,
+    pub(crate) tracker: OneshotSender<()>,
 }
 
 #[derive(Debug)]
 pub struct ImportTracker {
-    tracker: oneshot::Receiver<()>,
+    tracker: OneshotReceiver<()>,
 }
 
 pub(crate) fn import_channel(tourn: TournamentManager) -> (TournamentImport, ImportTracker) {
-    let (send, recv) = oneshot::channel();
+    let (send, recv) = oneshot();
     let import = TournamentImport {
         tracker: send,
         tourn,
@@ -32,7 +32,7 @@ pub(crate) fn import_channel(tourn: TournamentManager) -> (TournamentImport, Imp
 
 impl ImportTracker {
     pub async fn process(self) {
-        let _ = self.tracker.await;
+        let _ = self.tracker.recv().await;
     }
 
     pub fn process_spin(mut self) {

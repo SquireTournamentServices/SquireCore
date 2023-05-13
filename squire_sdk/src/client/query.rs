@@ -25,7 +25,7 @@ pub struct QueryTracker<T> {
 impl<T> QueryTracker<T> {
     /// Consumes self and waits for the task to finish processing the query
     pub async fn process(self) -> Option<T> {
-        self.recv.await.ok().flatten()
+        self.recv.recv().await.flatten()
     }
 }
 

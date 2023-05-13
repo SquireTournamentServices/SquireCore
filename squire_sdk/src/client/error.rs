@@ -10,7 +10,7 @@ pub enum ClientError {
     FailedToConnect,
     Reqwest(reqwest::Error),
     RequestStatus(StatusCode),
-    Tournament(TournamentError)
+    Tournament(TournamentError),
 }
 
 impl From<StatusCode> for ClientError {

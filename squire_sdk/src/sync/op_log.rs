@@ -273,7 +273,7 @@ impl Extend<FullOp> for OpSlice {
 
 #[cfg(test)]
 mod tests {
-    use squire_tests::{spoof_account, get_seed};
+    use squire_tests::{get_seed, spoof_account};
 
     use super::OpLog;
 
