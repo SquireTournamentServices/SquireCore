@@ -47,14 +47,16 @@ use crate::{
 };
 
 use self::{
+    compat::Session,
+    error::ClientResult,
     import::ImportTracker,
     management_task::{spawn_management_task, ManagementTaskSender},
     query::QueryTracker,
-    update::{UpdateTracker, UpdateType}, compat::Session, error::ClientResult,
+    update::{UpdateTracker, UpdateType},
 };
 
-pub mod error;
 pub mod compat;
+pub mod error;
 pub mod import;
 pub mod management_task;
 pub mod query;
@@ -128,8 +130,7 @@ impl SquireClient {
     }
 
     /// Creates a client and does not check if the URL is valid
-    pub fn new_unchecked(url: String, user: SquireAccount) -> Self
-    {
+    pub fn new_unchecked(url: String, user: SquireAccount) -> Self {
         let sender = spawn_management_task();
         Self {
             session: Session::default(),

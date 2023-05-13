@@ -3,7 +3,10 @@ use squire_lib::{
     tournament::TournamentId,
 };
 
-use super::{error::ClientResult, compat::{OneshotSender, OneshotReceiver, oneshot}};
+use super::{
+    compat::{oneshot, OneshotReceiver, OneshotSender},
+    error::ClientResult,
+};
 
 #[derive(Debug)]
 pub(crate) struct TournamentUpdate {

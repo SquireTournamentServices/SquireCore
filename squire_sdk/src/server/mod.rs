@@ -29,9 +29,9 @@ use self::state::ServerState;
 
 pub mod accounts;
 //mod cards;
+pub mod gathering;
 pub mod state;
 pub mod tournaments;
-pub mod gathering;
 
 pub fn get_routes<S>() -> Router<S>
 where

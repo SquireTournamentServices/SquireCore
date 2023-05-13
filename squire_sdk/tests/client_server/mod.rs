@@ -41,12 +41,7 @@ pub async fn init() {
         });
     }
     tokio::time::sleep(Duration::from_millis(1)).await;
-    match SquireClient::new(
-        "http://localhost:8000".to_owned(),
-        account,
-    )
-    .await
-    {
+    match SquireClient::new("http://localhost:8000".to_owned(), account).await {
         Ok(client) => {
             CLIENT.set(client).unwrap();
         }

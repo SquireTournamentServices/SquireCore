@@ -8,8 +8,8 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [features]
 default = []
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
-client = ["cookie", "reqwest", "serde_json", "tokio-tungstenite", "gloo-timers"]
-server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio/full", "async-session", "headers", "http", "serde_json", "rand", "cookie", "futures"]
+client = ["cookie", "reqwest", "serde_json", "tokio-tungstenite", "tokio", "async-std", "futures"]
+server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio", "tokio/full", "async-session", "headers", "http", "serde_json", "rand", "cookie", "futures"]
 
 [dependencies]
 # In-House deps
@@ -26,6 +26,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # Client || Server deps
 cookie = { version = "0.17", optional = true }
 serde_json = { version = "1.0.68", optional = true }
+futures = { version = "0.3", optional = true }
 
 # Client deps
 reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
@@ -37,18 +38,17 @@ rand = { version = "0.8.5", optional = true }
 async-session = { version = "3.0.0", optional = true }
 headers = { version = "0.3", optional = true }
 http = { version = "0.2", optional = true }
-futures = { version = "0.3", optional = true }
 
 # To be moved
 hashbag = { version = "0.1.10", features = ["serde"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio-tungstenite = { version = "0.18.0", optional = true }
-tokio = { version = "1.27.0", features = ["macros", "sync"], optional = true }
+tokio = { version = "1.27.0", features = ["macros", "sync", "time"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = { version = "0.4.34" }
-gloo-timers = { version = "0.2.0", optional = true }
+async-std = { version = "1.12", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"

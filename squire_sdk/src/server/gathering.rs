@@ -7,7 +7,7 @@ use std::{
 use async_session::Session;
 use axum::extract::ws::{Message, WebSocket};
 use futures::{
-    stream::{SelectAll, SplitStream, SplitSink},
+    stream::{SelectAll, SplitSink, SplitStream},
     StreamExt,
 };
 use squire_lib::tournament::TournamentId;
