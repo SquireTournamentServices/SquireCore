@@ -1,9 +1,10 @@
 use std::{fmt::Debug, time::Duration};
 
 use squire_lib::tournament::TournamentId;
-use tokio::sync::oneshot::{self, error::TryRecvError};
 
 use crate::tournaments::TournamentManager;
+
+use super::compat::{oneshot, OneshotReceiver};
 
 /// The type used to send requests for arbitary calculations to the tournament management task. The
 /// boxed function contains a tokio oneshot channel, which communicates the calculation results
@@ -18,7 +19,7 @@ pub(crate) struct TournamentQuery {
 /// result of the query
 #[derive(Debug)]
 pub struct QueryTracker<T> {
-    recv: oneshot::Receiver<Option<T>>,
+    recv: OneshotReceiver<Option<T>>,
 }
 
 impl<T> QueryTracker<T> {
@@ -51,7 +52,7 @@ where
     F: 'static + Send + FnOnce(&TournamentManager) -> T,
     T: 'static + Send,
 {
-    let (send, recv) = oneshot::channel();
+    let (send, recv) = oneshot();
     let query = Box::new(move |tourn: Option<&TournamentManager>| {
         // We ignore the result from `send` as it means the receiver was dropped and result of
         // the query is no longer needed.
