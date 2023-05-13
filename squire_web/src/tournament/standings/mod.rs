@@ -106,7 +106,11 @@ impl StandingsProfile {
             .into_iter()
             .enumerate()
             .filter_map(|(i, (id, score))| {
-                tourn.player_reg.get_player(&id).map(|p| (i, p.name.clone())).ok()
+                tourn
+                    .player_reg
+                    .get_player(&id)
+                    .map(|p| (i, p.name.clone()))
+                    .ok()
             })
             .collect();
         Self { standings }

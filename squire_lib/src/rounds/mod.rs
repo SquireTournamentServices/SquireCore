@@ -35,7 +35,7 @@ pub enum RoundStatus {
     Dead,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, Copy)]
 #[repr(C)]
 /// Encodes part of the final result of a round
 pub enum RoundResult {

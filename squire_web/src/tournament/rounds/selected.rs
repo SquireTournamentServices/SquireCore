@@ -1,22 +1,27 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use squire_sdk::{
     model::{
+        identifiers::AdminId,
+        operations::{AdminOp, JudgeOp},
         rounds::{Round, RoundId, RoundResult, RoundStatus},
         tournament::Tournament,
     },
     players::PlayerId,
-    tournaments::TournamentId,
+    tournaments::{TournOp, TournamentId},
 };
 use yew::prelude::*;
 
 use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
 
 use super::{
-    roundchangesbuffer::{*, self}, roundresultticker::*, RoundResultTicker, RoundsView, RoundsViewMessage,
+    roundchangesbuffer::{self, *},
+    roundresultticker::*,
+    RoundResultTicker, RoundsView, RoundsViewMessage,
 };
 
+/// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]
 pub enum SelectedRoundMessage {
     RoundSelected(RoundId),
@@ -24,10 +29,13 @@ pub enum SelectedRoundMessage {
     /// Optional because the lookup "may" fail
     RoundQueryReady(Option<RoundProfile>),
     BufferMessage(RoundChangesBufferMessage),
+    PushChanges(RoundId),
 }
 
+/// Sub-Component displaying round currently selected
 pub struct SelectedRound {
     pub t_id: TournamentId,
+    pub admin_id: AdminId,
     // draw_ticker: RoundResultTicker,
     /// The data from the tournament that is used to display the round
     round: Option<(RoundProfile, RoundUpdater)>,
@@ -36,20 +44,12 @@ pub struct SelectedRound {
 }
 
 impl SelectedRound {
-    pub fn new(ctx: &Context<RoundsView>, t_id: TournamentId) -> Self {
+    pub fn new(ctx: &Context<RoundsView>, t_id: TournamentId, admin_id: AdminId) -> Self {
         send_ticker_future(Default::default(), ctx);
         Self {
             t_id,
+            admin_id,
             round: None,
-            /*
-            draw_ticker: RoundResultTicker::new(
-                "Draws",
-                None,
-                RoundResult::Draw(0),
-                ctx.link().callback(RoundsViewMessage::SelectedRound),
-            ),
-            round_changes_buffer: None,
-            */
             process: ctx.link().callback(RoundsViewMessage::SelectedRound),
         }
     }
@@ -116,10 +116,56 @@ impl SelectedRound {
                 let Some((rnd, updater)) = self.round.as_mut() else { return false };
                 if (updater.round_changes_buffer.is_some()) {
                     updater.round_changes_buffer.as_mut().unwrap().update(msg)
-                }
-                else {
+                } else {
                     false
                 }
+            }
+            SelectedRoundMessage::PushChanges(rid) => {
+                // DATA PUSHING DOES NOT WORK
+                // the trait `std::marker::Send` is not implemented for `Rc<(dyn Fn(tournament::rounds::selected::SelectedRoundMessage) + 'static)>` = note: required because it appears within the type `Callback<SelectedRoundMessage>`
+                // apparently 'Send' is not something that can just be implemented with the derive macro
+                /*
+                console_log("Pushing data");
+                CLIENT
+                .get()
+                .unwrap()
+                .update_tourn(self.t_id, move |t| {
+                    let tourn = t.tourn();
+                    let rcb = self.round.unwrap().1.round_changes_buffer.unwrap();
+                    // Apply draws
+                    if (rcb.draw_ticker.was_changed)
+                    {
+                        let op = TournOp::JudgeOp(
+                            todo!(),
+                            JudgeOp::AdminRecordResult(rid,rcb.draw_ticker.stored_result.clone())
+                        );
+                        tourn.apply_op(Utc::now(), op);
+                    }
+                    // TODO: Apply wins
+                });
+                */
+                let rcb = self
+                    .round
+                    .as_ref()
+                    .unwrap()
+                    .1
+                    .round_changes_buffer
+                    .as_ref()
+                    .unwrap();
+                let mut ops = Vec::with_capacity(rcb.win_tickers.len()+1);
+
+                if (rcb.draw_ticker.was_changed) {
+                    ops.push(TournOp::JudgeOp(
+                        self.admin_id.clone().into(),
+                        JudgeOp::AdminRecordResult(rid, rcb.draw_ticker.stored_result.clone()),
+                    ));
+                }
+                ops.extend(rcb.win_tickers.values().filter_map(|wt| {
+                    wt.into_op(self.admin_id, rid)
+                }));
+
+                CLIENT.get().unwrap().bulk_update(self.t_id, ops);
+                false
             }
         }
     }
@@ -131,6 +177,7 @@ impl SelectedRound {
             <div class="m-2">
             <>
             <> { rnd.view() } </> // The "data" half of the round's view
+            <hr />
             <p>
             {
                 updater.view()
@@ -146,6 +193,7 @@ impl SelectedRound {
     }
 }
 
+/// Called once every second; updates the timer
 fn send_ticker_future(id: RoundId, ctx: &Context<RoundsView>) {
     ctx.link().send_future(async move {
         async_std::task::sleep(std::time::Duration::from_secs(1)).await;
@@ -154,32 +202,75 @@ fn send_ticker_future(id: RoundId, ctx: &Context<RoundsView>) {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+/// Portion of the selected round panel used for updating values
 pub struct RoundUpdater {
     /// Used to store changes to round
     round_changes_buffer: Option<RoundChangesBuffer>,
+    /// Round id
+    rid: RoundId,
+    /// Used to send messages up
+    process: Callback<SelectedRoundMessage>,
 }
 
 impl RoundUpdater {
     pub fn new(rnd: &RoundProfile, process: Callback<SelectedRoundMessage>) -> Self {
-        Self {
-            round_changes_buffer: Some(RoundChangesBuffer::new(
-                rnd.id,
+        let proc = process.clone();
+        let mut rcb = RoundChangesBuffer::new(
+            rnd.id,
+            RoundResultTicker::new("Draws".into(), None, RoundResult::Draw(rnd.draws), proc),
+        );
+        let proc = process.clone();
+        //rcb.win_tickers.insert(*r.0, ticker);
+        rcb.win_tickers.extend(rnd.player_names.iter().map(|r| {
+            let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
+            (
+                *r.0,
                 RoundResultTicker::new(
-                    "Draw",
-                    None,
-                    RoundResult::Draw(rnd.draws),
-                    process
+                    format!("{} wins: ", r.1).into(),
+                    Some(*r.0),
+                    RoundResult::Wins(*r.0, found_result),
+                    proc.clone(),
                 ),
-            ))
+            )
+        }));
+        Self {
+            round_changes_buffer: Some(rcb),
+            rid: rnd.id,
+            process,
         }
     }
 
     pub fn view(&self) -> Html {
+        let rid = self.rid.clone();
+        let cb = self.process.clone();
+        let pushdata = move |me: MouseEvent| {
+            cb.emit(SelectedRoundMessage::PushChanges(rid));
+        };
+        let win_list = self
+            .round_changes_buffer
+            .as_ref()
+            .unwrap()
+            .win_tickers
+            .iter()
+            .map(|(p, wt)| {
+                console_log("Dumping a win info");
+                html! {
+                    <p>
+                    <>{ wt.view() }</>
+                    </p>
+                }
+            })
+            .collect::<Html>();
         html! {
             <>
-                <p>{
-                    self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
-                }</p>
+            <p>{
+                win_list
+            }</p>
+            <p>{
+                self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
+            }</p>
+            <br />
+            <button onclick={pushdata}>{"Submit changes"}</button>
             </>
         }
     }

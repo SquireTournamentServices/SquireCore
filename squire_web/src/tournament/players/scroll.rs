@@ -8,7 +8,9 @@ use yew::prelude::*;
 
 use crate::{utils::TextInput, CLIENT};
 
-use super::{input::PlayerFilterReport, PlayerProfile, PlayerViewMessage, PlayerView, SelectedPlayerMessage};
+use super::{
+    input::PlayerFilterReport, PlayerProfile, PlayerView, PlayerViewMessage, SelectedPlayerMessage,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerScrollMessage {
@@ -26,7 +28,8 @@ fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
             .get()
             .unwrap()
             .query_players(id, |plyrs| {
-                plyrs.players
+                plyrs
+                    .players
                     .values()
                     .map(PlayerSummary::new)
                     .collect::<Vec<_>>()
