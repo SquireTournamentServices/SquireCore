@@ -16,7 +16,7 @@ use tokio::{
     time::Instant,
 };
 
-use crate::tournaments::TournamentManager;
+use crate::tournaments::{TournamentManager, SyncRequest};
 
 use super::User;
 
@@ -113,12 +113,12 @@ impl GatheringHall {
 
     pub async fn run(mut self) -> ! {
         let wait_time = Duration::from_secs(5);
-        let now_then = || Instant::now().checked_add(wait_time.clone()).unwrap();
+        let now_then = || Instant::now().checked_add(wait_time).unwrap();
         let mut then = now_then();
         let mut persist_reqs = HashSet::new();
         loop {
             tokio::select! {
-                _ = tokio::time::sleep_until(then.clone()) => {
+                _ = tokio::time::sleep_until(then) => {
                     while let Ok(PersistMessage(id)) = self.persists.try_recv() {
                         persist_reqs.insert(id);
                     }
@@ -178,13 +178,21 @@ impl Gathering {
 
     async fn run(mut self) -> ! {
         loop {
-            tokio::select! {
-                msg = self.new_onlookers.recv() => {
-                    self.process_new_onlooker(msg.unwrap())
-                }
-                msg = self.incoming.next() => {
-                    // TODO: Verify that this send unwrap is safe
-                    self.process_incoming_message(msg.unwrap().unwrap())
+            if self.incoming.is_empty() {
+                let msg = self.new_onlookers.recv().await;
+                self.process_new_onlooker(msg.unwrap())
+            } else {
+                tokio::select! {
+                    msg = self.new_onlookers.recv() => {
+                        self.process_new_onlooker(msg.unwrap())
+                    }
+                    msg = self.incoming.next() => {
+                        let res = match msg.unwrap() {
+                            Ok(msg) => self.process_incoming_message(msg),
+                            Err(_) => continue, // One of the streams closed... I think, move on
+                        };
+                        self.sync_request_response(res).await;
+                    }
                 }
             }
         }
@@ -203,7 +211,38 @@ impl Gathering {
         }
     }
 
-    fn process_incoming_message(&mut self, msg: Message) {
+    // TODO: Return a "real" value
+    fn process_incoming_message(&mut self, msg: Message) -> Result<(), ()> {
+        let Message::Binary(data) = msg else { return Err(()) }; // We only process binary data
+        let sync = postcard::from_bytes(&data).map_err(|_| ())?;
+        self.validate_sync_request(&sync)?;
+        self.process_sync_request(sync)
+    }
+
+    // TODO: Return an actual error
+    // TODO: This method does not actually check to see if the person that sent the request is
+    // allowed to send such a return. This will need to eventually change
+    fn validate_sync_request(&mut self, sync: &SyncRequest) -> Result<(), ()> {
+        Ok(())
+    }
+
+    // TODO: Return a "real" value
+    fn process_sync_request(&mut self, sync: SyncRequest) -> Result<(), ()> {
+        todo!()
+    }
+
+    /// This method handles dispatching the response to a sync request as well as any additional
+    /// forwarding any necessary requests to the other `Onlooker`s
+    async fn sync_request_response(&mut self, res: Result<(), ()>) {
+        match res {
+            Err(_) => {
+                // Respond back with the sync error
+            }
+            Ok(_) => {
+                // Respond back saying the sync was successful
+                // Forward the sync request/list of ops to all other clients
+            }
+        }
         todo!()
     }
 

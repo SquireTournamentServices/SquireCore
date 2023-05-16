@@ -8,8 +8,9 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [features]
 default = []
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
-client = ["cookie", "reqwest", "serde_json", "tokio-tungstenite", "tokio", "async-std", "futures"]
-server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio", "tokio/full", "async-session", "headers", "http", "serde_json", "rand", "cookie", "futures"]
+client = ["cookie", "reqwest", "serde_json", "tokio-tungstenite", "tokio", "async-std", "futures", "postcard"]
+server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio", "tokio/full", "async-session",
+          "headers", "http", "serde_json", "rand", "cookie", "futures", "postcard"]
 
 [dependencies]
 # In-House deps
@@ -22,11 +23,13 @@ serde_with = { version = "3.0" }
 const_format = { version = "0.2.30" }
 array-concat = { version = "0.5.1" }
 chrono = { version = "0.4", features = ["serde"] }
+ulid = { version = "1.0", features = ["serde"] }
 
 # Client || Server deps
 cookie = { version = "0.17", optional = true }
 serde_json = { version = "1.0.68", optional = true }
 futures = { version = "0.3", optional = true }
+postcard = { version = "1.0", optional = true }
 
 # Client deps
 reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
