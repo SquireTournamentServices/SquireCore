@@ -15,11 +15,13 @@ pub mod creator;
 pub mod input;
 pub mod roundchangesbuffer;
 pub mod roundresultticker;
+pub mod roundconfirmationticker;
 pub mod scroll;
 pub mod selected;
 pub use creator::*;
 pub use input::*;
 pub use roundresultticker::*;
+pub use roundconfirmationticker::*;
 pub use scroll::*;
 pub use selected::*;
 

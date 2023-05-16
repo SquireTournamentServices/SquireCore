@@ -18,7 +18,7 @@ use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
 use super::{
     roundchangesbuffer::{self, *},
     roundresultticker::*,
-    RoundResultTicker, RoundsView, RoundsViewMessage,
+    RoundResultTicker, RoundsView, RoundsViewMessage, RoundConfirmationTicker,
 };
 
 /// Message to be passed to the selected round
@@ -180,7 +180,7 @@ impl SelectedRound {
             <hr />
             <p>
             {
-                updater.view()
+                updater.view(&self.round.as_ref().unwrap().0)
                 //self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
             }
             </p>
@@ -233,6 +233,15 @@ impl RoundUpdater {
                 ),
             )
         }));
+        rcb.confirmation_tickers.extend(rnd.player_names.iter().map(|r| {
+            let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
+            (
+                *r.0,
+                RoundConfirmationTicker::new(
+                    proc.clone(),
+                ),
+            )
+        }));
         Self {
             round_changes_buffer: Some(rcb),
             rid: rnd.id,
@@ -240,12 +249,13 @@ impl RoundUpdater {
         }
     }
 
-    pub fn view(&self) -> Html {
+    pub fn view(&self, rnd: &RoundProfile) -> Html {
         let rid = self.rid.clone();
         let cb = self.process.clone();
         let pushdata = move |me: MouseEvent| {
             cb.emit(SelectedRoundMessage::PushChanges(rid));
         };
+        /*
         let win_list = self
             .round_changes_buffer
             .as_ref()
@@ -259,6 +269,14 @@ impl RoundUpdater {
                     <>{ wt.view() }</>
                     </p>
                 }
+            })
+            .collect::<Html>();
+        */
+        // let temp = self.round_changes_buffer.as_ref();
+        let win_list = rnd.order
+            .iter()
+            .map(|(pid)| {
+                self.round_changes_buffer.as_ref().unwrap().view_win_ticker(*pid)
             })
             .collect::<Html>();
         html! {

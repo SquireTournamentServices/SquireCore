@@ -44,6 +44,7 @@ pub struct DeckProfile {
 #[derive(Debug, PartialEq, Clone)]
 pub struct RoundProfile {
     pub id: RoundId,
+    pub order: Vec<PlayerId>,
     pub player_names: HashMap<PlayerId, String>,
     pub timer: DateTime<Utc>,
     pub status: RoundStatus,
@@ -242,6 +243,9 @@ impl RoundProfile {
         Self {
             id: rnd.id,
             status: rnd.status,
+            order: rnd
+                .players
+                .clone(),
             player_names: rnd
                 .players
                 .iter()
@@ -273,15 +277,16 @@ impl RoundProfile {
             </p>
             <ul>
             {
-                self.player_names.iter()
+                self.order.iter()
                     // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
-                    .map(|(pid, name)| {
+                    .map(|(pid)| {
+                        let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
                         let player_wins = self.results.get(pid).cloned().unwrap_or_default();
                         let player_confirm = self.confirmations.get(pid).is_some();
                         html! {
                             <li>
                             <div>
-                            { format!( "{name}") }
+                            { format!( "{player_name}") }
                             </div>
                             <div>
                             { format!( "wins : {player_wins}, confirmed : {player_confirm}") }

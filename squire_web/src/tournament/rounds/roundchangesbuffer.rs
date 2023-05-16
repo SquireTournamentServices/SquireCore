@@ -5,7 +5,7 @@ use squire_sdk::{
 use std::{collections::HashMap, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
 
-use super::{RoundResultTicker, RoundResultTickerMessage};
+use super::{RoundResultTicker, RoundResultTickerMessage, RoundConfirmationTicker, RoundConfirmationTickerMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Data buffer holding changes which can be pushed to a round using admin operations
@@ -13,6 +13,7 @@ pub struct RoundChangesBuffer {
     pub rid: RoundId,
     pub draw_ticker: RoundResultTicker,
     pub win_tickers: HashMap<PlayerId, RoundResultTicker>,
+    pub confirmation_tickers: HashMap<PlayerId, RoundConfirmationTicker>
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -28,6 +29,7 @@ impl RoundChangesBuffer {
             rid,
             draw_ticker,
             win_tickers: HashMap::new(),
+            confirmation_tickers: HashMap::new(),
         }
     }
 
@@ -53,7 +55,13 @@ impl RoundChangesBuffer {
 
     /// Given a player's id, draw the player's win results with buttons to increment and decrement the value
     pub fn view_win_ticker(&self, pid: PlayerId) -> Html {
-        self.win_tickers.get(&pid).unwrap().view()
+        html! {
+            <p>
+            <>{ self.win_tickers.get(&pid).unwrap().view() }</>
+            <br />
+            <>{ self.confirmation_tickers.get(&pid).unwrap().view() }</>
+            </p>
+        }
     }
 
     /// Draw the round's draw count with buttons to increment and decrement the value
