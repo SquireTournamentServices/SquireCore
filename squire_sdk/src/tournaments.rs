@@ -28,7 +28,7 @@ pub type GetAllTournamentsResponse = SquireResponse<Vec<TournamentManager>>;
 pub type GetAllPastTournamentsResponse =
     SquireResponse<HashMap<TournamentId, CompressedTournament>>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/create` SC API. The fields contain all the data
 /// required to create a tournament.
 pub struct CreateTournamentRequest {
@@ -54,7 +54,7 @@ pub type StandingsResponse = SquireResponse<Option<Standings<StandardScore>>>;
 /// ordered list of operations that start with the requested operation.
 pub type OpSliceResponse = SquireResponse<Option<Option<OpSlice>>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/<t_id>/manage/refresh` SC API. The fields contain
 /// all the data to test if the client and server are synced. If in sync, the client and server
 /// shold both have `length` many operations, a last operation with `op_id` as it id and be
@@ -68,7 +68,7 @@ pub struct RefreshRequest {
     pub length: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 /// The enum encodes all the outcomes of a refresh request
 pub enum RefreshResult {
     /// Everything is up do date. Client and server are in sync
@@ -81,7 +81,7 @@ pub enum RefreshResult {
     Error(RefreshError),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 /// The enum encodes all errors that might outcome during a refresh request
 pub enum RefreshError {
     /// The requested operations was not found. This likely means there was a sync that deleted
@@ -102,11 +102,15 @@ pub enum RefreshError {
 /// `RefreshResult` enum.
 pub type RefreshResponse = SquireResponse<Option<RefreshResult>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/<t_id>/manage/sync` SC API.
 pub struct SyncRequest {
     /// The `OpSync` needed to attempt to perform the sync.
     pub sync: OpSync,
+}
+
+/// This request type is sent from the backend to clients when a
+pub struct SyncForwarding {
 }
 
 /// The response type used by the `tournaments/<t_id>/manage/sync` SC API.
@@ -114,7 +118,7 @@ pub struct SyncRequest {
 /// result of attempting to apply the sync.
 pub type SyncResponse = SquireResponse<Option<SyncStatus>>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// The request type taking by the `tournaments/<t_id>/manage/rollback` SC API.
 pub struct RollbackRequest {
     /// The `Rollback` needed to attempt to perform the rollback.

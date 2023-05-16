@@ -17,6 +17,7 @@ pub mod processor;
 pub mod rollback;
 pub mod sync_error;
 pub mod sync_status;
+pub mod messages;
 pub(crate) mod utils;
 
 pub use full_op::*;
@@ -25,6 +26,7 @@ pub use op_sync::*;
 pub use rollback::*;
 pub use sync_error::*;
 pub use sync_status::*;
+pub use messages::*;
 
 use self::processor::SyncProcessor;
 
