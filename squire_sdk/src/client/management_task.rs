@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
 
 use squire_lib::{
-    operations::{OpResult, TournOp},
+    operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
 };
 
@@ -57,7 +57,9 @@ impl ManagementTaskSender {
 
 /// Spawns a new tournament management tokio task. Communication with this task is done via a
 /// collection of channels. This collection is returned
-pub(super) fn spawn_management_task() -> ManagementTaskSender {
+pub(super) fn spawn_management_task<F>(on_update: F) -> ManagementTaskSender
+where F: 'static + Send + FnMut(),
+{
     let (query, query_recv) = unbounded_channel();
     let (update, update_recv) = unbounded_channel();
     let (import, import_recv) = unbounded_channel();
@@ -66,6 +68,7 @@ pub(super) fn spawn_management_task() -> ManagementTaskSender {
         query_recv,
         update_recv,
         import_recv,
+        on_update,
     ));
     ManagementTaskSender {
         query,
@@ -81,18 +84,21 @@ type TournamentCache = HashMap<TournamentId, TournamentManager>;
 ///
 /// FIXME: Currently, this task has no way to send outbound requests, but it will need that
 /// ability. The client internals should be moved here.
-async fn tournament_management_task(
+async fn tournament_management_task<F>(
     mut queries: UnboundedReceiver<TournamentQuery>,
     mut updates: UnboundedReceiver<TournamentUpdate>,
     mut imports: UnboundedReceiver<TournamentImport>,
-) {
+    mut on_update: F,
+)
+    where F: FnMut(),
+{
     let mut cache = TournamentCache::new();
     loop {
         if let Ok(import) = imports.try_recv() {
             handle_import(&mut cache, import);
         }
         if let Ok(update) = updates.try_recv() {
-            handle_update(&mut cache, update);
+            handle_update(&mut cache, update, &mut on_update);
         }
         if let Ok(query) = queries.try_recv() {
             handle_query(&cache, query);
@@ -105,28 +111,43 @@ fn handle_import(cache: &mut TournamentCache, import: TournamentImport) {
     let TournamentImport { tourn, tracker } = import;
     let id = tourn.id;
     cache.insert(id, tourn);
-    let _ = tracker.send(());
+    let _ = tracker.send(id);
 }
 
-fn handle_update(cache: &mut TournamentCache, update: TournamentUpdate) {
+fn handle_update<F>(cache: &mut TournamentCache, update: TournamentUpdate, on_update: &mut F)
+    where F: FnMut(),
+{
     let TournamentUpdate {
         local,
         remote,
         id,
         update,
     } = update;
+    let mut to_remove = false;
     if let Some(tourn) = cache.get_mut(&id) {
         let res = match update {
             UpdateType::Single(op) => tourn.apply_op(op),
             UpdateType::Bulk(ops) => tourn.bulk_apply_ops(ops),
+            UpdateType::Removal => {
+                to_remove = true;
+                Ok(OpData::Nothing)
+            }
         };
+        let is_ok = res.is_ok();
         let _ = local.send(Some(res));
         // TODO: This need to inform the cache manager that an update the be backend needs to
         // go out.
         let _ = remote.send(Some(Ok(())));
+        if is_ok {
+            on_update();
+        }
     } else {
         let _ = local.send(None);
         let _ = remote.send(None);
+    }
+    if to_remove {
+        // This has to exist, but we don't need to use it
+        let _ = cache.remove(&id);
     }
 }
 

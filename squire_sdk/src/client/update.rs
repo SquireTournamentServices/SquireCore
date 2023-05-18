@@ -25,6 +25,7 @@ pub struct UpdateTracker {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum UpdateType {
+    Removal,
     Single(TournOp),
     Bulk(Vec<TournOp>),
 }

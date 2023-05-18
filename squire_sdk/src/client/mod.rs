@@ -75,7 +75,9 @@ pub struct SquireClient {
 
 impl SquireClient {
     /// Tries to create a client. Fails if a connection can not be made at the given URL
-    pub async fn new(url: String, user: SquireAccount) -> Result<Self, ClientError> {
+    pub async fn new<F>(url: String, user: SquireAccount, on_update: F) -> Result<Self, ClientError>
+        where F: 'static + Send + FnMut(),
+    {
         let client = Client::builder().build()?;
         let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
@@ -83,7 +85,7 @@ impl SquireClient {
         }
         let version: Version = resp.json().await?;
         let server_mode = version.mode;
-        let sender = spawn_management_task();
+        let sender = spawn_management_task(on_update);
         Ok(Self {
             session: Session::default(),
             verification: None,
@@ -95,11 +97,14 @@ impl SquireClient {
         })
     }
 
-    pub async fn with_account_creation(
+    pub async fn with_account_creation<F>(
         url: String,
         user_name: String,
         display_name: String,
-    ) -> Result<Self, ClientError> {
+        on_update: F
+    ) -> Result<Self, ClientError>
+        where F: 'static + Send + FnMut(),
+    {
         let client = Client::new();
         let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
         if resp.status() != StatusCode::OK {
@@ -120,7 +125,7 @@ impl SquireClient {
             StatusCode::OK => {
                 let resp: CreateAccountResponse = resp.json().await?;
                 let user = resp.0;
-                let mut digest = Self::new_unchecked(url, user);
+                let mut digest = Self::new_unchecked(url, user, on_update);
                 digest.server_mode = server_mode;
                 digest.login().await?;
                 Ok(digest)
@@ -130,8 +135,10 @@ impl SquireClient {
     }
 
     /// Creates a client and does not check if the URL is valid
-    pub fn new_unchecked(url: String, user: SquireAccount) -> Self {
-        let sender = spawn_management_task();
+    pub fn new_unchecked<F>(url: String, user: SquireAccount, on_update: F) -> Self
+        where F: 'static + Send + FnMut(),
+    {
+        let sender = spawn_management_task(on_update);
         Self {
             session: Session::default(),
             verification: None,
@@ -141,6 +148,10 @@ impl SquireClient {
             user,
             sender,
         }
+    }
+
+    pub fn get_user(&self) -> &SquireAccount {
+        &self.user
     }
 
     pub async fn login(&mut self) -> Result<(), ClientError> {
@@ -278,6 +289,10 @@ impl SquireClient {
 
     pub fn import_tourn(&self, tourn: TournamentManager) -> ImportTracker {
         self.sender.import(tourn)
+    }
+
+    pub fn remove_tourn(&self, id: TournamentId) -> UpdateTracker {
+        self.sender.update(id, UpdateType::Removal)
     }
 
     pub fn update_tourn(&self, id: TournamentId, op: TournOp) -> UpdateTracker {
