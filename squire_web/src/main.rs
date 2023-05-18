@@ -4,6 +4,7 @@
 
 use std::time::Duration;
 
+use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -21,7 +22,10 @@ use header::Header;
 use index::Index;
 use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 
+/// The SquireClient used to manage tournaments and communicate with the backend
 static CLIENT: OnceCell<SquireClient> = OnceCell::new();
+/// The Receiver half of the channel used to communicate that the client has updated a tournament.
+pub static ON_UPDATE: OnceCell<Receiver<()>> = OnceCell::new();
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -59,11 +63,17 @@ fn app() -> Html {
 
 fn main() {
     web_sys::console::log_1(&format!("Starting everything up...").into());
+    
+    let (send, recv) = unbounded();
+    let on_update = move || { let _ = send.send(()); };
+    
     let client = SquireClient::new_unchecked(
         "/".to_string(),
         SquireAccount::new("Tester".into(), "Tester".into()),
+        on_update
     );
     CLIENT.set(client).unwrap();
+    ON_UPDATE.set(recv).unwrap();
     web_sys::console::log_1(&format!("Client launched!! Starting yew app").into());
     yew::Renderer::<app>::new().render();
 }

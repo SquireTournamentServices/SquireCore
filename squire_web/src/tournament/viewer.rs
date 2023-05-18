@@ -13,7 +13,7 @@ use squire_sdk::{
 use crate::{
     tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
     utils::fetch_tournament,
-    CLIENT,
+    CLIENT, ON_UPDATE,
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
