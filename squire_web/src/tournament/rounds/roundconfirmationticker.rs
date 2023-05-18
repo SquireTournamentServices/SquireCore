@@ -1,6 +1,12 @@
+use futures::future::OrElse;
 use squire_sdk::{
-    model::{rounds::{RoundResult, RoundId}, identifiers::AdminId, operations::JudgeOp},
-    players::{PlayerId, Round}, tournaments::TournOp,
+    model::{
+        identifiers::AdminId,
+        operations::JudgeOp,
+        rounds::{RoundId, RoundResult},
+    },
+    players::{Player, PlayerId, Round},
+    tournaments::TournOp,
 };
 use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
@@ -12,9 +18,16 @@ use super::SelectedRoundMessage;
 use std::borrow::Cow;
 
 #[derive(Debug, PartialEq, Clone)]
-/// Sub component storing/displaying a result and associated changes to that result
+/// Sub component storing/displaying a confirmation for a player
 pub struct RoundConfirmationTicker {
+    /// If this is set to true, the player was confirmed when the round was loaded and thus the ticker will be greyed out
+    pub pre_confirmed: bool,
+    /// If true, confirm player on submission.
+    pub currently_confirmed: bool,
+    /// Callback
     pub process: Callback<SelectedRoundMessage>,
+    /// Player ID
+    pub pid: PlayerId,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -26,32 +39,72 @@ pub enum RoundConfirmationTickerMessage {
 
 impl RoundConfirmationTicker {
     pub fn new(
+        pre_confirmed: bool,
         process: Callback<SelectedRoundMessage>,
+        pid: PlayerId,
     ) -> Self {
         Self {
+            pre_confirmed,
+            currently_confirmed: pre_confirmed,
             process,
+            pid,
         }
     }
 
-    pub fn into_op(&self, admin_id : AdminId, rid : RoundId) -> Option<TournOp> {
-       todo!()
+    pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
+        // AdminConfirmResult(RoundId, PlayerId)
+        (self.currently_confirmed && !self.pre_confirmed).then( ||
+            (TournOp::JudgeOp(
+                admin_id.clone().into(),
+                JudgeOp::AdminConfirmResult(rid, self.pid.clone()),
+            ))
+        )
     }
 
     pub fn update(&mut self, msg: RoundConfirmationTickerMessage) -> bool {
         match msg {
             RoundConfirmationTickerMessage::Check => {
-                todo!()
+                if (!self.pre_confirmed) {
+                    self.currently_confirmed = true;
+                    return true;
+                }
+                false
             }
             RoundConfirmationTickerMessage::Uncheck => {
-                todo!()
+                if (!self.pre_confirmed) {
+                    self.currently_confirmed = false;
+                    return true;
+                }
+                false
             }
         }
-        true
     }
 
     pub fn view(&self) -> Html {
-       html!{
-        <>{ "TODO" }</>
-       }
+        let mut pid = self.pid.clone();
+        let cb = self.process.clone();
+        let pre_confirmed = self.pre_confirmed.clone();
+        let currently_confirmed = self.currently_confirmed.clone();
+        let check = move |_| {
+            if (currently_confirmed) {
+                cb.emit(SelectedRoundMessage::BufferMessage(
+                    RoundChangesBufferMessage::ConfirmationClicked(
+                        pid,
+                        RoundConfirmationTickerMessage::Uncheck,
+                    ),
+                ));
+            } else {
+                cb.emit(SelectedRoundMessage::BufferMessage(
+                    RoundChangesBufferMessage::ConfirmationClicked(
+                        pid,
+                        RoundConfirmationTickerMessage::Check,
+                    ),
+                ));
+            }
+        };
+        pid = self.pid.clone();
+        html! {
+            <input type={"checkbox"} id={pid.to_string()} disabled={pre_confirmed} checked={currently_confirmed} onclick={check} />
+        }
     }
 }

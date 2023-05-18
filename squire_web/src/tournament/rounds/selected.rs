@@ -121,29 +121,6 @@ impl SelectedRound {
                 }
             }
             SelectedRoundMessage::PushChanges(rid) => {
-                // DATA PUSHING DOES NOT WORK
-                // the trait `std::marker::Send` is not implemented for `Rc<(dyn Fn(tournament::rounds::selected::SelectedRoundMessage) + 'static)>` = note: required because it appears within the type `Callback<SelectedRoundMessage>`
-                // apparently 'Send' is not something that can just be implemented with the derive macro
-                /*
-                console_log("Pushing data");
-                CLIENT
-                .get()
-                .unwrap()
-                .update_tourn(self.t_id, move |t| {
-                    let tourn = t.tourn();
-                    let rcb = self.round.unwrap().1.round_changes_buffer.unwrap();
-                    // Apply draws
-                    if (rcb.draw_ticker.was_changed)
-                    {
-                        let op = TournOp::JudgeOp(
-                            todo!(),
-                            JudgeOp::AdminRecordResult(rid,rcb.draw_ticker.stored_result.clone())
-                        );
-                        tourn.apply_op(Utc::now(), op);
-                    }
-                    // TODO: Apply wins
-                });
-                */
                 let rcb = self
                     .round
                     .as_ref()
@@ -162,6 +139,9 @@ impl SelectedRound {
                 }
                 ops.extend(rcb.win_tickers.values().filter_map(|wt| {
                     wt.into_op(self.admin_id, rid)
+                }));
+                ops.extend(rcb.confirmation_tickers.values().filter_map(|ct| {
+                    ct.into_op(self.admin_id, rid)
                 }));
 
                 CLIENT.get().unwrap().bulk_update(self.t_id, ops);
@@ -238,7 +218,9 @@ impl RoundUpdater {
             (
                 *r.0,
                 RoundConfirmationTicker::new(
+                    rnd.confirmations.contains(r.0),
                     proc.clone(),
+                    *r.0,
                 ),
             )
         }));
@@ -255,24 +237,6 @@ impl RoundUpdater {
         let pushdata = move |me: MouseEvent| {
             cb.emit(SelectedRoundMessage::PushChanges(rid));
         };
-        /*
-        let win_list = self
-            .round_changes_buffer
-            .as_ref()
-            .unwrap()
-            .win_tickers
-            .iter()
-            .map(|(p, wt)| {
-                console_log("Dumping a win info");
-                html! {
-                    <p>
-                    <>{ wt.view() }</>
-                    </p>
-                }
-            })
-            .collect::<Html>();
-        */
-        // let temp = self.round_changes_buffer.as_ref();
         let win_list = rnd.order
             .iter()
             .map(|(pid)| {
