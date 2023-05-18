@@ -20,6 +20,7 @@ pub struct RoundChangesBuffer {
 /// Message recieved by the data buffer
 pub enum RoundChangesBufferMessage {
     TickClicked(Option<PlayerId>, RoundResultTickerMessage),
+    ConfirmationClicked(PlayerId, RoundConfirmationTickerMessage),
     ResetAll(),
 }
 
@@ -42,6 +43,9 @@ impl RoundChangesBuffer {
                     self.draw_ticker.update(tmsg);
                 }
             }
+            RoundChangesBufferMessage::ConfirmationClicked(pid, rctmsg) => {
+                self.confirmation_tickers.get_mut(&pid).unwrap().update(rctmsg);
+            }
             RoundChangesBufferMessage::ResetAll() => {
                 self.draw_ticker
                     .update(RoundResultTickerMessage::SetChanged(false));
@@ -58,7 +62,6 @@ impl RoundChangesBuffer {
         html! {
             <p>
             <>{ self.win_tickers.get(&pid).unwrap().view() }</>
-            <br />
             <>{ self.confirmation_tickers.get(&pid).unwrap().view() }</>
             </p>
         }
