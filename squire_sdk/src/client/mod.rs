@@ -47,6 +47,7 @@ use crate::{
 };
 
 use self::{
+    builder::ClientBuilder,
     compat::Session,
     error::ClientResult,
     import::ImportTracker,
@@ -55,6 +56,7 @@ use self::{
     update::{UpdateTracker, UpdateType},
 };
 
+pub mod builder;
 pub mod compat;
 pub mod error;
 pub mod import;
@@ -74,83 +76,9 @@ pub struct SquireClient {
 }
 
 impl SquireClient {
-    /// Tries to create a client. Fails if a connection can not be made at the given URL
-    pub async fn new<F>(url: String, user: SquireAccount, on_update: F) -> Result<Self, ClientError>
-    where
-        F: 'static + Send + FnMut(),
-    {
-        let client = Client::builder().build()?;
-        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
-        if resp.status() != StatusCode::OK {
-            return Err(ClientError::FailedToConnect);
-        }
-        let version: Version = resp.json().await?;
-        let server_mode = version.mode;
-        let sender = spawn_management_task(on_update);
-        Ok(Self {
-            session: Session::default(),
-            verification: None,
-            client,
-            url,
-            user,
-            server_mode,
-            sender,
-        })
-    }
-
-    pub async fn with_account_creation<F>(
-        url: String,
-        user_name: String,
-        display_name: String,
-        on_update: F,
-    ) -> Result<Self, ClientError>
-    where
-        F: 'static + Send + FnMut(),
-    {
-        let client = Client::new();
-        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
-        if resp.status() != StatusCode::OK {
-            return Err(ClientError::FailedToConnect);
-        }
-        let server_mode = resp.json().await?;
-        let body = CreateAccountRequest {
-            user_name,
-            display_name,
-        };
-        let resp = client
-            .post(format!("{url}{REGISTER_ACCOUNT_ROUTE}"))
-            .header(CONTENT_TYPE, "application/json")
-            .body(serde_json::to_string(&body).unwrap())
-            .send()
-            .await?;
-        match resp.status() {
-            StatusCode::OK => {
-                let resp: CreateAccountResponse = resp.json().await?;
-                let user = resp.0;
-                let mut digest = Self::new_unchecked(url, user, on_update);
-                digest.server_mode = server_mode;
-                digest.login().await?;
-                Ok(digest)
-            }
-            status => Err(ClientError::RequestStatus(status)),
-        }
-    }
-
-    /// Creates a client and does not check if the URL is valid
-    pub fn new_unchecked<F>(url: String, user: SquireAccount, on_update: F) -> Self
-    where
-        F: 'static + Send + FnMut(),
-    {
-        let sender = spawn_management_task(on_update);
-        Self {
-            session: Session::default(),
-            verification: None,
-            client: Client::new(),
-            server_mode: ServerMode::Extended,
-            url,
-            user,
-            sender,
-        }
+    /// Returns a builder for the client
+    pub fn builder() -> ClientBuilder<Box<dyn 'static + Send + FnMut()>, (), ()> {
+        ClientBuilder::new()
     }
 
     pub fn get_user(&self) -> &SquireAccount {
