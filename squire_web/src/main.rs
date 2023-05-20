@@ -74,11 +74,11 @@ fn main() {
         }
     };
 
-    let client = SquireClient::new_unchecked(
-        "/".to_string(),
-        SquireAccount::new("Tester".into(), "Tester".into()),
-        on_update,
-    );
+    let client = SquireClient::builder()
+        .url("/".to_string())
+        .account(SquireAccount::new("Tester".into(), "Tester".into()))
+        .on_update(on_update)
+        .build_unchecked();
     CLIENT.set(client).unwrap();
     ON_UPDATE.set(recv).unwrap();
     web_sys::console::log_1(&format!("Client launched!! Starting yew app").into());
