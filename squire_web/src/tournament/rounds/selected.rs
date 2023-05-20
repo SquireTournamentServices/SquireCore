@@ -38,7 +38,7 @@ pub struct SelectedRound {
     pub admin_id: AdminId,
     // draw_ticker: RoundResultTicker,
     /// The data from the tournament that is used to display the round
-    round: Option<(RoundProfile, RoundUpdater)>,
+    pub round: Option<(RoundProfile, RoundUpdater)>,
     // round_changes_buffer: Option<RoundChangesBuffer>,
     pub process: Callback<SelectedRoundMessage>,
 }
@@ -75,9 +75,8 @@ impl SelectedRound {
                     let updater = RoundUpdater::new(&rnd, self.process.clone());
                     (rnd, updater)
                 });
-                let digest = self.round != data;
                 self.round = data;
-                digest
+                true
             }
             SelectedRoundMessage::RoundSelected(r_id) => {
                 console_log(&format!("Round selected: {r_id}"));
@@ -88,27 +87,7 @@ impl SelectedRound {
                     .unwrap_or(true)
                 {
                     let id = self.t_id;
-                    ctx.link().send_future(async move {
-                        let data = CLIENT
-                            .get()
-                            .unwrap()
-                            .query_tourn(id, move |t| {
-                                let tourn = t.tourn();
-                                tourn
-                                    .round_reg
-                                    .get_round(&r_id)
-                                    .map(|r| RoundProfile::new(tourn, r))
-                            })
-                            .process()
-                            .await
-                            .transpose()
-                            .ok()
-                            .flatten();
-                        console_log(&format!("Round was found: {}", data.is_some()));
-                        RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(
-                            data,
-                        ))
-                    });
+                    self.requery(ctx, id, r_id)
                 }
                 false
             }
@@ -147,6 +126,37 @@ impl SelectedRound {
                 CLIENT.get().unwrap().bulk_update(self.t_id, ops);
                 false
             }
+        }
+    }
+
+    fn requery(&self, ctx: &Context<RoundsView>, tid: TournamentId, r_id: RoundId) {
+        ctx.link().send_future(async move {
+            let data = CLIENT
+                .get()
+                .unwrap()
+                .query_tourn(tid, move |t| {
+                    let tourn = t.tourn();
+                    tourn
+                        .round_reg
+                        .get_round(&r_id)
+                        .map(|r| RoundProfile::new(tourn, r))
+                })
+                .process()
+                .await
+                .transpose()
+                .ok()
+                .flatten();
+            console_log(&format!("Round was found: {}", data.is_some()));
+            RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(
+                data,
+            ))
+        });
+    }
+
+    pub fn try_requery_existing(&self, ctx: &Context<RoundsView>) {
+        if (self.round.is_some()) {
+            let r_id = self.round.as_ref().unwrap().0.id;
+            self.requery(ctx, self.t_id, r_id)
         }
     }
 

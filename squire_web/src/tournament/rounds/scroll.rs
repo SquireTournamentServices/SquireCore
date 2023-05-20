@@ -6,9 +6,10 @@ use squire_sdk::{
     tournaments::{Tournament, TournamentId},
 };
 
+use web_sys::console;
 use yew::prelude::*;
 
-use crate::{utils::TextInput, CLIENT};
+use crate::{utils::{TextInput, console_log}, CLIENT};
 
 use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
 
@@ -18,12 +19,14 @@ pub enum RoundScrollMessage {
 }
 
 pub struct RoundScroll {
+    pub id: TournamentId,
     pub process: Callback<RoundId>,
     rounds: Vec<RoundSummary>,
 }
 
 fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
     ctx.link().send_future(async move {
+        console_log("Fetching round summaries...");
         let mut data = CLIENT
             .get()
             .unwrap()
@@ -46,9 +49,14 @@ impl RoundScroll {
     pub fn new(ctx: &Context<RoundsView>, id: TournamentId) -> Self {
         fetch_round_summaries(ctx, id);
         Self {
+            id,
             process: ctx.link().callback(SelectedRoundMessage::RoundSelected),
             rounds: Default::default(),
         }
+    }
+
+    pub fn requery(&self, ctx: &Context<RoundsView>) {
+        fetch_round_summaries(ctx, self.id);
     }
 
     pub fn update(&mut self, msg: RoundScrollMessage) -> bool {

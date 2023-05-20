@@ -27,6 +27,8 @@ pub use selected::*;
 
 use self::_RoundsFilterProps::admin_id;
 
+use super::spawn_update_listener;
+
 #[derive(Debug, PartialEq, Properties)]
 pub struct RoundsFilterProps {
     pub id: TournamentId,
@@ -38,6 +40,7 @@ pub enum RoundsViewMessage {
     FilterInput(RoundFilterInputMessage),
     RoundScroll(RoundScrollMessage),
     SelectedRound(SelectedRoundMessage),
+    ReQuery,
 }
 
 pub struct RoundsView {
@@ -55,6 +58,7 @@ impl Component for RoundsView {
     fn create(ctx: &Context<Self>) -> Self {
         let id = ctx.props().id;
         let aid = ctx.props().admin_id;
+        spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
         Self {
             id,
             input: RoundFilterInput::new(ctx.link().callback(RoundsViewMessage::FilterInput)),
@@ -69,6 +73,12 @@ impl Component for RoundsView {
             RoundsViewMessage::FilterInput(msg) => self.input.update(msg),
             RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg),
             RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg),
+            RoundsViewMessage::ReQuery => {
+                spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
+                self.scroll.requery(ctx);
+                self.selected.try_requery_existing(ctx);
+                false
+            }
         }
     }
 
