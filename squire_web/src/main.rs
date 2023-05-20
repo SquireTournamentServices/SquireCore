@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;
+use utils::console_log;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -25,7 +26,7 @@ use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 /// The SquireClient used to manage tournaments and communicate with the backend
 static CLIENT: OnceCell<SquireClient> = OnceCell::new();
 /// The Receiver half of the channel used to communicate that the client has updated a tournament.
-pub static ON_UPDATE: OnceCell<Receiver<()>> = OnceCell::new();
+pub static ON_UPDATE: OnceCell<Receiver<usize>> = OnceCell::new();
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -65,7 +66,13 @@ fn main() {
     web_sys::console::log_1(&format!("Starting everything up...").into());
     
     let (send, recv) = unbounded();
-    let on_update = move || { let _ = send.send(()); };
+    let on_update = move || { 
+        //let _ = send.send(0);
+        match (send.try_send(0)) {
+            Ok(_) => {console_log("Sent successfully")}
+            Err(_) => {console_log("Failed to send")}
+        }
+    };
     
     let client = SquireClient::new_unchecked(
         "/".to_string(),

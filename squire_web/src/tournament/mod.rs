@@ -1,6 +1,6 @@
 use yew::{Component, Context};
 
-use crate::ON_UPDATE;
+use crate::{ON_UPDATE, utils::console_log};
 
 pub mod creator;
 pub mod overview;
@@ -14,11 +14,14 @@ pub fn spawn_update_listener<V, M>(ctx: &Context<V>, msg: M)
     where V: Component<Message = M>,
           M: 'static,
 {
-    let recv = ON_UPDATE.get().unwrap();
+    let recv = ON_UPDATE.get().unwrap().clone();
+    console_log("Spawning update messenger");
     ctx.link().send_future(async move {
-        recv.recv()
+        let to_return = recv.recv()
             .await
             .map(|_| msg)
-            .unwrap()
+            .unwrap();
+        console_log("Update recieved!");
+        to_return
     })
 }
