@@ -37,14 +37,8 @@ impl ImportTracker {
         self.tracker.recv().await
     }
 
-    pub fn process_spin(mut self) -> Option<TournamentId> {
-        loop {
-            match self.tracker.try_recv() {
-                Ok(val) => return Some(val),
-                Err(TryRecvError::Disconnected) => return None,
-                Err(TryRecvError::Empty) => {}
-            }
-        }
+    pub fn process_blocking(self) -> Option<TournamentId> {
+        futures::executor::block_on(self.process())
     }
 }
 

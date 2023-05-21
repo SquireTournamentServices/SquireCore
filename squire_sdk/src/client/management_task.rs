@@ -80,6 +80,8 @@ where
 
 type TournamentCache = HashMap<TournamentId, TournamentManager>;
 
+const HANG_UP_MESSAGE: &str = "The client has been dropped.";
+
 /// The function that manages all the tournaments for a client and runs forever inside the tokio
 /// task.
 ///
@@ -95,16 +97,17 @@ async fn tournament_management_task<F>(
 {
     let mut cache = TournamentCache::new();
     loop {
-        if let Ok(import) = imports.try_recv() {
-            handle_import(&mut cache, import);
+        futures::select! {
+            import = imports => {
+                handle_import(&mut cache, import.expect(HANG_UP_MESSAGE));
+            }
+            update = updates => {
+                handle_update(&mut cache, update.expect(HANG_UP_MESSAGE), &mut on_update);
+            }
+            query = queries => {
+                handle_query(&cache, query.expect(HANG_UP_MESSAGE));
+            }
         }
-        if let Ok(update) = updates.try_recv() {
-            handle_update(&mut cache, update, &mut on_update);
-        }
-        if let Ok(query) = queries.try_recv() {
-            handle_query(&cache, query);
-        }
-        rest(Duration::from_millis(5)).await;
     }
 }
 
