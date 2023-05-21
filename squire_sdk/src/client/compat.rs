@@ -8,11 +8,42 @@
 //! wrappers for functionalities that are presently needed.
 
 /// A common error return by the receiver half of an unbounded channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryRecvError {
     Empty,
     Disconnected,
 }
 
+impl TryRecvError {
+    fn is_disconnected(&self) -> bool {
+        *self == TryRecvError::Disconnected
+    }
+}
+
+impl<T> Future for UnboundedReceiver<T> {
+    type Output = Option<T>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.try_recv() {
+            Ok(val) => Poll::Ready(Some(val)),
+            Err(TryRecvError::Empty) => Poll::Pending,
+            Err(TryRecvError::Disconnected) => Poll::Ready(None),
+        }
+    }
+}
+
+impl<T> FusedFuture for UnboundedReceiver<T> {
+    fn is_terminated(&self) -> bool {
+        self.is_disconnected()
+    }
+}
+
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+
+use futures::{future::FusedFuture, Future};
 #[cfg(not(target_family = "wasm"))]
 pub use native::*;
 
@@ -93,12 +124,28 @@ mod native {
         }
     }
 
+    /// A wrapper around the channel and a flag that tracks if the channel has been disconnected.
     #[derive(Debug)]
-    pub struct UnboundedReceiver<T>(mpsc::UnboundedReceiver<T>);
+    pub struct UnboundedReceiver<T>(mpsc::UnboundedReceiver<T>, bool);
 
     impl<T> UnboundedReceiver<T> {
+        pub async fn recv(&mut self) -> Option<T> {
+            let digest = self.0.recv().await;
+            self.1 = digest.is_none();
+            digest
+        }
+
         pub fn try_recv(&mut self) -> Result<T, TryRecvError> {
-            self.0.try_recv().map_err(Into::into)
+            let digest: Result<_, TryRecvError> = self.0.try_recv().map_err(Into::into);
+            self.1 = match digest.as_ref() {
+                Ok(_) => false,
+                Err(e) => e.is_disconnected(),
+            };
+            digest
+        }
+
+        pub fn is_disconnected(&self) -> bool {
+            self.1
         }
     }
 
@@ -122,7 +169,7 @@ mod native {
 
     pub fn unbounded_channel<T>() -> (UnboundedSender<T>, UnboundedReceiver<T>) {
         let (send, recv) = mpsc::unbounded_channel();
-        (UnboundedSender(send), UnboundedReceiver(recv))
+        (UnboundedSender(send), UnboundedReceiver(recv, false))
     }
 
     #[derive(Debug)]
@@ -229,8 +276,23 @@ mod wasm {
     pub struct UnboundedReceiver<T>(async_std::channel::Receiver<T>);
 
     impl<T> UnboundedReceiver<T> {
+        pub async fn recv(&mut self) -> Option<T> {
+            let digest = self.0.recv().await;
+            self.1 = digest.is_none();
+            digest
+        }
+
         pub fn try_recv(&mut self) -> Result<T, TryRecvError> {
-            self.0.try_recv().map_err(Into::into)
+            let digest: Result<_, TryRecvError> = self.0.try_recv().map_err(Into::into);
+            self.1 = match digest.as_ref() {
+                Ok(_) => false,
+                Err(e) => e.is_disconnected(),
+            };
+            digest
+        }
+
+        pub fn is_disconnected(&self) -> bool {
+            self.1
         }
     }
 

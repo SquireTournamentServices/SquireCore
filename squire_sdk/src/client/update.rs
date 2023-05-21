@@ -49,15 +49,6 @@ pub(crate) fn update_channel(
     (update, tracker)
 }
 
-/*
-pub enum UpdateStatus {
-    Working,
-    ChangedLocally(OpResult),
-    PushedRemotely(ClientResult),
-    Complete(OpResult, ClientResult),
-}
-*/
-
 impl UpdateTracker {
     pub async fn process(self) -> Option<OpResult> {
         self.local.recv().await.flatten()
