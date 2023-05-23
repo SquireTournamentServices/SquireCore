@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
+use std::time::Duration;
 use squire_sdk::{
     model::{
         identifiers::AdminId,
@@ -123,6 +124,12 @@ impl SelectedRound {
                 ops.extend(rcb.confirmation_tickers.values().filter_map(|ct| {
                     ct.into_op(self.admin_id, rid)
                 }));
+                if (rcb.current_extension_minutes > 0) {
+                    ops.push(TournOp::JudgeOp(
+                        self.admin_id.clone().into(),
+                        JudgeOp::TimeExtension(rid, Duration::from_secs(rcb.current_extension_minutes*60)),
+                    ));
+                }
 
                 CLIENT.get().unwrap().bulk_update(self.t_id, ops);
                 false
@@ -225,12 +232,13 @@ pub struct RoundUpdater {
 
 impl RoundUpdater {
     pub fn new(rnd: &RoundProfile, process: Callback<SelectedRoundMessage>) -> Self {
-        let proc = process.clone();
+        let mut proc = process.clone();
         let mut rcb = RoundChangesBuffer::new(
+            proc.clone(),
             rnd.id,
             RoundResultTicker::new("Draws".into(), None, RoundResult::Draw(rnd.draws), proc),
         );
-        let proc = process.clone();
+        proc = process.clone();
         //rcb.win_tickers.insert(*r.0, ticker);
         rcb.win_tickers.extend(rnd.player_names.iter().map(|r| {
             let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
@@ -286,6 +294,9 @@ impl RoundUpdater {
             }</p>
             <p>{
                 self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
+            }</p>
+            <p>{
+                self.round_changes_buffer.as_ref().unwrap().view_extension_ticker()
             }</p>
             <br />
             <button onclick={pushdata}>{"Submit changes"}</button>
