@@ -278,6 +278,7 @@ impl RoundUpdater {
                 self.round_changes_buffer.as_ref().unwrap().view_win_ticker(*pid)
             })
             .collect::<Html>();
+        let bulk_confirmed_disabled = rnd.status != RoundStatus::Open;
         html! {
             <>
             <p>{
@@ -288,7 +289,7 @@ impl RoundUpdater {
             }</p>
             <br />
             <button onclick={pushdata}>{"Submit changes"}</button>
-            <button onclick={bulkconfirm}>{"Bulk Confirm"}</button>
+            <button onclick={bulkconfirm} disabled={bulk_confirmed_disabled}>{"Bulk Confirm"}</button>
             </>
         }
     }
