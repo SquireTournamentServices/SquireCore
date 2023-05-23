@@ -1,11 +1,76 @@
 //! Boilerplate implementations for enum wrappers. Implements `From` for various types that are
 //! wrapped by an enum.
 
-use crate::settings::{
-    CommonPairingSetting, CommonScoringSetting, FluidPairingSetting, GeneralSetting,
-    PairingSetting, PairingStyleSetting, ScoringSetting, ScoringStyleSetting,
-    StandardScoringSetting, SwissPairingSetting, TournamentSetting,
+use crate::{
+    operations::AdminOp,
+    settings::{
+        CommonPairingSetting, CommonScoringSetting, FluidPairingSetting, GeneralSetting,
+        PairingSetting, PairingStyleSetting, ScoringSetting, ScoringStyleSetting,
+        StandardScoringSetting, SwissPairingSetting, TournamentSetting,
+    },
 };
+
+/* --------- Convert sub-settings to a `AdminOp` --------- */
+
+impl From<GeneralSetting> for AdminOp {
+    fn from(setting: GeneralSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<PairingSetting> for AdminOp {
+    fn from(setting: PairingSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<CommonPairingSetting> for AdminOp {
+    fn from(setting: CommonPairingSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<PairingStyleSetting> for AdminOp {
+    fn from(setting: PairingStyleSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<SwissPairingSetting> for AdminOp {
+    fn from(setting: SwissPairingSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<FluidPairingSetting> for AdminOp {
+    fn from(setting: FluidPairingSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<ScoringSetting> for AdminOp {
+    fn from(setting: ScoringSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<CommonScoringSetting> for AdminOp {
+    fn from(setting: CommonScoringSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<ScoringStyleSetting> for AdminOp {
+    fn from(setting: ScoringStyleSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
+
+impl From<StandardScoringSetting> for AdminOp {
+    fn from(setting: StandardScoringSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting.into())
+    }
+}
 
 /* --------- Convert sub-settings to a `TournamentSetting` --------- */
 
