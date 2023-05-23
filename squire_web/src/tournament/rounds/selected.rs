@@ -18,7 +18,7 @@ use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
 use super::{
     roundchangesbuffer::{self, *},
     roundresultticker::*,
-    RoundResultTicker, RoundsView, RoundsViewMessage, RoundConfirmationTicker,
+    RoundResultTicker, RoundsView, RoundsViewMessage, RoundConfirmationTicker, RoundConfirmationTickerMessage,
 };
 
 /// Message to be passed to the selected round
@@ -30,6 +30,7 @@ pub enum SelectedRoundMessage {
     RoundQueryReady(Option<RoundProfile>),
     BufferMessage(RoundChangesBufferMessage),
     PushChanges(RoundId),
+    BulkConfirm(RoundId),
 }
 
 /// Sub-Component displaying round currently selected
@@ -124,6 +125,26 @@ impl SelectedRound {
                 }));
 
                 CLIENT.get().unwrap().bulk_update(self.t_id, ops);
+                false
+            }
+            SelectedRoundMessage::BulkConfirm(rid) => {
+                /*
+                let mut rcb = self
+                    .round
+                    .as_mut()
+                    .unwrap()
+                    .1
+                    .round_changes_buffer
+                    .as_mut()
+                    .unwrap();
+                rcb.confirmation_tickers.values_mut().for_each(|rct|{
+                    if (!rct.pre_confirmed) {
+                        rct.update(RoundConfirmationTickerMessage::Check);
+                    }
+                });
+                self.update(ctx, SelectedRoundMessage::PushChanges(rid));
+                */
+                CLIENT.get().unwrap().update_tourn(self.t_id, TournOp::JudgeOp(self.admin_id.clone().into(),JudgeOp::ConfirmRound(rid)));
                 false
             }
         }
@@ -243,9 +264,13 @@ impl RoundUpdater {
 
     pub fn view(&self, rnd: &RoundProfile) -> Html {
         let rid = self.rid.clone();
-        let cb = self.process.clone();
+        let mut cb = self.process.clone();
         let pushdata = move |me: MouseEvent| {
             cb.emit(SelectedRoundMessage::PushChanges(rid));
+        };
+        cb = self.process.clone();
+        let bulkconfirm = move |me: MouseEvent| {
+            cb.emit(SelectedRoundMessage::BulkConfirm(rid));
         };
         let win_list = rnd.order
             .iter()
@@ -263,6 +288,7 @@ impl RoundUpdater {
             }</p>
             <br />
             <button onclick={pushdata}>{"Submit changes"}</button>
+            <button onclick={bulkconfirm}>{"Bulk Confirm"}</button>
             </>
         }
     }
