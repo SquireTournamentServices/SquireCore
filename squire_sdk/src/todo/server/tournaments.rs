@@ -23,11 +23,32 @@ where
     S: ServerState,
 {
     Router::new()
+        .route(
+            CREATE_TOURNAMENT_ENDPOINT.as_str(),
+            post(create_tournament::<S>),
+        )
         .route(GET_TOURNAMENT_ENDPOINT.as_str(), get(get_tournament::<S>))
         .route(
             GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT.as_str(),
             get(get_all_tournaments::<S>),
         )
+        .route(SYNC_TOURNAMENT_ENDPOINT.as_str(), post(sync::<S>))
+        .route(ROLLBACK_TOURNAMENT_ENDPOINT.as_str(), post(rollback::<S>))
+}
+
+pub async fn create_tournament<S>(
+    user: User,
+    State(state): State<S>,
+    Json(data): Json<CreateTournamentRequest>,
+) -> CreateTournamentResponse
+where
+    S: ServerState,
+{
+    CreateTournamentResponse::new(
+        state
+            .create_tournament(user, data.name, data.preset, data.format)
+            .await,
+    )
 }
 
 pub async fn get_tournament<S>(
@@ -47,7 +68,26 @@ where
     GetAllTournamentsResponse::new(state.query_all_tournaments(|t| t.clone()).await)
 }
 
-/// Adds a user to the gathering via a subsocket
-pub async fn join_gathering() {
-    todo!()
+pub async fn sync<S>(
+    user: User,
+    State(state): State<S>,
+    id: Path<TournamentId>,
+    data: Json<SyncRequest>,
+) -> SyncResponse
+where
+    S: ServerState,
+{
+    SyncResponse::new(state.sync_tournament(&id, &user, data.0.sync).await)
+}
+
+pub async fn rollback<S>(
+    user: User,
+    State(state): State<S>,
+    id: Path<TournamentId>,
+    data: Json<RollbackRequest>,
+) -> RollbackResponse
+where
+    S: ServerState,
+{
+    RollbackResponse::new(state.rollback_tournament(&id, &user, data.0.rollback).await)
 }

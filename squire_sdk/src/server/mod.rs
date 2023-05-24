@@ -27,7 +27,7 @@ use crate::{
 
 use self::state::ServerState;
 
-pub mod accounts;
+//pub mod accounts;
 //mod cards;
 pub mod gathering;
 pub mod state;
@@ -47,7 +47,6 @@ where
     SquireRouter::new()
         .extend(API_BASE, get_routes::<S>())
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())
-        .extend(ACCOUNTS_ROUTE, accounts::get_routes::<S>())
 }
 
 #[derive(Debug)]

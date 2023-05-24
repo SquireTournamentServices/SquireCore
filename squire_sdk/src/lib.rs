@@ -24,13 +24,14 @@ use serde::{Deserialize, Serialize};
 pub use squire_lib as model;
 
 pub mod api;
-mod card_requests;
-pub mod data;
+//mod card_requests;
+//pub mod data;
 pub mod sync;
 pub mod utils;
 
 pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
 
+/*
 /// The module wraps and re-exports key parts of the mtgjson crate
 pub mod cards {
     pub use squire_lib::players::Deck;
@@ -41,6 +42,7 @@ pub mod cards {
 
     pub use crate::card_requests::*;
 }
+*/
 
 #[cfg(feature = "client")]
 /// The default client used by non-squire_core services to communicate with squire_core
@@ -50,12 +52,12 @@ pub mod client;
 /// The default client used by non-squire_core services to communicate with squire_core
 pub mod server;
 
-/// Request/response structs for SquireCore account apis
-pub mod accounts;
+///// Request/response structs for SquireCore account apis
+//pub mod accounts;
 /// The errors used by this library
 pub mod error;
-/// Request/response structs for SquireCore tournament player apis
-pub mod players;
+///// Request/response structs for SquireCore tournament player apis
+//pub mod players;
 /// The primary generic response type
 pub mod response;
 /// Request/response structs for SquireCore tournament apis
