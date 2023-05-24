@@ -3,6 +3,7 @@ use std::{error::Error, sync::Arc};
 use async_session::{async_trait, SessionStore};
 
 use crate::{
+    accounts::VerificationData,
     model::{
         identifiers::SquireAccountId,
         tournament::{TournamentId, TournamentPreset},
@@ -15,6 +16,7 @@ use crate::{
 #[async_trait]
 pub trait ServerState: SessionStore + Clone + Send + Sync {
     fn get_version(&self) -> Version;
+    fn get_verification_data(&self, user: &User) -> Option<VerificationData>;
     async fn create_tournament(
         &self,
         user: User,
@@ -30,4 +32,22 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
         Out: FromIterator<O>,
         O: Send,
         F: Send + FnMut(&TournamentManager) -> O;
+    async fn create_verification_data(&self, user: &User) -> VerificationData;
+    async fn sync_tournament(
+        &self,
+        id: &TournamentId,
+        user: &User,
+        sync: OpSync,
+    ) -> Option<SyncStatus>;
+    async fn rollback_tournament(
+        &self,
+        id: &TournamentId,
+        user: &User,
+        rollback: Rollback,
+    ) -> Option<Result<(), RollbackError>>;
+    async fn load_user(&self, user: User);
+    async fn get_user(&self, id: &SquireAccountId) -> Option<User>;
+    async fn get_cards_meta(&self) -> Meta;
+    async fn get_atomics(&self) -> Arc<Atomics>;
+    async fn update_cards(&self) -> Result<(), Box<dyn Error>>;
 }
