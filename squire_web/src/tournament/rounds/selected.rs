@@ -32,6 +32,7 @@ pub enum SelectedRoundMessage {
     BufferMessage(RoundChangesBufferMessage),
     PushChanges(RoundId),
     BulkConfirm(RoundId),
+    KillRound(RoundId),
 }
 
 /// Sub-Component displaying round currently selected
@@ -135,23 +136,11 @@ impl SelectedRound {
                 false
             }
             SelectedRoundMessage::BulkConfirm(rid) => {
-                /*
-                let mut rcb = self
-                    .round
-                    .as_mut()
-                    .unwrap()
-                    .1
-                    .round_changes_buffer
-                    .as_mut()
-                    .unwrap();
-                rcb.confirmation_tickers.values_mut().for_each(|rct|{
-                    if (!rct.pre_confirmed) {
-                        rct.update(RoundConfirmationTickerMessage::Check);
-                    }
-                });
-                self.update(ctx, SelectedRoundMessage::PushChanges(rid));
-                */
                 CLIENT.get().unwrap().update_tourn(self.t_id, TournOp::JudgeOp(self.admin_id.clone().into(),JudgeOp::ConfirmRound(rid)));
+                false
+            }
+            SelectedRoundMessage::KillRound(rid) => {
+                CLIENT.get().unwrap().update_tourn(self.t_id, TournOp::AdminOp(self.admin_id.clone().into(),AdminOp::RemoveRound(rid)));
                 false
             }
         }
@@ -280,6 +269,10 @@ impl RoundUpdater {
         let bulkconfirm = move |me: MouseEvent| {
             cb.emit(SelectedRoundMessage::BulkConfirm(rid));
         };
+        cb = self.process.clone();
+        let killround = move |me: MouseEvent| {
+            cb.emit(SelectedRoundMessage::KillRound(rid));
+        };
         let win_list = rnd.order
             .iter()
             .map(|(pid)| {
@@ -301,6 +294,27 @@ impl RoundUpdater {
             <br />
             <button onclick={pushdata}>{"Submit changes"}</button>
             <button onclick={bulkconfirm} disabled={bulk_confirmed_disabled}>{"Bulk Confirm"}</button>
+            <br />
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#killModal">
+            {"Kill round ☠️"}
+            </button>
+            <div class="modal fade" id="killModal" tabindex="-1" aria-labelledby="killModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">{"Kill round confirmation"}</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    {"Do you REALLY want to kill the round?"}
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{"Go back"}</button>
+                    <button type="button" onclick={killround} class="btn btn-primary" data-bs-dismiss="modal">{"Kill round"}</button>
+                  </div>
+                </div>
+              </div>
+            </div>            
             </>
         }
     }
