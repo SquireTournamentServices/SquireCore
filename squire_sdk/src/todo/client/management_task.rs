@@ -17,17 +17,12 @@ use super::{
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";
 
-#[derive(Debug)]
-pub(crate) enum ManagementCommand {
-    Query(TournamentQuery),
-    Update(TournamentUpdate),
-    Import(TournamentImport),
-}
-
 /// A container for the channels used to communicate with the tournament management task.
 #[derive(Debug, Clone)]
 pub struct ManagementTaskSender {
-    sender: UnboundedSender<ManagementCommand>,
+    query: UnboundedSender<TournamentQuery>,
+    update: UnboundedSender<TournamentUpdate>,
+    import: UnboundedSender<TournamentImport>,
 }
 
 impl ManagementTaskSender {
@@ -35,9 +30,7 @@ impl ManagementTaskSender {
         let (msg, digest) = import_channel(tourn);
         // FIXME: This "bubbles up" a panic from the management task. In theory, a new task can be
         // spawned; however, a panic should never happen
-        self.sender
-            .send(ManagementCommand::Import(msg))
-            .expect(MANAGEMENT_PANICKED_MSG);
+        self.import.send(msg).expect(MANAGEMENT_PANICKED_MSG);
         digest
     }
 
@@ -49,9 +42,7 @@ impl ManagementTaskSender {
         let (msg, digest) = query_channel(id, query);
         // FIXME: This "bubbles up" a panic from the management task. In theory, a new task can be
         // spawned; however, a panic should never happen
-        self.sender
-            .send(ManagementCommand::Query(msg))
-            .expect(MANAGEMENT_PANICKED_MSG);
+        self.query.send(msg).expect(MANAGEMENT_PANICKED_MSG);
         digest
     }
 
@@ -59,9 +50,7 @@ impl ManagementTaskSender {
         let (msg, digest) = update_channel(id, update);
         // FIXME: This "bubbles up" a panic from the management task. In theory, a new task can be
         // spawned; however, a panic should never happen
-        self.sender
-            .send(ManagementCommand::Update(msg))
-            .expect(MANAGEMENT_PANICKED_MSG);
+        self.update.send(msg).expect(MANAGEMENT_PANICKED_MSG);
         digest
     }
 }
@@ -69,13 +58,23 @@ impl ManagementTaskSender {
 /// Spawns a new tournament management tokio task. Communication with this task is done via a
 /// collection of channels. This collection is returned
 pub(super) fn spawn_management_task<F>(on_update: F) -> ManagementTaskSender
-where
-    F: 'static + Send + FnMut(),
+where F: 'static + Send + FnMut(),
 {
-    let (send, recv) = unbounded_channel();
+    let (query, query_recv) = unbounded_channel();
+    let (update, update_recv) = unbounded_channel();
+    let (import, import_recv) = unbounded_channel();
     // Spawn the task that will manage the tournaments and run forever
-    spawn_task(tournament_management_task(recv, on_update));
-    ManagementTaskSender { sender: send }
+    spawn_task(tournament_management_task(
+        query_recv,
+        update_recv,
+        import_recv,
+        on_update,
+    ));
+    ManagementTaskSender {
+        query,
+        update,
+        import,
+    }
 }
 
 type TournamentCache = HashMap<TournamentId, TournamentManager>;
@@ -88,20 +87,24 @@ const HANG_UP_MESSAGE: &str = "The client has been dropped.";
 /// FIXME: Currently, this task has no way to send outbound requests, but it will need that
 /// ability. The client internals should be moved here.
 async fn tournament_management_task<F>(
-    mut recv: UnboundedReceiver<ManagementCommand>,
+    mut queries: UnboundedReceiver<TournamentQuery>,
+    mut updates: UnboundedReceiver<TournamentUpdate>,
+    mut imports: UnboundedReceiver<TournamentImport>,
     mut on_update: F,
-) where
-    F: FnMut(),
+)
+    where F: FnMut(),
 {
     let mut cache = TournamentCache::new();
     loop {
         futures::select! {
-            msg = recv => {
-                match msg.expect(HANG_UP_MESSAGE) {
-                    ManagementCommand::Query(query) => handle_query(&mut cache, query),
-                    ManagementCommand::Import(import) => handle_import(&mut cache, import),
-                    ManagementCommand::Update(update) => handle_update(&mut cache, update, &mut on_update),
-                }
+            import = imports => {
+                handle_import(&mut cache, import.expect(HANG_UP_MESSAGE));
+            }
+            update = updates => {
+                handle_update(&mut cache, update.expect(HANG_UP_MESSAGE), &mut on_update);
+            }
+            query = queries => {
+                handle_query(&cache, query.expect(HANG_UP_MESSAGE));
             }
         }
     }
@@ -115,8 +118,7 @@ fn handle_import(cache: &mut TournamentCache, import: TournamentImport) {
 }
 
 fn handle_update<F>(cache: &mut TournamentCache, update: TournamentUpdate, on_update: &mut F)
-where
-    F: FnMut(),
+    where F: FnMut(),
 {
     let TournamentUpdate {
         local,
