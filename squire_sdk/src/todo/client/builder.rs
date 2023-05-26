@@ -6,6 +6,7 @@ use reqwest::{
 use squire_lib::accounts::SquireAccount;
 
 use crate::{
+    accounts::{CreateAccountRequest, CreateAccountResponse},
     api::{REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE},
     version::{ServerMode, Version},
 };
@@ -100,12 +101,53 @@ where
         let server_mode = version.mode;
         let sender = spawn_management_task(on_update);
         Ok(SquireClient {
+            session: Session::default(),
+            verification: None,
             client,
             url,
             user,
             server_mode,
             sender,
         })
+    }
+
+    /// Tries to create a client and register the user for an account. Fails if a connection can
+    /// not be made at the held URL or the account could not be created.
+    pub async fn build_with_account_creation(
+        self,
+        user_name: String,
+        display_name: String,
+    ) -> Result<SquireClient, ClientError> {
+        let client = Client::new();
+        let resp = client
+            .get(format!("{}{VERSION_ROUTE}", self.url))
+            .send()
+            .await?;
+        if resp.status() != StatusCode::OK {
+            return Err(ClientError::FailedToConnect);
+        }
+        let server_mode = resp.json().await?;
+        let body = CreateAccountRequest {
+            user_name,
+            display_name,
+        };
+        let resp = client
+            .post(format!("{}{REGISTER_ACCOUNT_ROUTE}", self.url))
+            .header(CONTENT_TYPE, "application/json")
+            .body(serde_json::to_string(&body).unwrap())
+            .send()
+            .await?;
+        match resp.status() {
+            StatusCode::OK => {
+                let resp: CreateAccountResponse = resp.json().await?;
+                let user = resp.0;
+                let mut digest = self.build_unchecked();
+                digest.server_mode = server_mode;
+                digest.login().await?;
+                Ok(digest)
+            }
+            status => Err(ClientError::RequestStatus(status)),
+        }
     }
 
     /// Creates a client and does not check if the URL is valid nor does it attempt to login on
@@ -118,6 +160,8 @@ where
         } = self;
         let sender = spawn_management_task(on_update);
         SquireClient {
+            session: Session::default(),
+            verification: None,
             client: Client::new(),
             server_mode: ServerMode::Extended,
             url,
