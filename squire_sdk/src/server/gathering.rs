@@ -16,7 +16,7 @@ use tokio::{
     time::Instant,
 };
 
-use crate::tournaments::{TournamentManager, SyncRequest};
+use crate::{tournaments::TournamentManager, sync::OpSync};
 
 use super::User;
 
@@ -222,12 +222,12 @@ impl Gathering {
     // TODO: Return an actual error
     // TODO: This method does not actually check to see if the person that sent the request is
     // allowed to send such a return. This will need to eventually change
-    fn validate_sync_request(&mut self, sync: &SyncRequest) -> Result<(), ()> {
+    fn validate_sync_request(&mut self, sync: &OpSync) -> Result<(), ()> {
         Ok(())
     }
 
     // TODO: Return a "real" value
-    fn process_sync_request(&mut self, sync: SyncRequest) -> Result<(), ()> {
+    fn process_sync_request(&mut self, sync: OpSync) -> Result<(), ()> {
         todo!()
     }
 
