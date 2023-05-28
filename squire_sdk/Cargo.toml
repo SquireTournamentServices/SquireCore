@@ -8,13 +8,37 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 [features]
 default = []
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
-client = ["cookie", "reqwest", "serde_json", "tokio-tungstenite", "tokio", "async-std", "futures", "postcard"]
-server = ["axum", "axum/json", "axum/macros", "axum/headers", "tokio", "tokio/full", "async-session",
-          "headers", "http", "serde_json", "rand", "cookie", "futures", "postcard"]
+client = [
+  "cookie",
+  "reqwest",
+  "serde_json",
+  "tokio-tungstenite",
+  "tokio",
+  "async-std",
+  "futures",
+  "postcard",
+  "gloo-net",
+]
+server = [
+  "axum",
+  "axum/json",
+  "axum/macros",
+  "axum/headers",
+  "tokio",
+  "tokio/full",
+  "async-session",
+  "headers",
+  "http",
+  "serde_json",
+  "rand",
+  "cookie",
+  "futures",
+  "postcard",
+]
 
 [dependencies]
 # In-House deps
-mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffccde3b0eecd230c2f067e18383ed804c5f3", default-features = false }
+mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "979ffccde3b0eecd230c2f067e18383ed804c5f3", default-features = false }
 squire_lib = { path = "../squire_lib", default-features = false }
 
 # Common deps
@@ -45,13 +69,18 @@ http = { version = "0.2", optional = true }
 # To be moved
 hashbag = { version = "0.1.10", features = ["serde"] }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio-tungstenite = { version = "0.18.0", optional = true }
-tokio = { version = "1.27.0", features = ["macros", "sync", "time"], optional = true }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+#[target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = { version = "0.4.34" }
 async-std = { version = "1.12", optional = true }
+gloo-net = { version = "0.2", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio-tungstenite = { version = "0.19.0", optional = true }
+tokio = { version = "1.27.0", features = [
+  "macros",
+  "sync",
+  "time",
+], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"

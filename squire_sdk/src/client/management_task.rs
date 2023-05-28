@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
 
+use futures::stream::SplitSink;
 use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
@@ -8,10 +9,11 @@ use squire_lib::{
 use crate::tournaments::TournamentManager;
 
 use super::{
-    compat::{rest, spawn_task, unbounded_channel, UnboundedReceiver, UnboundedSender},
+    compat::{rest, spawn_task, unbounded_channel, UnboundedReceiver, UnboundedSender, Broadcaster, WebsocketMessage, Websocket},
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
+    subscription::TournamentSub,
     update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
 };
 
@@ -22,6 +24,7 @@ pub(crate) enum ManagementCommand {
     Query(TournamentQuery),
     Update(TournamentUpdate),
     Import(TournamentImport),
+    Subscribe(TournamentSub),
 }
 
 /// A container for the channels used to communicate with the tournament management task.
@@ -78,7 +81,15 @@ where
     ManagementTaskSender { sender: send }
 }
 
-type TournamentCache = HashMap<TournamentId, TournamentManager>;
+/// Contains all the info needed to track a tournament and all outbound communication related to
+/// it. Since not all tournaments have associated outbound communicate, the `comm` field is
+/// optional.
+struct TournComm {
+    tourn: TournamentManager,
+    comm: Option<(SplitSink<Websocket, WebsocketMessage>, Broadcaster<bool>)>
+}
+
+type TournamentCache = HashMap<TournamentId, TournComm>;
 
 const HANG_UP_MESSAGE: &str = "The client has been dropped.";
 
@@ -98,9 +109,10 @@ async fn tournament_management_task<F>(
         futures::select! {
             msg = recv => {
                 match msg.expect(HANG_UP_MESSAGE) {
-                    ManagementCommand::Query(query) => handle_query(&mut cache, query),
+                    ManagementCommand::Query(query) => handle_query(&cache, query),
                     ManagementCommand::Import(import) => handle_import(&mut cache, import),
                     ManagementCommand::Update(update) => handle_update(&mut cache, update, &mut on_update),
+                    ManagementCommand::Subscribe(sub) => handle_sub(&mut cache, sub).await,
                 }
             }
         }
@@ -155,4 +167,13 @@ where
 fn handle_query(cache: &TournamentCache, query: TournamentQuery) {
     let TournamentQuery { query, id } = query;
     query(cache.get(&id));
+}
+
+async fn handle_sub(cache: &mut TournamentCache, sub: TournamentSub) {
+    // Check to see if the tournament is already in the sublist
+    //  - If so, return a listener
+    // If not, open a connection
+    // Handle the new connnection
+    // Return a listener
+    todo!()
 }
