@@ -19,11 +19,11 @@ pub(crate) fn forget<T>(_: T) {}
 #[cfg(not(target_family = "wasm"))]
 mod native;
 #[cfg(not(target_family = "wasm"))]
-//pub use native::*;
+pub use native::*;
 
-//#[cfg(target_family = "wasm")]
+#[cfg(target_family = "wasm")]
 mod wasm;
-//#[cfg(target_family = "wasm")]
+#[cfg(target_family = "wasm")]
 pub use wasm::*;
 
 /// A common error return by the receiver half of an unbounded channel.
