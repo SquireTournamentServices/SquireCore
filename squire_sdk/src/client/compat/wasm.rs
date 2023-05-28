@@ -1,11 +1,37 @@
-use std::time::Duration;
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
-use futures::Future;
+use async_std::channel::{self, SendError, TrySendError};
+use futures::{Future, Sink, Stream};
+use gloo_net::websocket::{
+    futures::WebSocket as GlooSocket, Message as GlooMessage, WebSocketError as GlooError,
+};
 use reqwest::Response;
 
 use crate::client::error::{ClientError, ClientResult};
 
-use super::TryRecvError;
+use super::{forget, TryRecvError, WebsocketError, WebsocketMessage, WebsocketResult};
+
+/* ------ General Utils ------ */
+
+/// Spawns a future that will execute in the background of the current thread. WASM bindgen's
+/// `spawn_local` is used for this as tokio is caused problems in the browswer.
+pub fn spawn_task<F>(fut: F)
+where
+    F: 'static + Future<Output = ()>,
+{
+    wasm_bindgen_futures::spawn_local(fut);
+}
+
+/// Creates a future that will perform a non-blocking sleep
+pub async fn rest(dur: Duration) {
+    async_std::task::sleep(dur).await;
+}
+
+/* ------ Session ------ */
 
 /// A structure that the client uses to track its current session with the backend. A session
 /// represents both an active session and a yet-to-be-session.
@@ -31,19 +57,7 @@ impl Session {
     }
 }
 
-/// Spawns a future that will execute in the background of the current thread. WASM bindgen's
-/// `spawn_local` is used for this as tokio is caused problems in the browswer.
-pub fn spawn_task<F>(fut: F)
-where
-    F: 'static + Future<Output = ()>,
-{
-    wasm_bindgen_futures::spawn_local(async { fut.await });
-}
-
-/// Creates a future that will perform a non-blocking sleep
-pub async fn rest(dur: Duration) {
-    async_std::task::sleep(dur).await;
-}
+/* ------ Unbounded Channel ------ */
 
 #[derive(Debug)]
 pub struct UnboundedSender<T>(async_std::channel::Sender<T>);
@@ -70,22 +84,15 @@ pub struct UnboundedReceiver<T>(async_std::channel::Receiver<T>);
 
 impl<T> UnboundedReceiver<T> {
     pub async fn recv(&mut self) -> Option<T> {
-        let digest = self.0.recv().await;
-        self.1 = digest.is_none();
-        digest
+        self.0.recv().await.ok()
     }
 
     pub fn try_recv(&mut self) -> Result<T, TryRecvError> {
-        let digest: Result<_, TryRecvError> = self.0.try_recv().map_err(Into::into);
-        self.1 = match digest.as_ref() {
-            Ok(_) => false,
-            Err(e) => e.is_disconnected(),
-        };
-        digest
+        self.0.try_recv().map_err(Into::into)
     }
 
     pub fn is_disconnected(&self) -> bool {
-        self.1
+        self.0.is_closed()
     }
 }
 
@@ -93,6 +100,8 @@ pub fn unbounded_channel<T>() -> (UnboundedSender<T>, UnboundedReceiver<T>) {
     let (send, recv) = async_std::channel::unbounded();
     (UnboundedSender(send), UnboundedReceiver(recv))
 }
+
+/* ------ Oneshot Channel ------ */
 
 #[derive(Debug)]
 pub struct OneshotSender<T>(async_std::channel::Sender<T>);
@@ -135,24 +144,26 @@ pub fn oneshot<T>() -> (OneshotSender<T>, OneshotReceiver<T>) {
     (OneshotSender(send), OneshotReceiver(recv))
 }
 
+/* ------ Broadcast Channel ------ */
+
 pub fn broadcast_channel<T: Clone>(capacity: usize) -> (Broadcaster<T>, Subscriber<T>) {
-    let (send, recv) = broadcast::channel(capacity);
+    let (send, recv) = channel::bounded(capacity);
     (Broadcaster(send), Subscriber(recv))
 }
 
 #[derive(Debug)]
-pub struct Broadcaster<T>(async_std::channel::Receiver<T>);
+pub struct Broadcaster<T>(async_std::channel::Sender<T>);
 
 impl<T> Broadcaster<T> {
     pub fn send(&self, msg: T) -> Result<(), T> {
         self.0.try_send(msg).map_err(|err| match err {
-            TrySendError::Closed(val) | TrySendError::Full(val) => val,
+            TrySendError::Full(val) | TrySendError::Closed(val) => val,
         })
     }
 }
 
-#[derive(Debug)]
-pub struct Subscriber<T>(async_std::channel::Sender<T>);
+#[derive(Debug, Clone)]
+pub struct Subscriber<T>(async_std::channel::Receiver<T>);
 
 impl<T: Clone> Subscriber<T> {
     pub async fn recv(&mut self) -> Result<T, ()> {
@@ -160,8 +171,72 @@ impl<T: Clone> Subscriber<T> {
     }
 }
 
-impl<T: Clone> Clone for Subscriber<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.resubscribe())
+/* ------ Websockets ------ */
+
+pub struct Websocket(GlooSocket);
+
+impl Websocket {
+    /// Takes a URL string and attempts to connect to the backend at that URL. Because of
+    /// compatability reason between the native and WASM Websockets, the request that is sent needs
+    /// to be a simple get request.
+    pub async fn new(url: &str) -> Result<Self, ()> {
+        GlooSocket::open(url).map(Websocket).map_err(forget)
+    }
+}
+
+impl Stream for Websocket {
+    type Item = WebsocketResult;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.0)
+            .poll_next(cx)
+            .map_ok(Into::into)
+            .map_err(Into::into)
+    }
+}
+
+impl Sink<WebsocketMessage> for Websocket {
+    type Error = WebsocketError;
+
+    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Pin::new(&mut self.0).poll_ready(cx).map_err(Into::into)
+    }
+
+    fn start_send(mut self: Pin<&mut Self>, item: WebsocketMessage) -> Result<(), Self::Error> {
+        Pin::new(&mut self.0)
+            .start_send(item.into())
+            .map_err(Into::into)
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Pin::new(&mut self.0).poll_flush(cx).map_err(Into::into)
+    }
+
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Pin::new(&mut self.0).poll_close(cx).map_err(Into::into)
+    }
+}
+
+impl From<GlooError> for WebsocketError {
+    fn from(_value: GlooError) -> Self {
+        Self
+    }
+}
+
+impl From<WebsocketMessage> for GlooMessage {
+    fn from(value: WebsocketMessage) -> Self {
+        match value {
+            WebsocketMessage::Text(data) => Self::Text(data),
+            WebsocketMessage::Bytes(data) => Self::Bytes(data),
+        }
+    }
+}
+
+impl From<GlooMessage> for WebsocketMessage {
+    fn from(value: GlooMessage) -> Self {
+        match value {
+            GlooMessage::Text(data) => Self::Text(data),
+            GlooMessage::Bytes(data) => Self::Bytes(data),
+        }
     }
 }
