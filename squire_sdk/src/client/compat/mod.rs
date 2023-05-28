@@ -7,6 +7,25 @@
 //! By no means is this an exhuastive or future-proof module. Rather, the module just implements
 //! wrappers for functionalities that are presently needed.
 
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+
+use futures::{future::FusedFuture, Future};
+
+pub(crate) fn forget<T>(_: T) {}
+
+#[cfg(not(target_family = "wasm"))]
+mod native;
+#[cfg(not(target_family = "wasm"))]
+//pub use native::*;
+
+//#[cfg(target_family = "wasm")]
+mod wasm;
+//#[cfg(target_family = "wasm")]
+pub use wasm::*;
+
 /// A common error return by the receiver half of an unbounded channel.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TryRecvError {
@@ -38,19 +57,14 @@ impl<T> FusedFuture for UnboundedReceiver<T> {
     }
 }
 
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
+/// A shorthand for the results of fallible Websocket operations
+pub type WebsocketResult = Result<WebsocketMessage, WebsocketError>;
 
-use futures::{future::FusedFuture, Future};
+/// The common message return by the websocket types
+pub enum WebsocketMessage {
+    Text(String),
+    Bytes(Vec<u8>),
+}
 
-#[cfg(not(target_family = "wasm"))]
-mod native;
-#[cfg(not(target_family = "wasm"))]
-pub use native::*;
-
-#[cfg(target_family = "wasm")]
-mod wasm;
-#[cfg(target_family = "wasm")]
-pub use wasm::*;
+/// The common error type used by the websocket types
+pub struct WebsocketError;

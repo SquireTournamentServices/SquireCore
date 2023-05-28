@@ -64,20 +64,7 @@ pub mod import;
 pub mod management_task;
 pub mod query;
 pub mod update;
-
-struct UpdateListenerManager {
-    new_listeners: UnboundedReceiver<(TournamentId, Subscriber<bool>)>,
-    listeners: HashMap<TournamentId, Subscriber<bool>>,
-}
-
-impl UpdateListenerManager {
-    fn get_listener(&mut self, id: TournamentId) -> Option<Subscriber<bool>> {
-        while let Ok((t_id, sub)) = self.new_listeners.try_recv() {
-            let _ = self.listeners.insert(t_id, sub);
-        }
-        self.listeners.get(&id).cloned()
-    }
-}
+pub mod subscription;
 
 pub struct SquireClient {
     client: Client,
@@ -85,7 +72,6 @@ pub struct SquireClient {
     user: SquireAccount,
     server_mode: ServerMode,
     sender: ManagementTaskSender,
-    listeners: Mutex<UpdateListenerManager>,
 }
 
 impl SquireClient {
@@ -98,16 +84,7 @@ impl SquireClient {
         &self.user
     }
 
-    /// Gets a subscriber that listens for remote updates to a tournament. This is how the task
-    /// that manages the tournament data can notify the top-level users that something have
-    /// changes. This method can fail with two common causes:
-    ///  - The management task has not sent the listeners yet (i.e. the tournament is newly
-    ///  imported)
-    ///  - The tournament is not being subscribed to
-    pub fn get_update_listener(&mut self, id: TournamentId) -> Option<Subscriber<bool>> {
-        let mut lock = self.listeners.lock().unwrap();
-        lock.get_listener(id)
-    }
+    // There needs to be a method + message that fetches a listenerr from the management task
 
     /// Creates a local tournament, imports it, and returns the id. This tournament will be pushed
     /// to the backend server but the remote import might not be completed by the time the value is
