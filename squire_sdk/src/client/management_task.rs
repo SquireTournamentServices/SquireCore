@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
 
-use futures::stream::SplitSink;
+use futures::stream::{SplitSink, SplitStream};
 use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
@@ -122,8 +122,8 @@ async fn tournament_management_task<F>(
 fn handle_import(cache: &mut TournamentCache, import: TournamentImport) {
     let TournamentImport { tourn, tracker } = import;
     let id = tourn.id;
-    cache.insert(id, tourn);
-    let _ = tracker.send(id);
+    //cache.insert(id, tourn);
+    //let _ = tracker.send(id);
 }
 
 fn handle_update<F>(cache: &mut TournamentCache, update: TournamentUpdate, on_update: &mut F)
@@ -139,8 +139,8 @@ where
     let mut to_remove = false;
     if let Some(tourn) = cache.get_mut(&id) {
         let res = match update {
-            UpdateType::Single(op) => tourn.apply_op(op),
-            UpdateType::Bulk(ops) => tourn.bulk_apply_ops(ops),
+            UpdateType::Single(op) => tourn.tourn.apply_op(op),
+            UpdateType::Bulk(ops) => tourn.tourn.bulk_apply_ops(ops),
             UpdateType::Removal => {
                 to_remove = true;
                 Ok(OpData::Nothing)
@@ -166,10 +166,23 @@ where
 
 fn handle_query(cache: &TournamentCache, query: TournamentQuery) {
     let TournamentQuery { query, id } = query;
-    query(cache.get(&id));
+    query(cache.get(&id).map(|tc| &tc.tourn));
 }
 
-async fn handle_sub(cache: &mut TournamentCache, sub: TournamentSub) {
+// Needs to take a &mut to the SelectAll WS listener so it can be updated if need be
+async fn handle_sub(cache: &mut TournamentCache, TournamentSub { send, id }: TournamentSub) {
+    /*
+    match cache.get(id).map(|(_, broad)| broad) {
+        // Tournament is cached and communication is set up for it
+        Some(Some(broad)) => {
+            let sub = broad;
+        },
+        // Tournament is cached but there is no communication for it
+        Some(None) => todo!(),
+        // Tournament is not cached
+        None => todo!(),
+    }
+    */
     // Check to see if the tournament is already in the sublist
     //  - If so, return a listener
     // If not, open a connection
