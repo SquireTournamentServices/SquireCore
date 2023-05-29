@@ -3,10 +3,15 @@ use squire_lib::{
     tournament::TournamentId,
 };
 
-use super::{
-    compat::{oneshot, OneshotReceiver, OneshotSender, Subscriber},
-    error::ClientResult,
+use tokio::sync::{
+    broadcast::{Receiver as Subscriber, Sender as Broadcast},
+    oneshot::{
+        channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
+        Sender as OneshotSender,
+    },
 };
+
+use super::error::ClientResult;
 
 /// Communicates two things:
 ///  - If there isn't one, open a Websocket connection for the specified tournament
@@ -32,7 +37,7 @@ pub(crate) fn sub_channel(id: TournamentId) -> (TournamentSub, SubTracker) {
 
 impl SubTracker {
     pub async fn process(self) -> Option<Subscriber<bool>> {
-        self.recv.recv().await.flatten()
+        self.recv.await.ok().flatten()
     }
 
     pub fn process_blocking(self) -> Option<Subscriber<bool>> {

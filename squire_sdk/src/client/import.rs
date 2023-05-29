@@ -5,11 +5,13 @@ use std::{
     time::Duration,
 };
 
+use tokio::sync::oneshot::{
+    channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender, error::TryRecvError,
+};
+
 use squire_lib::tournament::TournamentId;
 
 use crate::tournaments::TournamentManager;
-
-use super::compat::{oneshot, OneshotReceiver, OneshotSender, TryRecvError};
 
 #[derive(Debug)]
 pub struct TournamentImport {
@@ -34,7 +36,7 @@ pub(crate) fn import_channel(tourn: TournamentManager) -> (TournamentImport, Imp
 
 impl ImportTracker {
     pub async fn process(self) -> Option<TournamentId> {
-        self.tracker.recv().await
+        self.tracker.await.ok()
     }
 
     pub fn process_blocking(self) -> Option<TournamentId> {
@@ -48,7 +50,7 @@ impl Future for ImportTracker {
     fn poll(mut self: Pin<&mut Self>, _: &mut task::Context<'_>) -> Poll<Self::Output> {
         match self.tracker.try_recv() {
             Ok(val) => Poll::Ready(Some(val)),
-            Err(TryRecvError::Disconnected) => Poll::Ready(None),
+            Err(TryRecvError::Closed) => Poll::Ready(None),
             Err(TryRecvError::Empty) => Poll::Pending,
         }
     }

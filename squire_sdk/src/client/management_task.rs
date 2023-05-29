@@ -1,6 +1,15 @@
 use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
 
 use futures::stream::{SplitSink, SplitStream};
+use tokio::sync::{
+    broadcast::{Receiver as Subscriber, Sender as Broadcaster},
+    mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel},
+    oneshot::{
+        channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
+        Sender as OneshotSender,
+    },
+};
+
 use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
@@ -9,7 +18,7 @@ use squire_lib::{
 use crate::tournaments::TournamentManager;
 
 use super::{
-    compat::{rest, spawn_task, unbounded_channel, UnboundedReceiver, UnboundedSender, Broadcaster, WebsocketMessage, Websocket},
+    compat::{rest, spawn_task, Websocket, WebsocketMessage},
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
@@ -86,7 +95,7 @@ where
 /// optional.
 struct TournComm {
     tourn: TournamentManager,
-    comm: Option<(SplitSink<Websocket, WebsocketMessage>, Broadcaster<bool>)>
+    comm: Option<(SplitSink<Websocket, WebsocketMessage>, Broadcaster<bool>)>,
 }
 
 type TournamentCache = HashMap<TournamentId, TournComm>;
@@ -107,7 +116,7 @@ async fn tournament_management_task<F>(
     let mut cache = TournamentCache::new();
     loop {
         futures::select! {
-            msg = recv => {
+            msg = recv.recv() => {
                 match msg.expect(HANG_UP_MESSAGE) {
                     ManagementCommand::Query(query) => handle_query(&cache, query),
                     ManagementCommand::Import(import) => handle_import(&mut cache, import),

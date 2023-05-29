@@ -11,8 +11,8 @@
 
 use std::{
     collections::HashMap,
-    fmt::{Debug, self},
-    sync::{Arc, RwLock, Mutex},
+    fmt::{self, Debug},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use cookie::Cookie;
@@ -49,7 +49,7 @@ use crate::{
 
 use self::{
     builder::ClientBuilder,
-    compat::{Session, Subscriber, UnboundedReceiver},
+    compat::Session,
     error::ClientResult,
     import::ImportTracker,
     management_task::{spawn_management_task, ManagementTaskSender},
@@ -63,8 +63,8 @@ pub mod error;
 pub mod import;
 pub mod management_task;
 pub mod query;
-pub mod update;
 pub mod subscription;
+pub mod update;
 
 pub struct SquireClient {
     client: Client,

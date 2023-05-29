@@ -3,10 +3,11 @@ use squire_lib::{
     tournament::TournamentId,
 };
 
-use super::{
-    compat::{oneshot, OneshotReceiver, OneshotSender},
-    error::ClientResult,
+use tokio::sync::oneshot::{
+    channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
+
+use super::error::ClientResult;
 
 #[derive(Debug)]
 pub(crate) struct TournamentUpdate {
@@ -51,7 +52,7 @@ pub(crate) fn update_channel(
 
 impl UpdateTracker {
     pub async fn process(self) -> Option<OpResult> {
-        self.local.recv().await.flatten()
+        self.local.await.ok().flatten()
     }
 
     pub fn process_blocking(self) -> Option<OpResult> {

@@ -6,11 +6,13 @@ use std::{
     time::Duration,
 };
 
+use tokio::sync::oneshot::{
+    channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
+};
+
 use squire_lib::tournament::TournamentId;
 
 use crate::tournaments::TournamentManager;
-
-use super::compat::{oneshot, OneshotReceiver, TryRecvError};
 
 /// The type used to send requests for arbitary calculations to the tournament management task. The
 /// boxed function contains a tokio oneshot channel, which communicates the calculation results
@@ -31,19 +33,13 @@ pub struct QueryTracker<T> {
 impl<T> QueryTracker<T> {
     /// Consumes self and waits for the task to finish processing the query
     pub async fn process(self) -> Option<T> {
-        self.recv.recv().await.flatten()
+        self.recv.await.ok().flatten()
     }
 
     /// Consumes self and spins, blocking the current thread, until the query is due being
     /// processed
-    pub fn process_blocking(mut self) -> Option<T> {
-        loop {
-            match self.recv.try_recv() {
-                Ok(val) => return val,
-                Err(TryRecvError::Disconnected) => return None,
-                Err(TryRecvError::Empty) => {}
-            }
-        }
+    pub fn process_blocking(self) -> Option<T> {
+        futures::executor::block_on(self.process())
     }
 }
 
@@ -89,10 +85,6 @@ impl<T> Future for QueryTracker<T> {
     type Output = Option<T>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.recv.try_recv() {
-            Ok(val) => Poll::Ready(val),
-            Err(TryRecvError::Disconnected) => Poll::Ready(None),
-            Err(TryRecvError::Empty) => Poll::Pending,
-        }
+        Pin::new(&mut self.recv).poll(cx).map(|res| res.ok().flatten())
     }
 }
