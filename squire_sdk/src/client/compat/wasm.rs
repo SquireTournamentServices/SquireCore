@@ -28,7 +28,7 @@ where
 
 /// Creates a future that will perform a non-blocking sleep
 pub async fn rest(dur: Duration) {
-    async_std::task::sleep(dur).await;
+    gloo_timers::future::sleep(dur).await;
 }
 
 /* ------ Session ------ */
@@ -54,120 +54,6 @@ impl Session {
             .as_ref()
             .map(|_| String::new())
             .ok_or(ClientError::NotLoggedIn)
-    }
-}
-
-/* ------ Unbounded Channel ------ */
-
-#[derive(Debug)]
-pub struct UnboundedSender<T>(async_std::channel::Sender<T>);
-
-impl<T> UnboundedSender<T> {
-    pub fn send(&self, msg: T) -> Result<(), T> {
-        self.0.try_send(msg).map_err(|e| match e {
-            async_std::channel::TrySendError::Full(_) => {
-                unreachable!("Unbounded sender was full")
-            }
-            async_std::channel::TrySendError::Closed(val) => val,
-        })
-    }
-}
-
-impl<T> Clone for UnboundedSender<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-#[derive(Debug)]
-pub struct UnboundedReceiver<T>(async_std::channel::Receiver<T>);
-
-impl<T> UnboundedReceiver<T> {
-    pub async fn recv(&mut self) -> Option<T> {
-        self.0.recv().await.ok()
-    }
-
-    pub fn try_recv(&mut self) -> Result<T, TryRecvError> {
-        self.0.try_recv().map_err(Into::into)
-    }
-
-    pub fn is_disconnected(&self) -> bool {
-        self.0.is_closed()
-    }
-}
-
-pub fn unbounded_channel<T>() -> (UnboundedSender<T>, UnboundedReceiver<T>) {
-    let (send, recv) = async_std::channel::unbounded();
-    (UnboundedSender(send), UnboundedReceiver(recv))
-}
-
-/* ------ Oneshot Channel ------ */
-
-#[derive(Debug)]
-pub struct OneshotSender<T>(async_std::channel::Sender<T>);
-
-impl<T> OneshotSender<T> {
-    pub fn send(self, msg: T) -> Result<(), T> {
-        self.0.try_send(msg).map_err(|e| match e {
-            async_std::channel::TrySendError::Full(_) => {
-                unreachable!("One shot already sent...")
-            }
-            async_std::channel::TrySendError::Closed(val) => val,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct OneshotReceiver<T>(async_std::channel::Receiver<T>);
-
-impl<T> OneshotReceiver<T> {
-    pub async fn recv(self) -> Option<T> {
-        self.0.recv().await.ok()
-    }
-
-    pub fn try_recv(&mut self) -> Result<T, TryRecvError> {
-        self.0.try_recv().map_err(Into::into)
-    }
-}
-
-impl From<async_std::channel::TryRecvError> for TryRecvError {
-    fn from(value: async_std::channel::TryRecvError) -> Self {
-        match value {
-            async_std::channel::TryRecvError::Empty => Self::Empty,
-            async_std::channel::TryRecvError::Closed => Self::Disconnected,
-        }
-    }
-}
-
-pub fn oneshot<T>() -> (OneshotSender<T>, OneshotReceiver<T>) {
-    let (send, recv) = async_std::channel::bounded(1);
-    (OneshotSender(send), OneshotReceiver(recv))
-}
-
-/* ------ Broadcast Channel ------ */
-
-pub fn broadcast_channel<T: Clone>(capacity: usize) -> (Broadcaster<T>, Subscriber<T>) {
-    let (send, recv) = channel::bounded(capacity);
-    (Broadcaster(send), Subscriber(recv))
-}
-
-#[derive(Debug)]
-pub struct Broadcaster<T>(async_std::channel::Sender<T>);
-
-impl<T> Broadcaster<T> {
-    pub fn send(&self, msg: T) -> Result<(), T> {
-        self.0.try_send(msg).map_err(|err| match err {
-            TrySendError::Full(val) | TrySendError::Closed(val) => val,
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Subscriber<T>(async_std::channel::Receiver<T>);
-
-impl<T: Clone> Subscriber<T> {
-    pub async fn recv(&mut self) -> Result<T, ()> {
-        self.0.recv().await.map_err(forget)
     }
 }
 
