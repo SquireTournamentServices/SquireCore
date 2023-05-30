@@ -4,7 +4,11 @@ use squire_sdk::{
         identifiers::{AdminId, RoundIdentifier},
         rounds::{RoundId, RoundStatus},
     },
+<<<<<<< Updated upstream
     tournaments::TournamentId,
+=======
+    tournaments::{TournamentId, OpResult}, client::update::UpdateTracker,
+>>>>>>> Stashed changes
 };
 
 use yew::prelude::*;
@@ -33,6 +37,7 @@ use super::spawn_update_listener;
 pub struct RoundsFilterProps {
     pub id: TournamentId,
     pub admin_id: AdminId,
+    pub send_op_result: Callback<OpResult>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,6 +54,7 @@ pub struct RoundsView {
     input: RoundFilterInput,
     scroll: RoundScroll,
     selected: SelectedRound,
+    send_op_result: Callback<OpResult>,
 }
 
 impl Component for RoundsView {
@@ -56,11 +62,16 @@ impl Component for RoundsView {
     type Properties = RoundsFilterProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+<<<<<<< Updated upstream
         let id = ctx.props().id;
         let aid = ctx.props().admin_id;
         spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
+=======
+        let RoundsFilterProps { id, admin_id, send_op_result } = ctx.props();
+>>>>>>> Stashed changes
         Self {
             id,
+            send_op_result,
             input: RoundFilterInput::new(ctx.link().callback(RoundsViewMessage::FilterInput)),
             scroll: RoundScroll::new(ctx, id),
             admin_id: aid,
