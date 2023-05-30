@@ -12,6 +12,7 @@ use squire_sdk::{
     players::PlayerId,
     tournaments::{TournOp, TournamentId},
 };
+use tokio::task::spawn_local;
 use yew::prelude::*;
 
 use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
@@ -132,7 +133,9 @@ impl SelectedRound {
                     ));
                 }
 
-                CLIENT.get().unwrap().bulk_update(self.t_id, ops);
+                // Update methods return a tracker that is a future and needs to be awaited
+                let tracker = CLIENT.get().unwrap().bulk_update(self.t_id, ops);
+                spawn_local(async { send_op_result(tracker.process().await.unwrap()) });
                 false
             }
             SelectedRoundMessage::BulkConfirm(rid) => {

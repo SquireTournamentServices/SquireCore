@@ -7,11 +7,11 @@ use yew::{html, Callback, Component, Context, Html, Properties};
 use squire_sdk::{
     api::GET_TOURNAMENT_ROUTE,
     model::{admin::Admin, identifiers::AdminId},
-    tournaments::{TournamentId, TournamentManager},
+    tournaments::{TournamentId, TournamentManager, OpResult},
 };
 
 use crate::{
-    tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
+    tournament::{overview::*, players::*, rounds::{*, _RoundsFilterProps::send_op_result}, settings::*, standings::*},
     utils::fetch_tournament,
     CLIENT, ON_UPDATE,
 };
@@ -31,6 +31,7 @@ pub enum TournViewMessage {
     TournamentImported,
     QueryReady(Option<(String, AdminId)>),
     SwitchModes(TournViewMode),
+    TournamentUpdated(OpResult),
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
@@ -67,7 +68,7 @@ impl TournamentViewer {
         }
     }
 
-    fn get_control_plane(&self) -> Html {
+    fn get_control_plane(&self, ctx: &Context<Self>) -> Html {
         match self.mode {
             TournViewMode::Overview => {
                 html! { <TournOverview id = { self.id }/> }
@@ -76,7 +77,8 @@ impl TournamentViewer {
                 html! { <PlayerView id = { self.id }/> }
             }
             TournViewMode::Rounds => {
-                html! { <RoundsView id = { self.id } admin_id = { self.admin_id } /> }
+                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdate);
+                html! { <RoundsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
             TournViewMode::Standings => {
                 html! { <StandingsView id = { self.id }/> }
@@ -149,6 +151,7 @@ impl Component for TournamentViewer {
                 });
                 false
             }
+            TournViewMessage::TournamentUpdated(_) => todo!(),
         }
     }
 
@@ -160,7 +163,7 @@ impl Component for TournamentViewer {
                         { self.get_header(ctx) }
                     </aside>
                     <main class="col-md-10 conatiner">
-                        { self.get_control_plane() }
+                        { self.get_control_plane(ctx) }
                     </main>
                 </div>
             </div>
