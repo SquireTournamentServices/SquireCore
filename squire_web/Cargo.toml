@@ -16,7 +16,7 @@ squire_sdk = { path = "../squire_sdk", features = ["client"] }
 yew = { version = "0.20", features = ["csr"] }
 yew-router = { version = "0.17.0" }
 once_cell = { version = "1.17" }
-web-sys = { version = "0.3.61", features = ["Element", "HtmlCollection"] }
+web-sys = { version = "0.3.61", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
 js-sys = "0.3.61"
 wasm-bindgen = "0.2.84"
 wasm-bindgen-futures = "0.4.34"

@@ -5,7 +5,10 @@ use squire_sdk::{
 use std::{collections::HashMap, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
 
-use super::{RoundResultTicker, RoundResultTickerMessage, RoundConfirmationTicker, RoundConfirmationTickerMessage, SelectedRoundMessage};
+use super::{
+    RoundConfirmationTicker, RoundConfirmationTickerMessage, RoundResultTicker,
+    RoundResultTickerMessage, SelectedRoundMessage,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Data buffer holding changes which can be pushed to a round using admin operations
@@ -29,14 +32,18 @@ pub enum RoundChangesBufferMessage {
 }
 
 impl RoundChangesBuffer {
-    pub fn new(process: Callback<SelectedRoundMessage>, rid: RoundId, draw_ticker: RoundResultTicker) -> Self {
+    pub fn new(
+        process: Callback<SelectedRoundMessage>,
+        rid: RoundId,
+        draw_ticker: RoundResultTicker,
+    ) -> Self {
         Self {
             rid,
             draw_ticker,
             win_tickers: HashMap::new(),
             confirmation_tickers: HashMap::new(),
             current_extension_minutes: 0,
-            process
+            process,
         }
     }
 
@@ -50,7 +57,10 @@ impl RoundChangesBuffer {
                 }
             }
             RoundChangesBufferMessage::ConfirmationClicked(pid, rctmsg) => {
-                self.confirmation_tickers.get_mut(&pid).unwrap().update(rctmsg);
+                self.confirmation_tickers
+                    .get_mut(&pid)
+                    .unwrap()
+                    .update(rctmsg);
             }
             RoundChangesBufferMessage::ExtensionIncrease() => {
                 self.current_extension_minutes += 1;
@@ -89,13 +99,13 @@ impl RoundChangesBuffer {
         let cb = self.process.clone();
         let up = move |s| {
             cb.emit(SelectedRoundMessage::BufferMessage(
-                RoundChangesBufferMessage::ExtensionIncrease()
+                RoundChangesBufferMessage::ExtensionIncrease(),
             ));
         };
         let cb = self.process.clone();
         let down = move |s| {
             cb.emit(SelectedRoundMessage::BufferMessage(
-                RoundChangesBufferMessage::ExtensionDecrease()
+                RoundChangesBufferMessage::ExtensionDecrease(),
             ));
         };
         html! {
@@ -106,5 +116,4 @@ impl RoundChangesBuffer {
             </>
         }
     }
-
 }

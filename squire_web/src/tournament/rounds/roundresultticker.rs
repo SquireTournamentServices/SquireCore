@@ -1,6 +1,11 @@
 use squire_sdk::{
-    model::{rounds::{RoundResult, RoundId}, identifiers::AdminId, operations::JudgeOp},
-    players::{PlayerId, Round}, tournaments::TournOp,
+    model::{
+        identifiers::AdminId,
+        operations::JudgeOp,
+        rounds::{RoundId, RoundResult},
+    },
+    players::{PlayerId, Round},
+    tournaments::TournOp,
 };
 use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
@@ -45,8 +50,10 @@ impl RoundResultTicker {
         }
     }
 
-    pub fn into_op(&self, admin_id : AdminId, rid : RoundId) -> Option<TournOp> {
-        if (!self.was_changed) { return None; }
+    pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
+        if (!self.was_changed) {
+            return None;
+        }
         Some(TournOp::JudgeOp(
             admin_id.clone().into(),
             JudgeOp::AdminRecordResult(rid, self.stored_result),
