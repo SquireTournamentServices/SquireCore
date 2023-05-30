@@ -64,20 +64,20 @@ fn app() -> Html {
 
 fn main() {
     web_sys::console::log_1(&format!("Starting everything up...").into());
-    
+
     let (send, recv) = unbounded();
-    let on_update = move || { 
+    let on_update = move || {
         //let _ = send.send(0);
         match (send.try_send(0)) {
-            Ok(_) => {console_log("Sent successfully")}
-            Err(_) => {console_log("Failed to send")}
+            Ok(_) => console_log("Sent successfully"),
+            Err(_) => console_log("Failed to send"),
         }
     };
-    
+
     let client = SquireClient::new_unchecked(
         "/".to_string(),
         SquireAccount::new("Tester".into(), "Tester".into()),
-        on_update
+        on_update,
     );
     CLIENT.set(client).unwrap();
     ON_UPDATE.set(recv).unwrap();

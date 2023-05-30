@@ -11,7 +11,8 @@ pub fn console_log(info: &str) {
 }
 
 pub fn digest_if_different<T>(data: T, storage: &mut T) -> bool
-where T : PartialEq
+where
+    T: PartialEq,
 {
     let digest = *storage != data;
     *storage = data;

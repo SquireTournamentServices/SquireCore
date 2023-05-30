@@ -53,12 +53,12 @@ impl RoundConfirmationTicker {
 
     pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
         // AdminConfirmResult(RoundId, PlayerId)
-        (self.currently_confirmed && !self.pre_confirmed).then( ||
+        (self.currently_confirmed && !self.pre_confirmed).then(|| {
             (TournOp::JudgeOp(
                 admin_id.clone().into(),
                 JudgeOp::AdminConfirmResult(rid, self.pid.clone()),
             ))
-        )
+        })
     }
 
     pub fn update(&mut self, msg: RoundConfirmationTickerMessage) -> bool {
