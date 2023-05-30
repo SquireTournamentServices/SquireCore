@@ -9,7 +9,10 @@ use squire_sdk::{
 use web_sys::console;
 use yew::prelude::*;
 
-use crate::{utils::{TextInput, console_log}, CLIENT};
+use crate::{
+    utils::{console_log, TextInput},
+    CLIENT,
+};
 
 use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
 

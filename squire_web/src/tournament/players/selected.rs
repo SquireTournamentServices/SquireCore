@@ -243,9 +243,7 @@ impl RoundProfile {
         Self {
             id: rnd.id,
             status: rnd.status,
-            order: rnd
-                .players
-                .clone(),
+            order: rnd.players.clone(),
             player_names: rnd
                 .players
                 .iter()

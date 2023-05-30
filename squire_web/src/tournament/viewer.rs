@@ -157,6 +157,14 @@ impl Component for TournamentViewer {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
+            <>
+            <dialog>
+            <p>"There was an error"</p>
+            <form method="dialog">
+              <button>OK</button>
+            </form>
+            </dialog>
+          
             <div class="my-4 container-fluid">
                 <div class="row tviewer">
                     <aside class="col-md-2 tveiwer_sidebar px-md-3">
@@ -167,6 +175,7 @@ impl Component for TournamentViewer {
                     </main>
                 </div>
             </div>
+            </>
         }
     }
 }
