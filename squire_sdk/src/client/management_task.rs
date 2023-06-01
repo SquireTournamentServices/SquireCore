@@ -1,9 +1,10 @@
 use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
 
+use backon::{ExponentialBuilder, Retryable};
 use futures::stream::{SplitSink, SplitStream};
 use tokio::sync::{
     broadcast::{Receiver as Subscriber, Sender as Broadcaster},
-    mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel},
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::{
         channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
         Sender as OneshotSender,
@@ -115,7 +116,7 @@ async fn tournament_management_task<F>(
 {
     let mut cache = TournamentCache::new();
     loop {
-        futures::select! {
+        tokio::select! {
             msg = recv.recv() => {
                 match msg.expect(HANG_UP_MESSAGE) {
                     ManagementCommand::Query(query) => handle_query(&cache, query),
@@ -180,22 +181,44 @@ fn handle_query(cache: &TournamentCache, query: TournamentQuery) {
 
 // Needs to take a &mut to the SelectAll WS listener so it can be updated if need be
 async fn handle_sub(cache: &mut TournamentCache, TournamentSub { send, id }: TournamentSub) {
-    /*
-    match cache.get(id).map(|(_, broad)| broad) {
+    match cache
+        .get(&id)
+        .map(|tc| tc.comm.as_ref().map(|(_, broad)| broad))
+    {
         // Tournament is cached and communication is set up for it
         Some(Some(broad)) => {
-            let sub = broad;
-        },
+            let sub = broad.subscribe();
+            let _ = send.send(Some(sub));
+        }
         // Tournament is cached but there is no communication for it
-        Some(None) => todo!(),
+        Some(None) => {
+            // Open a WS connection
+            match create_ws_connection(SUB_URL).await {
+                Ok(_) => todo!(),
+                Err(_) => todo!(),
+            }
+            todo!()
+        }
         // Tournament is not cached
-        None => todo!(),
+        None => {
+            // Open a WS connection and request the current tournament state
+        }
     }
-    */
     // Check to see if the tournament is already in the sublist
     //  - If so, return a listener
     // If not, open a connection
     // Handle the new connnection
     // Return a listener
     todo!()
+}
+
+// TODO: Move this to the correct location...
+const SUB_URL: &str = "";
+
+async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
+    let creator = || Websocket::new(url);
+    let timer = ExponentialBuilder::default()
+        .with_min_delay(Duration::from_millis(100))
+        .with_max_times(5);
+    creator.retry(&timer).await
 }

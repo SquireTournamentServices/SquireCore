@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use async_std::channel::{self, SendError, TrySendError};
 use futures::{Future, Sink, Stream};
 use gloo_net::websocket::{
     futures::WebSocket as GlooSocket, Message as GlooMessage, WebSocketError as GlooError,
@@ -13,7 +12,7 @@ use reqwest::Response;
 
 use crate::client::error::{ClientError, ClientResult};
 
-use super::{forget, TryRecvError, WebsocketError, WebsocketMessage, WebsocketResult};
+use super::{forget, WebsocketError, WebsocketMessage, WebsocketResult};
 
 /* ------ General Utils ------ */
 
