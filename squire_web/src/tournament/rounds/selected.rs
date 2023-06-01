@@ -10,9 +10,9 @@ use squire_sdk::{
         tournament::Tournament,
     },
     players::PlayerId,
-    tournaments::{TournOp, TournamentId},
+    tournaments::{TournOp, TournamentId, OpResult},
 };
-use tokio::task::spawn_local;
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
@@ -58,7 +58,7 @@ impl SelectedRound {
         }
     }
 
-    pub fn update(&mut self, ctx: &Context<RoundsView>, msg: SelectedRoundMessage) -> bool {
+    pub fn update(&mut self, ctx: &Context<RoundsView>, msg: SelectedRoundMessage, send_op_result: &Callback<OpResult>) -> bool {
         match msg {
             SelectedRoundMessage::TimerTicked(r_id) => match self.round.as_ref() {
                 Some((rnd, _)) => {
@@ -135,7 +135,11 @@ impl SelectedRound {
 
                 // Update methods return a tracker that is a future and needs to be awaited
                 let tracker = CLIENT.get().unwrap().bulk_update(self.t_id, ops);
-                spawn_local(async { send_op_result(tracker.process().await.unwrap()) });
+                let send_op_result = send_op_result.clone();
+                spawn_local(async move {
+                    console_log("Waiting for update to finish!");
+                    send_op_result.emit(tracker.process().await.unwrap()) 
+                });
                 false
             }
             SelectedRoundMessage::BulkConfirm(rid) => {
