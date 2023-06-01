@@ -57,3 +57,13 @@ pub enum UpdateStatus {
     Complete(OpResult, ClientResult),
 }
 */
+
+impl UpdateTracker {
+    pub async fn process(self) -> Option<OpResult> {
+        self.local.recv().await.flatten()
+    }
+
+    pub fn process_blocking(self) -> Option<OpResult> {
+        futures::executor::block_on(self.process())
+    }
+}
