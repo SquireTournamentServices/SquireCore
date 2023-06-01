@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
 
     use squire_tests::get_seed;
 
     use squire_lib::{
         accounts::SquireAccount,
-        identifiers::AdminId,
+        identifiers::{AdminId, TypeId},
         operations::{AdminOp, JudgeOp, TournOp},
         settings::{PairingSetting, TournamentSetting},
     };
@@ -79,10 +79,17 @@ mod tests {
         assert_eq!(tourn_one, tourn_two);
     }
 
+    const DATA_HASH_PAIRS: &[(DateTime<Utc>, &[u8], TypeId<()>)] = &[];
+
     /// Independently tests `squire_lib::identifiers::id_from_item` for consistent behavior across
     /// platforms.
     #[test]
     fn hash_determinism() {
-
+        for &(salt, item, test_hash) in std::hint::black_box(DATA_HASH_PAIRS) {
+            assert_eq!(
+                std::hint::black_box(squire_lib::identifiers::id_from_item(salt, item)),
+                test_hash
+            );
+        }
     }
 }
