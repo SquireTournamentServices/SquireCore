@@ -78,4 +78,11 @@ mod tests {
         assert_eq!(r_id_one, r_id_two);
         assert_eq!(tourn_one, tourn_two);
     }
+
+    /// Independently tests `squire_lib::identifiers::id_from_item` for consistent behavior across
+    /// platforms.
+    #[test]
+    fn hash_determinism() {
+
+    }
 }
