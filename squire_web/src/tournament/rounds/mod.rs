@@ -4,11 +4,8 @@ use squire_sdk::{
         identifiers::{AdminId, RoundIdentifier},
         rounds::{RoundId, RoundStatus},
     },
-<<<<<<< Updated upstream
-    tournaments::TournamentId,
-=======
+
     tournaments::{TournamentId, OpResult}, client::update::UpdateTracker,
->>>>>>> Stashed changes
 };
 
 use yew::prelude::*;
@@ -29,11 +26,9 @@ pub use roundresultticker::*;
 pub use scroll::*;
 pub use selected::*;
 
-use self::_RoundsFilterProps::admin_id;
-
 use super::spawn_update_listener;
 
-#[derive(Debug, PartialEq, Properties)]
+#[derive(Debug, PartialEq, Properties, Clone)]
 pub struct RoundsFilterProps {
     pub id: TournamentId,
     pub admin_id: AdminId,
@@ -62,20 +57,15 @@ impl Component for RoundsView {
     type Properties = RoundsFilterProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-<<<<<<< Updated upstream
-        let id = ctx.props().id;
-        let aid = ctx.props().admin_id;
         spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
-=======
-        let RoundsFilterProps { id, admin_id, send_op_result } = ctx.props();
->>>>>>> Stashed changes
+        let RoundsFilterProps { id, admin_id, send_op_result } = ctx.props().clone();
         Self {
             id,
             send_op_result,
             input: RoundFilterInput::new(ctx.link().callback(RoundsViewMessage::FilterInput)),
             scroll: RoundScroll::new(ctx, id),
-            admin_id: aid,
-            selected: SelectedRound::new(ctx, id, aid),
+            admin_id,
+            selected: SelectedRound::new(ctx, id, admin_id),
         }
     }
 
@@ -83,7 +73,7 @@ impl Component for RoundsView {
         match msg {
             RoundsViewMessage::FilterInput(msg) => self.input.update(msg),
             RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg),
-            RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg),
+            RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg, &self.send_op_result),
             RoundsViewMessage::ReQuery => {
                 spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
                 self.scroll.requery(ctx);

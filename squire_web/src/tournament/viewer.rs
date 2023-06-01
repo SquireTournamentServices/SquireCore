@@ -1,7 +1,8 @@
 use futures::executor::block_on;
 use gloo_net::http::Request;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::RequestInit;
+use web_sys::{RequestInit, console::error, HtmlDialogElement, window};
 use yew::{html, Callback, Component, Context, Html, Properties};
 
 use squire_sdk::{
@@ -11,8 +12,8 @@ use squire_sdk::{
 };
 
 use crate::{
-    tournament::{overview::*, players::*, rounds::{*, _RoundsFilterProps::send_op_result}, settings::*, standings::*},
-    utils::fetch_tournament,
+    tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
+    utils::{fetch_tournament, console_log},
     CLIENT, ON_UPDATE,
 };
 
@@ -44,6 +45,7 @@ pub struct TournamentViewer {
     pub mode: TournViewMode,
     tourn_name: String,
     admin_id: AdminId,
+    error_message: String,
 }
 
 impl TournamentViewer {
@@ -77,7 +79,7 @@ impl TournamentViewer {
                 html! { <PlayerView id = { self.id }/> }
             }
             TournViewMode::Rounds => {
-                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdate);
+                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
                 html! { <RoundsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
             TournViewMode::Standings => {
@@ -106,6 +108,7 @@ impl Component for TournamentViewer {
             mode: TournViewMode::default(),
             tourn_name: String::new(),
             admin_id: AdminId::default(),
+            error_message: "no message".to_owned()
         }
     }
 
@@ -151,18 +154,28 @@ impl Component for TournamentViewer {
                 });
                 false
             }
-            TournViewMessage::TournamentUpdated(_) => todo!(),
+            TournViewMessage::TournamentUpdated(opr) => {
+                let Err(err) = opr else { return false };
+                let element : HtmlDialogElement =  window()
+                    .and_then(|w| w.document())
+                    .and_then(|d| d.get_element_by_id("errormessage"))
+                    .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
+                    .unwrap();
+                self.error_message = err.to_string();
+                element.show_modal();
+                true
+            }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <>
-            <dialog>
-            <p>"There was an error"</p>
-            <form method="dialog">
-              <button>OK</button>
-            </form>
+            <dialog id="errormessage">
+                <p>{self.error_message.clone()}</p>
+                <form method="dialog">
+                <button>{"OK"}</button>
+                </form>
             </dialog>
           
             <div class="my-4 container-fluid">
