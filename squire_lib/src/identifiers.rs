@@ -7,6 +7,8 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use deterministic_hash::DeterministicHasher;
+use fxhash::FxHasher64;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
@@ -23,7 +25,7 @@ pub fn id_from_item<T, ID>(salt: DateTime<Utc>, item: T) -> TypeId<ID>
 where
     T: Hash,
 {
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = DeterministicHasher::new(FxHasher64::default());
     salt.hash(&mut hasher);
     let upper = hasher.finish();
     item.hash(&mut hasher);
