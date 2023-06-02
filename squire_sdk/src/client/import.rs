@@ -6,7 +6,7 @@ use std::{
 };
 
 use tokio::sync::oneshot::{
-    channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender, error::TryRecvError,
+    channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
 
 use squire_lib::tournament::TournamentId;

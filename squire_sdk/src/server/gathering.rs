@@ -16,7 +16,7 @@ use tokio::{
     time::Instant,
 };
 
-use crate::{tournaments::TournamentManager, sync::OpSync};
+use crate::{sync::OpSync, tournaments::TournamentManager};
 
 use super::User;
 
