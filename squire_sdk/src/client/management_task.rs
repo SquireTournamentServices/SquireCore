@@ -1,9 +1,17 @@
-use std::{collections::HashMap, fmt::Debug, future::Future, time::Duration};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fmt::Debug,
+    future::Future,
+    time::Duration,
+};
 
 use backon::{ExponentialBuilder, Retryable};
-use futures::stream::{SplitSink, SplitStream};
+use futures::{
+    stream::{select_all, SelectAll, SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 use tokio::sync::{
-    broadcast::{Receiver as Subscriber, Sender as Broadcaster},
+    broadcast::{channel as broadcast_channel, Receiver as Subscriber, Sender as Broadcaster},
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::{
         channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
@@ -16,10 +24,13 @@ use squire_lib::{
     tournament::TournamentId,
 };
 
-use crate::tournaments::TournamentManager;
+use crate::{
+    sync::{ServerBound, ServerBoundMessage, ClientBoundMessage, WebSocketMessage},
+    tournaments::TournamentManager, api::SUBSCRIBE_ENDPOINT,
+};
 
 use super::{
-    compat::{rest, spawn_task, Websocket, WebsocketMessage},
+    compat::{rest, spawn_task, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
@@ -99,6 +110,13 @@ struct TournComm {
     comm: Option<(SplitSink<Websocket, WebsocketMessage>, Broadcaster<bool>)>,
 }
 
+/// A struct that contains all of the state that the management task maintains
+#[derive(Default)]
+struct ManagerState {
+    cache: TournamentCache,
+    listener: SelectAll<SplitStream<Websocket>>,
+}
+
 type TournamentCache = HashMap<TournamentId, TournComm>;
 
 const HANG_UP_MESSAGE: &str = "The client has been dropped.";
@@ -114,29 +132,36 @@ async fn tournament_management_task<F>(
 ) where
     F: FnMut(),
 {
-    let mut cache = TournamentCache::new();
+    let mut state = ManagerState::default();
     loop {
         tokio::select! {
+            msg = state.listener.next() => {
+                match msg.expect("SelectAll return None") {
+                    Ok(msg) => handle_ws_msg(&mut state, msg),
+                    Err(err) => handle_ws_err(&mut state, err),
+                }
+            }
             msg = recv.recv() => {
                 match msg.expect(HANG_UP_MESSAGE) {
-                    ManagementCommand::Query(query) => handle_query(&cache, query),
-                    ManagementCommand::Import(import) => handle_import(&mut cache, import),
-                    ManagementCommand::Update(update) => handle_update(&mut cache, update, &mut on_update),
-                    ManagementCommand::Subscribe(sub) => handle_sub(&mut cache, sub).await,
+                    ManagementCommand::Query(query) => handle_query(&state, query),
+                    ManagementCommand::Import(import) => handle_import(&mut state, import),
+                    ManagementCommand::Update(update) => handle_update(&mut state, update, &mut on_update),
+                    ManagementCommand::Subscribe(sub) => handle_sub(&mut state, sub).await,
                 }
             }
         }
     }
 }
 
-fn handle_import(cache: &mut TournamentCache, import: TournamentImport) {
+fn handle_import(state: &mut ManagerState, import: TournamentImport) {
     let TournamentImport { tourn, tracker } = import;
     let id = tourn.id;
-    //cache.insert(id, tourn);
-    //let _ = tracker.send(id);
+    let tc = TournComm { tourn, comm: None };
+    state.cache.insert(id, tc);
+    let _ = tracker.send(id);
 }
 
-fn handle_update<F>(cache: &mut TournamentCache, update: TournamentUpdate, on_update: &mut F)
+fn handle_update<F>(state: &mut ManagerState, update: TournamentUpdate, on_update: &mut F)
 where
     F: FnMut(),
 {
@@ -147,7 +172,7 @@ where
         update,
     } = update;
     let mut to_remove = false;
-    if let Some(tourn) = cache.get_mut(&id) {
+    if let Some(tourn) = state.cache.get_mut(&id) {
         let res = match update {
             UpdateType::Single(op) => tourn.tourn.apply_op(op),
             UpdateType::Bulk(ops) => tourn.tourn.bulk_apply_ops(ops),
@@ -170,50 +195,76 @@ where
     }
     if to_remove {
         // This has to exist, but we don't need to use it
-        let _ = cache.remove(&id);
+        let _ = state.cache.remove(&id);
     }
 }
 
-fn handle_query(cache: &TournamentCache, query: TournamentQuery) {
+fn handle_query(state: &ManagerState, query: TournamentQuery) {
     let TournamentQuery { query, id } = query;
-    query(cache.get(&id).map(|tc| &tc.tourn));
+    query(state.cache.get(&id).map(|tc| &tc.tourn));
 }
 
 // Needs to take a &mut to the SelectAll WS listener so it can be updated if need be
-async fn handle_sub(cache: &mut TournamentCache, TournamentSub { send, id }: TournamentSub) {
-    match cache
-        .get(&id)
-        .map(|tc| tc.comm.as_ref().map(|(_, broad)| broad))
-    {
-        // Tournament is cached and communication is set up for it
-        Some(Some(broad)) => {
-            let sub = broad.subscribe();
-            let _ = send.send(Some(sub));
-        }
-        // Tournament is cached but there is no communication for it
-        Some(None) => {
-            // Open a WS connection
-            match create_ws_connection(SUB_URL).await {
-                Ok(_) => todo!(),
-                Err(_) => todo!(),
+async fn handle_sub(
+    state: &mut ManagerState,
+    TournamentSub { send, id }: TournamentSub,
+) {
+    match state.cache.entry(id) {
+        Entry::Occupied(mut entry) => match &mut entry.get_mut().comm {
+            // Tournament is cached and communication is set up for it
+            Some((_, broad)) => {
+                let _ = send.send(Some(broad.subscribe()));
             }
-            todo!()
-        }
+            // Tournament is cached but there is no communication for it
+            None => match create_ws_connection(&SUBSCRIBE_ENDPOINT.replace([id.to_string().as_str()])).await {
+                Ok(ws) => {
+                    let (sink, stream) = ws.split();
+                    let (broad, _) = broadcast_channel(10);
+                    entry.get_mut().comm = Some((sink, broad));
+                    state.listener.push(stream);
+                }
+                Err(_) => {
+                    let _ = send.send(None);
+                }
+            },
+        },
         // Tournament is not cached
-        None => {
-            // Open a WS connection and request the current tournament state
-        }
+        Entry::Vacant(entry) => match create_ws_connection(&SUBSCRIBE_ENDPOINT.replace([id.to_string().as_str()])).await {
+            Ok(ws) => {
+                let (mut sink, mut stream) = ws.split();
+                let msg = postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch(id)))
+                    .unwrap();
+                sink.send(WebsocketMessage::Bytes(msg)).await.unwrap();
+                let tourn = wait_for_tourn(&mut stream).await;
+                let (broad, _) = broadcast_channel(10);
+                let tc = TournComm {
+                    tourn,
+                    comm: Some((sink, broad)),
+                };
+                let _ = entry.insert(tc);
+                state.listener.push(stream);
+            }
+            Err(_) => {
+                let _ = send.send(None);
+            }
+        },
     }
-    // Check to see if the tournament is already in the sublist
-    //  - If so, return a listener
-    // If not, open a connection
-    // Handle the new connnection
-    // Return a listener
-    todo!()
 }
 
-// TODO: Move this to the correct location...
-const SUB_URL: &str = "";
+fn handle_ws_msg(state: &mut ManagerState, msg: WebsocketMessage) {
+    let WebsocketMessage::Bytes(data) = msg else { panic!("Server did not send bytes of Websocket") };
+    let WebSocketMessage { body, .. } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();
+    match body {
+        // Do nothing. This is handled elsewhere
+        ServerBound::Fetch(_) => {},
+        ServerBound::SyncReq(_) => todo!(),
+        ServerBound::SyncSeen => todo!(),
+    }
+}
+
+fn handle_ws_err(state: &mut ManagerState, err: WebsocketError) {
+    panic!("Got error from Websocket: {err:?}")
+}
 
 async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
     let creator = || Websocket::new(url);
@@ -221,4 +272,12 @@ async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
         .with_min_delay(Duration::from_millis(100))
         .with_max_times(5);
     creator.retry(&timer).await
+}
+
+async fn wait_for_tourn(stream: &mut SplitStream<Websocket>) -> TournamentManager {
+    loop {
+        let Some(Ok(WebsocketMessage::Bytes(msg))) = stream.next().await else { continue };
+        let Ok(tourn) = postcard::from_bytes::<TournamentManager>(&msg) else { continue };
+        return tourn;
+    }
 }

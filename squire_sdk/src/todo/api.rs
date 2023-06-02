@@ -6,11 +6,26 @@ pub const API_BASE: Url<0> = Url::from("/api/v1");
 /* ---------- Tournament Routes ---------- */
 pub const TOURNAMENTS_ROUTE: Url<0> = extend!(API_BASE, "/tournaments");
 
+pub(crate) const CREATE_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/create");
+pub const CREATE_TOURNAMENT_ROUTE: Url<0> = extend!(TOURNAMENTS_ROUTE, CREATE_TOURNAMENT_ENDPOINT);
+
+pub(crate) const GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT: Url<0> = Url::from("/all");
+pub const GET_ALL_ACTIVE_TOURNAMENTS_ROUTE: Url<0> =
+    extend!(TOURNAMENTS_ROUTE, GET_ALL_ACTIVE_TOURNAMENTS_ENDPOINT);
+
+pub const GET_ALL_PAST_TOURNAMENTS_ENDPOINT: Url<0> = Url::from("/past/all");
+pub const GET_ALL_PAST_TOURNAMENTS_ROUTE: Url<0> =
+    extend!(TOURNAMENTS_ROUTE, GET_ALL_PAST_TOURNAMENTS_ENDPOINT);
+
 pub(crate) const GET_TOURNAMENT_ENDPOINT: Url<1> = Url::new("/:t_id", [":t_id"]);
 pub const GET_TOURNAMENT_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT);
 
-pub(crate) const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("subscribe/:t_id", [":t_id"]);
-pub const SUBSCRIBE_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, SUBSCRIBE_ENDPOINT);
+pub(crate) const SYNC_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/sync");
+pub const SYNC_TOURNAMENT_ROUTE: Url<1> = extend!(GET_TOURNAMENT_ROUTE, SYNC_TOURNAMENT_ENDPOINT);
+
+pub(crate) const ROLLBACK_TOURNAMENT_ENDPOINT: Url<0> = Url::from("/rollback");
+pub const ROLLBACK_TOURNAMENT_ROUTE: Url<1> =
+    extend!(GET_TOURNAMENT_ROUTE, ROLLBACK_TOURNAMENT_ENDPOINT);
 
 /* ---------- Account Routes ---------- */
 pub const ACCOUNTS_ROUTE: Url<0> = extend!(API_BASE, "/accounts");
@@ -37,20 +52,36 @@ pub const VERSION_ROUTE: Url<0> = extend!(API_BASE, VERSION_ENDPOINT);
 #[cfg(test)]
 mod tests {
     use crate::api::{
-        GET_TOURNAMENT_ENDPOINT,
+        CREATE_TOURNAMENT_ENDPOINT, CREATE_TOURNAMENT_ROUTE, GET_TOURNAMENT_ENDPOINT,
         GET_TOURNAMENT_ROUTE, LOAD_ACCOUNT_ENDPOINT, LOAD_ACCOUNT_ROUTE, LOGOUT_ENDPOINT,
         LOGOUT_ROUTE, REGISTER_ACCOUNT_ENDPOINT, REGISTER_ACCOUNT_ROUTE,
-        VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
+        ROLLBACK_TOURNAMENT_ENDPOINT, ROLLBACK_TOURNAMENT_ROUTE, SYNC_TOURNAMENT_ENDPOINT,
+        SYNC_TOURNAMENT_ROUTE, VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
     };
 
     #[test]
     fn verify_tournament_endpoints() {
+        assert_eq!(CREATE_TOURNAMENT_ENDPOINT.as_str(), "/create");
         assert_eq!(GET_TOURNAMENT_ENDPOINT.as_str(), "/:t_id");
+        assert_eq!(SYNC_TOURNAMENT_ENDPOINT.as_str(), "/sync");
+        assert_eq!(ROLLBACK_TOURNAMENT_ENDPOINT.as_str(), "/rollback");
     }
 
     #[test]
     fn verify_tournament_routes() {
+        assert_eq!(
+            CREATE_TOURNAMENT_ROUTE.as_str(),
+            "/api/v1/tournaments/create"
+        );
         assert_eq!(GET_TOURNAMENT_ROUTE.as_str(), "/api/v1/tournaments/:t_id");
+        assert_eq!(
+            SYNC_TOURNAMENT_ROUTE.as_str(),
+            "/api/v1/tournaments/:t_id/sync"
+        );
+        assert_eq!(
+            ROLLBACK_TOURNAMENT_ROUTE.as_str(),
+            "/api/v1/tournaments/:t_id/rollback"
+        );
     }
 
     #[test]

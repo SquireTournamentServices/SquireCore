@@ -56,7 +56,7 @@ impl<const N: usize> Url<N> {
         self.route
     }
 
-    pub fn replace(&self, values: &[&str; N]) -> String {
+    pub fn replace(&self, values: [&str; N]) -> String {
         let mut digest = self.route.to_string();
         for (pattern, value) in self.replacements.iter().zip(values.iter()) {
             digest = digest.replacen(pattern, value, 1);
@@ -93,9 +93,9 @@ mod tests {
     #[test]
     fn simple_test() {
         assert_eq!(SIMPLE_ROUTE.as_str(), "/api/v1/test");
-        assert_eq!(&SIMPLE_ROUTE.replace(&[]), "/api/v1/test");
+        assert_eq!(&SIMPLE_ROUTE.replace([]), "/api/v1/test");
         assert_eq!(ANOTHER_SIMPLE_ROUTE.as_str(), "/api/v1/another_test");
-        assert_eq!(&ANOTHER_SIMPLE_ROUTE.replace(&[]), "/api/v1/another_test");
+        assert_eq!(&ANOTHER_SIMPLE_ROUTE.replace([]), "/api/v1/another_test");
     }
 
     #[test]
@@ -104,7 +104,7 @@ mod tests {
         let id = Uuid::new_v4();
         assert_eq!(SINGLE_REPLACEMENT.insert(id), format!("/api/v1/{id}/test"));
         assert_eq!(
-            SINGLE_REPLACEMENT.replace(&[&id.to_string()]),
+            SINGLE_REPLACEMENT.replace([&id.to_string()]),
             format!("/api/v1/{id}/test")
         );
     }
@@ -114,14 +114,14 @@ mod tests {
         assert_eq!(TRIPLE_REPLACEMENT.as_str(), "/api/v1/:id/:id/:id/test");
         let id = Uuid::new_v4();
         assert_eq!(
-            TRIPLE_REPLACEMENT.replace(&[&id.to_string(); 3]),
+            TRIPLE_REPLACEMENT.replace([&id.to_string(); 3]),
             format!("/api/v1/{id}/{id}/{id}/test")
         );
         let id_one = Uuid::new_v4();
         let id_two = Uuid::new_v4();
         let id_three = Uuid::new_v4();
         assert_eq!(
-            TRIPLE_REPLACEMENT.replace(&[
+            TRIPLE_REPLACEMENT.replace([
                 &id_one.to_string(),
                 &id_two.to_string(),
                 &id_three.to_string()
@@ -134,14 +134,14 @@ mod tests {
         );
         let id = Uuid::new_v4();
         assert_eq!(
-            TRIPLE_UNIQUE_REPLACEMENT.replace(&[&id.to_string(); 3]),
+            TRIPLE_UNIQUE_REPLACEMENT.replace([&id.to_string(); 3]),
             format!("/api/v1/{id}/{id}/{id}/test")
         );
         let id_one = Uuid::new_v4();
         let id_two = Uuid::new_v4();
         let id_three = Uuid::new_v4();
         assert_eq!(
-            TRIPLE_UNIQUE_REPLACEMENT.replace(&[
+            TRIPLE_UNIQUE_REPLACEMENT.replace([
                 &id_one.to_string(),
                 &id_two.to_string(),
                 &id_three.to_string()
