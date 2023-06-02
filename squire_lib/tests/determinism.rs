@@ -79,17 +79,20 @@ mod tests {
         assert_eq!(tourn_one, tourn_two);
     }
 
-    const DATA_HASH_PAIRS: &[(DateTime<Utc>, &[u8], TypeId<()>)] = &[];
-
     /// Independently tests `squire_lib::identifiers::id_from_item` for consistent behavior across
-    /// platforms.
+    /// platforms. Expected data is based off of linux.
     #[test]
     fn hash_determinism() {
-        for &(salt, item, test_hash) in std::hint::black_box(DATA_HASH_PAIRS) {
+        let test_data: Vec<(DateTime<Utc>, Vec<u64>, TypeId<()>)> = serde_json::from_slice(
+            include_bytes!("./determinism/deterministic_uuid_test_cases.json"),
+        )
+        .expect("Could not parse test cases");
+
+        for (timestamp, payload, expected_hash) in test_data {
             assert_eq!(
-                std::hint::black_box(squire_lib::identifiers::id_from_item(salt, item)),
-                test_hash
-            );
+                squire_lib::identifiers::id_from_item(timestamp, payload),
+                expected_hash
+            )
         }
     }
 }
