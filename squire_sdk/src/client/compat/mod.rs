@@ -35,5 +35,6 @@ pub enum WebsocketMessage {
     Bytes(Vec<u8>),
 }
 
+#[derive(Debug, Clone, PartialEq)]
 /// The common error type used by the websocket types
 pub struct WebsocketError;
