@@ -25,8 +25,9 @@ use squire_lib::{
 };
 
 use crate::{
-    sync::{ServerBound, ServerBoundMessage, ClientBoundMessage, WebSocketMessage},
-    tournaments::TournamentManager, api::SUBSCRIBE_ENDPOINT,
+    api::SUBSCRIBE_ENDPOINT,
+    sync::{ClientBoundMessage, ServerBound, ServerBoundMessage, WebSocketMessage},
+    tournaments::TournamentManager,
 };
 
 use super::{
@@ -205,10 +206,7 @@ fn handle_query(state: &ManagerState, query: TournamentQuery) {
 }
 
 // Needs to take a &mut to the SelectAll WS listener so it can be updated if need be
-async fn handle_sub(
-    state: &mut ManagerState,
-    TournamentSub { send, id }: TournamentSub,
-) {
+async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: TournamentSub) {
     match state.cache.entry(id) {
         Entry::Occupied(mut entry) => match &mut entry.get_mut().comm {
             // Tournament is cached and communication is set up for it
@@ -216,38 +214,46 @@ async fn handle_sub(
                 let _ = send.send(Some(broad.subscribe()));
             }
             // Tournament is cached but there is no communication for it
-            None => match create_ws_connection(&SUBSCRIBE_ENDPOINT.replace([id.to_string().as_str()])).await {
+            None => {
+                match create_ws_connection(&SUBSCRIBE_ENDPOINT.replace([id.to_string().as_str()]))
+                    .await
+                {
+                    Ok(ws) => {
+                        let (sink, stream) = ws.split();
+                        let (broad, _) = broadcast_channel(10);
+                        entry.get_mut().comm = Some((sink, broad));
+                        state.listener.push(stream);
+                    }
+                    Err(_) => {
+                        let _ = send.send(None);
+                    }
+                }
+            }
+        },
+        // Tournament is not cached
+        Entry::Vacant(entry) => {
+            match create_ws_connection(&SUBSCRIBE_ENDPOINT.replace([id.to_string().as_str()])).await
+            {
                 Ok(ws) => {
-                    let (sink, stream) = ws.split();
+                    let (mut sink, mut stream) = ws.split();
+                    let msg =
+                        postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch(id)))
+                            .unwrap();
+                    sink.send(WebsocketMessage::Bytes(msg)).await.unwrap();
+                    let tourn = wait_for_tourn(&mut stream).await;
                     let (broad, _) = broadcast_channel(10);
-                    entry.get_mut().comm = Some((sink, broad));
+                    let tc = TournComm {
+                        tourn,
+                        comm: Some((sink, broad)),
+                    };
+                    let _ = entry.insert(tc);
                     state.listener.push(stream);
                 }
                 Err(_) => {
                     let _ = send.send(None);
                 }
-            },
-        },
-        // Tournament is not cached
-        Entry::Vacant(entry) => match create_ws_connection(&SUBSCRIBE_ENDPOINT.replace([id.to_string().as_str()])).await {
-            Ok(ws) => {
-                let (mut sink, mut stream) = ws.split();
-                let msg = postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch(id)))
-                    .unwrap();
-                sink.send(WebsocketMessage::Bytes(msg)).await.unwrap();
-                let tourn = wait_for_tourn(&mut stream).await;
-                let (broad, _) = broadcast_channel(10);
-                let tc = TournComm {
-                    tourn,
-                    comm: Some((sink, broad)),
-                };
-                let _ = entry.insert(tc);
-                state.listener.push(stream);
             }
-            Err(_) => {
-                let _ = send.send(None);
-            }
-        },
+        }
     }
 }
 
@@ -256,7 +262,7 @@ fn handle_ws_msg(state: &mut ManagerState, msg: WebsocketMessage) {
     let WebSocketMessage { body, .. } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();
     match body {
         // Do nothing. This is handled elsewhere
-        ServerBound::Fetch(_) => {},
+        ServerBound::Fetch(_) => {}
         ServerBound::SyncReq(_) => todo!(),
         ServerBound::SyncSeen => todo!(),
     }

@@ -85,6 +85,8 @@ impl<T> Future for QueryTracker<T> {
     type Output = Option<T>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.recv).poll(cx).map(|res| res.ok().flatten())
+        Pin::new(&mut self.recv)
+            .poll(cx)
+            .map(|res| res.ok().flatten())
     }
 }

@@ -12,7 +12,7 @@ pub struct WebSocketMessage<B> {
     /// The transaction id used to group requests/responses
     pub id: Ulid,
     /// The main payload being send to the receiver
-    pub body: B
+    pub body: B,
 }
 
 impl<B> WebSocketMessage<B> {

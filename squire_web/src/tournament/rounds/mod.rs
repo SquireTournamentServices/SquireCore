@@ -5,7 +5,7 @@ use squire_sdk::{
         identifiers::{AdminId, RoundIdentifier},
         rounds::{RoundId, RoundStatus}, operations::AdminOp,
     },
-    tournaments::{TournamentId, OpResult, TournOp}, 
+    tournaments::{TournamentId, OpResult, TournOp},
 };
 
 use wasm_bindgen_futures::spawn_local;
@@ -93,7 +93,7 @@ impl Component for RoundsView {
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
                     console_log("Waiting for update to finish!");
-                    send_op_result.emit(tracker.process().await.unwrap()) 
+                    send_op_result.emit(tracker.process().await.unwrap())
                 });
                 false
             }
