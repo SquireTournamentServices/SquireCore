@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-use std::time::Duration;
 use squire_sdk::{
     model::{
         identifiers::AdminId,
@@ -10,8 +9,9 @@ use squire_sdk::{
         tournament::Tournament,
     },
     players::PlayerId,
-    tournaments::{TournOp, TournamentId, OpResult},
+    tournaments::{OpResult, TournOp, TournamentId},
 };
+use std::time::Duration;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
@@ -20,7 +20,8 @@ use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
 use super::{
     roundchangesbuffer::{self, *},
     roundresultticker::*,
-    RoundResultTicker, RoundsView, RoundsViewMessage, RoundConfirmationTicker, RoundConfirmationTickerMessage,
+    RoundConfirmationTicker, RoundConfirmationTickerMessage, RoundResultTicker, RoundsView,
+    RoundsViewMessage,
 };
 
 /// Message to be passed to the selected round
@@ -58,7 +59,12 @@ impl SelectedRound {
         }
     }
 
-    pub fn update(&mut self, ctx: &Context<RoundsView>, msg: SelectedRoundMessage, send_op_result: &Callback<OpResult>) -> bool {
+    pub fn update(
+        &mut self,
+        ctx: &Context<RoundsView>,
+        msg: SelectedRoundMessage,
+        send_op_result: &Callback<OpResult>,
+    ) -> bool {
         match msg {
             SelectedRoundMessage::TimerTicked(r_id) => match self.round.as_ref() {
                 Some((rnd, _)) => {
@@ -112,7 +118,7 @@ impl SelectedRound {
                     .round_changes_buffer
                     .as_ref()
                     .unwrap();
-                let mut ops = Vec::with_capacity(rcb.win_tickers.len()+1);
+                let mut ops = Vec::with_capacity(rcb.win_tickers.len() + 1);
 
                 if (rcb.draw_ticker.was_changed) {
                     ops.push(TournOp::JudgeOp(
@@ -120,16 +126,23 @@ impl SelectedRound {
                         JudgeOp::AdminRecordResult(rid, rcb.draw_ticker.stored_result.clone()),
                     ));
                 }
-                ops.extend(rcb.win_tickers.values().filter_map(|wt| {
-                    wt.into_op(self.admin_id, rid)
-                }));
-                ops.extend(rcb.confirmation_tickers.values().filter_map(|ct| {
-                    ct.into_op(self.admin_id, rid)
-                }));
+                ops.extend(
+                    rcb.win_tickers
+                        .values()
+                        .filter_map(|wt| wt.into_op(self.admin_id, rid)),
+                );
+                ops.extend(
+                    rcb.confirmation_tickers
+                        .values()
+                        .filter_map(|ct| ct.into_op(self.admin_id, rid)),
+                );
                 if (rcb.current_extension_minutes > 0) {
                     ops.push(TournOp::JudgeOp(
                         self.admin_id.clone().into(),
-                        JudgeOp::TimeExtension(rid, Duration::from_secs(rcb.current_extension_minutes*60)),
+                        JudgeOp::TimeExtension(
+                            rid,
+                            Duration::from_secs(rcb.current_extension_minutes * 60),
+                        ),
                     ));
                 }
 
@@ -138,16 +151,22 @@ impl SelectedRound {
                 let send_op_result = send_op_result.clone();
                 spawn_local(async move {
                     console_log("Waiting for update to finish!");
-                    send_op_result.emit(tracker.process().await.unwrap()) 
+                    send_op_result.emit(tracker.process().await.unwrap())
                 });
                 false
             }
             SelectedRoundMessage::BulkConfirm(rid) => {
-                CLIENT.get().unwrap().update_tourn(self.t_id, TournOp::JudgeOp(self.admin_id.clone().into(),JudgeOp::ConfirmRound(rid)));
+                CLIENT.get().unwrap().update_tourn(
+                    self.t_id,
+                    TournOp::JudgeOp(self.admin_id.clone().into(), JudgeOp::ConfirmRound(rid)),
+                );
                 false
             }
             SelectedRoundMessage::KillRound(rid) => {
-                CLIENT.get().unwrap().update_tourn(self.t_id, TournOp::AdminOp(self.admin_id.clone().into(),AdminOp::RemoveRound(rid)));
+                CLIENT.get().unwrap().update_tourn(
+                    self.t_id,
+                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::RemoveRound(rid)),
+                );
                 false
             }
         }
@@ -171,9 +190,7 @@ impl SelectedRound {
                 .ok()
                 .flatten();
             console_log(&format!("Round was found: {}", data.is_some()));
-            RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(
-                data,
-            ))
+            RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(data))
         });
     }
 
@@ -248,17 +265,18 @@ impl RoundUpdater {
                 ),
             )
         }));
-        rcb.confirmation_tickers.extend(rnd.player_names.iter().map(|r| {
-            let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
-            (
-                *r.0,
-                RoundConfirmationTicker::new(
-                    rnd.confirmations.contains(r.0),
-                    proc.clone(),
+        rcb.confirmation_tickers
+            .extend(rnd.player_names.iter().map(|r| {
+                let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
+                (
                     *r.0,
-                ),
-            )
-        }));
+                    RoundConfirmationTicker::new(
+                        rnd.confirmations.contains(r.0),
+                        proc.clone(),
+                        *r.0,
+                    ),
+                )
+            }));
         Self {
             round_changes_buffer: Some(rcb),
             rid: rnd.id,
@@ -280,10 +298,14 @@ impl RoundUpdater {
         let killround = move |me: MouseEvent| {
             cb.emit(SelectedRoundMessage::KillRound(rid));
         };
-        let win_list = rnd.order
+        let win_list = rnd
+            .order
             .iter()
             .map(|(pid)| {
-                self.round_changes_buffer.as_ref().unwrap().view_win_ticker(*pid)
+                self.round_changes_buffer
+                    .as_ref()
+                    .unwrap()
+                    .view_win_ticker(*pid)
             })
             .collect::<Html>();
         let bulk_confirmed_disabled = rnd.status != RoundStatus::Open;
@@ -321,7 +343,7 @@ impl RoundUpdater {
                   </div>
                 </div>
               </div>
-            </div>            
+            </div>
             </>
         }
     }

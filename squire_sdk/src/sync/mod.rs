@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::model::{
     accounts::SquireAccount,
     identifiers::TypeId,
-    operations::{OpResult, TournOp, OpData},
+    operations::{OpData, OpResult, TournOp},
     tournament::*,
 };
 
@@ -153,7 +153,7 @@ impl TournamentManager {
     /// Takes an vector of operations and attempts to update the tournament. All operations must
     /// succeed in order for the bulk update the succeed. The update is sandboxed to ensure this.
     pub fn bulk_apply_ops(&mut self, ops: Vec<TournOp>) -> OpResult {
-		let mut buffer = self.tourn().clone();
+        let mut buffer = self.tourn().clone();
         let mut f_ops = Vec::with_capacity(ops.len());
         for op in ops {
             let f_op = FullOp::new(op.clone());

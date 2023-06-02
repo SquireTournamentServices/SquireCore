@@ -6,14 +6,15 @@ use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
     extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
     http::StatusCode,
+    response::{Html, IntoResponse, Response},
     routing::get,
-    RequestPartsExt, Router, TypedHeader, response::{Html, IntoResponse, Response},
+    RequestPartsExt, Router, TypedHeader,
 };
+use http::{header, request::Parts};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use state::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use http::{header, request::Parts};
 
 use squire_sdk::{
     accounts::{SquireAccount, SquireAccountId, VerificationData},
@@ -32,12 +33,11 @@ use squire_sdk::{
 mod tests;
 
 mod accounts;
-mod tournaments;
-mod state;
 mod assets;
+mod state;
+mod tournaments;
 
-pub async fn init() {
-}
+pub async fn init() {}
 
 //#[axum::debug_handler]
 pub fn create_router(state: AppState) -> Router {

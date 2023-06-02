@@ -76,7 +76,8 @@ pub struct SquireClient {
 impl SquireClient {
     /// Tries to create a client. Fails if a connection can not be made at the given URL
     pub async fn new<F>(url: String, user: SquireAccount, on_update: F) -> Result<Self, ClientError>
-        where F: 'static + Send + FnMut(),
+    where
+        F: 'static + Send + FnMut(),
     {
         let client = Client::builder().build()?;
         let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
@@ -101,9 +102,10 @@ impl SquireClient {
         url: String,
         user_name: String,
         display_name: String,
-        on_update: F
+        on_update: F,
     ) -> Result<Self, ClientError>
-        where F: 'static + Send + FnMut(),
+    where
+        F: 'static + Send + FnMut(),
     {
         let client = Client::new();
         let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
@@ -136,7 +138,8 @@ impl SquireClient {
 
     /// Creates a client and does not check if the URL is valid
     pub fn new_unchecked<F>(url: String, user: SquireAccount, on_update: F) -> Self
-        where F: 'static + Send + FnMut(),
+    where
+        F: 'static + Send + FnMut(),
     {
         let sender = spawn_management_task(on_update);
         Self {

@@ -42,7 +42,7 @@ impl ImportTracker {
             match self.tracker.try_recv() {
                 Ok(val) => return Some(val),
                 Err(TryRecvError::Disconnected) => return None,
-                Err(TryRecvError::Empty) => {},
+                Err(TryRecvError::Empty) => {}
             }
         }
     }

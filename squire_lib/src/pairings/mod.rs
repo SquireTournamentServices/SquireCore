@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display, str::FromStr,
+    fmt::Display,
+    str::FromStr,
 };
 
 use chrono::{DateTime, Utc};
