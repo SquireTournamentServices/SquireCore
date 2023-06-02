@@ -8,7 +8,7 @@ mod tests {
         accounts::SquireAccount,
         identifiers::{AdminId, TypeId},
         operations::{AdminOp, JudgeOp, TournOp},
-        settings::{PairingSetting, TournamentSetting, CommonPairingSetting},
+        settings::{CommonPairingSetting, PairingSetting, TournamentSetting},
     };
 
     #[test]

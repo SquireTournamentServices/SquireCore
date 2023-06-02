@@ -58,7 +58,8 @@ impl ManagementTaskSender {
 /// Spawns a new tournament management tokio task. Communication with this task is done via a
 /// collection of channels. This collection is returned
 pub(super) fn spawn_management_task<F>(on_update: F) -> ManagementTaskSender
-where F: 'static + Send + FnMut(),
+where
+    F: 'static + Send + FnMut(),
 {
     let (query, query_recv) = unbounded_channel();
     let (update, update_recv) = unbounded_channel();
@@ -89,8 +90,8 @@ async fn tournament_management_task<F>(
     mut updates: UnboundedReceiver<TournamentUpdate>,
     mut imports: UnboundedReceiver<TournamentImport>,
     mut on_update: F,
-)
-    where F: FnMut(),
+) where
+    F: FnMut(),
 {
     let mut cache = TournamentCache::new();
     loop {
@@ -115,7 +116,8 @@ fn handle_import(cache: &mut TournamentCache, import: TournamentImport) {
 }
 
 fn handle_update<F>(cache: &mut TournamentCache, update: TournamentUpdate, on_update: &mut F)
-    where F: FnMut(),
+where
+    F: FnMut(),
 {
     let TournamentUpdate {
         local,
