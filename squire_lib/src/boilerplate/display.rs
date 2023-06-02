@@ -2,8 +2,8 @@ use std::fmt::{self, Display, Formatter};
 
 use crate::settings::{
     CommonPairingSetting, CommonScoringSetting, FluidPairingSetting, GeneralSetting,
-    PairingSetting, ScoringSetting, ScoringStyleSetting, StandardScoringSetting,
-    SwissPairingSetting, TournamentSetting, PairingStyleSetting,
+    PairingSetting, PairingStyleSetting, ScoringSetting, ScoringStyleSetting,
+    StandardScoringSetting, SwissPairingSetting, TournamentSetting,
 };
 
 impl Display for TournamentSetting {

@@ -3,7 +3,8 @@ use std::{
     fmt::Display,
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ops::Deref, str::FromStr,
+    ops::Deref,
+    str::FromStr,
 };
 
 use chrono::{DateTime, Utc};

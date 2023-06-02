@@ -1,4 +1,9 @@
-use std::{error::Error, collections::HashMap, fmt::{self, Display}, str::FromStr};
+use std::{
+    collections::HashMap,
+    error::Error,
+    fmt::{self, Display},
+    str::FromStr,
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

@@ -2,18 +2,18 @@ use futures::executor::block_on;
 use gloo_net::http::Request;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, console::error, HtmlDialogElement, window};
+use web_sys::{console::error, window, HtmlDialogElement, RequestInit};
 use yew::{html, Callback, Component, Context, Html, Properties};
 
 use squire_sdk::{
     api::GET_TOURNAMENT_ROUTE,
     model::{admin::Admin, identifiers::AdminId},
-    tournaments::{TournamentId, TournamentManager, OpResult},
+    tournaments::{OpResult, TournamentId, TournamentManager},
 };
 
 use crate::{
     tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
-    utils::{fetch_tournament, console_log},
+    utils::{console_log, fetch_tournament},
     CLIENT, ON_UPDATE,
 };
 
@@ -108,7 +108,7 @@ impl Component for TournamentViewer {
             mode: TournViewMode::default(),
             tourn_name: String::new(),
             admin_id: AdminId::default(),
-            error_message: "no message".to_owned()
+            error_message: "no message".to_owned(),
         }
     }
 
@@ -156,7 +156,7 @@ impl Component for TournamentViewer {
             }
             TournViewMessage::TournamentUpdated(opr) => {
                 let Err(err) = opr else { return false };
-                let element : HtmlDialogElement =  window()
+                let element: HtmlDialogElement = window()
                     .and_then(|w| w.document())
                     .and_then(|d| d.get_element_by_id("errormessage"))
                     .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
@@ -177,7 +177,7 @@ impl Component for TournamentViewer {
                 <button>{"OK"}</button>
                 </form>
             </dialog>
-          
+
             <div class="my-4 container-fluid">
                 <div class="row tviewer">
                     <aside class="col-md-2 tveiwer_sidebar px-md-3">

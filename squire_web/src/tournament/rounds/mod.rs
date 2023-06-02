@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
 use squire_sdk::{
+    client::update::UpdateTracker,
     model::{
         identifiers::{AdminId, RoundIdentifier},
         rounds::{RoundId, RoundStatus},
     },
-
-    tournaments::{TournamentId, OpResult}, client::update::UpdateTracker,
+    tournaments::{OpResult, TournamentId},
 };
 
 use yew::prelude::*;
@@ -58,7 +58,11 @@ impl Component for RoundsView {
 
     fn create(ctx: &Context<Self>) -> Self {
         spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
-        let RoundsFilterProps { id, admin_id, send_op_result } = ctx.props().clone();
+        let RoundsFilterProps {
+            id,
+            admin_id,
+            send_op_result,
+        } = ctx.props().clone();
         Self {
             id,
             send_op_result,
@@ -73,7 +77,9 @@ impl Component for RoundsView {
         match msg {
             RoundsViewMessage::FilterInput(msg) => self.input.update(msg),
             RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg),
-            RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg, &self.send_op_result),
+            RoundsViewMessage::SelectedRound(msg) => {
+                self.selected.update(ctx, msg, &self.send_op_result)
+            }
             RoundsViewMessage::ReQuery => {
                 spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
                 self.scroll.requery(ctx);

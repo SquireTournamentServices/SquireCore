@@ -336,36 +336,32 @@ impl RoundContext {
 }
 
 impl RoundResult {
-  /// Update result in a RoundResult ignoring type.
-  pub fn update_result(&mut self, result: u32) {
-    match self {
-		RoundResult::Wins(_, res) => {
-			*res = result;
-		}
-		RoundResult::Draw(res) => {
-			*res = result;
-		}
+    /// Update result in a RoundResult ignoring type.
+    pub fn update_result(&mut self, result: u32) {
+        match self {
+            RoundResult::Wins(_, res) => {
+                *res = result;
+            }
+            RoundResult::Draw(res) => {
+                *res = result;
+            }
+        }
     }
-  }
-  /// Get value ignoring type
-  pub fn get_result(&self) -> u32 {
-	match self {
-		RoundResult::Wins(_, res) => {
-			*res
-		}
-		RoundResult::Draw(res) => {
-			*res
-		}
+    /// Get value ignoring type
+    pub fn get_result(&self) -> u32 {
+        match self {
+            RoundResult::Wins(_, res) => *res,
+            RoundResult::Draw(res) => *res,
+        }
     }
-  }
-  /// Increment value by 1 ignoring type
-  pub fn inc_result(&mut self) {
-	self.update_result(self.get_result()+1);
-  }
-  /// Decrement value by 1 ignoring type
-  pub fn dec_result(&mut self) {
-	self.update_result(self.get_result().checked_sub(1).unwrap_or_default());
-  }
+    /// Increment value by 1 ignoring type
+    pub fn inc_result(&mut self) {
+        self.update_result(self.get_result() + 1);
+    }
+    /// Decrement value by 1 ignoring type
+    pub fn dec_result(&mut self) {
+        self.update_result(self.get_result().checked_sub(1).unwrap_or_default());
+    }
 }
 
 /// Error type returned when parsing a string into a `RoundStatus`

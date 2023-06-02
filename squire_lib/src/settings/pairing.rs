@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    error::TournamentError,
     operations::{OpData, OpResult},
     pairings::PairingAlgorithm,
-    tournament::TournamentPreset, error::TournamentError,
+    tournament::TournamentPreset,
 };
 
 /// An enum that encodes all the adjustable settings of all pairing systems
@@ -111,9 +112,7 @@ impl PairingStyleSettingsTree {
             (PairingStyleSettingsTree::Fluid(style), PairingStyleSetting::Fluid(setting)) => {
                 style.update(setting)
             }
-            _ => {
-                Err(TournamentError::IncompatiblePairingSystem)
-            }
+            _ => Err(TournamentError::IncompatiblePairingSystem),
         }
     }
 
