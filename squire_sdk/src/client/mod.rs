@@ -30,8 +30,8 @@ use squire_lib::{
 
 use crate::{
     api::{
-        GET_TOURNAMENT_ROUTE, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE,
-        VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
+        GET_TOURNAMENT_ROUTE, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
+        VERSION_ROUTE,
     },
     client::error::ClientError,
     model::{

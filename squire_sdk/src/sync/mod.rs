@@ -10,6 +10,7 @@ use crate::model::{
 };
 
 pub mod full_op;
+pub mod messages;
 pub mod op_align;
 pub mod op_log;
 pub mod op_sync;
@@ -17,16 +18,15 @@ pub mod processor;
 pub mod rollback;
 pub mod sync_error;
 pub mod sync_status;
-pub mod messages;
 pub(crate) mod utils;
 
 pub use full_op::*;
+pub use messages::*;
 pub use op_log::*;
 pub use op_sync::*;
 pub use rollback::*;
 pub use sync_error::*;
 pub use sync_status::*;
-pub use messages::*;
 
 use self::processor::SyncProcessor;
 
