@@ -45,6 +45,8 @@ pub enum TournamentError {
     NoMatchResult,
     /// A player already had the max number of decks
     MaxDecksReached,
+    /// Time was added or subtracted such that the time could not be properly stored
+    TimeOverflow,
 }
 
 impl fmt::Display for TournamentError {
@@ -70,6 +72,7 @@ impl fmt::Display for TournamentError {
             RoundConfirmed => "RoundConfirmed",
             NoMatchResult => "NoMatchResult",
             MaxDecksReached => "MaxDecksReached",
+            TimeOverflow => "TimeOverflow",
         };
         write!(f, "{s}")
     }

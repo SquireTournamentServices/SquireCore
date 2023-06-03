@@ -377,12 +377,17 @@ impl Tournament {
     }
 
     /// Adds a time extension to a round
+    #[no_panic]
     pub(crate) fn give_time_extension(&mut self, rnd: &RoundId, ext: Duration) -> OpResult {
         if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let round = self.round_reg.get_mut_round(rnd)?;
-        round.extension += ext;
+        if let Some(new_extension) = round.extension.checked_add(ext) {
+            round.extension = new_extension;
+        } else {
+            return Err(TournamentError::ActiveMatches)
+        }
         Ok(OpData::Nothing)
     }
 
