@@ -1,12 +1,14 @@
 use std::{
-    collections::hash_map::DefaultHasher,
     fmt::Display,
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ops::Deref, str::FromStr,
+    ops::Deref,
+    str::FromStr,
 };
 
 use chrono::{DateTime, Utc};
+use deterministic_hash::DeterministicHasher;
+use fxhash::FxHasher64;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
@@ -18,12 +20,17 @@ use crate::{
     tournament::Tournament,
 };
 
+#[inline(always)]
+fn id_hasher() -> DeterministicHasher<FxHasher64> {
+    DeterministicHasher::new(FxHasher64::default())
+}
+
 /// Creates an ID (of any type) from a time and a hashable value
 pub fn id_from_item<T, ID>(salt: DateTime<Utc>, item: T) -> TypeId<ID>
 where
     T: Hash,
 {
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = id_hasher();
     salt.hash(&mut hasher);
     let upper = hasher.finish();
     item.hash(&mut hasher);
@@ -37,7 +44,7 @@ where
     I: Iterator<Item = T>,
     T: Hash,
 {
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = id_hasher();
     salt.hash(&mut hasher);
     let upper = hasher.finish();
     for item in vals {

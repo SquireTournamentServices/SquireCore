@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
 
     use squire_tests::get_seed;
 
     use squire_lib::{
         accounts::SquireAccount,
-        identifiers::AdminId,
+        identifiers::{AdminId, TypeId},
         operations::{AdminOp, JudgeOp, TournOp},
         settings::{PairingSetting, TournamentSetting},
     };
@@ -77,5 +77,30 @@ mod tests {
         let r_id_two = tourn_two.apply_op(now, op).unwrap().assume_pair();
         assert_eq!(r_id_one, r_id_two);
         assert_eq!(tourn_one, tourn_two);
+    }
+
+    type HashDeterminismCase = (DateTime<Utc>, Vec<u64>, TypeId<()>, TypeId<()>);
+
+    /// Independently tests `squire_lib::identifiers::id_from_item` for consistent behavior across
+    /// platforms. Expected data is based off of linux.
+    #[test]
+    fn hash_determinism() {
+        let test_data: Vec<HashDeterminismCase> = serde_json::from_slice(
+            include_bytes!("./determinism/deterministic_uuid_test_cases.json"),
+        )
+        .expect("Could not parse test cases");
+
+        for (timestamp, payload, expected_hash_item, expected_hash_list) in test_data {
+            assert_eq!(
+                squire_lib::identifiers::id_from_list(timestamp, payload.iter()),
+                expected_hash_list,
+                "Wrong hash emitted by `id_from_list`"
+            );
+            assert_eq!(
+                squire_lib::identifiers::id_from_item(timestamp, payload),
+                expected_hash_item,
+                "Wrong hash emitted by `id_from_item`"
+            );
+        }
     }
 }
