@@ -5,7 +5,7 @@ use squire_sdk::{
         identifiers::{AdminId, RoundIdentifier},
         rounds::{RoundId, RoundStatus}, operations::AdminOp,
     },
-    tournaments::{TournamentId, OpResult, TournOp}, client::update::UpdateTracker,
+    tournaments::{TournamentId, OpResult, TournOp}, 
 };
 
 use wasm_bindgen_futures::spawn_local;
