@@ -3,14 +3,15 @@ use squire_sdk::{
     client::update::UpdateTracker,
     model::{
         identifiers::{AdminId, RoundIdentifier},
-        rounds::{RoundId, RoundStatus},
+        rounds::{RoundId, RoundStatus}, operations::AdminOp,
     },
-    tournaments::{OpResult, TournamentId},
+    tournaments::{TournamentId, OpResult, TournOp}, client::update::UpdateTracker,
 };
 
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::{utils::TextInput, CLIENT};
+use crate::{utils::{TextInput, console_log}, CLIENT};
 
 pub mod creator;
 pub mod input;
@@ -41,6 +42,7 @@ pub enum RoundsViewMessage {
     RoundScroll(RoundScrollMessage),
     SelectedRound(SelectedRoundMessage),
     ReQuery,
+    BulkConfirmation,
 }
 
 pub struct RoundsView {
@@ -86,13 +88,31 @@ impl Component for RoundsView {
                 self.selected.try_requery_existing(ctx);
                 false
             }
+            RoundsViewMessage::BulkConfirmation => {
+                let tracker = CLIENT.get().unwrap().update_tourn(self.id, TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::ConfirmAllRounds ));
+                let send_op_result = self.send_op_result.clone();
+                spawn_local(async move {
+                    console_log("Waiting for update to finish!");
+                    send_op_result.emit(tracker.process().await.unwrap()) 
+                });
+                false
+            }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        /*
+        let confirmallrounds = |me: MouseEvent| {
+            
+        };
+        */
+        let cb = ctx.link().callback(|_| RoundsViewMessage::BulkConfirmation);
         html! {
             <div>
-                { self.input.view() }
+                <div class="row">
+                    <div class="col">{ self.input.view() }</div>
+                    <div class="col"><button onclick={cb}>{"Confirm all rounds"}</button></div>
+                </div>
                 <div class="d-flex flex-row my-4">
                     <div>
                         <div class="overflow-auto player-scroll-box">
