@@ -79,20 +79,28 @@ mod tests {
         assert_eq!(tourn_one, tourn_two);
     }
 
+    type HashDeterminismCase = (DateTime<Utc>, Vec<u64>, TypeId<()>, TypeId<()>);
+
     /// Independently tests `squire_lib::identifiers::id_from_item` for consistent behavior across
     /// platforms. Expected data is based off of linux.
     #[test]
     fn hash_determinism() {
-        let test_data: Vec<(DateTime<Utc>, Vec<u64>, TypeId<()>)> = serde_json::from_slice(
+        let test_data: Vec<HashDeterminismCase> = serde_json::from_slice(
             include_bytes!("./determinism/deterministic_uuid_test_cases.json"),
         )
         .expect("Could not parse test cases");
 
-        for (timestamp, payload, expected_hash) in test_data {
+        for (timestamp, payload, expected_hash_item, expected_hash_list) in test_data {
+            assert_eq!(
+                squire_lib::identifiers::id_from_list(timestamp, payload.iter()),
+                expected_hash_list,
+                "Wrong hash emitted by `id_from_list`"
+            );
             assert_eq!(
                 squire_lib::identifiers::id_from_item(timestamp, payload),
-                expected_hash
-            )
+                expected_hash_item,
+                "Wrong hash emitted by `id_from_item`"
+            );
         }
     }
 }
