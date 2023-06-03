@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display, time::Duration};
 
 use chrono::{DateTime, Utc};
+use no_panic::no_panic;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
 use std::fmt::Write;
@@ -353,6 +354,7 @@ impl Tournament {
     /// Removes players from the tournament that did not complete registration.
     /// This include players that did not submit enough decks (defined by `require_deck_reg` and
     /// `min_deck_count`) and that didn't check in (defined by `require_check_in`).
+    #[no_panic]
     pub(crate) fn prune_players(&mut self) -> OpResult {
         if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -433,6 +435,7 @@ impl Tournament {
     }
 
     /// Updates a single tournament setting
+    #[no_panic]
     pub(crate) fn update_setting(&mut self, setting: TournamentSetting) -> OpResult {
         use TournamentSetting::*;
         if self.is_dead() {
@@ -487,6 +490,7 @@ impl Tournament {
     }
 
     /// Changes the registration status
+    #[no_panic]
     pub(crate) fn update_reg(&mut self, reg_status: bool) -> OpResult {
         if self.is_frozen() || self.is_dead() {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -496,6 +500,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Active`.
+    #[no_panic]
     pub(crate) fn start(&mut self) -> OpResult {
         if !self.is_planned() {
             Err(TournamentError::IncorrectStatus(self.status))
@@ -507,6 +512,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Frozen`.
+    #[no_panic]
     pub(crate) fn freeze(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
@@ -518,6 +524,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Active` only if the current status is `Frozen`
+    #[no_panic]
     pub(crate) fn thaw(&mut self) -> OpResult {
         if !self.is_frozen() {
             Err(TournamentError::IncorrectStatus(self.status))
@@ -528,6 +535,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Ended`.
+    #[no_panic]
     pub(crate) fn end(&mut self) -> OpResult {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
@@ -539,6 +547,7 @@ impl Tournament {
     }
 
     /// Sets the tournament status to `Cancelled`.
+    #[no_panic]
     pub(crate) fn cancel(&mut self) -> OpResult {
         if self.is_planned() {
             self.reg_open = false;
@@ -581,6 +590,7 @@ impl Tournament {
     }
 
     /// A judge or admin confirms the result of a match
+    #[no_panic]
     pub(crate) fn confirm_single_round(&mut self, id: &RoundId) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -598,6 +608,7 @@ impl Tournament {
 
     /// Confirms all active rounds in the tournament. If there is at least one active round without
     /// a result, this operations fails atomically.
+    #[no_panic]
     pub(crate) fn confirm_all_rounds(&mut self) -> OpResult {
         if !self.is_active() {
             return Err(TournamentError::IncorrectStatus(self.status));
@@ -667,6 +678,7 @@ impl Tournament {
     }
 
     /// Sets a player's gamer tag
+    #[no_panic]
     pub(crate) fn player_set_game_name(&mut self, ident: &PlayerId, name: String) -> OpResult {
         if !self.is_ongoing() {
             return Err(TournamentError::IncorrectStatus(self.status));
