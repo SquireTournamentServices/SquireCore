@@ -12,8 +12,8 @@ use squire_sdk::{
 };
 
 use crate::{
-    tournament::{overview::*, players::*, rounds::*, settings::*, standings::*},
-    utils::{console_log, fetch_tournament},
+    tournament::{overview::*, players::*, rounds::*, pairings::*, settings::*, standings::*},
+    utils::{fetch_tournament, console_log},
     CLIENT, ON_UPDATE,
 };
 
@@ -23,6 +23,7 @@ pub enum TournViewMode {
     Overview,
     Players,
     Rounds,
+    Pairings,
     Standings,
     Settings,
 }
@@ -63,6 +64,7 @@ impl TournamentViewer {
                     <li>{ make_button("Overview" , TournViewMode::Overview) }</li>
                     <li>{ make_button("Players"  , TournViewMode::Players) }</li>
                     <li>{ make_button("Rounds"   , TournViewMode::Rounds) }</li>
+                    <li>{ make_button("Pairings" , TournViewMode::Pairings) }</li>
                     <li>{ make_button("Standings", TournViewMode::Standings) }</li>
                     <li>{ make_button("Settings" , TournViewMode::Settings) }</li>
                 </ul>
@@ -81,6 +83,9 @@ impl TournamentViewer {
             TournViewMode::Rounds => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
                 html! { <RoundsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
+            }
+            TournViewMode::Pairings => {
+                html!( <PairingsView id = {self.id } /> )
             }
             TournViewMode::Standings => {
                 html! { <StandingsView id = { self.id }/> }
