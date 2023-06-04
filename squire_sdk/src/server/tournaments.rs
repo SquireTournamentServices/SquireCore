@@ -2,24 +2,31 @@ use std::sync::Arc;
 
 use async_session::SessionStore;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, WebSocketUpgrade},
     handler::Handler,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
 
 use crate::{
-    api::GET_TOURNAMENT_ENDPOINT,
+    api::{GET_TOURNAMENT_ENDPOINT, SUBSCRIBE_ENDPOINT},
     server::{state::ServerState, User},
     tournaments::*,
     utils::Url,
 };
 
-pub fn get_routes<S>() -> Router<S>
-where
-    S: ServerState,
-{
-    Router::new().route(GET_TOURNAMENT_ENDPOINT.as_str(), get(get_tournament::<S>))
+use super::gathering::{self, handle_new_onlooker};
+
+pub fn get_routes_and_init<S: ServerState>() -> Router<S> {
+    gathering::init_gathering_hall();
+    get_routes()
+}
+
+pub fn get_routes<S: ServerState>() -> Router<S> {
+    Router::new()
+        .route(GET_TOURNAMENT_ENDPOINT.as_str(), get(get_tournament::<S>))
+        .route(SUBSCRIBE_ENDPOINT.as_str(), get(join_gathering::<S>))
 }
 
 pub async fn get_tournament<S>(
@@ -29,10 +36,14 @@ pub async fn get_tournament<S>(
 where
     S: ServerState,
 {
-    GetTournamentResponse::new(state.query_tournament(&id, |t| t.clone()).await)
+    GetTournamentResponse::new(state.query_tournament(&id, Clone::clone).await)
 }
 
 /// Adds a user to the gathering via a websocket
-pub async fn join_gathering() {
-    todo!()
+pub async fn join_gathering<S>(
+    user: User,
+    ws: WebSocketUpgrade,
+    Path(id): Path<TournamentId>,
+) -> Response {
+    ws.on_upgrade(move |ws| handle_new_onlooker(id, user, ws))
 }
