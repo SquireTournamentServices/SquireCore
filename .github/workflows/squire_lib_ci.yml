@@ -10,6 +10,18 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  squire_lib_ensure_no_panic:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v3
+      - run: cargo test --no-run --release --features=no-panic --verbose
   squire_lib_build_tests:
     name: Tests
     runs-on: ${{ matrix.os }}
