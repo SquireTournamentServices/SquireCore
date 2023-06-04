@@ -33,7 +33,7 @@ pub mod gathering;
 pub mod state;
 pub mod tournaments;
 
-pub fn get_routes<S>() -> Router<S>
+fn get_routes<S>() -> Router<S>
 where
     S: ServerState,
 {
