@@ -12,13 +12,40 @@ use futures::{
 };
 use squire_lib::tournament::TournamentId;
 use tokio::{
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        OnceCell,
+    },
     time::Instant,
 };
 
 use crate::{sync::OpSync, tournaments::TournamentManager};
 
 use super::User;
+
+const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
+
+pub static GATHERING_HALL_MESSAGER: OnceCell<Sender<GatheringHallMessage>> = OnceCell::const_new();
+
+/// This function spawns a tokio task to manage a gathering hall. It also sets up the necessary
+/// channels for communicating with that task
+pub fn init_gathering_hall() {
+    let (send, recv) = channel(GATHERING_HALL_CHANNEL_SIZE);
+    let hall = GatheringHall::new(recv);
+    GATHERING_HALL_MESSAGER.set(send).unwrap();
+    tokio::spawn(hall.run());
+}
+
+/// This function communicates with the gathering hall task to add a new onlooker into a
+/// tournament.
+pub async fn handle_new_onlooker(id: TournamentId, user: User, ws: WebSocket) {
+    GATHERING_HALL_MESSAGER
+        .get()
+        .unwrap()
+        .send(GatheringHallMessage::NewOnlooker(id, NewOnlookerMessage(user, ws)))
+        .await
+        .unwrap()
+}
 
 /* TODO:
  *  - Clients might close their websocket communicates. Because of this, we need to ensure that the
@@ -42,14 +69,14 @@ use super::User;
  *
  */
 
-/// A message sent to a `GatheringHall` that communicates that a new `Gathering` needs to be
-/// created.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewGatheringMessage(pub TournamentId);
-
-/// A message sent to a `Gathering` that subscribes a new `Onlooker`.
+/// A message sent to a `GatheringHall` that communicates some command that it needs to process.
 #[derive(Debug)]
-pub struct IncomingOnlookerMessage(pub TournamentId, NewOnlookerMessage);
+pub enum GatheringHallMessage {
+    /// Create a new gathering
+    NewGathering(TournamentId),
+    /// Adds an onlooker to a gathering
+    NewOnlooker(TournamentId, NewOnlookerMessage),
+}
 
 /// A message sent to a `Gathering` that subscribes a new `Onlooker`.
 #[derive(Debug)]
@@ -65,8 +92,7 @@ struct PersistMessage(TournamentId);
 /// through message passing and tokio tasks.
 pub struct GatheringHall {
     gatherings: HashMap<TournamentId, Sender<NewOnlookerMessage>>,
-    onlookers: Receiver<IncomingOnlookerMessage>,
-    new_gatherings: Receiver<NewGatheringMessage>,
+    inbound: Receiver<GatheringHallMessage>,
     persists: Receiver<PersistMessage>,
     persist_sender: Sender<PersistMessage>,
 }
@@ -97,17 +123,13 @@ pub struct Onlooker(pub SplitSink<WebSocket, Message>);
 impl GatheringHall {
     /// Creates a new `GatheringHall` from receiver halves of channels that communicate new
     /// gatherings and subscriptions
-    pub fn new(
-        onlookers: Receiver<IncomingOnlookerMessage>,
-        new_gatherings: Receiver<NewGatheringMessage>,
-    ) -> Self {
+    pub fn new(inbound: Receiver<GatheringHallMessage>) -> Self {
         let (persist_sender, persists) = channel(1000);
         Self {
             gatherings: HashMap::new(),
-            new_gatherings,
             persists,
             persist_sender,
-            onlookers,
+            inbound,
         }
     }
 
@@ -126,18 +148,15 @@ impl GatheringHall {
                         todo!("Gathering hall collect tournament data for persistence");
                     }
                 }
-                msg = self.new_gatherings.recv() => {
-                    self.process_new_gathering(msg.unwrap());
-                }
-                msg = self.onlookers.recv() => {
-                    self.process_new_onlooker(msg.unwrap());
+                msg = self.inbound.recv() => match msg.unwrap() {
+                    GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
+                    GatheringHallMessage::NewOnlooker(id, msg) => self.process_new_onlooker(id, msg).await,
                 }
             }
         }
     }
 
-    async fn process_new_gathering(&mut self, msg: NewGatheringMessage) {
-        let NewGatheringMessage(id) = msg;
+    async fn process_new_gathering(&mut self, id: TournamentId) {
         // TODO: We need a way to communicate that a tournament can not be found
         let Some(tourn) = self.get_tourn(&id).await else { return };
         let (send, recv) = channel(100);
@@ -146,12 +165,11 @@ impl GatheringHall {
         self.gatherings.insert(id, send);
     }
 
-    async fn process_new_onlooker(&mut self, msg: IncomingOnlookerMessage) {
-        let IncomingOnlookerMessage(id, msg) = msg;
+    async fn process_new_onlooker(&mut self, id: TournamentId, msg: NewOnlookerMessage) {
         match self.gatherings.get(&id) {
             // TODO: Remove unwrap. Gathering might have imploded if the tournament has ended.
             Some(sender) => sender.send(msg).await.unwrap(),
-            None => self.process_new_gathering(NewGatheringMessage(id)).await,
+            None => self.process_new_gathering(id).await,
         }
     }
 
