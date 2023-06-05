@@ -1,6 +1,7 @@
-use squire_lib::{
-    operations::{OpResult, TournOp},
-    tournament::TournamentId,
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
 };
 
 use tokio::sync::{
@@ -9,6 +10,11 @@ use tokio::sync::{
         channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
         Sender as OneshotSender,
     },
+};
+
+use squire_lib::{
+    operations::{OpResult, TournOp},
+    tournament::TournamentId,
 };
 
 use super::error::ClientResult;
@@ -42,5 +48,15 @@ impl SubTracker {
 
     pub fn process_blocking(self) -> Option<Subscriber<bool>> {
         futures::executor::block_on(self.process())
+    }
+}
+
+impl Future for SubTracker {
+    type Output = Option<Subscriber<bool>>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut self.recv)
+            .poll(cx)
+            .map(|res| res.ok().flatten())
     }
 }

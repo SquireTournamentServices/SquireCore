@@ -9,7 +9,7 @@ pub const TOURNAMENTS_ROUTE: Url<0> = extend!(API_BASE, "/tournaments");
 pub(crate) const GET_TOURNAMENT_ENDPOINT: Url<1> = Url::new("/:t_id", [":t_id"]);
 pub const GET_TOURNAMENT_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT);
 
-pub(crate) const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("subscribe/:t_id", [":t_id"]);
+pub(crate) const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("/subscribe/:t_id", [":t_id"]);
 pub const SUBSCRIBE_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, SUBSCRIBE_ENDPOINT);
 
 /* ---------- Account Routes ---------- */

@@ -21,6 +21,8 @@ use reqwest::{
     Client, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
+use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcast};
+
 use squire_lib::{
     operations::{OpResult, TournOp},
     players::PlayerRegistry,
@@ -90,7 +92,10 @@ impl SquireClient {
     /// to the backend server but the remote import might not be completed by the time the value is
     /// returned
     pub async fn create_tournament(&self, seed: TournamentSeed) -> TournamentId {
-        todo!()
+        let tourn = TournamentManager::new(self.user.clone(), seed);
+        let digest = tourn.id;
+        self.sender.import(tourn).await;
+        digest
     }
 
     /// Retrieves a tournament with the given id from the backend. This tournament will not update
@@ -101,8 +106,8 @@ impl SquireClient {
 
     /// Retrieves a tournament with the given id from the backend and creates a websocket
     /// connection to receive updates from the backend.
-    pub async fn sub_to_tournament(&self, id: TournamentId) -> bool {
-        todo!()
+    pub async fn sub_to_tournament(&self, id: TournamentId) -> Option<Subscriber<bool>> {
+        self.sender.subscribe(id).await
     }
 
     async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {

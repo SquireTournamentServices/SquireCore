@@ -14,7 +14,6 @@ use http::{
 use once_cell::sync::OnceCell;
 
 use squire_sdk::{
-    accounts::*,
     model::{accounts::SquireAccount, identifiers::SquireAccountId},
     server::User,
     COOKIE_NAME,

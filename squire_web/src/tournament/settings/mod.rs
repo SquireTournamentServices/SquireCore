@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use yew::prelude::*;
 
 use squire_sdk::{
-    accounts::TournamentSettingsTree,
     model::settings::{
         GeneralSettingsTree, PairingSettingsTree, PairingStyleSettingsTree, ScoringSettingsTree,
-        TournamentSetting,
+        TournamentSetting, TournamentSettingsTree,
     },
     tournaments::{TournamentId, TournamentPreset},
 };

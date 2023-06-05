@@ -1,5 +1,6 @@
 use futures::executor::block_on;
 use gloo_net::http::Request;
+use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcaster};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{console::error, window, HtmlDialogElement, RequestInit};
@@ -30,7 +31,7 @@ pub enum TournViewMode {
 
 #[derive(Debug)]
 pub enum TournViewMessage {
-    TournamentImported,
+    TournamentImported(Option<Subscriber<bool>>),
     QueryReady(Option<(String, AdminId)>),
     SwitchModes(TournViewMode),
     TournamentUpdated(OpResult),
@@ -44,6 +45,7 @@ pub struct TournProps {
 pub struct TournamentViewer {
     pub id: TournamentId,
     pub mode: TournViewMode,
+    listener: Option<Subscriber<bool>>,
     tourn_name: String,
     admin_id: AdminId,
     error_message: String,
@@ -106,8 +108,8 @@ impl Component for TournamentViewer {
         let TournProps { id } = ctx.props();
         let id = *id;
         ctx.link().send_future(async move {
-            fetch_tournament(id).await;
-            TournViewMessage::TournamentImported
+            let res = CLIENT.get().unwrap().sub_to_tournament(id).await;
+            TournViewMessage::TournamentImported(res)
         });
         Self {
             id,
@@ -115,6 +117,7 @@ impl Component for TournamentViewer {
             tourn_name: String::new(),
             admin_id: AdminId::default(),
             error_message: "no message".to_owned(),
+            listener: None,
         }
     }
 
@@ -125,9 +128,10 @@ impl Component for TournamentViewer {
                 self.mode = mode;
                 digest
             }
-            TournViewMessage::TournamentImported => {
-                web_sys::console::log_1(&"Data ready!!".into());
+            TournViewMessage::TournamentImported(listener) => {
+                console_log("Data ready!!");
                 let id = self.id;
+                self.listener = listener;
                 ctx.link().send_future(async move {
                     let data = CLIENT
                         .get()
@@ -155,8 +159,8 @@ impl Component for TournamentViewer {
             TournViewMessage::QueryReady(None) => {
                 let id = self.id;
                 ctx.link().send_future(async move {
-                    fetch_tournament(id).await;
-                    TournViewMessage::TournamentImported
+                    let res = CLIENT.get().unwrap().sub_to_tournament(id).await;
+                    TournViewMessage::TournamentImported(res)
                 });
                 false
             }
