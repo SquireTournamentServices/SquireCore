@@ -1,7 +1,8 @@
 use squire_sdk::{
-    model::{identifiers::PlayerIdentifier, rounds::RoundId},
-    model::{identifiers::RoundIdentifier, rounds::RoundStatus},
-    players::PlayerId,
+    model::{
+        identifiers::PlayerIdentifier, identifiers::RoundIdentifier, players::PlayerId,
+        rounds::RoundId, rounds::RoundStatus,
+    },
     tournaments::{Tournament, TournamentId, TournamentManager},
 };
 

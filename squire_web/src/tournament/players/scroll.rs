@@ -1,6 +1,10 @@
 use squire_sdk::{
-    model::{identifiers::RoundIdentifier, players::PlayerStatus, rounds::RoundStatus},
-    players::{Player, PlayerId},
+    model::{
+        identifiers::RoundIdentifier,
+        players::PlayerStatus,
+        players::{Player, PlayerId},
+        rounds::RoundStatus,
+    },
     tournaments::{Tournament, TournamentId},
 };
 

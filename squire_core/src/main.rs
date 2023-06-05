@@ -17,9 +17,8 @@ use state::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use squire_sdk::{
-    accounts::{SquireAccount, SquireAccountId, VerificationData},
-    api::{GET_ALL_PAST_TOURNAMENTS_ROUTE, TOURNAMENTS_ROUTE},
-    cards::{atomics::Atomics, meta::Meta},
+    api::TOURNAMENTS_ROUTE,
+    model::accounts::SquireAccount,
     response::SquireResponse,
     server::{self, state::ServerState, User},
     tournaments::{
@@ -32,7 +31,7 @@ use squire_sdk::{
 #[cfg(test)]
 mod tests;
 
-mod accounts;
+//mod accounts;
 mod assets;
 mod state;
 mod tournaments;
@@ -42,7 +41,7 @@ pub async fn init() {}
 //#[axum::debug_handler]
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>()
-        .extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
+        //.extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
         .into()
         .route("/", get(assets::landing))
         .route("/squire_web_bg.wasm", get(assets::get_wasm))

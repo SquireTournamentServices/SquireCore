@@ -4,9 +4,9 @@ use chrono::{DateTime, Duration, Utc};
 use squire_sdk::{
     model::{
         identifiers::{PlayerIdentifier, TypeId},
-        rounds::{RoundId, RoundStatus},
+        players::{Deck, Player, PlayerId},
+        rounds::{Round, RoundId, RoundStatus},
     },
-    players::{Deck, Player, PlayerId, Round},
     tournaments::{Tournament, TournamentId, TournamentManager},
 };
 use yew::prelude::*;

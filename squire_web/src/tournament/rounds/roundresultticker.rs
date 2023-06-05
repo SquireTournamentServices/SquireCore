@@ -2,9 +2,9 @@ use squire_sdk::{
     model::{
         identifiers::AdminId,
         operations::JudgeOp,
-        rounds::{RoundId, RoundResult},
+        players::PlayerId,
+        rounds::{Round, RoundId, RoundResult},
     },
-    players::{PlayerId, Round},
     tournaments::TournOp,
 };
 use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
