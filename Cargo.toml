@@ -3,13 +3,13 @@ members = [
     "squire_lib",
     "squire_core",
     "squire_tests",
+    "squire_sdk",
 ]
 
 # We exclude the frontend so that we can compile it as part of the compilation
 # of the backend. Otherwise, there is a deadlock. This is ok since the frontend
 # should always be compiled as WASM, so it doesn't share any deps with.
 exclude = ["squire_web",
-    "squire_sdk",
 ]
 
 [profile.release]
