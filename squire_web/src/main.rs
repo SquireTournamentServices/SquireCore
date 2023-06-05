@@ -10,7 +10,7 @@ use utils::console_log;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use squire_sdk::{accounts::SquireAccount, client::SquireClient, tournaments::TournamentId};
+use squire_sdk::{model::accounts::SquireAccount, client::SquireClient, tournaments::TournamentId};
 
 mod account;
 mod header;

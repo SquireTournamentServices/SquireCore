@@ -14,9 +14,13 @@ use axum::{
     RequestPartsExt, Router, TypedHeader,
 };
 use serde::{Deserialize, Serialize};
-use squire_lib::accounts::SquireAccount;
+use squire_lib::{
+    accounts::{SharingPermissions, SquireAccount},
+    identifiers::SquireAccountId,
+};
 
 use http::{header, request::Parts};
+use uuid::Uuid;
 
 use crate::{
     api::{ACCOUNTS_ROUTE, API_BASE, TOURNAMENTS_ROUTE, VERSION_ENDPOINT, VERSION_ROUTE},
@@ -92,7 +96,7 @@ where
     ServerVersionResponse::new(state.get_version())
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct User {
     pub account: SquireAccount,
 }
@@ -106,6 +110,8 @@ where
     type Rejection = StatusCode;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        Ok(Default::default())
+        /*
         println!("Loading Cookies from parts...");
         let cookies = parts
             .extract::<TypedHeader<headers::Cookie>>()
@@ -130,6 +136,7 @@ where
         println!("Session loaded successfully!");
 
         session.get("user").ok_or(StatusCode::FORBIDDEN)
+        */
     }
 }
 
@@ -139,5 +146,21 @@ where
 {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Default for User {
+    fn default() -> Self {
+        let id: SquireAccountId = Uuid::new_v4().into();
+        let user_name = format!("Tester {id}");
+        let display_name = format!("Tester {id}");
+        let account = SquireAccount {
+            user_name,
+            display_name,
+            id,
+            gamer_tags: HashMap::new(),
+            permissions: SharingPermissions::default(),
+        };
+        Self { account }
     }
 }

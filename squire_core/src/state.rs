@@ -4,9 +4,7 @@ use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
 use mongodb::{options::ClientOptions, Client as DbClient, Collection, Database};
 use squire_sdk::{
-    accounts::{SquireAccount, SquireAccountId, VerificationData},
-    cards::{atomics::Atomics, meta::Meta},
-    data::CompressedTournament,
+    model::accounts::SquireAccount,
     server::{state::ServerState, User},
     tournaments::{
         OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
@@ -41,6 +39,7 @@ impl AppState {
         self.get_db().collection("Tournaments")
     }
 
+    /*
     pub fn get_past_tourns(&self) -> Collection<CompressedTournament> {
         self.get_db().collection("PastTournaments")
     }
@@ -58,6 +57,7 @@ impl AppState {
         }
         digest.into_iter().collect()
     }
+    */
 }
 
 #[async_trait]
@@ -67,10 +67,6 @@ impl ServerState for AppState {
             version: "0.1.0-pre-alpha".to_string(),
             mode: ServerMode::Extended,
         }
-    }
-
-    fn get_verification_data(&self, user: &User) -> Option<VerificationData> {
-        None
     }
 
     async fn create_tournament(
@@ -108,48 +104,6 @@ impl ServerState for AppState {
             digest.push(f(&tourn));
         }
         digest.into_iter().collect()
-    }
-
-    async fn create_verification_data(&self, user: &User) -> VerificationData {
-        todo!()
-    }
-
-    async fn sync_tournament(
-        &self,
-        id: &TournamentId,
-        user: &User,
-        sync: OpSync,
-    ) -> Option<SyncStatus> {
-        todo!()
-    }
-
-    async fn rollback_tournament(
-        &self,
-        id: &TournamentId,
-        user: &User,
-        rollback: Rollback,
-    ) -> Option<Result<(), RollbackError>> {
-        todo!()
-    }
-
-    async fn load_user(&self, user: User) {
-        todo!()
-    }
-
-    async fn get_user(&self, id: &SquireAccountId) -> Option<User> {
-        todo!()
-    }
-
-    async fn get_cards_meta(&self) -> Meta {
-        todo!()
-    }
-
-    async fn get_atomics(&self) -> Arc<Atomics> {
-        todo!()
-    }
-
-    async fn update_cards(&self) -> Result<(), Box<dyn std::error::Error>> {
-        todo!()
     }
 }
 

@@ -1,6 +1,6 @@
-use squire_sdk::{
-    model::rounds::{RoundId, RoundResult},
-    players::{Player, PlayerId, Round},
+use squire_sdk::model::{
+    players::{Player, PlayerId},
+    rounds::{RoundId, Round, RoundResult},
 };
 use std::{collections::HashMap, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;

@@ -35,7 +35,7 @@ use super::{
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
-    subscription::TournamentSub,
+    subscription::{TournamentSub, SubTracker, sub_channel},
     update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
 };
 
@@ -64,6 +64,12 @@ impl ManagementTaskSender {
             .send(ManagementCommand::Import(msg))
             .expect(MANAGEMENT_PANICKED_MSG);
         digest
+    }
+
+    pub fn subscribe(&self, id: TournamentId) -> SubTracker {
+        let (msg, tracker) = sub_channel(id);
+        self.sender.send(ManagementCommand::Subscribe(msg)).unwrap();
+        tracker
     }
 
     pub fn query<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
