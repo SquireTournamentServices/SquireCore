@@ -2,19 +2,18 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::Debug,
     future::Future,
-    time::Duration,
+    time::Duration, pin::Pin, task::{Context, Poll},
 };
 
-use backon::{ExponentialBuilder, Retryable};
 use futures::{
     stream::{select_all, SelectAll, SplitSink, SplitStream},
-    SinkExt, StreamExt,
+    SinkExt, StreamExt, future::FusedFuture,
 };
 use tokio::sync::{
     broadcast::{channel as broadcast_channel, Receiver as Subscriber, Sender as Broadcaster},
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender, error::TryRecvError},
     oneshot::{
-        channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
+        channel as oneshot, Receiver as OneshotReceiver,
         Sender as OneshotSender,
     },
 };
@@ -141,21 +140,35 @@ async fn tournament_management_task<F>(
 {
     let mut state = ManagerState::default();
     loop {
-        tokio::select! {
-            msg = state.listener.next() => {
-                match msg.expect("SelectAll return None") {
-                    Ok(msg) => handle_ws_msg(&mut state, msg),
-                    Err(err) => handle_ws_err(&mut state, err),
+        let opt_sub: Option<_> = tokio::select! {
+            msg = state.listener.next(), if !state.listener.is_empty() => {
+                match msg {
+                    Some(Ok(msg)) => handle_ws_msg(&mut state, msg),
+                    Some(Err(err)) => handle_ws_err(&mut state, err),
+                    None => {}
                 }
+                None
             }
             msg = recv.recv() => {
                 match msg.expect(HANG_UP_MESSAGE) {
-                    ManagementCommand::Query(query) => handle_query(&state, query),
-                    ManagementCommand::Import(import) => handle_import(&mut state, import),
-                    ManagementCommand::Update(update) => handle_update(&mut state, update, &mut on_update),
-                    ManagementCommand::Subscribe(sub) => handle_sub(&mut state, sub).await,
+                    ManagementCommand::Query(query) => {
+                        handle_query(&state, query);
+                        None
+                    },
+                    ManagementCommand::Import(import) => {
+                        handle_import(&mut state, import);
+                        None
+                    },
+                    ManagementCommand::Update(update) => {
+                        handle_update(&mut state, update, &mut on_update);
+                            None
+                    }
+                    ManagementCommand::Subscribe(sub) => Some(sub),
                 }
             }
+        };
+        if let Some(sub) = opt_sub {
+            handle_sub(&mut state, sub).await
         }
     }
 }
@@ -278,12 +291,9 @@ fn handle_ws_err(state: &mut ManagerState, err: WebsocketError) {
     panic!("Got error from Websocket: {err:?}")
 }
 
+// TODO: Add retries
 async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
-    let creator = || Websocket::new(url);
-    let timer = ExponentialBuilder::default()
-        .with_min_delay(Duration::from_millis(100))
-        .with_max_times(5);
-    creator.retry(&timer).await
+    Websocket::new(url).await
 }
 
 async fn wait_for_tourn(stream: &mut SplitStream<Websocket>) -> TournamentManager {

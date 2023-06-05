@@ -29,7 +29,7 @@ use crate::{
     COOKIE_NAME,
 };
 
-use self::state::ServerState;
+use self::{state::ServerState, gathering::init_gathering_hall};
 
 //pub mod accounts;
 //mod cards;
@@ -48,6 +48,7 @@ pub fn create_router<S>() -> SquireRouter<S>
 where
     S: ServerState,
 {
+    init_gathering_hall();
     SquireRouter::new()
         .extend(API_BASE, get_routes::<S>())
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())

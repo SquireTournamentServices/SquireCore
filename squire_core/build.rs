@@ -10,7 +10,6 @@ use std::{env, process::Command};
 fn main() -> Result<(), i32> {
     let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
     let sw_path = format!("{wd}/../squire_web");
-    println!("cargo:rerun-if-changed={sw_path}");
     let mut cmd = Command::new("trunk");
     cmd.args(["build", "-d", "../assets", "--filehash", "false"]);
 
@@ -22,5 +21,7 @@ fn main() -> Result<(), i32> {
     if let Ok(false) | Err(_) = status {
         return Err(1);
     }
+    println!("cargo:rerun-if-changed={sw_path}");
+    println!("cargo:rerun-if-changed=build.rs");
     Ok(())
 }

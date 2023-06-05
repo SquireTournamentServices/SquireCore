@@ -45,5 +45,9 @@ pub async fn join_gathering<S>(
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {
-    ws.on_upgrade(move |ws| handle_new_onlooker(id, user, ws))
+    println!("Got Websocket request...");
+    ws.on_upgrade(move |ws| {
+        println!("Websocket request got upgraded...");
+        handle_new_onlooker(id, user, ws)
+    })
 }
