@@ -52,6 +52,7 @@ pub fn create_router(state: AppState) -> Router {
 
 #[tokio::main]
 async fn main() {
+    /*
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -59,6 +60,7 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+    */
 
     init().await;
 

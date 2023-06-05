@@ -131,6 +131,7 @@ impl Component for TournamentViewer {
             TournViewMessage::TournamentImported(listener) => {
                 console_log("Data ready!!");
                 let id = self.id;
+                console_log(if listener.is_some() { "Connection successful!!" } else { "Connection failed..." });
                 self.listener = listener;
                 ctx.link().send_future(async move {
                     let data = CLIENT

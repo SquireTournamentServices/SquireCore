@@ -6,8 +6,8 @@ license = "AGPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [profile.release]
-lto = true
-opt-level="z"
+#lto = true
+#opt-level="z"
 
 [dependencies]
 # In-House deps
@@ -24,6 +24,6 @@ futures = "0.3.27"
 gloo-net = "0.3.0"
 async-std = "1.12.0"
 chrono = "0.4.24"
-tokio = { version = "1.27.0", no-default-features = true, features = [
+tokio = { version = "1.27.0", default-features = false, features = [
   "sync",
 ] }
