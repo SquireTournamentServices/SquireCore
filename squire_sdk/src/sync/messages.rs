@@ -5,7 +5,7 @@ use ulid::Ulid;
 use super::{OpSync, TournamentManager};
 
 pub type ServerBoundMessage = WebSocketMessage<ServerBound>;
-pub type ClientBoundMessage = WebSocketMessage<ServerBound>;
+pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct WebSocketMessage<B> {

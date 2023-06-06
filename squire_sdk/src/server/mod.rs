@@ -44,11 +44,11 @@ where
     Router::new().route(VERSION_ENDPOINT.as_str(), get(get_version::<S>))
 }
 
-pub fn create_router<S>() -> SquireRouter<S>
+pub fn create_router<S>(state: S) -> SquireRouter<S>
 where
     S: ServerState,
 {
-    init_gathering_hall();
+    init_gathering_hall(state);
     SquireRouter::new()
         .extend(API_BASE, get_routes::<S>())
         .extend(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())

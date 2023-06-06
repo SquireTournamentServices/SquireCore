@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     hash::Hash,
     time::Duration,
 };
@@ -8,20 +8,22 @@ use async_session::Session;
 use axum::extract::ws::{Message, WebSocket};
 use futures::{
     stream::{SelectAll, SplitSink, SplitStream},
-    StreamExt,
+    StreamExt, SinkExt,
 };
 use squire_lib::tournament::TournamentId;
 use tokio::{
     sync::{
         mpsc::{channel, Receiver, Sender},
+        oneshot::{channel as oneshot_channel, Sender as OneshotSender},
         OnceCell,
     },
     time::Instant,
 };
+use ulid::Ulid;
 
-use crate::{sync::OpSync, tournaments::TournamentManager};
+use crate::{sync::{OpSync, ServerBoundMessage, ClientBoundMessage, ClientBound, ServerBound}, tournaments::TournamentManager};
 
-use super::User;
+use super::{state::ServerState, User};
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
 
@@ -29,9 +31,9 @@ pub static GATHERING_HALL_MESSAGER: OnceCell<Sender<GatheringHallMessage>> = Onc
 
 /// This function spawns a tokio task to manage a gathering hall. It also sets up the necessary
 /// channels for communicating with that task
-pub fn init_gathering_hall() {
+pub fn init_gathering_hall<S: ServerState>(state: S) {
     let (send, recv) = channel(GATHERING_HALL_CHANNEL_SIZE);
-    let hall = GatheringHall::new(recv);
+    let hall = GatheringHall::new(state, recv);
     GATHERING_HALL_MESSAGER.set(send).unwrap();
     tokio::spawn(hall.run());
 }
@@ -42,7 +44,7 @@ pub async fn handle_new_onlooker(id: TournamentId, user: User, ws: WebSocket) {
     GATHERING_HALL_MESSAGER
         .get()
         .unwrap()
-        .send(GatheringHallMessage::NewOnlooker(id, NewOnlookerMessage(user, ws)))
+        .send(GatheringHallMessage::NewOnlooker(id, user, ws))
         .await
         .unwrap()
 }
@@ -75,12 +77,15 @@ pub enum GatheringHallMessage {
     /// Create a new gathering
     NewGathering(TournamentId),
     /// Adds an onlooker to a gathering
-    NewOnlooker(TournamentId, NewOnlookerMessage),
+    NewOnlooker(TournamentId, User, WebSocket),
 }
 
 /// A message sent to a `Gathering` that subscribes a new `Onlooker`.
 #[derive(Debug)]
-pub struct NewOnlookerMessage(pub User, pub WebSocket);
+pub enum GatheringMessage {
+    GetTournament(OneshotSender<TournamentManager>),
+    NewOnlooker(User, WebSocket),
+}
 
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
 /// How this data is backed up depends on the server implementation.
@@ -90,8 +95,9 @@ struct PersistMessage(TournamentId);
 /// This structure manages all of the `Gathering`s around tournaments. This includes adding new
 /// users to different gatherings and persisting data to the database. All of this is handled
 /// through message passing and tokio tasks.
-pub struct GatheringHall {
-    gatherings: HashMap<TournamentId, Sender<NewOnlookerMessage>>,
+pub struct GatheringHall<S> {
+    state: S,
+    gatherings: HashMap<TournamentId, Sender<GatheringMessage>>,
     inbound: Receiver<GatheringHallMessage>,
     persists: Receiver<PersistMessage>,
     persist_sender: Sender<PersistMessage>,
@@ -109,8 +115,8 @@ pub struct GatheringHall {
 /// whenever there is a change and other locations upon request.
 pub struct Gathering {
     tourn: TournamentManager,
-    new_onlookers: Receiver<NewOnlookerMessage>,
-    incoming: SelectAll<SplitStream<WebSocket>>,
+    messages: Receiver<GatheringMessage>,
+    ws_streams: SelectAll<SplitStream<WebSocket>>,
     onlookers: HashMap<User, Onlooker>,
     persist: Sender<PersistMessage>,
 }
@@ -120,16 +126,17 @@ pub struct Gathering {
 /// of information: a user (including session) and the websocket that they are listening on.
 pub struct Onlooker(pub SplitSink<WebSocket, Message>);
 
-impl GatheringHall {
+impl<S: ServerState> GatheringHall<S> {
     /// Creates a new `GatheringHall` from receiver halves of channels that communicate new
     /// gatherings and subscriptions
-    pub fn new(inbound: Receiver<GatheringHallMessage>) -> Self {
+    pub fn new(state: S, inbound: Receiver<GatheringHallMessage>) -> Self {
         let (persist_sender, persists) = channel(1000);
         Self {
             gatherings: HashMap::new(),
             persists,
             persist_sender,
             inbound,
+            state,
         }
     }
 
@@ -150,91 +157,149 @@ impl GatheringHall {
                 }
                 msg = self.inbound.recv() => match msg.unwrap() {
                     GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
-                    GatheringHallMessage::NewOnlooker(id, msg) => self.process_new_onlooker(id, msg).await,
+                    GatheringHallMessage::NewOnlooker(id, user, ws) => self.process_new_onlooker(id, user, ws).await,
                 }
             }
         }
     }
 
-    async fn process_new_gathering(&mut self, id: TournamentId) {
-        // TODO: We need a way to communicate that a tournament can not be found
-        let Some(tourn) = self.get_tourn(&id).await else { return };
+    async fn spawn_gathering(&self, id: TournamentId) -> Option<Sender<GatheringMessage>> {
+        let tourn = self.get_tourn(&id).await?;
         let (send, recv) = channel(100);
         let gathering = Gathering::new(tourn, recv, self.persist_sender.clone());
         tokio::spawn(gathering.run());
+        Some(send)
+    }
+
+    async fn process_new_gathering(&mut self, id: TournamentId) {
+        // TODO: We need a way to communicate that a tournament can not be found
+        let Some(send) = self.spawn_gathering(id).await else { return };
         self.gatherings.insert(id, send);
     }
 
-    async fn process_new_onlooker(&mut self, id: TournamentId, msg: NewOnlookerMessage) {
-        match self.gatherings.get(&id) {
-            // TODO: Remove unwrap. Gathering might have imploded if the tournament has ended.
-            Some(sender) => sender.send(msg).await.unwrap(),
-            None => self.process_new_gathering(id).await,
+    async fn process_new_onlooker(&mut self, id: TournamentId, user: User, ws: WebSocket) {
+        let msg = GatheringMessage::NewOnlooker(user, ws);
+        let send = self.get_or_init_gathering(id).await;
+        send.send(msg).await.unwrap()
+    }
+
+    async fn get_or_init_gathering(&mut self, id: TournamentId) -> Sender<GatheringMessage> {
+        if let Some(send) = self.gatherings.get(&id).cloned() {
+            return send
         }
+        // FIXME: This can fail. We need a way to signal this possibility.
+        let send = self.spawn_gathering(id).await.unwrap();
+        self.gatherings.insert(id, send.clone());
+        send
     }
 
     async fn get_tourn(&self, id: &TournamentId) -> Option<TournamentManager> {
-        todo!()
+        match self.gatherings.get(&id) {
+            Some(handle) => {
+                //  Ask the gathering for a copy of the tournament
+                let (send, recv) = oneshot_channel();
+                let _ = handle.send(GatheringMessage::GetTournament(send)).await;
+                recv.await.ok()
+            }
+            None => self.state.get_tourn(*id).await,
+        }
     }
 }
 
 impl Gathering {
     fn new(
         tourn: TournamentManager,
-        new_onlookers: Receiver<NewOnlookerMessage>,
+        new_onlookers: Receiver<GatheringMessage>,
         persist: Sender<PersistMessage>,
     ) -> Self {
         let count = tourn.tourn().get_player_count();
         Self {
             tourn,
-            new_onlookers,
-            incoming: SelectAll::new(),
+            messages: new_onlookers,
+            ws_streams: SelectAll::new(),
             onlookers: HashMap::with_capacity(count),
             persist,
         }
     }
 
     async fn run(mut self) -> ! {
+        println!("Running gathering for tournament: {}", self.tourn.id);
         loop {
-            if self.incoming.is_empty() {
-                let msg = self.new_onlookers.recv().await;
-                self.process_new_onlooker(msg.unwrap())
-            } else {
-                tokio::select! {
-                    msg = self.new_onlookers.recv() => {
-                        self.process_new_onlooker(msg.unwrap())
-                    }
-                    msg = self.incoming.next() => {
-                        let res = match msg.unwrap() {
-                            Ok(msg) => self.process_incoming_message(msg),
-                            Err(_) => continue, // One of the streams closed... I think, move on
-                        };
-                        self.sync_request_response(res).await;
-                    }
+            tokio::select! {
+                msg = self.messages.recv() => {
+                    println!("Internal message received.");
+                    self.process_channel_message(msg.unwrap())
+                }
+                msg = self.ws_streams.next(), if !self.ws_streams.is_empty() => {
+                    println!("Websocket message retreived.");
+                    match msg.unwrap() {
+                        Ok(msg) => {
+                            self.process_incoming_message(msg).await;
+                        },
+                        Err(err) => {
+                            println!("Message was an error... {err:?}");
+                        }
+                    };
+                    println!("Websocket message processed!!");
+                    //self.sync_request_response(res).await;
                 }
             }
+            println!("Processed message. Looping again...");
         }
     }
 
-    fn process_new_onlooker(&mut self, msg: NewOnlookerMessage) {
-        let NewOnlookerMessage(user, ws) = msg;
-        let (sink, stream) = ws.split();
-        let onlooker = Onlooker(sink);
-        self.incoming.push(stream);
-        match self.onlookers.get_mut(&user) {
-            Some(ol) => *ol = onlooker,
-            None => {
-                self.onlookers.insert(user, onlooker);
+    fn process_channel_message(&mut self, msg: GatheringMessage) {
+        println!("Processing internal message...");
+        match msg {
+            GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
+            GatheringMessage::NewOnlooker(user, ws) => {
+                println!("Processing new onlooker...");
+                let (sink, stream) = ws.split();
+                let onlooker = Onlooker(sink);
+                self.ws_streams.push(stream);
+                match self.onlookers.get_mut(&user) {
+                    Some(ol) => *ol = onlooker,
+                    None => {
+                        self.onlookers.insert(user, onlooker);
+                    }
+                }
+                let resp = ServerBoundMessage {
+                    id: Ulid::default(),
+                    body: ServerBound::Fetch(self.tourn.id)
+                };
+                let resp_bytes = postcard::to_allocvec(&resp).unwrap();
+                println!("New onlooker processed!! Send the following to see the tournament data:\n{resp_bytes:02X?}");
             }
         }
     }
 
     // TODO: Return a "real" value
-    fn process_incoming_message(&mut self, msg: Message) -> Result<(), ()> {
+    async fn process_incoming_message(&mut self, msg: Message) -> Result<(), ()> {
+        println!("Processing incoming WS message...");
         let Message::Binary(data) = msg else { return Err(()) }; // We only process binary data
-        let sync = postcard::from_bytes(&data).map_err(|_| ())?;
+        let msg: ServerBoundMessage = postcard::from_bytes(&data).map_err(|_| ())?;
+        println!("Deserialized message...");
+        match msg.body {
+            ServerBound::Fetch(id) => {
+                println!("Fetch request found...");
+                let resp = ClientBoundMessage {
+                    id: msg.id,
+                    body: ClientBound::FetchResp(self.tourn.clone())
+                };
+                let resp_bytes = postcard::to_allocvec(&resp).unwrap();
+                println!("Sending tournament to everyone!!");
+                for ol in self.onlookers.values_mut() {
+                    ol.0.send(Message::Binary(resp_bytes.clone())).await.unwrap();
+                }
+            }
+            ServerBound::SyncReq(_) => todo!(),
+            ServerBound::SyncSeen => todo!(),
+        }
+        Ok(())
+        /*
         self.validate_sync_request(&sync)?;
         self.process_sync_request(sync)
+        */
     }
 
     // TODO: Return an actual error

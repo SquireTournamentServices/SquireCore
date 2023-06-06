@@ -18,8 +18,8 @@ use crate::{
 
 use super::gathering::{self, handle_new_onlooker};
 
-pub fn get_routes_and_init<S: ServerState>() -> Router<S> {
-    gathering::init_gathering_hall();
+pub fn get_routes_and_init<S: ServerState>(state: S) -> Router<S> {
+    gathering::init_gathering_hall(state);
     get_routes()
 }
 
@@ -31,12 +31,12 @@ pub fn get_routes<S: ServerState>() -> Router<S> {
 
 pub async fn get_tournament<S>(
     State(state): State<S>,
-    id: Path<TournamentId>,
+    Path(id): Path<TournamentId>,
 ) -> GetTournamentResponse
 where
     S: ServerState,
 {
-    GetTournamentResponse::new(state.query_tournament(&id, Clone::clone).await)
+    GetTournamentResponse::new(state.get_tourn(id).await)
 }
 
 /// Adds a user to the gathering via a websocket
