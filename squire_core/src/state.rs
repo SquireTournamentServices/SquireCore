@@ -4,7 +4,7 @@ use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
 use mongodb::{options::ClientOptions, Client as DbClient, Collection, Database};
 use squire_sdk::{
-    model::accounts::SquireAccount,
+    model::{accounts::SquireAccount, tournament::TournamentSeed},
     server::{state::ServerState, User},
     tournaments::{
         OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
@@ -69,41 +69,26 @@ impl ServerState for AppState {
         }
     }
 
-    async fn create_tournament(
+    async fn create_tourn(
         &self,
         user: User,
-        name: String,
-        preset: TournamentPreset,
-        format: String,
+        seed: TournamentSeed,
     ) -> TournamentManager {
         todo!()
     }
 
-    async fn query_tournament<F, O>(&self, id: &TournamentId, f: F) -> Option<O>
-    where
-        F: Send + FnOnce(&TournamentManager) -> O,
-    {
+    async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager> {
         let mut cursor = self.get_tourns().find(None, None).await.unwrap();
         while let Some(tourn) = cursor.try_next().await.unwrap() {
-            if tourn.id == *id {
-                return Some(f(&tourn));
+            if tourn.id == id {
+                return Some(tourn);
             }
         }
         None
     }
 
-    async fn query_all_tournaments<F, O, Out>(&self, mut f: F) -> Out
-    where
-        Out: FromIterator<O>,
-        O: Send,
-        F: Send + FnMut(&TournamentManager) -> O,
-    {
-        let mut digest = Vec::new();
-        let mut cursor = self.get_tourns().find(None, None).await.unwrap();
-        while let Some(tourn) = cursor.try_next().await.unwrap() {
-            digest.push(f(&tourn));
-        }
-        digest.into_iter().collect()
+    async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
+        todo!()
     }
 }
 

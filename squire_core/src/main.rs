@@ -40,7 +40,7 @@ pub async fn init() {}
 
 //#[axum::debug_handler]
 pub fn create_router(state: AppState) -> Router {
-    server::create_router::<AppState>()
+    server::create_router::<AppState>(state.clone())
         //.extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
         .into()
         .route("/", get(assets::landing))
