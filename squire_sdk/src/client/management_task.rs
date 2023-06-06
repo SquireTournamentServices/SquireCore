@@ -25,7 +25,7 @@ use squire_lib::{
 
 use crate::{
     api::SUBSCRIBE_ENDPOINT,
-    sync::{ClientBoundMessage, ServerBound, ServerBoundMessage, WebSocketMessage},
+    sync::{ClientBoundMessage, ServerBound, ServerBoundMessage, WebSocketMessage, ClientBound},
     tournaments::TournamentManager,
 };
 
@@ -280,10 +280,10 @@ fn handle_ws_msg(state: &mut ManagerState, msg: WebsocketMessage) {
     let WebsocketMessage::Bytes(data) = msg else { panic!("Server did not send bytes of Websocket") };
     let WebSocketMessage { body, .. } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();
     match body {
+        ClientBound::FetchResp(_) => todo!(),
+        ClientBound::SyncResp(_) => todo!(),
+        ClientBound::SyncForward(_) => todo!(),
         // Do nothing. This is handled elsewhere
-        ServerBound::Fetch(_) => {}
-        ServerBound::SyncReq(_) => todo!(),
-        ServerBound::SyncSeen => todo!(),
     }
 }
 
