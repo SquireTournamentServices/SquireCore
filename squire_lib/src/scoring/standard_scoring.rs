@@ -244,7 +244,7 @@ impl StandardScoring {
         }
         let mut results: Vec<(PlayerId, StandardScore)> = digest
             .drain()
-            .filter(|(p, _)| player_reg.get_player(p).unwrap().can_play())
+            .filter(|(p, _)| player_reg.get_player(p).is_ok_and(|p| p.can_play()))
             .collect();
         results.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
         Standings::new(results)
