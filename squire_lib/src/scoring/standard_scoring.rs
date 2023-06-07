@@ -213,9 +213,11 @@ impl StandardScoring {
                 score.mwp = score.match_points / (self.match_win_points * counter.rounds);
                 score.gwp = score.game_points / (self.game_win_points * counter.games);
             }
-            digest.insert(*id, score);
-        }
-        for (id, counter) in &counters {
+
+            // technically this might be wrong because or_insert doesn't overwrite entries,
+            // but this will never happen in practice if all id in counters are unique
+            let score = digest.entry(*id).or_insert(score); 
+
             // If your only round was a bye, your percentages stay at 0
             // This also filters out folks that haven't played a match yet
             if counter.rounds == counter.byes {
@@ -231,12 +233,13 @@ impl StandardScoring {
                 opp_gp += self.calculate_game_points(&counters[plyr]);
                 opp_games += counters[plyr].games;
             }
-            digest.get_mut(id).unwrap().opp_mwp = if opp_matches == 0 {
+
+            score.opp_mwp = if opp_matches == 0 {
                 Default::default()
             } else {
                 opp_mp / (self.match_win_points * opp_matches)
             };
-            digest.get_mut(id).unwrap().opp_gwp = if opp_games == 0 {
+            score.opp_gwp = if opp_games == 0 {
                 Default::default()
             } else {
                 opp_gp / (self.game_win_points * opp_games)
