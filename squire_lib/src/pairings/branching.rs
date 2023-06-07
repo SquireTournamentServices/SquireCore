@@ -21,11 +21,11 @@ pub fn branching_pairings(
     };
     let mut is_paired: HashSet<PlayerId> = HashSet::with_capacity(plyrs.len());
     let empty = HashSet::new();
-    while is_paired.len() != plyrs.len() {
+
+    loop {
         let mut iter = plyrs.iter().filter(|p| !is_paired.contains(p)).cloned();
-        // This unwrap is safe as iter will always have its first item since is_paired is shorter
-        // than plyrs
-        let mut tree = PairingTree::new(iter.next().unwrap());
+        let Some(root) = iter.next() else { break; };
+        let mut tree = PairingTree::new(root);
         let mut pairing = None;
         for plyr in iter {
             let opp = opps.get(&plyr).unwrap_or(&empty);
