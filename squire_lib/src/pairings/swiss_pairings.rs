@@ -117,8 +117,6 @@ impl SwissPairings {
         if !self.ready_to_pair(match_size, players, matches) {
             return None;
         }
-        let max_count = 100;
-        let mut count = 0;
         let plyrs_and_scores: Vec<(PlayerId, r64)> = standings
             .scores
             .drain(0..)
@@ -138,8 +136,11 @@ impl SwissPairings {
             match_size,
             repair_tol,
         );
-        while count < max_count && !pairings.rejected.is_empty() {
-            count += 1;
+
+        for _ in 0..100 {
+            if pairings.rejected.is_empty() {
+                break;
+            }
             let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
             plyrs.extend(
                 grouped_plyrs
