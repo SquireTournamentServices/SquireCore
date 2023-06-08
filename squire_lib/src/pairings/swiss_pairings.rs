@@ -142,7 +142,7 @@ impl SwissPairings {
                 break;
             }
             let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
-            plyrs.extend(grouped_plyers.iter().filter_map(|(plyr, _)| plyr).cloned())
+            plyrs.extend(grouped_plyrs.iter().filter_map(|(plyr, _)| plyr).cloned());
             let buffer = (alg.as_alg())(
                 plyrs.drain(0..).collect(),
                 &matches.opponents,
