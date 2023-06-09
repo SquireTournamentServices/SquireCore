@@ -2,20 +2,20 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::Debug,
     future::Future,
-    time::Duration, pin::Pin, task::{Context, Poll},
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
 };
 
 use futures::{
+    future::FusedFuture,
     stream::{select_all, SelectAll, SplitSink, SplitStream},
-    SinkExt, StreamExt, future::FusedFuture,
+    SinkExt, StreamExt,
 };
 use tokio::sync::{
     broadcast::{channel as broadcast_channel, Receiver as Subscriber, Sender as Broadcaster},
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender, error::TryRecvError},
-    oneshot::{
-        channel as oneshot, Receiver as OneshotReceiver,
-        Sender as OneshotSender,
-    },
+    mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot::{channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender},
 };
 
 use squire_lib::{
@@ -25,7 +25,7 @@ use squire_lib::{
 
 use crate::{
     api::SUBSCRIBE_ENDPOINT,
-    sync::{ClientBoundMessage, ServerBound, ServerBoundMessage, WebSocketMessage, ClientBound},
+    sync::{ClientBound, ClientBoundMessage, ServerBound, ServerBoundMessage, WebSocketMessage},
     tournaments::TournamentManager,
 };
 
@@ -34,7 +34,7 @@ use super::{
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
-    subscription::{TournamentSub, SubTracker, sub_channel},
+    subscription::{sub_channel, SubTracker, TournamentSub},
     update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
 };
 
