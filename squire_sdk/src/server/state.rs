@@ -22,4 +22,19 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager>;
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool;
+
+    async fn bulk_persist<I, R>(&self, iter: I) -> bool
+    where
+        I: Send + Iterator<Item = R>,
+        R: Send + Sync + AsRef<TournamentManager>,
+    {
+        let mut digest = true;
+        for tourn in iter {
+            digest &= self.persist_tourn(tourn.as_ref()).await;
+            if !digest {
+                break;
+            }
+        }
+        digest
+    }
 }
