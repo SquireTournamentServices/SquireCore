@@ -13,14 +13,14 @@ use axum::{
     routing::get,
     RequestPartsExt, Router, TypedHeader,
 };
+use http::{header, request::Parts};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
 use squire_lib::{
     accounts::{SharingPermissions, SquireAccount},
     identifiers::SquireAccountId,
 };
-
-use http::{header, request::Parts};
-use uuid::Uuid;
 
 use crate::{
     api::{ACCOUNTS_ROUTE, API_BASE, TOURNAMENTS_ROUTE, VERSION_ENDPOINT, VERSION_ROUTE},
@@ -29,7 +29,7 @@ use crate::{
     COOKIE_NAME,
 };
 
-use self::{state::ServerState, gathering::init_gathering_hall};
+use self::{gathering::init_gathering_hall, state::ServerState};
 
 //pub mod accounts;
 //mod cards;
