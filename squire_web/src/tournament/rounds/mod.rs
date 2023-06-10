@@ -101,11 +101,6 @@ impl Component for RoundsView {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        /*
-        let confirmallrounds = |me: MouseEvent| {
-            
-        };
-        */
         let cb = ctx.link().callback(|_| RoundsViewMessage::BulkConfirmation);
         html! {
             <div>

@@ -78,7 +78,7 @@ impl SelectedRound {
                     send_ticker_future(Default::default(), ctx);
                     false
                 }
-            },
+            }
             SelectedRoundMessage::RoundQueryReady(rnd) => {
                 let data = rnd.map(|rnd| {
                     send_ticker_future(rnd.id, ctx);
@@ -207,7 +207,7 @@ impl SelectedRound {
         html! {
             <div class="m-2">
             <>
-            <> { rnd.view() } </> // The "data" half of the round's view
+            <> { rnd.view() } </>
             <hr />
             <p>
             {

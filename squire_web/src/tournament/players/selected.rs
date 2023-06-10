@@ -344,9 +344,9 @@ fn pretty_print_duration(dur: Duration) -> String {
     let hours = dur.num_hours();
     let mins = dur.num_minutes().abs();
     let secs = dur.num_seconds().abs();
-    if hours < 0 {
-        format!("Time left: {hours}:{}:{}", mins % 60, secs % 60)
+    if hours >= 0 {
+        format!("Time left: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
     } else {
-        format!("Over time: {}:{}:{}", hours, mins % 60, secs % 60)
+        format!("Over time: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
     }
 }
