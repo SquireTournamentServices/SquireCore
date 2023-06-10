@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use super::{OpSync, TournamentManager};
+use super::{OpSync, TournamentManager, SyncError};
 
 pub type ServerBoundMessage = WebSocketMessage<ServerBound>;
 pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
@@ -59,10 +59,20 @@ pub enum ServerBound {
     /// Asks the server to send back a copy of the tournament manager for the tournament
     Fetch,
     /// New operations have been sent from a client and need to be merged
-    SyncReq(OpSync),
-    /// A sync request was forwarded to clients. This communicates that the client received and
-    /// processed the request
-    SyncSeen,
+    SyncChain(ClientOpLink),
+    SyncResp(SyncForwardResp),
+}
+
+pub enum ClientOpLink {
+    Init(OpSync),
+    Decision(OpDecision),
+    Error(SyncError),
+}
+
+pub enum ServerOpLink {
+    Conflict(OpProcessor),
+    Completed(OpCompletion),
+    Error(SyncError),
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -70,8 +80,17 @@ pub enum ServerBound {
 pub enum ClientBound {
     /// Contains a copy of the tournament manager (sent in response to `ServerBound::Fetch`)
     FetchResp(TournamentManager),
-    /// The result of trying to process the sync request
-    SyncResp(()),
-    /// The server has successfully synced with a client. This forwards those changes
-    SyncForward(()),
+    SyncChain(ServerOpLink),
+    SyncForward(SyncForward),
+}
+
+pub struct SyncForward();
+
+pub enum SyncForwardResp {
+    Success,
+    Aborted,
+    Error(ForwardError),
+}
+
+pub enum ForwardError {
 }

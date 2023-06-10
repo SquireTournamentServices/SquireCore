@@ -84,21 +84,23 @@ impl Gathering {
         println!("Running gathering for tournament: {}", self.tourn.id);
         loop {
             tokio::select! {
-                msg = self.messages.recv() => {
-                    self.process_channel_message(msg.unwrap())
-                }
-                msg = self.ws_streams.next(), if !self.ws_streams.is_empty() => {
-                    match msg {
-                        Some((user, Some(bytes))) => {
-                            self.process_incoming_message(user, bytes).await;
-                        },
-                        Some((user, None)) => {
-                            self.onlookers.remove(&user);
-                        },
-                        None => {}
-                    };
-                }
+                msg = self.messages.recv() =>
+                    self.process_channel_message(msg.unwrap()),
+                msg = self.ws_streams.next(), if !self.ws_streams.is_empty() =>
+                    self.process_websocket_message(msg).await,
             }
+        }
+    }
+
+    async fn process_websocket_message(&mut self, msg: Option<(SquireAccountId, Option<Vec<u8>>)>) {
+        match msg {
+            Some((user, Some(bytes))) => {
+                self.process_incoming_message(user, bytes).await;
+            }
+            Some((user, None)) => {
+                self.onlookers.remove(&user);
+            }
+            None => {}
         }
     }
 
