@@ -1,23 +1,6 @@
-use std::{collections::VecDeque, ops::Deref};
+use std::collections::VecDeque;
 
-use squire_lib::error::TournamentError;
-
-use crate::{
-    model::tournament::Tournament,
-    sync::{
-        full_op::FullOp, op_log::OpSlice, op_sync::OpSync, rollback::Rollback, TournamentManager,
-    },
-};
-
-use super::SyncError;
-
-impl Deref for TournamentManager {
-    type Target = Tournament;
-
-    fn deref(&self) -> &Self::Target {
-        &self.tourn
-    }
-}
+use crate::sync::{FullOp, OpSlice, OpSync};
 
 impl Default for OpSlice {
     fn default() -> Self {
@@ -31,12 +14,6 @@ impl From<VecDeque<FullOp>> for OpSlice {
     }
 }
 
-impl From<Rollback> for OpSlice {
-    fn from(r: Rollback) -> OpSlice {
-        r.ops
-    }
-}
-
 impl From<OpSync> for OpSlice {
     fn from(s: OpSync) -> OpSlice {
         s.ops
@@ -44,8 +21,3 @@ impl From<OpSync> for OpSlice {
 }
 
 /* ---- SyncError Helper Traits ---- */
-impl From<TournamentError> for SyncError {
-    fn from(value: TournamentError) -> Self {
-        SyncError::TournamentError(value)
-    }
-}
