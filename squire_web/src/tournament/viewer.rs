@@ -85,7 +85,8 @@ impl TournamentViewer {
                 html! { <RoundsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
             TournViewMode::Pairings => {
-                html!( <PairingsView id = {self.id } /> )
+                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
+                html!( <PairingsView id = {self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> )
             }
             TournViewMode::Standings => {
                 html! { <StandingsView id = { self.id }/> }
