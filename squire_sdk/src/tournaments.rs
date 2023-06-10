@@ -8,7 +8,7 @@ pub use crate::{
         scoring::{StandardScore, Standings},
         tournament::{Tournament, TournamentPreset},
     },
-    sync::{OpId, OpSlice, OpSync, Rollback, RollbackError, SyncStatus, TournamentManager},
+    sync::{OpId, OpSlice, OpSync, TournamentManager},
 };
 
 use crate::response::SquireResponse;

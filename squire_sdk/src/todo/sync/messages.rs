@@ -2,10 +2,7 @@ use serde::{Deserialize, Serialize};
 use squire_lib::error::TournamentError;
 use ulid::Ulid;
 
-use super::{
-    processor::{SyncDecision, SyncProcessor, SyncCompletion},
-    OpId, OpSync, SyncError, TournamentManager,
-};
+use super::{OpSync, TournamentManager, SyncError, OpId};
 
 pub type ServerBoundMessage = WebSocketMessage<ServerBound>;
 pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
@@ -80,7 +77,7 @@ pub enum ClientOpLink {
     Init(OpSync),
     /// The sync ran into a problem, and the client has decided which operation(s) shall be removed
     /// from its log. The client wishes to try and finalize the sync.
-    Decision(SyncDecision),
+    Decision(OpDecision),
     /// The client wishes to terminate the sync attempt. Often, this occurs because it has received
     /// new operations that will be lumped into a new sync request.
     Terminated,
@@ -133,14 +130,14 @@ pub enum ClientBound {
 pub enum ServerOpLink {
     /// The server is process the sync request from the client, but a tournament error has occured,
     /// blocking the sync. The client must rectify this problem.
-    Conflict(SyncProcessor),
+    Conflict(OpProcessor),
     /// The server was able to complete the sync request. The server must communicate the final log
     /// (i.e. if there are new operations for the client).
-    Completed(SyncCompletion),
+    Completed(OpCompletion),
     /// The client has requested that the sync it initialized be terminated. The backend will
     /// terminate the request, but it must communicate if the request finished before this message
     /// arrived.
-    TerminatedSeen { already_done: bool },
+    TerminatedSeen{ already_done: bool },
     /// During the sync process, some kind of error occured between deserializing the message and
     /// processing the first operations (generally, this is an error with the `OpSync`). This needs
     /// to be communicated with the client. This implicitly closes the request.
