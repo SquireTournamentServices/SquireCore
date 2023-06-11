@@ -1,23 +1,20 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::{
-    accounts::SquireAccount,
-    tournament::{TournamentId, TournamentSeed},
-};
+use squire_lib::{accounts::SquireAccount, tournament::TournamentSeed};
 
 use super::OpId;
 
 /// An enum that captures errors with the validity of sync requests.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum SyncError {
-    /// At least one of the logs was empty
-    EmptySync,
-    /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
-    InvalidRequest(RequestError),
-    /// The starting operation of the slice in unknown to the other log
-    UnknownOperation(OpId),
     /// During the syncing process, the tournament is not locked and can receive updates. If an
     /// update occurs, the client must re-initialize the sync process.
     TournUpdated,
+    /// At least one of the logs was empty
+    EmptySync,
+    /// The starting operation of the slice in unknown to the other log
+    UnknownOperation(OpId),
+    /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
+    InvalidRequest(RequestError),
 }
 
 /// This struct encodes a pair of objects that ought to match but don't.
@@ -31,9 +28,6 @@ pub struct Disagreement<T> {
 /// received by the tournament.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum RequestError {
-    /// The sync message was meant for a different tournament than the one specified in the sync
-    /// message.
-    WrongTourn(Disagreement<TournamentId>),
     /// The sync message was meant for a tournament with a different seed than the one specified in
     /// the sync message.
     WrongSeed(Disagreement<TournamentSeed>),
@@ -48,4 +42,10 @@ pub enum RequestError {
     /// NOTE: This is either a bug in the client or server implementation or a malcisious/malformed
     /// client. In either case, the backend needs to log such problems.
     OpCountIncreased(OpId),
+}
+
+impl<T> Disagreement<T> {
+    pub fn new(known: T, given: T) -> Self {
+        Self { known, given }
+    }
 }
