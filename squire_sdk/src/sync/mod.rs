@@ -41,13 +41,13 @@ impl OpSync {
     /// Returns the first operation, if it exists. Otherwise, a `SyncError::EmptySync` is
     /// returned.
     pub fn first_op(&self) -> Result<FullOp, SyncError> {
-        self.ops.start_op().ok_or(SyncError::EmptySync)
+        self.ops.first_op().ok_or(SyncError::EmptySync)
     }
 
     /// Returns the first operation's id, if it exists. Otherwise, a `SyncError::EmptySync` is
     /// returned.
     pub fn first_id(&self) -> Result<OpId, SyncError> {
-        self.ops.start_id().ok_or(SyncError::EmptySync)
+        self.ops.first_id().ok_or(SyncError::EmptySync)
     }
 
     /// Validates the sync against a log. Check id, seed, creator, and len.
@@ -65,6 +65,6 @@ impl OpSync {
         if self.seed != *seed {
             return Err(Disagreement::new(seed.clone(), self.seed.clone()).into());
         }
-        todo!()
+        Ok(())
     }
 }

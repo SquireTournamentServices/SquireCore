@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use squire_lib::{error::TournamentError, tournament::Tournament};
 
-use super::{FullOp, OpLog, OpSlice, OpSync, ServerOpLink, SyncError};
+use super::{FullOp, OpLog, OpSlice, OpSync, SyncError, OpId};
 
 /// This type results from a client making a decision about what operations need to stay and what
 /// operations need to be removed from its log during the sync process.
@@ -31,7 +31,8 @@ pub enum SyncCompletion {
 pub struct SyncProcessor {
     /// Whether or not sync contains only foreign operations
     foreign_only: bool,
-    known: OpSlice,
+    last_known_op: Option<OpId>,
+    agreed: OpSlice,
     to_process: OpSlice,
 }
 
@@ -47,12 +48,7 @@ impl SyncProcessor {
     /// This method is called by the client to decided how to process errors in the sync process.
     /// This method removes all of the remaining operations that it is trying to sync.
     pub fn purge(self) -> SyncDecision {
-        let comp = if self.is_foreign_only() {
-            SyncCompletion::ForeignOnly(self.known)
-        } else {
-            SyncCompletion::Mixed(self.known)
-        };
-        SyncDecision::Purged(comp)
+        SyncDecision::Purged(self.finalize())
     }
 
     /// Returns whether or not the process will merge two logs or one
@@ -66,70 +62,44 @@ impl SyncProcessor {
     pub(crate) fn new(sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
         sync.validate(log)?;
         let id = sync.first_id()?;
-        let Some(known) = log.get_slice(id) else { return Err(SyncError::UnknownOperation(id)) };
-        let foreign_only = known.len() == 1;
+        let known = match log.get_slice(id) {
+            Some(slice) => slice,
+            None if log.is_empty() => OpSlice::new(),
+            _ => return Err(SyncError::UnknownOperation(id)),
+        };
+        let foreign_only = known.len() >= 1;
         Ok(Self {
             foreign_only,
-            known,
+            last_known_op: known.last_id(),
+            agreed: known,
             to_process: sync.ops,
         })
     }
 
-    /// Processes the sync request by simulating different possible tournament histories. The log
-    /// is used to recreate the initial tournament history.
-    pub(crate) fn process(self, log: &OpLog) -> ServerOpLink {
-        /*
-        let mut tourn = log.split_at_tourn(self.start_at)?;
-
-        // This shouldn't error. If it does, it is likely that the wrong log was passed in
-        apply_ops(&mut tourn, self.agreed.iter().cloned())?;
-
-        while let Some(alignment) = self.align.next() {
-            match alignment {
-                OpAlignment::Agreed(op) => {
-                    tourn.apply_op(op.salt, op.op.clone())?;
-                    self.agreed.add_op(*op);
-                }
-                OpAlignment::ToMerge((known, foriegn)) => {
-                    self.process_slices(&mut tourn, known, foriegn)?;
-                    // process_slices adds the slices to self.agreed
-                }
-            }
-        }
-        Ok(())
-        */
-        todo!()
+    pub(crate) fn last_known(&self) -> Option<OpId> {
+        self.last_known_op
     }
 
-    /*
-    fn process_slices(
-        &mut self,
-        tourn: &mut Tournament,
-        known: OpSlice,
-        foreign: OpSlice,
-    ) -> Result<(), MergeError> {
-        // FIXME: We need for then just tournament errors. The errors here need to include the
-        // slices so that the context can be completely re-constructed
+    pub(crate) fn next_op(&self) -> Option<FullOp> {
+        self.to_process.first_op()
+    }
 
-        // Apply foriegn then known
-        let mut f_then_k = tourn.clone();
-        apply_ops(&mut f_then_k, foreign.iter().cloned())?;
-        apply_ops(&mut f_then_k, known.iter().cloned())?;
+    pub(crate) fn move_op(&mut self) {
+        let Some(op) = self.to_process.pop_front() else { return };
+        self.agreed.add_op(op);
+    }
 
-        // Apply known then foriegn
-        apply_ops(tourn, known.iter().cloned())?; // This shouldn't error
-        let mut k_then_f = tourn.clone();
-        apply_ops(&mut k_then_f, foreign.iter().cloned())?;
-        if f_then_k == k_then_f {
-            Ok(())
+    pub(crate) fn move_all(&mut self) {
+        self.agreed.extend(self.to_process.drain())
+    }
+
+    pub(crate) fn finalize(self) -> SyncCompletion {
+        if self.is_foreign_only() {
+            SyncCompletion::ForeignOnly(self.agreed)
         } else {
-            Err(MergeError::Incompatable(Box::new(SyncProblem {
-                known,
-                foreign,
-            })))
+            SyncCompletion::Mixed(self.agreed)
         }
     }
-    */
 }
 
 fn apply_ops<I: Iterator<Item = FullOp>>(
