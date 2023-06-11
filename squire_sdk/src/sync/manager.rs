@@ -1,10 +1,13 @@
-use std::{slice::Iter, ops::Deref};
+use std::{ops::Deref, slice::Iter};
 
-use serde::{Serialize, Deserialize};
-use squire_lib::{tournament::{Tournament, TournamentSeed, TournamentPreset}, accounts::SquireAccount, operations::{TournOp, OpResult, OpData}};
+use serde::{Deserialize, Serialize};
+use squire_lib::{
+    accounts::SquireAccount,
+    operations::{OpData, OpResult, TournOp},
+    tournament::{Tournament, TournamentSeed},
+};
 
-use super::{OpLog, OpId, OpSlice, OpSync, SyncError, FullOp};
-
+use super::{FullOp, OpId, OpLog, OpSlice, OpSync, SyncError};
 
 /// A state manager for the tournament struct
 ///
@@ -31,23 +34,6 @@ impl TournamentManager {
         }
     }
 
-    pub fn insert(tourn: Tournament) -> Self {
-        let name = tourn.name.clone();
-        let format = tourn.name.clone();
-        Self {
-            tourn,
-            log: OpLog::new(
-                SquireAccount::new("Temp".to_owned(), "Temp".to_owned()),
-                TournamentSeed {
-                    name,
-                    preset: TournamentPreset::Swiss,
-                    format,
-                },
-            ),
-            last_sync: None,
-        }
-    }
-
     /// Read only accesses to tournaments don't need to be wrapped, so we can freely provide
     /// references to them
     pub fn tourn(&self) -> &Tournament {
@@ -60,23 +46,10 @@ impl TournamentManager {
         self.tourn
     }
 
-    /// Gets a slice of the op log
-    fn get_op_slice(&self, id: OpId) -> Option<OpSlice> {
-        self.log.get_slice(id)
-    }
-
     /// Gets a slice of the log starting at the operation of the last log.
     /// Primarily used by clients to track when they last synced with the server
     pub fn sync_request(&self) -> OpSync {
-        let ops = match self.last_sync {
-            Some(id) => self.get_op_slice(id).unwrap(),
-            None => self.log.iter().cloned().collect(),
-        };
-        OpSync {
-            owner: self.log.owner.clone(),
-            seed: self.log.seed.clone(),
-            ops,
-        }
+        self.log.create_sync_request(self.last_sync)
     }
 
     /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op

@@ -13,7 +13,7 @@ pub mod collections;
 pub mod processor;
 pub mod error;
 pub mod manager;
-pub(crate) mod utils;
+mod utils;
 
 pub use full_op::*;
 pub use messages::*;
