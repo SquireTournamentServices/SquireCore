@@ -42,6 +42,16 @@ impl OpLog {
         }
     }
 
+    /// Calculates the length of inner `Vec` of `FullOp`s
+    pub fn len(&self) -> usize {
+        self.ops.len()
+    }
+
+    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
+    pub fn is_empty(&self) -> bool {
+        self.ops.is_empty()
+    }
+
     pub(crate) fn create_sync_request(&self, op: Option<OpId>) -> OpSync {
         let ops = match op {
             Some(id) => self.get_slice(id).unwrap(),
@@ -57,16 +67,6 @@ impl OpLog {
     /// Creates the initial state of the tournament
     pub(crate) fn init_tourn(&self) -> Tournament {
         self.owner.create_tournament(self.seed.clone())
-    }
-
-    /// Calculates the length of inner `Vec` of `FullOp`s
-    pub fn len(&self) -> usize {
-        self.ops.len()
-    }
-
-    /// Calculates if the length of inner `Vec` of `FullOp`s is empty
-    pub fn is_empty(&self) -> bool {
-        self.ops.is_empty()
     }
 
     /// Returns an iterator over the log
@@ -147,15 +147,17 @@ impl OpLog {
         todo!()
     }
 
-    /// Removes all elements in the log starting at the first index of the given slice. All
-    /// operations in the slice are then appended to the end of the log.
-    pub(crate) fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
-        let slice = self.slice_from_slice(&ops)?;
-        let id = slice.start_id().unwrap();
-        let index = self.ops.iter().position(|o| o.id == id).unwrap();
-        self.ops.truncate(index);
-        self.ops.extend(ops.ops.into_iter());
-        Ok(())
+    /// This method takes an op slice, attempts to anchor it, and iterates over the anchored slice.
+    /// It requires that the incoming slice contain a sub-slice of operations that are known to
+    /// this log followed by a sub-slice of operations that are unknown. Those unknown operations
+    /// are collected and returned to the caller to be bulk-applied. This method is primarily used
+    /// by the tournament manager to apply completed sync requests.
+    ///
+    /// NOTE: This is where "tournament updated" error originate. If the sub-slice of known
+    /// operations contains than just the anchor, the rest of the known sub-slice must match
+    /// everything past the anchor.
+    pub(crate) fn apply_unknown(&mut self, ops: OpSlice) -> Result<OpSlice, SyncError> {
+        todo!()
     }
 }
 
@@ -310,9 +312,6 @@ impl OpAlign {
             for k_op in known.iter() {
                 match k_op.diff(&f_op) {
                     OpDiff::Different => {}
-                    OpDiff::Inactive => {
-                        todo!("This is an error and should be returned as such.");
-                    }
                     OpDiff::Time => {
                         // Functionally identical operations:
                         // Update future operations and add the buffer, the a new slice, and this

@@ -1,25 +1,20 @@
-
 use serde::{Deserialize, Serialize};
 
-use crate::model::{
-    accounts::SquireAccount,
-    identifiers::TypeId,
-    tournament::*,
-};
+use crate::model::{accounts::SquireAccount, identifiers::TypeId, tournament::*};
 
-pub mod full_op;
-pub mod messages;
 pub mod collections;
-pub mod processor;
 pub mod error;
+pub mod full_op;
 pub mod manager;
+pub mod messages;
+pub mod processor;
 mod utils;
 
-pub use full_op::*;
-pub use messages::*;
 pub use collections::*;
 pub use error::*;
+pub use full_op::*;
 pub use manager::*;
+pub use messages::*;
 
 /// The id type for `FullOp`
 pub type OpId = TypeId<FullOp>;
@@ -54,5 +49,22 @@ impl OpSync {
     pub fn first_id(&self) -> Result<OpId, SyncError> {
         self.ops.start_id().ok_or(SyncError::EmptySync)
     }
-}
 
+    /// Validates the sync against a log. Check id, seed, creator, and len.
+    fn validate(&self, log: &OpLog) -> Result<(), SyncError> {
+        if self.is_empty() {
+            return Err(SyncError::EmptySync);
+        }
+        let OpLog { owner, seed, .. } = log;
+        if self.owner != *owner {
+            return Err(Disagreement::new(owner.clone(), self.owner.clone()).into());
+        }
+        if self.owner != *owner {
+            return Err(Disagreement::new(owner.clone(), self.owner.clone()).into());
+        }
+        if self.seed != *seed {
+            return Err(Disagreement::new(seed.clone(), self.seed.clone()).into());
+        }
+        todo!()
+    }
+}

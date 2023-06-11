@@ -7,7 +7,10 @@ use squire_lib::{
     tournament::{Tournament, TournamentSeed},
 };
 
-use super::{FullOp, OpId, OpLog, OpSlice, OpSync, SyncError};
+use super::{
+    processor::{SyncCompletion, SyncDecision, SyncProcessor},
+    FullOp, OpId, OpLog, OpSync, ServerOpLink, SyncError,
+};
 
 /// A state manager for the tournament struct
 ///
@@ -46,38 +49,49 @@ impl TournamentManager {
         self.tourn
     }
 
-    /// Gets a slice of the log starting at the operation of the last log.
-    /// Primarily used by clients to track when they last synced with the server
+    /// Method used by clients to create a request for syncing with the remote backend.
     pub fn sync_request(&self) -> OpSync {
         self.log.create_sync_request(self.last_sync)
     }
 
     /// Attempts to sync the given `OpSync` with the operations log. If syncing can occur, the op
     /// logs are merged and SyncStatus::Completed is returned.
-    pub fn attempt_sync(&mut self, sync: OpSync) -> ! {
-        /*
-        let mut sync = SyncProcessor::new(sync, &self.log)?;
-        match sync.process(&self.log) {
-            Ok(()) => SyncStatus::Completed(OpSync {
-                owner: self.log.owner.clone(),
-                seed: self.log.seed.clone(),
-                ops: sync.iter_known().cloned().collect(),
-            }),
-            Err(err) => SyncStatus::InProgress(Box::new((sync, err))),
-        }
-        */
-        todo!()
+    pub fn init_sync(&mut self, sync: OpSync) -> Result<SyncProcessor, SyncError> {
+        SyncProcessor::new(sync, &self.log)
     }
 
-    /// TODO:
-    pub fn overwrite(&mut self, ops: OpSlice) -> Result<(), SyncError> {
-        // FIXME: This should disactive old operations and then add the new operations
-        let id = ops.start_id().ok_or(SyncError::EmptySync)?;
-        let digest = self.log.overwrite(ops);
-        if digest.is_ok() {
-            self.last_sync = Some(id);
+    /// Handles the decision made by the client regarding the sync conflict.
+    pub fn handle_decision(&mut self, dec: SyncDecision) -> ServerOpLink {
+        match dec {
+            SyncDecision::Plucked(proc) => self.resume_sync(proc),
+            SyncDecision::Purged(comp) => match self.handle_completion(comp.clone()) {
+                Ok(()) => comp.into(),
+                Err(err) => err.into(),
+            },
+        }
+    }
+
+    /// Processes the SyncProcessor and updated the log if it completes without error
+    pub fn resume_sync(&mut self, proc: SyncProcessor) -> ServerOpLink {
+        let digest = proc.process(&self.log);
+        if let ServerOpLink::Completed(comp) = &digest {
+            if let Err(err) = self.handle_completion(comp.clone()) {
+                return err.into();
+            }
         }
         digest
+    }
+
+    /// This method handles a completed sync request.
+    pub fn handle_completion(&mut self, comp: SyncCompletion) -> Result<(), SyncError> {
+        match comp {
+            SyncCompletion::ForeignOnly(ops) | SyncCompletion::Mixed(ops) => {
+                let ops = self.log.apply_unknown(ops)?;
+                self.bulk_apply_ops_inner(ops.ops.into_iter())
+                    .expect("Non-deterministic tournament operation");
+            }
+        }
+        Ok(())
     }
 
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
@@ -95,11 +109,17 @@ impl TournamentManager {
     /// Takes an vector of operations and attempts to update the tournament. All operations must
     /// succeed in order for the bulk update the succeed. The update is sandboxed to ensure this.
     pub fn bulk_apply_ops(&mut self, ops: Vec<TournOp>) -> OpResult {
+        self.bulk_apply_ops_inner(ops.into_iter().map(FullOp::new))
+    }
+
+    fn bulk_apply_ops_inner<I>(&mut self, ops: I) -> OpResult
+    where
+        I: ExactSizeIterator<Item = FullOp>,
+    {
         let mut buffer = self.tourn().clone();
         let mut f_ops = Vec::with_capacity(ops.len());
-        for op in ops {
-            let f_op = FullOp::new(op.clone());
-            let salt = f_op.salt;
+        for f_op in ops {
+            let FullOp { op, salt, .. } = f_op.clone();
             buffer.apply_op(salt, op)?;
             f_ops.push(f_op);
         }
