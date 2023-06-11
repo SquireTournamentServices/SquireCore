@@ -16,7 +16,7 @@ use crate::{
     sync::{error::SyncError, FullOp, OpId},
 };
 
-use super::OpDiff;
+use super::{OpDiff, OpSync};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An ordered list of all operations applied to a tournament
@@ -39,6 +39,18 @@ impl OpLog {
             owner,
             seed,
             ops: vec![],
+        }
+    }
+
+    pub(crate) fn create_sync_request(&self, op: Option<OpId>) -> OpSync {
+        let ops = match op {
+            Some(id) => self.get_slice(id).unwrap(),
+            None => self.ops.iter().cloned().collect(),
+        };
+        OpSync {
+            owner: self.owner.clone(),
+            seed: self.seed.clone(),
+            ops,
         }
     }
 
