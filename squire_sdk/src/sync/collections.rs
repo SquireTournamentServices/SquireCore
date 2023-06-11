@@ -113,12 +113,18 @@ impl OpLog {
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
     pub(crate) fn get_slice(&self, id: OpId) -> Option<OpSlice> {
+        if self.is_empty() {
+            return None;
+        }
         self.get_slice_extra(id, 0)
     }
 
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
     pub(crate) fn get_slice_extra(&self, id: OpId, extra: usize) -> Option<OpSlice> {
+        if self.is_empty() {
+            return None;
+        }
         let len = self.ops.len() - 1;
         let index = self
             .ops
@@ -153,11 +159,16 @@ impl OpLog {
     /// are collected and returned to the caller to be bulk-applied. This method is primarily used
     /// by the tournament manager to apply completed sync requests.
     ///
-    /// NOTE: This is where "tournament updated" error originate. If the sub-slice of known
-    /// operations contains than just the anchor, the rest of the known sub-slice must match
-    /// everything past the anchor.
+    /// NOTE: This is one of the places where "tournament updated" error originate. If the
+    /// sub-slice of known operations contains than just the anchor, the rest of the known
+    /// sub-slice must match everything past the anchor.
     pub(crate) fn apply_unknown(&mut self, ops: OpSlice) -> Result<OpSlice, SyncError> {
         todo!()
+    }
+
+    /// Returns the id of the last operation in the log.
+    pub(crate) fn last_id(&self) -> Option<OpId> {
+        self.ops.last().map(|op| op.id)
     }
 }
 
@@ -185,13 +196,23 @@ impl OpSlice {
     }
 
     /// Returns the index of the first stored operation.
-    pub(crate) fn start_op(&self) -> Option<FullOp> {
+    pub(crate) fn first_op(&self) -> Option<FullOp> {
         self.ops.front().cloned()
     }
 
     /// Returns the index of the first stored operation.
-    pub(crate) fn start_id(&self) -> Option<OpId> {
+    pub(crate) fn first_id(&self) -> Option<OpId> {
         self.ops.front().map(|o| o.id)
+    }
+
+    /// Returns the index of the first stored operation.
+    pub(crate) fn last_op(&self) -> Option<FullOp> {
+        self.ops.back().cloned()
+    }
+
+    /// Returns the index of the first stored operation.
+    pub(crate) fn last_id(&self) -> Option<OpId> {
+        self.ops.back().map(|o| o.id)
     }
 
     /// Splits the slice into two halves. The first operation in the second half will have the same
