@@ -115,12 +115,14 @@ impl RoundRegistry {
     pub fn kill_round(&mut self, ident: &RoundId) -> Result<(), TournamentError> {
         let rnd = self.get_mut_round(ident)?;
         let players = rnd.players.clone();
-        rnd.kill_round();
-        for (i, plyr) in players.iter().enumerate() {
-            self.seat_scores.entry(*plyr).and_modify(|n| *n -= i);
-            self.opponents
-                .entry(*plyr)
-                .and_modify(|opps| opps.retain(|o| !players.contains(o)));
+        if rnd.is_active() {
+            rnd.kill_round();
+            for (i, plyr) in players.iter().enumerate() {
+                self.seat_scores.entry(*plyr).and_modify(|n| *n -= i);
+                self.opponents
+                    .entry(*plyr)
+                    .and_modify(|opps| opps.retain(|o| !players.contains(o)));
+            }
         }
         Ok(())
     }
