@@ -71,6 +71,19 @@ pub enum ServerBound {
     SyncResp(SyncForwardResp),
 }
 
+/// This type encodes all of the messages that the backend might send to a client via a Websocket.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum ClientBound {
+    /// The client has requested a copy of the tournament data. This is that copy.
+    FetchResp(TournamentManager),
+    /// The client has started the process of syncing tournament data with the server. This encodes
+    /// the server's message in the sync message chain.
+    SyncChain(ServerOpLink),
+    /// The server wishes to sync with a client. This encodes the messages the backend can send in
+    /// that process.
+    SyncForward(OpSync),
+}
+
 /// The process of syncing two instances of a tournament (between client and server) requires a
 /// series of messages to be passed back and forth. This type encodes all of the messages that a
 /// client can send to the backend in this process.
@@ -84,6 +97,27 @@ pub enum ClientOpLink {
     /// The client wishes to terminate the sync attempt. Often, this occurs because it has received
     /// new operations that will be lumped into a new sync request.
     Terminated,
+}
+
+/// The process of syncing two instances of a tournament (between client and server) requires a
+/// series of messages to be passed back and forth. This type encodes all of the messages that the
+/// backend can send to a client in this process.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum ServerOpLink {
+    /// The server is process the sync request from the client, but a tournament error has occured,
+    /// blocking the sync. The client must rectify this problem.
+    Conflict(SyncProcessor),
+    /// The server was able to complete the sync request. The server must communicate the final log
+    /// (i.e. if there are new operations for the client).
+    Completed(SyncCompletion),
+    /// The client has requested that the sync it initialized be terminated. The backend will
+    /// terminate the request, but it must communicate if the request finished before this message
+    /// arrived.
+    TerminatedSeen { already_done: bool },
+    /// During the sync process, some kind of error occured between deserializing the message and
+    /// processing the first operations (generally, this is an error with the `OpSync`). This needs
+    /// to be communicated with the client. This implicitly closes the request.
+    Error(SyncError),
 }
 
 /// The server has requested the client sync with it. This type encodes all of the ways that the
@@ -113,36 +147,3 @@ pub enum ForwardError {
     TournError(OpId, TournamentError),
 }
 
-/// This type encodes all of the messages that the backend might send to a client via a Websocket.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum ClientBound {
-    /// The client has requested a copy of the tournament data. This is that copy.
-    FetchResp(TournamentManager),
-    /// The client has started the process of syncing tournament data with the server. This encodes
-    /// the server's message in the sync message chain.
-    SyncChain(ServerOpLink),
-    /// The server wishes to sync with a client. This encodes the messages the backend can send in
-    /// that process.
-    SyncForward(OpSync),
-}
-
-/// The process of syncing two instances of a tournament (between client and server) requires a
-/// series of messages to be passed back and forth. This type encodes all of the messages that the
-/// backend can send to a client in this process.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum ServerOpLink {
-    /// The server is process the sync request from the client, but a tournament error has occured,
-    /// blocking the sync. The client must rectify this problem.
-    Conflict(SyncProcessor),
-    /// The server was able to complete the sync request. The server must communicate the final log
-    /// (i.e. if there are new operations for the client).
-    Completed(SyncCompletion),
-    /// The client has requested that the sync it initialized be terminated. The backend will
-    /// terminate the request, but it must communicate if the request finished before this message
-    /// arrived.
-    TerminatedSeen { already_done: bool },
-    /// During the sync process, some kind of error occured between deserializing the message and
-    /// processing the first operations (generally, this is an error with the `OpSync`). This needs
-    /// to be communicated with the client. This implicitly closes the request.
-    Error(SyncError),
-}

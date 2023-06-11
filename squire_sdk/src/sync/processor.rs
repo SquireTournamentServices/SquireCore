@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use squire_lib::{error::TournamentError, tournament::Tournament};
 
-use super::{FullOp, OpLog, OpSlice, OpSync, SyncError};
+use super::{FullOp, OpLog, OpSlice, OpSync, ServerOpLink, SyncError};
 
 /// This type results from a client making a decision about what operations need to stay and what
 /// operations need to be removed from its log during the sync process.
@@ -11,14 +11,14 @@ pub enum SyncDecision {
     /// continue trying to process things.
     Plucked(SyncProcessor),
     /// The client decided to ignore the rest of its log. This will mark the processing as done.
-    Purged(OpSlice),
+    Purged(SyncCompletion),
 }
 
 /// This type encodes the result of a successful sync.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum SyncCompletion {
     /// The backend did not have any operations that were unknown to the client.
-    ForgeinOnly(OpSlice),
+    ForeignOnly(OpSlice),
     /// The backend had one or more operations that were unknown to the client and the logs were
     /// successfully merged.
     Mixed(OpSlice),
@@ -29,9 +29,9 @@ pub enum SyncCompletion {
 /// process so that the client can audit its log. Those methods produce an `OpDecision`.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct SyncProcessor {
-    /// Whether or not sync contains only forgein operations
-    forgein_only: bool,
-    agreed: OpSlice,
+    /// Whether or not sync contains only foreign operations
+    foreign_only: bool,
+    known: OpSlice,
     to_process: OpSlice,
 }
 
@@ -47,31 +47,37 @@ impl SyncProcessor {
     /// This method is called by the client to decided how to process errors in the sync process.
     /// This method removes all of the remaining operations that it is trying to sync.
     pub fn purge(self) -> SyncDecision {
-        SyncDecision::Purged(self.agreed)
+        let comp = if self.is_foreign_only() {
+            SyncCompletion::ForeignOnly(self.known)
+        } else {
+            SyncCompletion::Mixed(self.known)
+        };
+        SyncDecision::Purged(comp)
     }
 
     /// Returns whether or not the process will merge two logs or one
-    pub fn is_forgein_only(&self) -> bool {
-        self.forgein_only
+    pub fn is_foreign_only(&self) -> bool {
+        self.foreign_only
     }
 
+    /// Creates a new processor from an `OpSync` and an `OpLog`. This method is fallible for a
+    /// number of reasons, the sync could be a mismatch with the log, the sync could be empty, and
+    /// the sync might have an incorrect anchor operation.
     pub(crate) fn new(sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
-        /*
-        let start_at = sync.first_id()?;
-        let known = log.split_at_first(start_at);
-        let align = OpAlign::new(known, sync.ops)?;
+        sync.validate(log)?;
+        let id = sync.first_id()?;
+        let Some(known) = log.get_slice(id) else { return Err(SyncError::UnknownOperation(id)) };
+        let foreign_only = known.len() == 1;
         Ok(Self {
-            start_at,
-            align,
-            agreed: OpSlice::new(),
+            foreign_only,
+            known,
+            to_process: sync.ops,
         })
-        */
-        todo!()
     }
 
     /// Processes the sync request by simulating different possible tournament histories. The log
     /// is used to recreate the initial tournament history.
-    pub(crate) fn process(self, log: &OpLog) -> Result<Result<SyncCompletion, Self>, SyncError> {
+    pub(crate) fn process(self, log: &OpLog) -> ServerOpLink {
         /*
         let mut tourn = log.split_at_tourn(self.start_at)?;
 

@@ -16,7 +16,6 @@ pub struct FullOp {
     pub(crate) op: TournOp,
     pub(crate) salt: DateTime<Utc>,
     pub(crate) id: OpId,
-    pub(crate) active: bool,
 }
 
 /// An enum that captures the ways in which two `FullOp`s can differ. This is a vital part in the
@@ -25,8 +24,6 @@ pub struct FullOp {
 pub enum OpDiff {
     /// The two operations are completely equal
     Equal,
-    /// The two operations
-    Inactive,
     /// The two operations are completely equal
     Time,
     /// The two operations are completely equal
@@ -42,7 +39,6 @@ impl FullOp {
             op,
             id,
             salt,
-            active: true,
         }
     }
 
@@ -62,8 +58,6 @@ impl FullOp {
     pub(crate) fn diff(&self, other: &Self) -> OpDiff {
         if self.op != other.op {
             OpDiff::Different
-        } else if self.active != other.active {
-            OpDiff::Inactive
         } else if self.salt != other.salt {
             OpDiff::Time
         } else {
