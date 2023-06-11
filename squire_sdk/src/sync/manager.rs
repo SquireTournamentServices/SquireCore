@@ -63,7 +63,7 @@ impl TournamentManager {
     /// Handles the decision made by the client regarding the sync conflict.
     pub fn handle_decision(&mut self, dec: SyncDecision) -> ServerOpLink {
         match dec {
-            SyncDecision::Plucked(proc) => self.resume_sync(proc),
+            SyncDecision::Plucked(proc) => self.process_sync(proc),
             SyncDecision::Purged(comp) => match self.handle_completion(comp.clone()) {
                 Ok(()) => comp.into(),
                 Err(err) => err.into(),
@@ -72,14 +72,28 @@ impl TournamentManager {
     }
 
     /// Processes the SyncProcessor and updated the log if it completes without error
-    pub fn resume_sync(&mut self, proc: SyncProcessor) -> ServerOpLink {
-        let digest = proc.process(&self.log);
-        if let ServerOpLink::Completed(comp) = &digest {
-            if let Err(err) = self.handle_completion(comp.clone()) {
-                return err.into();
-            }
+    pub fn process_sync(&mut self, mut proc: SyncProcessor) -> ServerOpLink {
+        match (proc.last_known(), self.log.last_id()) {
+            (Some(id), None) => return SyncError::UnknownOperation(id).into(),
+            (None, None) => {}
+            (Some(p_id), Some(l_id)) if p_id == l_id => {}
+            (Some(_), Some(_)) | (None, Some(_)) => return SyncError::TournUpdated.into(),
         }
-        digest
+        if proc.last_known().is_none() {
+            proc.move_all();
+            let comp = proc.finalize();
+            return match self.handle_completion(comp.clone()) {
+                Ok(()) => comp.into(),
+                Err(err) => err.into(),
+            };
+        }
+        let mut buffer = self.clone();
+        while let Some(op) = proc.next_op() {
+            let Ok(_) = buffer.apply_op_inner(op) else { return proc.into() };
+            proc.move_op();
+        }
+        *self = buffer;
+        proc.finalize().into()
     }
 
     /// This method handles a completed sync request.
@@ -97,8 +111,11 @@ impl TournamentManager {
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
     /// it to the tournament, and returns the result.
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
-        let f_op = FullOp::new(op.clone());
-        let salt = f_op.salt;
+        self.apply_op_inner(FullOp::new(op.clone()))
+    }
+
+    fn apply_op_inner(&mut self, f_op: FullOp) -> OpResult {
+        let FullOp { op, salt, .. } = f_op.clone();
         let digest = self.tourn.apply_op(salt, op);
         if digest.is_ok() {
             self.log.ops.push(f_op);
@@ -150,7 +167,6 @@ impl Iterator for StateIter<'_> {
     type Item = Tournament;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // TODO: This doesn't take rollbacks into account
         if self.shown_init {
             let op = self.ops.next()?;
             let _ = self.state.apply_op(op.salt, op.op.clone());
