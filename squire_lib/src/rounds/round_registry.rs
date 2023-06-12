@@ -115,7 +115,7 @@ impl RoundRegistry {
     pub fn kill_round(&mut self, ident: &RoundId) -> Result<(), TournamentError> {
         let rnd = self.get_mut_round(ident)?;
         let players = rnd.players.clone();
-        if rnd.is_active() {
+        if rnd.status != RoundStatus::Dead {
             rnd.kill_round();
             for (i, plyr) in players.iter().enumerate() {
                 self.seat_scores
