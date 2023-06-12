@@ -17,7 +17,7 @@ use crate::{
     rounds::Round,
 };
 
-use super::RoundContext;
+use super::{RoundContext, RoundStatus};
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
