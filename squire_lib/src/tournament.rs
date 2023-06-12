@@ -298,6 +298,11 @@ impl Tournament {
         self.round_reg.get_round(id)
     }
 
+    /// Gets a vec of all active rounds
+    pub fn get_active_rounds(&self) -> Vec<&Round> {
+        self.round_reg.rounds.values().filter(|r| r.is_active()).collect()
+    }
+
     /// Gets all the rounds a player is in
     pub fn get_player_rounds(
         &self,
