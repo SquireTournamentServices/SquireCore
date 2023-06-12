@@ -118,7 +118,9 @@ impl RoundRegistry {
         if rnd.is_active() {
             rnd.kill_round();
             for (i, plyr) in players.iter().enumerate() {
-                self.seat_scores.entry(*plyr).and_modify(|n| *n -= i);
+                self.seat_scores
+                    .entry(*plyr)
+                    .and_modify(|n| *n = n.saturating_sub(i));
                 self.opponents
                     .entry(*plyr)
                     .and_modify(|opps| opps.retain(|o| !players.contains(o)));
