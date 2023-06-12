@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use js_sys::Math::round;
 use squire_sdk::{
     model::{identifiers::PlayerIdentifier, rounds::RoundId},
     model::{identifiers::{RoundIdentifier, AdminId}, rounds::RoundStatus, pairings::Pairings, operations::AdminOp},
-    players::{PlayerId, Player},
+    players::{PlayerId, Player, Round},
     tournaments::{Tournament, TournamentId, TournamentManager, OpResult, TournOp},
 };
 
@@ -20,7 +21,24 @@ pub struct PairingsWrapper {
     pub pairings: Pairings,
     pub names: HashMap<PlayerId, String>,
 }
-
+#[derive(Debug, PartialEq, Clone)]
+pub struct ActiveRoundSummary {
+    pub round_id: RoundId,
+    pub table_number: u64,
+    pub players: Vec<String>,
+}
+impl ActiveRoundSummary {
+    pub fn from_round(tourn : &Tournament, round_ref : &Round) -> Self {
+        Self {
+            round_id : round_ref.id,
+            table_number : round_ref.table_number,
+            players : round_ref.players.iter().map(|pid|{
+                tourn.get_player_by_id(pid).unwrap().name.clone()
+            })
+            .collect()
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Properties, Clone)]
 pub struct PairingsViewProps {
@@ -35,6 +53,8 @@ pub enum PairingsViewMessage {
     GeneratePairings,
     PairingsToRounds,
     PairingsReady(PairingsWrapper),
+    QueryActiveRounds,
+    ActiveRoundsReady(Vec<ActiveRoundSummary>),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -50,6 +70,8 @@ pub struct PairingsView {
     mode: PairingsViewMode,
     pairings: Option<PairingsWrapper>,
     send_pairings: Callback<PairingsWrapper>,
+    active: Option<Vec<ActiveRoundSummary>>,
+    send_active: Callback<Vec<ActiveRoundSummary>>,
     pub send_op_result: Callback<OpResult>,
 }
 
@@ -70,6 +92,8 @@ impl Component for PairingsView {
             mode : PairingsViewMode::CreatePairings,
             pairings : None,
             send_pairings : ctx.link().callback(PairingsViewMessage::PairingsReady ),
+            active : None,
+            send_active : ctx.link().callback(PairingsViewMessage::ActiveRoundsReady ),
             send_op_result,
         }
     }
@@ -77,6 +101,9 @@ impl Component for PairingsView {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             PairingsViewMessage::ChangeMode(vm) => {
+                if (vm == PairingsViewMode::ActivePairings) {
+                    self.query_active_rounds(ctx);
+                };
                 self.mode = vm;
                 true
             }
@@ -129,7 +156,14 @@ impl Component for PairingsView {
                 self.pairings = Some(p);
                 true
             }
-
+            PairingsViewMessage::QueryActiveRounds => {
+                self.query_active_rounds(ctx);
+                false
+            }
+            PairingsViewMessage::ActiveRoundsReady(v_ars) => {
+                self.active = Some(v_ars);
+                true
+            }
         }
     }
 
@@ -166,6 +200,25 @@ impl Component for PairingsView {
 }
 
 impl PairingsView {
+
+    fn query_active_rounds(&mut self, ctx: &Context<Self>) {
+        let tracker =  CLIENT
+        .get()
+        .unwrap()
+        .query_tourn(self.id, 
+            |tourn| {
+                tourn.get_active_rounds().into_iter().map( |r| {
+                    ActiveRoundSummary::from_round(tourn, r)
+                })
+                .collect()
+            }
+        );
+        let send_active = self.send_active.clone();
+        spawn_local(async move {
+            console_log("Waiting for update to finish!");
+            send_active.emit(tracker.process().await.unwrap()) 
+        });
+    }
 
     fn view_creation_menu(&self, ctx: &Context<Self>) -> Html {
         let cb_gen_pairings = ctx.link()
@@ -204,8 +257,27 @@ impl PairingsView {
 
     fn view_active_menu(&self, ctx: &Context<Self>) -> Html {
         html!{
-            <>
-            </>
+            <div class="py-5">
+                <div class="overflow-auto py-3 pairings-scroll-box">
+                    <ul class="force_left">{
+                        if (self.active.is_some())
+                        {
+                            self.active.as_ref().unwrap().clone().into_iter().map( |ars| {
+                                html!{
+                                    <li>{
+                                        "It's here!"
+                                    }</li>
+                                }
+                            })
+                            .collect::<Html>()
+                        }
+                        else
+                        {
+                            html!{<li>{"..."}</li>}
+                        }
+                    }</ul>
+                </div>
+            </div>
         }
     }
 
