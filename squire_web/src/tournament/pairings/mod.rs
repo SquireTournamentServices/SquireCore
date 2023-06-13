@@ -24,6 +24,7 @@ pub struct PairingsWrapper {
 #[derive(Debug, PartialEq, Clone)]
 pub struct ActiveRoundSummary {
     pub round_id: RoundId,
+    pub round_number: u64,
     pub table_number: u64,
     pub players: Vec<String>,
 }
@@ -31,6 +32,7 @@ impl ActiveRoundSummary {
     pub fn from_round(tourn : &Tournament, round_ref : &Round) -> Self {
         Self {
             round_id : round_ref.id,
+            round_number : round_ref.match_number,
             table_number : round_ref.table_number,
             players : round_ref.players.iter().map(|pid|{
                 tourn.get_player_by_id(pid).unwrap().name.clone()
@@ -250,7 +252,7 @@ impl PairingsView {
                         }
                     }</ul>
                 </div>
-                <button onclick={cb_gen_rounds} >{"Turn pairings into live rounds"}</button>
+                <button onclick={cb_gen_rounds} disabled={self.pairings.is_none()}>{"Turn pairings into live rounds"}</button>
             </div>
         }
     }
@@ -264,9 +266,15 @@ impl PairingsView {
                         {
                             self.active.as_ref().unwrap().clone().into_iter().map( |ars| {
                                 html!{
-                                    <li>{
-                                        "It's here!"
-                                    }</li>
+                                    <li>
+                                        <>{ format!("Round #{}, Table #{} :: ", ars.round_number, ars.table_number) }</>
+                                        <>{
+                                            ars.players.iter().map(|pn| {
+                                                html!{<>  { format!("{}, ", pn) }  </>}
+                                            })
+                                            .collect::<Html>()
+                                        }</>
+                                    </li>
                                 }
                             })
                             .collect::<Html>()
