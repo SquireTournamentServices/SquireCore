@@ -1,7 +1,9 @@
-#![allow(dead_code)]
 use std::{collections::HashMap, time::Duration};
 
 use uuid::Uuid;
+
+mod sdk;
+pub use sdk::*;
 
 use squire_lib::{
     accounts::{SharingPermissions, SquireAccount},

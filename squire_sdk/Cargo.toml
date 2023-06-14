@@ -95,9 +95,10 @@ dashmap = { version = "5.0" }
 
 [dev-dependencies]
 # In-house
-squire_tests = { path = "../squire_tests" }
+squire_tests = { path = "../squire_tests", features = ["squire_sdk"] }
 
 # Common deps
+uuid = { version = "1.0", features = ["v4"] }
 
 # Client || Server deps
 

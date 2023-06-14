@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::{error::TournamentError, tournament::Tournament};
 
-use super::{FullOp, OpLog, OpSlice, OpSync, SyncError, OpId};
+use super::{FullOp, OpId, OpLog, OpSlice, OpSync, SyncError};
 
 /// This type results from a client making a decision about what operations need to stay and what
 /// operations need to be removed from its log during the sync process.
@@ -29,11 +28,9 @@ pub enum SyncCompletion {
 /// process so that the client can audit its log. Those methods produce an `OpDecision`.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct SyncProcessor {
-    /// Whether or not sync contains only foreign operations
-    foreign_only: bool,
-    last_known_op: Option<OpId>,
-    agreed: OpSlice,
-    to_process: OpSlice,
+    pub(crate) known: OpSlice,
+    pub(crate) processed: OpSlice,
+    pub(crate) to_process: OpSlice,
 }
 
 impl SyncProcessor {
@@ -51,9 +48,9 @@ impl SyncProcessor {
         SyncDecision::Purged(self.finalize())
     }
 
-    /// Returns whether or not the process will merge two logs or one
+    /// Returns whether or not the process will merge two logs or just one
     pub fn is_foreign_only(&self) -> bool {
-        self.foreign_only
+        self.known.len() <= 1
     }
 
     /// Creates a new processor from an `OpSync` and an `OpLog`. This method is fallible for a
@@ -67,47 +64,214 @@ impl SyncProcessor {
             None if log.is_empty() => OpSlice::new(),
             _ => return Err(SyncError::UnknownOperation(id)),
         };
-        let foreign_only = known.len() >= 1;
         Ok(Self {
-            foreign_only,
-            last_known_op: known.last_id(),
-            agreed: known,
+            known,
+            processed: OpSlice::new(),
             to_process: sync.ops,
         })
     }
 
     pub(crate) fn last_known(&self) -> Option<OpId> {
-        self.last_known_op
-    }
-
-    pub(crate) fn next_op(&self) -> Option<FullOp> {
-        self.to_process.first_op()
-    }
-
-    pub(crate) fn move_op(&mut self) {
-        let Some(op) = self.to_process.pop_front() else { return };
-        self.agreed.add_op(op);
+        self.known.last_id()
     }
 
     pub(crate) fn move_all(&mut self) {
-        self.agreed.extend(self.to_process.drain())
+        self.processed.extend(self.to_process.drain())
     }
 
-    pub(crate) fn finalize(self) -> SyncCompletion {
+    pub(crate) fn finalize(mut self) -> SyncCompletion {
         if self.is_foreign_only() {
-            SyncCompletion::ForeignOnly(self.agreed)
+            self.known.extend(self.processed);
+            SyncCompletion::ForeignOnly(self.known)
         } else {
-            SyncCompletion::Mixed(self.agreed)
+            self.known.extend(self.processed);
+            SyncCompletion::Mixed(self.known)
+        }
+    }
+
+    pub(crate) fn processing<'a>(&'a mut self) -> Processing<'a> {
+        Processing::new(&mut *self)
+    }
+}
+
+pub struct Processing<'a> {
+    proc: &'a mut SyncProcessor,
+    processed: OpSlice,
+    to_process: OpSlice,
+    limbo: Option<FullOp>,
+}
+
+impl<'a> Processing<'a> {
+    fn new(proc: &'a mut SyncProcessor) -> Processing<'a> {
+        let mut to_process = proc.processed.clone();
+        to_process.extend(proc.to_process.iter().cloned());
+        let limbo = to_process.pop_front();
+        Self {
+            proc,
+            processed: OpSlice::new(),
+            limbo,
+            to_process,
         }
     }
 }
 
-fn apply_ops<I: Iterator<Item = FullOp>>(
-    tourn: &mut Tournament,
-    ops: I,
-) -> Result<(), TournamentError> {
-    for op in ops {
-        tourn.apply_op(op.salt, op.op)?;
+impl Iterator for Processing<'_> {
+    type Item = FullOp;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Get the first operation that is to be processed
+        let digest = self.to_process.pop_front()?;
+        // Place that operation into the limbo state. If processing fails, we know that this
+        // operation is the reason for the failure. The prior operation is safe, so we can put it
+        // in `processed`.
+        let ok_op = self.limbo.replace(digest.clone())?;
+        self.processed.add_op(ok_op);
+        Some(digest)
     }
-    Ok(())
+}
+
+impl ExactSizeIterator for Processing<'_> {
+    fn len(&self) -> usize {
+        self.to_process.len()
+    }
+}
+
+impl Drop for Processing<'_> {
+    fn drop(&mut self) {
+        match self.next() {
+            // The processing was successful
+            None => self.proc.move_all(),
+            // The processing failed
+            Some(op) => {
+                self.to_process.ops.push_front(op);
+                if let Some(op) = self.limbo.take() {
+                    self.processed.add_op(op);
+                }
+                self.proc.processed.clear();
+                self.proc.to_process.clear();
+                self.proc.processed.extend(self.processed.drain());
+                self.proc.to_process.extend(self.to_process.drain());
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use squire_lib::operations::TournOp;
+    use squire_tests::spoof_account;
+
+    use crate::sync::{FullOp, OpSlice};
+
+    use super::SyncProcessor;
+
+    fn spoof_op() -> FullOp {
+        FullOp::new(TournOp::RegisterPlayer(spoof_account()))
+    }
+
+    fn spoof_ops(count: usize) -> impl IntoIterator<Item = FullOp> {
+        std::iter::repeat_with(spoof_op).take(count)
+    }
+
+    fn spoof_foreign_proc(count: usize) -> SyncProcessor {
+        SyncProcessor {
+            known: OpSlice::from_iter(spoof_ops(1)),
+            processed: OpSlice::new(),
+            to_process: OpSlice::from_iter(spoof_ops(count)),
+        }
+    }
+
+    fn spoof_mixed_proc(count: usize) -> SyncProcessor {
+        SyncProcessor {
+            known: OpSlice::from_iter(spoof_ops(2)),
+            processed: OpSlice::new(),
+            to_process: OpSlice::from_iter(spoof_ops(count)),
+        }
+    }
+
+    fn spoof_in_progress_proc(count: usize) -> SyncProcessor {
+        SyncProcessor {
+            known: OpSlice::from_iter(spoof_ops(1)),
+            processed: OpSlice::from_iter(spoof_ops(1)),
+            to_process: OpSlice::from_iter(spoof_ops(count)),
+        }
+    }
+
+    fn spoof_in_progress_mixed_proc(count: usize) -> SyncProcessor {
+        SyncProcessor {
+            known: OpSlice::from_iter(spoof_ops(1)),
+            processed: OpSlice::from_iter(spoof_ops(1)),
+            to_process: OpSlice::from_iter(spoof_ops(count)),
+        }
+    }
+
+    #[test]
+    fn iter_all_tests() {
+        // Foreign only
+        let mut proc = spoof_foreign_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert!(proc.processed.is_empty());
+        proc.processing().for_each(drop);
+        assert!(proc.to_process.is_empty());
+        assert_eq!(proc.processed.len(), 5);
+
+        // Mixed only
+        let mut proc = spoof_mixed_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert!(proc.processed.is_empty());
+        proc.processing().for_each(drop);
+        assert!(proc.to_process.is_empty());
+        assert_eq!(proc.processed.len(), 5);
+
+        // Foreign in-progress only
+        let mut proc = spoof_in_progress_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert_eq!(proc.processed.len(), 1);
+        proc.processing().for_each(drop);
+        assert!(proc.to_process.is_empty());
+        assert_eq!(proc.processed.len(), 6);
+
+        // Mixed in-progress only
+        let mut proc = spoof_in_progress_mixed_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert_eq!(proc.processed.len(), 1);
+        proc.processing().for_each(drop);
+        assert!(proc.to_process.is_empty());
+        assert_eq!(proc.processed.len(), 6);
+    }
+
+    #[test]
+    fn drop_tests() {
+        // Foreign only
+        let mut proc = spoof_foreign_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert!(proc.processed.is_empty());
+        let _ = proc.processing().take(1);
+        assert_eq!(proc.to_process.len(), 4);
+        assert_eq!(proc.processed.len(), 1);
+
+        // Mixed only
+        let mut proc = spoof_mixed_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert!(proc.processed.is_empty());
+        let _ = proc.processing().take(1);
+        assert_eq!(proc.to_process.len(), 4);
+        assert_eq!(proc.processed.len(), 1);
+
+        // Foreign in-progress only
+        let mut proc = spoof_in_progress_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert_eq!(proc.processed.len(), 1);
+        let _ = proc.processing().take(1);
+        assert_eq!(proc.to_process.len(), 4);
+        assert_eq!(proc.processed.len(), 2);
+
+        // Mixed in-progress only
+        let mut proc = spoof_in_progress_mixed_proc(5);
+        assert_eq!(proc.to_process.len(), 5);
+        assert_eq!(proc.processed.len(), 1);
+        let _ = proc.processing().take(1);
+        assert_eq!(proc.to_process.len(), 4);
+        assert_eq!(proc.processed.len(), 2);
+    }
 }
