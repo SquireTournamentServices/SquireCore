@@ -81,7 +81,7 @@ where
         }
     }
 
-    pub fn into(self) -> Router<S> {
+    pub fn into_router(self) -> Router<S> {
         let mut router = Router::new();
         for (base, sub) in self.router {
             router = router.nest(base, sub);

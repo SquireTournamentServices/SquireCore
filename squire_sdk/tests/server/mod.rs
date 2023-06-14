@@ -12,18 +12,16 @@ use dashmap::DashMap;
 use mtgjson::mtgjson::{atomics::Atomics, meta::Meta};
 
 use squire_sdk::{
-    accounts::VerificationData,
     model::{
         identifiers::SquireAccountId,
         tournament::{TournamentId, TournamentPreset},
     },
     server::{state::ServerState, User},
-    sync::{OpSync, Rollback, RollbackError, SyncStatus, TournamentManager},
+    sync::{OpSync, TournamentManager},
     version::{ServerMode, Version},
 };
 
-use self::utils::get_seed;
-
+/*
 // `MemoryStore` is ephemeral and will not persist between test runs
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -158,3 +156,4 @@ impl SessionStore for AppState {
         self.store.clear_store().await
     }
 }
+*/

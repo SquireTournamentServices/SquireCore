@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 
-use squire_lib::{accounts::SquireAccount, tournament::TournamentSeed, error::TournamentError};
+use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::TournamentSeed};
 
 use crate::sync::{FullOp, OpSlice, OpSync};
 
 use super::{
     processor::{SyncCompletion, SyncProcessor},
-    Disagreement, OpId, RequestError, ServerOpLink, SyncError, ForwardError, SyncForwardResp,
+    Disagreement, ForwardError, OpId, RequestError, ServerOpLink, SyncError, SyncForwardResp,
 };
 
 impl Default for OpSlice {

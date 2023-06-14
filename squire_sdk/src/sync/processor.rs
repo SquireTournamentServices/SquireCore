@@ -56,11 +56,15 @@ impl SyncProcessor {
     /// Creates a new processor from an `OpSync` and an `OpLog`. This method is fallible for a
     /// number of reasons, the sync could be a mismatch with the log, the sync could be empty, and
     /// the sync might have an incorrect anchor operation.
-    pub(crate) fn new(sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
+    pub(crate) fn new(mut sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
         sync.validate(log)?;
         let id = sync.first_id()?;
         let known = match log.get_slice(id) {
-            Some(slice) => slice,
+            Some(slice) => {
+                // Remove the anchor operation from the to_process slice
+                let _ = sync.pop_front()?;
+                slice
+            }
             None if log.is_empty() => OpSlice::new(),
             _ => return Err(SyncError::UnknownOperation(id)),
         };
@@ -105,11 +109,10 @@ impl<'a> Processing<'a> {
     fn new(proc: &'a mut SyncProcessor) -> Processing<'a> {
         let mut to_process = proc.processed.clone();
         to_process.extend(proc.to_process.iter().cloned());
-        let limbo = to_process.pop_front();
         Self {
             proc,
             processed: OpSlice::new(),
-            limbo,
+            limbo: None,
             to_process,
         }
     }
@@ -124,8 +127,9 @@ impl Iterator for Processing<'_> {
         // Place that operation into the limbo state. If processing fails, we know that this
         // operation is the reason for the failure. The prior operation is safe, so we can put it
         // in `processed`.
-        let ok_op = self.limbo.replace(digest.clone())?;
-        self.processed.add_op(ok_op);
+        if let Some(ok_op) = self.limbo.replace(digest.clone()) {
+            self.processed.add_op(ok_op);
+        }
         Some(digest)
     }
 }
@@ -138,20 +142,16 @@ impl ExactSizeIterator for Processing<'_> {
 
 impl Drop for Processing<'_> {
     fn drop(&mut self) {
-        match self.next() {
-            // The processing was successful
-            None => self.proc.move_all(),
-            // The processing failed
-            Some(op) => {
+        if self.to_process.is_empty() {
+            self.proc.move_all()
+        } else {
+            if let Some(op) = self.limbo.take() {
                 self.to_process.ops.push_front(op);
-                if let Some(op) = self.limbo.take() {
-                    self.processed.add_op(op);
-                }
-                self.proc.processed.clear();
-                self.proc.to_process.clear();
-                self.proc.processed.extend(self.processed.drain());
-                self.proc.to_process.extend(self.to_process.drain());
             }
+            self.proc.processed.clear();
+            self.proc.to_process.clear();
+            self.proc.processed.extend(self.processed.drain());
+            self.proc.to_process.extend(self.to_process.drain());
         }
     }
 }
@@ -246,7 +246,7 @@ mod tests {
         let mut proc = spoof_foreign_proc(5);
         assert_eq!(proc.to_process.len(), 5);
         assert!(proc.processed.is_empty());
-        let _ = proc.processing().take(1);
+        let _ = proc.processing().take(2).for_each(drop);
         assert_eq!(proc.to_process.len(), 4);
         assert_eq!(proc.processed.len(), 1);
 
@@ -254,7 +254,7 @@ mod tests {
         let mut proc = spoof_mixed_proc(5);
         assert_eq!(proc.to_process.len(), 5);
         assert!(proc.processed.is_empty());
-        let _ = proc.processing().take(1);
+        let _ = proc.processing().take(2).for_each(drop);
         assert_eq!(proc.to_process.len(), 4);
         assert_eq!(proc.processed.len(), 1);
 
@@ -262,7 +262,7 @@ mod tests {
         let mut proc = spoof_in_progress_proc(5);
         assert_eq!(proc.to_process.len(), 5);
         assert_eq!(proc.processed.len(), 1);
-        let _ = proc.processing().take(1);
+        let _ = proc.processing().take(3).for_each(drop);
         assert_eq!(proc.to_process.len(), 4);
         assert_eq!(proc.processed.len(), 2);
 
@@ -270,7 +270,7 @@ mod tests {
         let mut proc = spoof_in_progress_mixed_proc(5);
         assert_eq!(proc.to_process.len(), 5);
         assert_eq!(proc.processed.len(), 1);
-        let _ = proc.processing().take(1);
+        let _ = proc.processing().take(3).for_each(drop);
         assert_eq!(proc.to_process.len(), 4);
         assert_eq!(proc.processed.len(), 2);
     }
