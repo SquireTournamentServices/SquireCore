@@ -5,9 +5,10 @@ use std::{
 };
 
 use once_cell::sync::OnceCell;
-use squire_sdk::{accounts::SquireAccount, client::SquireClient, server::User};
+use squire_sdk::{client::SquireClient, server::User};
 use tokio::time::interval;
 
+/*
 use crate::server::AppState;
 
 pub mod startup;
@@ -80,3 +81,4 @@ pub async fn get_client() -> SquireClient {
         }
     }
 }
+*/

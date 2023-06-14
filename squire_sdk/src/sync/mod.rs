@@ -50,6 +50,10 @@ impl OpSync {
         self.ops.first_id().ok_or(SyncError::EmptySync)
     }
 
+    pub fn pop_front(&mut self) -> Result<FullOp, SyncError> {
+        self.ops.pop_front().ok_or(SyncError::EmptySync)
+    }
+
     /// Validates the sync against a log. Check id, seed, creator, and len.
     fn validate(&self, log: &OpLog) -> Result<(), SyncError> {
         if self.is_empty() {

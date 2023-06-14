@@ -110,6 +110,11 @@ impl OpLog {
         }
     }
 
+    /// Returns the last operation in the log.
+    pub fn last_op(&self) -> Option<FullOp> {
+        self.ops.last().cloned()
+    }
+
     /// Returns the id of the last operation in the log.
     pub(crate) fn last_id(&self) -> Option<OpId> {
         self.ops.last().map(|op| op.id)
@@ -155,6 +160,11 @@ impl OpSlice {
         self.ops.front().map(|o| o.id)
     }
 
+    /// Returns the last operation in the slice.
+    pub fn last_op(&self) -> Option<FullOp> {
+        self.ops.back().cloned()
+    }
+
     /// Returns the index of the first stored operation.
     pub(crate) fn last_id(&self) -> Option<OpId> {
         self.ops.back().map(|o| o.id)
@@ -198,9 +208,4 @@ impl Extend<FullOp> for OpSlice {
 }
 
 #[cfg(test)]
-mod tests {
-    use squire_lib::operations::TournOp;
-    use squire_tests::{get_seed, spoof_account};
-
-    use super::OpLog;
-}
+mod tests {}
