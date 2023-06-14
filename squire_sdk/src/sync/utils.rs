@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 
-use squire_lib::{accounts::SquireAccount, tournament::TournamentSeed};
+use squire_lib::{accounts::SquireAccount, tournament::TournamentSeed, error::TournamentError};
 
 use crate::sync::{FullOp, OpSlice, OpSync};
 
 use super::{
     processor::{SyncCompletion, SyncProcessor},
-    Disagreement, OpId, RequestError, ServerOpLink, SyncError,
+    Disagreement, OpId, RequestError, ServerOpLink, SyncError, ForwardError, SyncForwardResp,
 };
 
 impl Default for OpSlice {
@@ -78,6 +78,12 @@ impl From<OpId> for SyncError {
     }
 }
 
+impl From<TournamentError> for SyncError {
+    fn from(value: TournamentError) -> Self {
+        Self::InvalidRequest(value.into())
+    }
+}
+
 /* ---- RequestError Helper Traits ---- */
 impl From<Disagreement<TournamentSeed>> for RequestError {
     fn from(value: Disagreement<TournamentSeed>) -> Self {
@@ -94,5 +100,43 @@ impl From<Disagreement<SquireAccount>> for RequestError {
 impl From<OpId> for RequestError {
     fn from(value: OpId) -> Self {
         Self::OpCountIncreased(value)
+    }
+}
+
+impl From<TournamentError> for RequestError {
+    fn from(value: TournamentError) -> Self {
+        Self::TournError(value)
+    }
+}
+
+/* ---- SyncForwardResp Helper Traits ---- */
+impl From<ForwardError> for SyncForwardResp {
+    fn from(value: ForwardError) -> Self {
+        SyncForwardResp::Error(value)
+    }
+}
+
+impl From<RequestError> for SyncForwardResp {
+    fn from(value: RequestError) -> Self {
+        SyncForwardResp::Error(value.into())
+    }
+}
+
+impl From<TournamentError> for SyncForwardResp {
+    fn from(value: TournamentError) -> Self {
+        SyncForwardResp::Error(value.into())
+    }
+}
+
+/* ---- ForwardError Helper Traits ---- */
+impl From<RequestError> for ForwardError {
+    fn from(value: RequestError) -> Self {
+        ForwardError::InvalidRequest(value)
+    }
+}
+
+impl From<TournamentError> for ForwardError {
+    fn from(value: TournamentError) -> Self {
+        ForwardError::TournError(value)
     }
 }

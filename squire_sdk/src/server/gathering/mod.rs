@@ -136,19 +136,7 @@ impl Gathering {
                     let _ = user.send_msg(&resp).await;
                 }
             }
-            ServerBound::SyncReq(sync) => match self.validate_sync_request(&sync) {
-                Ok(_) => match self.process_sync_request(sync) {
-                    Ok(_) => {
-                        todo!("Forward operations to all other clients. Respond with a sync seen.")
-                    }
-                    Err(_) => todo!("Reply with the sync error"),
-                },
-                Err(_) => todo!("Send a 'you do not have permission to perform those operations'"),
-            },
-            ServerBound::SyncSeen => {
-                // TODO: We should have an automatic retry mechanism to ensure that all clients
-                // have seen sync
-            }
+            _ => todo!(),
         }
     }
 

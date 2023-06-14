@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::{accounts::SquireAccount, tournament::TournamentSeed};
+use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::TournamentSeed};
 
 use super::OpId;
 
@@ -17,10 +17,28 @@ pub enum SyncError {
     InvalidRequest(RequestError),
 }
 
+/// An error used in the server-initialized sync process that the client uses to signal that an
+/// error has occurred during the sync process.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum ForwardError {
+    /// At least one of the logs was empty
+    EmptySync,
+    /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
+    InvalidRequest(RequestError),
+    /// One of the new operations has caused a tournament error.
+    ///
+    /// NOTE: This is likely an un-recoverable error. Either the two tournaments do not have the
+    /// same history of events or the tournament is acting non-deterministically. These error need
+    /// to be logged.
+    TournError(TournamentError),
+}
+
 /// This struct encodes a pair of objects that ought to match but don't.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Disagreement<T> {
+    /// The known value
     pub known: T,
+    /// The value that didn't match the known value but should have
     pub given: T,
 }
 
@@ -42,6 +60,11 @@ pub enum RequestError {
     /// NOTE: This is either a bug in the client or server implementation or a malcisious/malformed
     /// client. In either case, the backend needs to log such problems.
     OpCountIncreased(OpId),
+    /// The sync request caused a tournament error to happen on agreed-on operations.
+    ///
+    /// NOTE: This is either a bug in squire_lib caused by non-deterministic operations or a
+    /// malcisious/malformed client. In either case, the backend needs to log such problems.
+    TournError(TournamentError),
 }
 
 impl<T> Disagreement<T> {

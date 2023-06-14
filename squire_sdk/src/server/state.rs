@@ -9,7 +9,7 @@ use crate::{
         tournament::{TournamentId, TournamentPreset},
     },
     server::User,
-    sync::{OpSync, Rollback, RollbackError, SyncStatus, TournamentManager},
+    sync::{OpSync, TournamentManager},
     version::Version,
 };
 
