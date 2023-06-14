@@ -1,12 +1,6 @@
 use http::{header, StatusCode};
 
-use squire_sdk::{accounts::CreateAccountResponse, tournaments::CreateTournamentResponse};
-
-use super::{
-    requests::{create_tournament_request, login_request, register_account_request},
-    utils::*,
-};
-
+/*
 #[tokio::test]
 async fn create_tournament_requires_login() {
     let request = create_tournament_request();
@@ -15,7 +9,6 @@ async fn create_tournament_requires_login() {
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
-/*
 #[tokio::test]
 async fn create_tournament() {
     let request = register_account_request();

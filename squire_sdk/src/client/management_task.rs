@@ -255,9 +255,8 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
             {
                 Ok(ws) => {
                     let (mut sink, mut stream) = ws.split();
-                    let msg =
-                        postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch))
-                            .unwrap();
+                    let msg = postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch))
+                        .unwrap();
                     sink.send(WebsocketMessage::Bytes(msg)).await.unwrap();
                     let tourn = wait_for_tourn(&mut stream).await;
                     let (broad, _) = broadcast_channel(10);
