@@ -281,8 +281,8 @@ fn handle_ws_msg(state: &mut ManagerState, msg: WebsocketMessage) {
     let WebSocketMessage { body, .. } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();
     match body {
         ClientBound::FetchResp(_) => todo!(),
-        ClientBound::SyncResp(_) => todo!(),
         ClientBound::SyncForward(_) => todo!(),
+        _ => todo!(),
         // Do nothing. This is handled elsewhere
     }
 }

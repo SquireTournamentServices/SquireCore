@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::error::TournamentError;
 use ulid::Ulid;
 
 use super::{
-    processor::{SyncDecision, SyncProcessor, SyncCompletion},
-    OpId, OpSync, SyncError, TournamentManager,
+    processor::{SyncCompletion, SyncDecision, SyncProcessor},
+    ForwardError, OpSync, SyncError, TournamentManager,
 };
 
 pub type ServerBoundMessage = WebSocketMessage<ServerBound>;
@@ -134,16 +133,3 @@ pub enum SyncForwardResp {
     /// implicitly cancels the sync.
     Error(ForwardError),
 }
-
-/// An error used in the server-initialized sync process that the client uses to signal that an
-/// error has occurred during the sync process.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum ForwardError {
-    /// One of the new operations has caused a tournament error.
-    ///
-    /// NOTE: This is likely an un-recoverable error. Either the two tournaments do not have the
-    /// same history of events or the tournament is acting non-deterministically. These error need
-    /// to be logged.
-    TournError(OpId, TournamentError),
-}
-
