@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
+use futures::future::OrElse;
 use js_sys::Math::round;
 use squire_sdk::{
     model::{identifiers::PlayerIdentifier, rounds::RoundId},
@@ -9,7 +10,7 @@ use squire_sdk::{
 };
 
 use wasm_bindgen_futures::spawn_local;
-use yew::prelude::*;
+use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{utils::{TextInput, input, console_log}, CLIENT};
 
@@ -19,7 +20,6 @@ use super::{rounds::SelectedRound, creator, spawn_update_listener};
 #[derive(Debug, PartialEq, Clone)]
 pub struct PairingsWrapper {
     pub pairings: Pairings,
-    pub names: HashMap<PlayerId, String>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct ActiveRoundSummary {
@@ -51,12 +51,16 @@ pub struct PairingsViewProps {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PairingsViewMessage {
+    QueryPlayerNames,
+    PlayerNamesReady(HashMap<PlayerId, String>),
     ChangeMode(PairingsViewMode),
     GeneratePairings,
     PairingsToRounds,
     PairingsReady(PairingsWrapper),
     QueryActiveRounds,
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
+    QueryMatchSize,
+    MatchSizeReady(u8),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -69,11 +73,15 @@ pub enum PairingsViewMode {
 pub struct PairingsView {
     pub id: TournamentId,
     pub admin_id: AdminId,
+    names: Option<HashMap<PlayerId, String>>,
+    send_names: Callback<HashMap<PlayerId, String>>,
     mode: PairingsViewMode,
     pairings: Option<PairingsWrapper>,
     send_pairings: Callback<PairingsWrapper>,
     active: Option<Vec<ActiveRoundSummary>>,
     send_active: Callback<Vec<ActiveRoundSummary>>,
+    max_player_count: Option<u8>,
+    send_max_player_count: Callback<u8>,
     pub send_op_result: Callback<OpResult>,
 }
 
@@ -88,20 +96,36 @@ impl Component for PairingsView {
             admin_id,
             send_op_result,
         } = ctx.props().clone();
-        Self {
+        let mut to_return = Self {
             id,
             admin_id,
+            names: None,
+            send_names: ctx.link().callback(PairingsViewMessage::PlayerNamesReady ),
             mode : PairingsViewMode::CreatePairings,
             pairings : None,
             send_pairings : ctx.link().callback(PairingsViewMessage::PairingsReady ),
             active : None,
             send_active : ctx.link().callback(PairingsViewMessage::ActiveRoundsReady ),
+            max_player_count: None,
+            send_max_player_count: ctx.link().callback(PairingsViewMessage::MatchSizeReady),
             send_op_result,
-        }
+        };
+        to_return.query_player_names(ctx);
+        to_return.query_match_size(ctx);
+        to_return
     }
 
+    // tourn.pairing_sys.common.match_size
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            PairingsViewMessage::QueryPlayerNames => {
+                self.query_player_names(ctx);
+                false
+            }
+            PairingsViewMessage::PlayerNamesReady(pnhm) => {
+                self.names = Some(pnhm);
+                true
+            }
             PairingsViewMessage::ChangeMode(vm) => {
                 if (vm == PairingsViewMode::ActivePairings) {
                     self.query_active_rounds(ctx);
@@ -116,20 +140,7 @@ impl Component for PairingsView {
                 .query_tourn(self.id, 
                     |tourn| {
                         let pairings = tourn.create_pairings().unwrap_or_default();
-                        let names = pairings
-                            .paired
-                            .iter()
-                            .map(|p| p.iter())
-                            .flatten()
-                            .chain(pairings.rejected.iter()) // Iterator over all the player id in the pairings
-                            .filter_map(|id| {
-                                tourn
-                                    .get_player_by_id(id)
-                                    .map(|plyr| (*id, plyr.name.clone()))
-                                    .ok()
-                            })
-                            .collect();
-                        PairingsWrapper { pairings, names }
+                        PairingsWrapper { pairings }
                     }
                 );
                 let send_pairings = self.send_pairings.clone();
@@ -163,7 +174,17 @@ impl Component for PairingsView {
                 false
             }
             PairingsViewMessage::ActiveRoundsReady(v_ars) => {
+                let mut v_ars = v_ars.clone();
+                v_ars.sort_by_cached_key(|r| r.round_number);
                 self.active = Some(v_ars);
+                true
+            }
+            PairingsViewMessage::QueryMatchSize => {
+                self.query_match_size(ctx);
+                false
+            }
+            PairingsViewMessage::MatchSizeReady(msize) => {
+                self.max_player_count = Some(msize);
                 true
             }
         }
@@ -203,6 +224,23 @@ impl Component for PairingsView {
 
 impl PairingsView {
 
+    fn query_player_names(&mut self, ctx: &Context<Self>) {
+        let tracker =  CLIENT
+        .get()
+        .unwrap()
+        .query_tourn(self.id, 
+            |tourn| {
+                let digest: HashMap<PlayerId, String> = tourn.player_reg.players.iter().map(|(id, plyr)| (*id, plyr.name.clone())).collect();
+                digest
+            }
+        );
+        let send_names = self.send_names.clone();
+        spawn_local(async move {
+            console_log("Waiting for update to finish!");
+            send_names.emit(tracker.process().await.unwrap()) 
+        });
+    }
+
     fn query_active_rounds(&mut self, ctx: &Context<Self>) {
         let tracker =  CLIENT
         .get()
@@ -222,6 +260,22 @@ impl PairingsView {
         });
     }
 
+    fn query_match_size(&mut self, ctx: &Context<Self>) {
+        let tracker =  CLIENT
+        .get()
+        .unwrap()
+        .query_tourn(self.id, 
+            |tourn| {
+                tourn.pairing_sys.common.match_size
+            }
+        );
+        let send_match_size = self.send_max_player_count.clone();
+        spawn_local(async move {
+            console_log("Waiting for update to finish!");
+            send_match_size.emit(tracker.process().await.unwrap())
+        });
+    }
+
     fn view_creation_menu(&self, ctx: &Context<Self>) -> Html {
         let cb_gen_pairings = ctx.link()
         .callback(move |_| PairingsViewMessage::GeneratePairings);
@@ -232,13 +286,13 @@ impl PairingsView {
                 <button onclick={cb_gen_pairings} >{"Generate new pairings"}</button>
                 <div class="overflow-auto py-3 pairings-scroll-box">
                     <ul class="force_left">{
-                        if (self.pairings.is_some())
+                        if (self.pairings.is_some() && self.names.is_some())
                         {
                             self.pairings.as_ref().unwrap().clone().pairings.paired.into_iter().map( |p| {
                                 html!{
                                     <li>{
                                         p.into_iter().map(|pid|{
-                                            html!{<><>{self.pairings.as_ref().unwrap().names.get(&pid)}</><>{", "}</></>}
+                                            html!{<><>{self.names.as_ref().unwrap().get(&pid)}</><>{", "}</></>}
                                         })
                                         .collect::<Html>()
                                     }</li>
@@ -290,16 +344,33 @@ impl PairingsView {
     }
 
     fn view_single_menu(&self, ctx: &Context<Self>) -> Html {
-        html!{
-            <>
-            </>
+        if (self.max_player_count.is_some() && self.names.is_some())
+        {
+            let mut name_boxes : Vec<VNode> = Vec::new();
+            let max_players = self.max_player_count.unwrap().clone();
+            for i in 0..max_players {
+                let name_string = format!("player_{}_name", i);
+                name_boxes.push(html!{
+                    <>
+                    <label for={name_string.clone()}>{ format!("Player {} : ", i) }</label>
+                    <input type="text" id={name_string.clone()} name={name_string.clone()} />
+                    <br/><br/>
+                    </>
+                })
+            };
+            html! {
+                <div class="py-5">
+                    <div class="py-1">{
+                        name_boxes   
+                    }</div>   
+                </div>
+            }
         }
-    }
-
-    fn view_pairing(&self) -> Html {
-        html!{
-            <>
-            </>
+        else
+        {
+            html! {
+                <>{"..."}</>
+            }
         }
     }
 
