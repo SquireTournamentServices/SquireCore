@@ -89,7 +89,7 @@ impl SwissPairings {
 
     /// Updates with incoming pairings.
     pub fn update(&mut self, pairings: &Pairings) {
-        self.swiss_round_number += 1;
+        self.swiss_round_number = self.swiss_round_number.saturating_add(1); // TODO determine necessary size for swiss_round_number
         for p in pairings
             .paired
             .iter()
