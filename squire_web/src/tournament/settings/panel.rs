@@ -1,9 +1,9 @@
-use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
+use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr, borrow::Cow};
 
 use squire_sdk::model::settings::{PairingSetting, TournamentSetting};
 use yew::prelude::*;
 
-use crate::utils::TextInput;
+use crate::utils::{TextInput, TextInputProps};
 
 use super::SettingsMessage;
 
@@ -63,7 +63,7 @@ impl SettingPanel {
         html! {
             <div>
                 <p>{ format!("{} {data}", self.label) }</p>
-                <TextInput label = { " change to " } process = { process }/>
+                <TextInput label = {Cow::from(" change to ")} process = { process }/>
             </div>
         }
     }
