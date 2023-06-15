@@ -82,7 +82,7 @@ impl PairingTree {
     /// Traverses the tree to find a complete pairing. Each branch tranverses its branches in the
     /// order that they were inserted
     fn cut(&mut self, size: usize) -> Option<Vec<PlayerId>> {
-        if size == 1 {
+        if size <= 1 {
             Some(vec![self.id])
         } else {
             let mut digest = self
