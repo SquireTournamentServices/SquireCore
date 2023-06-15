@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, borrow::Cow};
 
 use futures::future::OrElse;
 use js_sys::Math::round;
@@ -61,6 +61,9 @@ pub enum PairingsViewMessage {
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
     QueryMatchSize,
     MatchSizeReady(u8),
+    CreateSingleRound(),
+    CreateSingleBye(String),
+    SingleRoundInput(usize, String),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -82,6 +85,7 @@ pub struct PairingsView {
     send_active: Callback<Vec<ActiveRoundSummary>>,
     max_player_count: Option<u8>,
     send_max_player_count: Callback<u8>,
+    single_round_inputs: Vec<String>,
     pub send_op_result: Callback<OpResult>,
 }
 
@@ -108,6 +112,7 @@ impl Component for PairingsView {
             send_active : ctx.link().callback(PairingsViewMessage::ActiveRoundsReady ),
             max_player_count: None,
             send_max_player_count: ctx.link().callback(PairingsViewMessage::MatchSizeReady),
+            single_round_inputs: Vec::new(),
             send_op_result,
         };
         to_return.query_player_names(ctx);
@@ -185,7 +190,37 @@ impl Component for PairingsView {
             }
             PairingsViewMessage::MatchSizeReady(msize) => {
                 self.max_player_count = Some(msize);
+                self.single_round_inputs = std::iter::repeat_with(String::new).take(msize.into()).collect();
                 true
+            }
+            PairingsViewMessage::CreateSingleRound() => {
+                if (self.names.is_none()) { return false};
+                let player_ids : Vec<PlayerId> = self.single_round_inputs.iter().map( |plr_name| {
+                    self.names.as_ref().unwrap().iter().find_map(|(id, name)|{
+                        (plr_name == name).then_some(*id)
+                    }).unwrap_or_default()
+                })
+                .collect();
+                let tracker =  CLIENT
+                .get()
+                .unwrap()
+                .update_tourn(self.id, 
+                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::CreateRound(player_ids))
+                );
+                let send_op_result = self.send_op_result.clone();
+                spawn_local(async move {
+                    console_log("Waiting for update to finish!");
+                    send_op_result.emit(tracker.process().await.unwrap()) 
+                });
+                true
+            }
+            PairingsViewMessage::CreateSingleBye(player) => {
+                false
+            }
+            PairingsViewMessage::SingleRoundInput(vec_index, text) => {
+                let Some(name) = self.single_round_inputs.get_mut(vec_index) else { return false };
+                *name = text;
+                false
             }
         }
     }
@@ -349,20 +384,31 @@ impl PairingsView {
             let mut name_boxes : Vec<VNode> = Vec::new();
             let max_players = self.max_player_count.unwrap().clone();
             for i in 0..max_players {
-                let name_string = format!("player_{}_name", i);
+                let name_string = format!("player {}: ", i+1);
                 name_boxes.push(html!{
                     <>
-                    <label for={name_string.clone()}>{ format!("Player {} : ", i) }</label>
-                    <input type="text" id={name_string.clone()} name={name_string.clone()} />
-                    <br/><br/>
+                    <TextInput label = {Cow::from(name_string)} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleRoundInput(i.into(), s)) }/>
+                    <br/>
                     </>
                 })
             };
+            let cb_single_round = ctx.link()
+            .callback(move |_| PairingsViewMessage::CreateSingleRound() );
             html! {
                 <div class="py-5">
+                    <h2>{ "Create single rounds: " }</h2>
                     <div class="py-1">{
                         name_boxes   
-                    }</div>   
+                    }</div>
+                    <button onclick={cb_single_round}>{ "Create round" }</button>
+                    <hr />
+                    <h2>{ "Create a bye: " }</h2>
+                    <div class="py-2">
+                        <label for="bye_name">{ "Player to give bye" }</label>
+                        <input type="text" id="bye_name" name="bye_name" />
+                        <br/><br/>
+                    </div>
+                    <button>{ "Create bye" }</button>
                 </div>
             }
         }
