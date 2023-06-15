@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use yew::functional::*;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -48,8 +50,8 @@ impl Component for Register {
         let display_callback = ctx.link().callback(RegisterMessage::DisplayInput);
         let form = html! {
             <div>
-                <TextInput label = {"Your name"} process = { name_callback }/>
-                <TextInput label = {"Display name"} process = { display_callback }/>
+                <TextInput label = {Cow::from("Your name")} process = { name_callback }/>
+                <TextInput label = {Cow::from("Display name")} process = { display_callback }/>
             </div>
         };
         html! {

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use squire_sdk::{
     model::{identifiers::RoundIdentifier, players::PlayerStatus, rounds::RoundStatus},
     players::Player,
@@ -75,10 +77,10 @@ impl PlayerFilterInput {
         html! {
             <div>
                 <div class="my-1">
-                    <TextInput label = { "Player Name:" } process = { number }/>
+                    <TextInput label = {Cow::from("Player Name:")} process = { number }/>
                 </div>
                 <div class="my-1">
-                    <TextInput label = { "Player Status:" } process = { status }/>
+                    <TextInput label = {Cow::from("Player Status:")} process = { status }/>
                 </div>
             </div>
         }

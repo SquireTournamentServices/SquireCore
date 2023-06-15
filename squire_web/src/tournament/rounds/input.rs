@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use squire_sdk::model::{
     identifiers::RoundIdentifier,
     rounds::{Round, RoundStatus},
@@ -76,10 +78,10 @@ impl RoundFilterInput {
         html! {
             <div>
                 <div class="m-1">
-                    <TextInput label = { "Round Number:" } process = { number }/>
+                    <TextInput label = {Cow::from("Round Number:")} process = { number }/>
                 </div>
                 <div class="m-1">
-                    <TextInput label = { "Round Status:" } process = { status }/>
+                    <TextInput label = {Cow::from("Round Status:")} process = { status }/>
                 </div>
             </div>
         }
