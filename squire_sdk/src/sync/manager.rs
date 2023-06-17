@@ -174,13 +174,6 @@ impl TournamentManager {
         //  Proc known     : anchor op  | common ops
         //  Proc to_process: common ops | new ops
         if let Some(id) = proc.known.first_id() && proc.known.len() > 1 {
-            println!("Verifying that drift did not occur");
-            for op in proc.to_process.iter() {
-                println!("To-process op id: {}", op.id);
-            }
-            for op in self.log.ops.iter() {
-                println!("Log op id: {}", op.id);
-            }
             let mut iter = self.log.ops.iter();
             if iter.by_ref().find(|op| op.id == id).is_none() {
                 return ForwardError::EmptySync.into()
