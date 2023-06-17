@@ -6,6 +6,11 @@ use super::{
     ForwardError, OpSync, SyncError, TournamentManager,
 };
 
+mod manager;
+mod chain;
+pub use manager::*;
+pub use chain::*;
+
 pub type ServerBoundMessage = WebSocketMessage<ServerBound>;
 pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
 

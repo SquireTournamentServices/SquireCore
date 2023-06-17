@@ -11,6 +11,12 @@ pub enum SyncError {
     TournUpdated,
     /// At least one of the logs was empty
     EmptySync,
+    /// In order to start the syncing process, an initializing message needs to be sent. If it is
+    /// not present, this error is returned.
+    NotInitialized,
+    /// Once the initializing message has been set, there is no need to send it again. If that
+    /// happens, this error is returned.
+    AlreadyInitialized,
     /// The starting operation of the slice in unknown to the other log
     UnknownOperation(OpId),
     /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
@@ -59,7 +65,7 @@ pub enum RequestError {
     ///
     /// NOTE: This is either a bug in the client or server implementation or a malcisious/malformed
     /// client. In either case, the backend needs to log such problems.
-    OpCountIncreased(OpId),
+    OpCountIncreased,
     /// The sync request caused a tournament error to happen on agreed-on operations.
     ///
     /// NOTE: This is either a bug in squire_lib caused by non-deterministic operations or a

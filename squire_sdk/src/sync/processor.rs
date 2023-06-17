@@ -23,6 +23,14 @@ pub enum SyncCompletion {
     Mixed(OpSlice),
 }
 
+impl SyncCompletion {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::ForeignOnly(ops) | Self::Mixed(ops) => ops.len(),
+        }
+    }
+}
+
 /// This struct contain an in-progress sync. The processor is mostly used internally by the
 /// `TournamentManager` to process sync requests; however, it is also shared during the sync
 /// process so that the client can audit its log. Those methods produce an `OpDecision`.
@@ -41,6 +49,8 @@ impl SyncProcessor {
         self.to_process.pop_front();
         SyncDecision::Plucked(self)
     }
+    
+    pub fn left(&self) -> 
 
     /// This method is called by the client to decided how to process errors in the sync process.
     /// This method removes all of the remaining operations that it is trying to sync.
