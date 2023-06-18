@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, convert::Infallible, ops::FromResidual};
 
 use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::TournamentSeed};
 
@@ -7,7 +7,7 @@ use crate::sync::{FullOp, OpSlice, OpSync};
 use super::{
     processor::{SyncCompletion, SyncProcessor},
     ClientBound, ClientOpLink, Disagreement, ForwardError, RequestError, ServerBound, ServerOpLink,
-    SyncError, SyncForwardResp,
+    SyncError, SyncForwardResp, TournamentManager,
 };
 
 impl Default for OpSlice {
@@ -56,29 +56,9 @@ impl From<OpSync> for ClientBound {
     }
 }
 
-/* ---- ServerOpLink Helper Traits ---- */
-
-impl From<SyncProcessor> for ServerOpLink {
-    fn from(value: SyncProcessor) -> Self {
-        Self::Conflict(value)
-    }
-}
-
-impl From<SyncCompletion> for ServerOpLink {
-    fn from(value: SyncCompletion) -> Self {
-        Self::Completed(value)
-    }
-}
-
-impl From<bool> for ServerOpLink {
-    fn from(already_done: bool) -> Self {
-        Self::TerminatedSeen { already_done }
-    }
-}
-
-impl From<SyncError> for ServerOpLink {
-    fn from(value: SyncError) -> Self {
-        Self::Error(value)
+impl From<TournamentManager> for ClientBound {
+    fn from(value: TournamentManager) -> Self {
+        Self::FetchResp(value)
     }
 }
 
@@ -155,5 +135,43 @@ impl From<RequestError> for ForwardError {
 impl From<TournamentError> for ForwardError {
     fn from(value: TournamentError) -> Self {
         ForwardError::TournError(value)
+    }
+}
+
+/* ---- ServerOpLink Helper Traits ---- */
+
+impl From<SyncProcessor> for ServerOpLink {
+    fn from(value: SyncProcessor) -> Self {
+        Self::Conflict(value)
+    }
+}
+
+impl From<SyncCompletion> for ServerOpLink {
+    fn from(value: SyncCompletion) -> Self {
+        Self::Completed(value)
+    }
+}
+
+impl From<bool> for ServerOpLink {
+    fn from(already_done: bool) -> Self {
+        Self::TerminatedSeen { already_done }
+    }
+}
+
+impl From<SyncError> for ServerOpLink {
+    fn from(value: SyncError) -> Self {
+        Self::Error(value)
+    }
+}
+
+impl From<RequestError> for ServerOpLink {
+    fn from(value: RequestError) -> Self {
+        Self::Error(value.into())
+    }
+}
+
+impl FromResidual<Result<Infallible, SyncError>> for ServerOpLink {
+    fn from_residual(residual: Result<Infallible, SyncError>) -> Self {
+        Self::Error(residual.unwrap_err())
     }
 }

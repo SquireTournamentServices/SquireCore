@@ -84,19 +84,19 @@ impl ServerSyncManager {
         &mut self,
         id: &Ulid,
         msg: &ClientOpLink,
-    ) -> Result<(), Result<ServerOpLink, SyncError>> {
+    ) -> Result<(), ServerOpLink> {
         if let Some(chain) = self.sync_chains.get(id) {
             return chain.validate_client_message(&msg);
         }
         if let Some((client, server)) = self.completed_syncs.get(&id) {
             if client == msg {
-                let digest = Err(Ok(server.clone()));
+                let digest = Err(server.clone());
                 self.update_to_clear(id);
                 return digest;
             }
-            return Err(Err(SyncError::AlreadyCompleted));
+            return Err(SyncError::AlreadyCompleted.into());
         }
-        let chain = SyncChain::new(msg).map_err(Err)?;
+        let chain = SyncChain::new(msg)?;
         self.sync_chains.insert(*id, chain);
         Ok(())
     }
@@ -108,6 +108,13 @@ impl ServerSyncManager {
         self.completed_syncs.insert(id, comp);
         self.to_clear.push_back((id, Instant::now()));
         self.clear();
+    }
+    
+    /// Removes a chain from the in-progress map but does *not* insert it into the completed map.
+    /// The bool that is returned indicates if the sync had already been completed.
+    pub fn terminate_chain(&mut self, id: &Ulid) -> bool {
+        self.sync_chains.remove(id);
+        self.completed_syncs.contains_key(id)
     }
 
     fn clear(&mut self) {

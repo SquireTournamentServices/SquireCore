@@ -23,7 +23,11 @@ use tokio::{
 use ulid::Ulid;
 
 use crate::{
-    sync::{ClientBound, ClientBoundMessage, OpSync, ServerBound, ServerBoundMessage},
+    sync::{
+        processor::{SyncCompletion, SyncDecision},
+        ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
+        ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
+    },
     tournaments::TournamentManager,
 };
 
@@ -62,6 +66,7 @@ pub struct Gathering {
     ws_streams: SelectAll<Crier>,
     onlookers: HashMap<SquireAccountId, Onlooker>,
     persist: Sender<PersistMessage>,
+    syncs: ServerSyncManager,
 }
 
 impl Gathering {
@@ -77,6 +82,7 @@ impl Gathering {
             ws_streams: SelectAll::new(),
             onlookers: HashMap::with_capacity(count),
             persist,
+            syncs: ServerSyncManager::default(),
         }
     }
 
@@ -127,43 +133,107 @@ impl Gathering {
         let ServerBoundMessage { id, body } =
             match postcard::from_bytes::<ServerBoundMessage>(&bytes) {
                 Ok(val) => val,
-                Err(_) => todo!("Send a 'failed to deserialize message' to sender"),
+                Err(_) => {
+                    // TODO: Send a 'failed to deserialize message' to sender
+                    return;
+                }
             };
         match body {
             ServerBound::Fetch => {
-                if let Some(user) = self.onlookers.get_mut(&user) {
-                    let resp = ClientBoundMessage::new(ClientBound::FetchResp(self.tourn.clone()));
-                    let _ = user.send_msg(&resp).await;
-                }
+                self.send_message(user, self.tourn.clone()).await;
             }
-            _ => todo!(),
+            ServerBound::SyncChain(sync) => {
+                let link = self.handle_sync_request(id, sync);
+                // If completed, send forwarding requests
+                if let ServerOpLink::Completed(comp) = &link {
+                    self.send_forwarding(&user, comp).await;
+                }
+                self.send_reply(user, id, link).await;
+            }
+            ServerBound::ForwardResp(resp) => self.handle_forwarding_resp(resp),
+        }
+    }
+
+    /// Checks that validitity of the sync msg (both in the sync manager and against the user's
+    /// account info), processes the sync, updates the manager, and returns a response.
+    fn handle_sync_request(&mut self, id: Ulid, link: ClientOpLink) -> ServerOpLink {
+        if let Err(link) = self.syncs.validate_sync_message(&id, &link) {
+            return link;
+        }
+        match link.clone() {
+            ClientOpLink::Init(sync) => {
+                if let Err(err) = self.validate_sync_request(&sync) {
+                    return err.into();
+                }
+                // Process the init
+                let proc = self.tourn.init_sync(sync)?;
+                let resp = self.tourn.process_sync(proc);
+                // Convert into a resp
+                self.syncs.add_sync_link(id, link, resp.clone());
+                // Return resp
+                resp
+            }
+            ClientOpLink::Decision(SyncDecision::Plucked(proc)) => {
+                // Continue to try to resolve
+                let resp = self.tourn.process_sync(proc);
+                // Get resp
+                self.syncs.add_sync_link(id, link, resp.clone());
+                // Return resp
+                resp
+            }
+            ClientOpLink::Decision(SyncDecision::Purged(comp)) => {
+                // Apply and get resp
+                self.tourn.handle_completion(comp.clone())?;
+                // Return resp
+                comp.into()
+            }
+            ClientOpLink::Terminated => {
+                let already_done = self.syncs.terminate_chain(&id);
+                ServerOpLink::TerminatedSeen { already_done }
+            }
+        }
+    }
+
+    async fn send_message<C: Into<ClientBound>>(&mut self, id: SquireAccountId, msg: C) {
+        let msg = ClientBoundMessage::new(msg.into());
+        self.send_message_inner(id, msg).await;
+    }
+
+    async fn send_reply<C: Into<ClientBound>>(&mut self, user: SquireAccountId, id: Ulid, msg: C) {
+        let msg = ClientBoundMessage {
+            id,
+            body: msg.into(),
+        };
+        self.send_message_inner(user, msg).await;
+    }
+
+    async fn send_message_inner(&mut self, id: SquireAccountId, msg: ClientBoundMessage) {
+        if let Some(user) = self.onlookers.get_mut(&id) {
+            let _ = user.send_msg(&msg).await;
+        }
+    }
+
+    async fn send_forwarding(&mut self, id: &SquireAccountId, comp: &SyncCompletion) {
+        let (seed, owner) = self.tourn.seed_and_creator();
+        let sync = OpSync {
+            owner,
+            seed,
+            ops: comp.clone().as_slice(),
+        };
+        let msg = ClientBoundMessage::new(sync.into());
+        for (_, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != id) {
+            onlooker.send_msg(&msg).await;
         }
     }
 
     // TODO: Return an actual error
     // TODO: This method does not actually check to see if the person that sent the request is
     // allowed to send such a return. This will need to eventually change
-    fn validate_sync_request(&mut self, sync: &OpSync) -> Result<(), ()> {
+    fn validate_sync_request(&mut self, sync: &OpSync) -> Result<(), SyncError> {
         Ok(())
     }
 
-    // TODO: Return a "real" value
-    fn process_sync_request(&mut self, sync: OpSync) -> Result<(), ()> {
-        todo!()
-    }
-
-    /// This method handles dispatching the response to a sync request as well as any additional
-    /// forwarding any necessary requests to the other `Onlooker`s
-    async fn sync_request_response(&mut self, res: Result<(), ()>) {
-        match res {
-            Err(_) => {
-                // Respond back with the sync error
-            }
-            Ok(_) => {
-                // Respond back saying the sync was successful
-                // Forward the sync request/list of ops to all other clients
-            }
-        }
+    fn handle_forwarding_resp(&mut self, resp: SyncForwardResp) {
         todo!()
     }
 

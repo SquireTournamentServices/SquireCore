@@ -29,6 +29,12 @@ impl SyncCompletion {
             Self::ForeignOnly(ops) | Self::Mixed(ops) => ops.len(),
         }
     }
+
+    pub fn as_slice(self) -> OpSlice {
+        match self {
+            SyncCompletion::ForeignOnly(ops) | SyncCompletion::Mixed(ops) => ops,
+        }
+    }
 }
 
 /// This struct contain an in-progress sync. The processor is mostly used internally by the

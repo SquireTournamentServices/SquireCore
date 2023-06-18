@@ -72,19 +72,19 @@ impl SyncChain {
     pub fn validate_client_message(
         &self,
         msg: &ClientOpLink,
-    ) -> Result<(), Result<ServerOpLink, SyncError>> {
+    ) -> Result<(), ServerOpLink> {
         // TODO: Turn these panics into errors? This should only happen if a chain is created from
         // a Init message and then that message is validated.
         let last = self.links.last().unwrap();
         if msg == &last.0 {
-            return Err(Ok(last.1.clone()));
+            return Err(last.1.clone().into());
         }
         match msg {
-            ClientOpLink::Init(_) => Err(Err(SyncError::AlreadyInitialized)),
+            ClientOpLink::Init(_) => Err(SyncError::AlreadyInitialized.into()),
             ClientOpLink::Terminated => Ok(()),
             ClientOpLink::Decision(SyncDecision::Purged(c)) if c.len() < self.op_count => Ok(()),
             ClientOpLink::Decision(SyncDecision::Plucked(p)) if p.len() < self.op_count => Ok(()),
-            ClientOpLink::Decision(_) => Err(Err(RequestError::OpCountIncreased.into())),
+            ClientOpLink::Decision(_) => Err(RequestError::OpCountIncreased.into()),
         }
     }
 }
