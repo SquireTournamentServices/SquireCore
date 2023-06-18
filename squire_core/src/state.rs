@@ -6,10 +6,7 @@ use mongodb::{options::ClientOptions, Client as DbClient, Collection, Database};
 use squire_sdk::{
     model::{accounts::SquireAccount, tournament::TournamentSeed},
     server::{state::ServerState, User},
-    tournaments::{
-        OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
-        TournamentPreset,
-    },
+    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset},
     version::{ServerMode, Version},
 };
 
@@ -69,11 +66,7 @@ impl ServerState for AppState {
         }
     }
 
-    async fn create_tourn(
-        &self,
-        user: User,
-        seed: TournamentSeed,
-    ) -> TournamentManager {
+    async fn create_tourn(&self, user: User, seed: TournamentSeed) -> TournamentManager {
         todo!()
     }
 

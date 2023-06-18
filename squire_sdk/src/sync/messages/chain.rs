@@ -59,13 +59,7 @@ impl SyncChain {
             | ServerOpLink::Error(_) => Some((client, server)),
         }
     }
-}
 
-#[cfg(feature = "client")]
-impl SyncChain {}
-
-#[cfg(feature = "server")]
-impl SyncChain {
     /// Checks to see if an incoming message is valid and if we have already seen this message. If
     /// we have seen this message, we return `Err(Ok(ServerOpLink))`. This signals that the message
     /// should not be processed and instead, the returned message should be returned

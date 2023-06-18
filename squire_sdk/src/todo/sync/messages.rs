@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use squire_lib::error::TournamentError;
-use ulid::Ulid;
 
 use super::{OpSync, TournamentManager, SyncError, OpId};
 
@@ -10,7 +9,7 @@ pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct WebSocketMessage<B> {
     /// The transaction id used to group requests/responses
-    pub id: Ulid,
+    pub id: Uuid,
     /// The main payload being send to the receiver
     pub body: B,
 }
