@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use ulid::Ulid;
+use uuid::Uuid;
 
 use super::{
     processor::{SyncCompletion, SyncDecision, SyncProcessor},
@@ -17,7 +17,7 @@ pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct WebSocketMessage<B> {
     /// The transaction id used to group requests/responses
-    pub id: Ulid,
+    pub id: Uuid,
     /// The main payload being send to the receiver
     pub body: B,
 }
@@ -25,12 +25,12 @@ pub struct WebSocketMessage<B> {
 impl<B> WebSocketMessage<B> {
     pub fn new(body: B) -> Self {
         Self {
-            id: Ulid::new(),
+            id: Uuid::new_v4(),
             body,
         }
     }
 
-    pub fn new_with_id(id: Ulid, body: B) -> Self {
+    pub fn new_with_id(id: Uuid, body: B) -> Self {
         Self { id, body }
     }
 
@@ -79,7 +79,7 @@ pub enum ServerBound {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ClientBound {
     /// The client has requested a copy of the tournament data. This is that copy.
-    FetchResp(TournamentManager),
+    FetchResp(Box<TournamentManager>),
     /// The client has started the process of syncing tournament data with the server. This encodes
     /// the server's message in the sync message chain.
     SyncChain(ServerOpLink),

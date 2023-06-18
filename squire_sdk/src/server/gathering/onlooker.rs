@@ -46,6 +46,8 @@ impl Onlooker {
     }
 
     pub async fn send_msg(&mut self, msg: &ClientBoundMessage) -> Result<(), AxumError> {
+        let bytes = postcard::to_allocvec(msg).unwrap();
+        let _: ClientBoundMessage = postcard::from_bytes(&bytes).unwrap();
         let bytes = Message::Binary(postcard::to_allocvec(msg).unwrap());
         self.send(bytes).await
     }

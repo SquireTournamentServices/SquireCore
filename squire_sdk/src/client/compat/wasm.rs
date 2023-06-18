@@ -30,6 +30,10 @@ pub async fn rest(dur: Duration) {
     gloo_timers::future::sleep(dur).await;
 }
 
+pub fn log(msg: &str) {
+    web_sys::console::log_1(&msg.into());
+}
+
 /* ------ Session ------ */
 
 /// A structure that the client uses to track its current session with the backend. A session
@@ -65,7 +69,7 @@ impl Websocket {
     /// compatability reason between the native and WASM Websockets, the request that is sent needs
     /// to be a simple get request.
     pub async fn new(url: &str) -> Result<Self, ()> {
-        GlooSocket::open(url).map(Websocket).map_err(forget)
+        GlooSocket::open(url).map(Websocket).map_err(|err| panic!("{err}"))
     }
 }
 

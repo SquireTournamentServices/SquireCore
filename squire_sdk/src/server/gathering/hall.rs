@@ -19,7 +19,6 @@ use tokio::{
     },
     time::Instant,
 };
-use ulid::Ulid;
 
 use crate::{
     sync::{ClientBound, ClientBoundMessage, OpSync, ServerBound, ServerBoundMessage},
@@ -161,7 +160,7 @@ impl<S: ServerState> GatheringHall<S> {
     }
 
     async fn get_tourn(&self, id: &TournamentId) -> Option<TournamentManager> {
-        match self.gatherings.get(&id) {
+        match self.gatherings.get(id) {
             Some(handle) => {
                 //  Ask the gathering for a copy of the tournament
                 let (send, recv) = oneshot_channel();

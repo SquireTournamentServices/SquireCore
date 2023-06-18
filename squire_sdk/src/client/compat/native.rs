@@ -39,6 +39,10 @@ pub async fn rest(dur: Duration) {
     tokio::time::sleep(dur).await;
 }
 
+pub fn log(msg: &str) {
+    println!("{msg}");
+}
+
 /* ------ Session ------ */
 
 /// A structure that the client uses to track its current session with the backend. A session
@@ -81,7 +85,7 @@ impl Websocket {
         tokio_tungstenite::connect_async(url)
             .await
             .map(|(ws, _)| Websocket(ws))
-            .map_err(forget)
+            .map_err(|err| panic!("{err}"))
     }
 }
 
