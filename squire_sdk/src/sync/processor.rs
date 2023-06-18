@@ -49,8 +49,11 @@ impl SyncProcessor {
         self.to_process.pop_front();
         SyncDecision::Plucked(self)
     }
-    
-    pub fn left(&self) -> 
+
+    /// Calculates number of foreign operations
+    pub fn len(&self) -> usize {
+        self.processed.len() + self.to_process.len()
+    }
 
     /// This method is called by the client to decided how to process errors in the sync process.
     /// This method removes all of the remaining operations that it is trying to sync.

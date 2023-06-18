@@ -15,8 +15,8 @@ pub struct SyncChain {
 impl SyncChain {
     /// Creates a new chain from a client message. If the message is not `ClientOpLink::Init`, an
     /// error is returned.
-    pub fn new(ops: ClientOpLink) -> Result<Self, SyncError> {
-        match ops {
+    pub fn new(op: &ClientOpLink) -> Result<Self, SyncError> {
+        match op {
             ClientOpLink::Init(sync) => {
                 let op_count = sync.len();
                 Ok(Self {
@@ -83,7 +83,7 @@ impl SyncChain {
             ClientOpLink::Init(_) => Err(Err(SyncError::AlreadyInitialized)),
             ClientOpLink::Terminated => Ok(()),
             ClientOpLink::Decision(SyncDecision::Purged(c)) if c.len() < self.op_count => Ok(()),
-            ClientOpLink::Decision(SyncDecision::Plucked(p)) if p.left() < self.op_count => Ok(()),
+            ClientOpLink::Decision(SyncDecision::Plucked(p)) if p.len() < self.op_count => Ok(()),
             ClientOpLink::Decision(_) => Err(Err(RequestError::OpCountIncreased.into())),
         }
     }
