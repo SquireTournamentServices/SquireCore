@@ -17,6 +17,8 @@ pub enum SyncError {
     /// Once the initializing message has been set, there is no need to send it again. If that
     /// happens, this error is returned.
     AlreadyInitialized,
+    /// A message, that wasn't the last known message, has been sent after the chain has completed.
+    AlreadyCompleted,
     /// The starting operation of the slice in unknown to the other log
     UnknownOperation(OpId),
     /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)

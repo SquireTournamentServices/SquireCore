@@ -121,26 +121,27 @@ impl OpLog {
     pub(crate) fn last_id(&self) -> Option<OpId> {
         self.ops.last().map(|op| op.id)
     }
-    
+
     /// This method is intended to be used in the syncing process.
     /// It takes an iterator over `FullOp`s. The first yielded operation is anchored to back the log.
     /// Then, the rest of the log is iterated over and zipped with the given iterator. The log
     /// should contain no new operations; otherwise, it an update has occured. The given iterator
     /// could (and probably does) contain operations past the end of the log. The iterator is then
     /// returned and will only yield those new elements.
-    /// 
+    ///
     /// NOTE: This method does *not* caught empty Sycn request. That must be handled elsewhere.
     pub(crate) fn get_unknown_ops<I>(&self, mut iter: I) -> Result<I, SyncError>
-        where I: Iterator<Item = FullOp>
+    where
+        I: Iterator<Item = FullOp>,
     {
         let Some(op) = iter.next() else { return Ok(iter) };
         let id = op.id;
         let mut log_iter = self.ops.iter();
         if log_iter.by_ref().find(|op| op.id == id).is_none() {
-            return Err(SyncError::UnknownOperation(id))
+            return Err(SyncError::UnknownOperation(id));
         }
         if log_iter.zip(iter.by_ref()).any(|(a, b)| a.id != b.id) {
-            return Err(SyncError::TournUpdated)
+            return Err(SyncError::TournUpdated);
         }
         Ok(iter)
     }

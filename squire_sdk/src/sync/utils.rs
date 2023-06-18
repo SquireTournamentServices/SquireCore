@@ -6,7 +6,8 @@ use crate::sync::{FullOp, OpSlice, OpSync};
 
 use super::{
     processor::{SyncCompletion, SyncProcessor},
-    Disagreement, ForwardError, OpId, RequestError, ServerOpLink, SyncError, SyncForwardResp,
+    ClientBound, ClientOpLink, Disagreement, ForwardError, RequestError, ServerBound, ServerOpLink,
+    SyncError, SyncForwardResp,
 };
 
 impl Default for OpSlice {
@@ -24,6 +25,34 @@ impl From<VecDeque<FullOp>> for OpSlice {
 impl From<OpSync> for OpSlice {
     fn from(s: OpSync) -> OpSlice {
         s.ops
+    }
+}
+
+/* ---- ServerBound Helper Traits ---- */
+
+impl From<ClientOpLink> for ServerBound {
+    fn from(value: ClientOpLink) -> Self {
+        Self::SyncChain(value)
+    }
+}
+
+impl From<SyncForwardResp> for ServerBound {
+    fn from(value: SyncForwardResp) -> Self {
+        Self::ForwardResp(value)
+    }
+}
+
+/* ---- ClientBound Helper Traits ---- */
+
+impl From<ServerOpLink> for ClientBound {
+    fn from(value: ServerOpLink) -> Self {
+        Self::SyncChain(value)
+    }
+}
+
+impl From<OpSync> for ClientBound {
+    fn from(value: OpSync) -> Self {
+        Self::SyncForward(value)
     }
 }
 
@@ -72,12 +101,6 @@ impl From<Disagreement<TournamentSeed>> for SyncError {
     }
 }
 
-impl From<OpId> for SyncError {
-    fn from(value: OpId) -> Self {
-        Self::InvalidRequest(value.into())
-    }
-}
-
 impl From<TournamentError> for SyncError {
     fn from(value: TournamentError) -> Self {
         Self::InvalidRequest(value.into())
@@ -94,12 +117,6 @@ impl From<Disagreement<TournamentSeed>> for RequestError {
 impl From<Disagreement<SquireAccount>> for RequestError {
     fn from(value: Disagreement<SquireAccount>) -> Self {
         Self::WrongAccount(value)
-    }
-}
-
-impl From<OpId> for RequestError {
-    fn from(value: OpId) -> Self {
-        Self::OpCountIncreased(value)
     }
 }
 
