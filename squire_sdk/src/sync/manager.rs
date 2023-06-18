@@ -75,6 +75,10 @@ impl TournamentManager {
         self.tourn = buffer;
         Ok(OpData::Nothing)
     }
+    
+    pub fn seed_and_creator(&self) -> (TournamentSeed, SquireAccount) {
+        (self.log.seed.clone(), self.log.owner.clone())
+    }
 }
 
 #[cfg(feature = "server")]
