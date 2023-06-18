@@ -38,7 +38,7 @@ pub enum ForwardError {
     /// NOTE: This is likely an un-recoverable error. Either the two tournaments do not have the
     /// same history of events or the tournament is acting non-deterministically. These error need
     /// to be logged.
-    TournError(TournamentError),
+    TournError(Box<TournamentError>),
 }
 
 /// This struct encodes a pair of objects that ought to match but don't.

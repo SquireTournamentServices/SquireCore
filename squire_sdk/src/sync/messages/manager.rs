@@ -36,10 +36,13 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
-use ulid::Ulid;
+use instant::Instant;
+
+use squire_lib::tournament::TournamentId;
+use uuid::Uuid;
 
 use crate::sync::SyncError;
 
@@ -51,28 +54,28 @@ const RETRY_TIMER: Duration = Duration::from_millis(250);
 /// Tracks messages chains on the server side used during the syncing process.
 #[derive(Debug, Default)]
 pub struct ServerSyncManager {
-    sync_chains: HashMap<Ulid, SyncChain>,
-    completed_syncs: HashMap<Ulid, (ClientOpLink, ServerOpLink)>,
+    sync_chains: HashMap<Uuid, SyncChain>,
+    completed_syncs: HashMap<Uuid, (ClientOpLink, ServerOpLink)>,
     /// After a message chain is completed, it is removed from the in-process map to the completed
     /// map. Completed messages need to stick around for some time since messages can be lost in
     /// transit. To know when a completed message should be cleared, we track the last time that it
     /// was it was used. When a message is used, its tracker is removed from this queue and
     /// reinserted with the current time. This maintains the ordering of the queue, oldest in the
     /// front and newest in the back.
-    to_clear: VecDeque<(Ulid, Instant)>,
+    to_clear: TimerStack,
 }
 
 #[derive(Debug, Default)]
 pub struct ClientSyncManager {
-    queued: Option<ClientSyncManagerInner>,
+    syncs: HashMap<Uuid, ClientSyncTracker>,
+    to_retry: TimerStack,
 }
 
 #[derive(Debug)]
-struct ClientSyncManagerInner {
-    id: Ulid,
+struct ClientSyncTracker {
+    id: TournamentId,
     current: ClientOpLink,
     chain: SyncChain,
-    last_updated: Instant,
 }
 
 impl ServerSyncManager {
@@ -82,16 +85,16 @@ impl ServerSyncManager {
 
     pub fn validate_sync_message(
         &mut self,
-        id: &Ulid,
+        id: &Uuid,
         msg: &ClientOpLink,
     ) -> Result<(), ServerOpLink> {
         if let Some(chain) = self.sync_chains.get(id) {
-            return chain.validate_client_message(&msg);
+            return chain.validate_client_message(msg);
         }
-        if let Some((client, server)) = self.completed_syncs.get(&id) {
+        if let Some((client, server)) = self.completed_syncs.get(id) {
             if client == msg {
                 let digest = Err(server.clone());
-                self.update_to_clear(id);
+                self.to_clear.update_timer(id);
                 return digest;
             }
             return Err(SyncError::AlreadyCompleted.into());
@@ -101,33 +104,21 @@ impl ServerSyncManager {
         Ok(())
     }
 
-    pub fn add_sync_link(&mut self, id: Ulid, client: ClientOpLink, server: ServerOpLink) {
+    pub fn add_sync_link(&mut self, id: Uuid, client: ClientOpLink, server: ServerOpLink) {
         let Some(chain) = self.sync_chains.get_mut(&id) else { return };
         let Some(comp) = chain.add_link(client, server) else { return };
         self.sync_chains.remove(&id);
         self.completed_syncs.insert(id, comp);
-        self.to_clear.push_back((id, Instant::now()));
-        self.clear();
+        self.to_clear.add_timer(id);
+        self.to_clear.clear(TO_CLEAR_TIME_LIMIT);
     }
-    
+
     /// Removes a chain from the in-progress map but does *not* insert it into the completed map.
     /// The bool that is returned indicates if the sync had already been completed.
-    pub fn terminate_chain(&mut self, id: &Ulid) -> bool {
+    pub fn terminate_chain(&mut self, id: &Uuid) -> bool {
         self.sync_chains.remove(id);
+        self.to_clear.remove_timer(id);
         self.completed_syncs.contains_key(id)
-    }
-
-    fn clear(&mut self) {
-        while let Some(timer) = self.to_clear.front() && timer.1.elapsed() >= TO_CLEAR_TIME_LIMIT {
-            self.to_clear.pop_front();
-        }
-    }
-
-    fn update_to_clear(&mut self, msg_id: &Ulid) {
-        let Some(index) = self.to_clear.iter().enumerate().find_map(|(i, (id, _))| (msg_id == id).then_some(i)) else { return };
-        let Some(mut msg) = self.to_clear.remove(index) else { return };
-        msg.1 = Instant::now();
-        self.to_clear.push_back(msg);
     }
 }
 
@@ -136,58 +127,63 @@ impl ClientSyncManager {
         Self::default()
     }
 
-    pub fn validate_server_msg(&self, id: &Ulid) -> bool {
-        self.queued
-            .as_ref()
-            .map(|inner| &inner.id == id)
-            .unwrap_or_default()
+    pub fn get_tourn_id(&self, id: &Uuid) -> Option<TournamentId> {
+        self.syncs.get(id).map(|inner| inner.id)
     }
 
-    pub fn initialize_chain(&mut self, id: Ulid, msg: ClientOpLink) -> Result<(), SyncError> {
-        let inner = ClientSyncManagerInner::new(id, msg)?;
-        self.queued.insert(inner);
+    pub fn validate_server_msg(&self, id: &Uuid) -> bool {
+        self.syncs.contains_key(id)
+    }
+
+    pub fn initialize_chain(
+        &mut self,
+        id: Uuid,
+        t_id: TournamentId,
+        msg: ClientOpLink,
+    ) -> Result<(), SyncError> {
+        let inner = ClientSyncTracker::new(t_id, msg)?;
+        self.syncs.insert(id, inner);
+        self.to_retry.add_timer(id);
         Ok(())
     }
 
-    pub fn progress_chain(&mut self, id: &Ulid, client: ClientOpLink, server: ServerOpLink) {
-        if let Some(inner) = self.queued.as_mut() && &inner.id == id && inner.progress(client, server) {
-            self.finalize_chain();
+    pub fn progress_chain(&mut self, id: &Uuid, client: ClientOpLink, server: ServerOpLink) {
+        if let Some(inner) = self.syncs.get_mut(id) && inner.progress(client, server) {
+            self.finalize_chain(id);
         }
+        self.to_retry.update_timer(id);
     }
 
-    pub fn finalize_chain(&mut self) {
-        self.queued.take();
+    pub fn finalize_chain(&mut self, id: &Uuid) {
+        self.syncs.remove(id);
+        self.to_retry.remove_timer(id);
     }
 
-    pub fn retry<'a>(&'a self) -> MessageRetry<'a> {
-        MessageRetry {
-            inner: self.queued.as_ref(),
-        }
+    pub fn retry(&self) -> MessageRetry<'_> {
+        let inner = self
+            .to_retry
+            .iter()
+            .find_map(|(id, timer)| self.syncs.get(id).map(|tracker| (*id, timer, tracker)));
+        MessageRetry { inner }
     }
 }
 
-impl ClientSyncManagerInner {
-    pub fn new(id: Ulid, current: ClientOpLink) -> Result<Self, SyncError> {
+impl ClientSyncTracker {
+    pub fn new(id: TournamentId, current: ClientOpLink) -> Result<Self, SyncError> {
         let chain = SyncChain::new(&current)?;
-        let last_updated = Instant::now();
-        Ok(Self {
-            id,
-            current,
-            chain,
-            last_updated,
-        })
+        Ok(Self { id, current, chain })
     }
 
     /// Progresses the chain. Return if the chain is complete or not.
     pub fn progress(&mut self, mut client: ClientOpLink, server: ServerOpLink) -> bool {
         std::mem::swap(&mut self.current, &mut client);
-        self.last_updated = Instant::now();
         self.chain.add_link(client, server).is_some()
     }
 }
 
+/// Tracks the next message that need to be retried.
 pub struct MessageRetry<'a> {
-    inner: Option<&'a ClientSyncManagerInner>,
+    inner: Option<(Uuid, &'a Instant, &'a ClientSyncTracker)>,
 }
 
 impl Future for MessageRetry<'_> {
@@ -195,14 +191,54 @@ impl Future for MessageRetry<'_> {
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.inner.as_ref() {
-            Some(inner) if inner.last_updated.elapsed() >= RETRY_TIMER => {
+            Some(inner) if inner.1.elapsed() >= RETRY_TIMER => {
                 let msg = ServerBoundMessage {
-                    id: inner.id,
-                    body: inner.current.clone().into(),
+                    id: inner.0,
+                    body: inner.2.current.clone().into(),
                 };
                 Poll::Ready(msg)
             }
             _ => Poll::Pending,
         }
+    }
+}
+
+#[derive(Debug, Default)]
+struct TimerStack {
+    queue: VecDeque<(Uuid, Instant)>,
+}
+
+impl TimerStack {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn add_timer(&mut self, id: Uuid) {
+        self.queue.push_back((id, Instant::now()));
+    }
+
+    fn update_timer(&mut self, id: &Uuid) {
+        let Some(mut timer) = self.remove_timer(id) else { return };
+        timer.1 = Instant::now();
+        self.queue.push_back(timer);
+    }
+
+    fn remove_timer(&mut self, id: &Uuid) -> Option<(Uuid, Instant)> {
+        let index = self
+            .queue
+            .iter()
+            .enumerate()
+            .find_map(|(i, (timer_id, _))| (id == timer_id).then_some(i))?;
+        self.queue.remove(index)
+    }
+
+    fn clear(&mut self, limit: Duration) {
+        while let Some(timer) = self.queue.front() && timer.1.elapsed() >= limit {
+            self.queue.pop_front();
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &(Uuid, Instant)> {
+        self.queue.iter()
     }
 }

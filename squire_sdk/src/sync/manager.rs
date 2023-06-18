@@ -75,9 +75,24 @@ impl TournamentManager {
         self.tourn = buffer;
         Ok(OpData::Nothing)
     }
-    
+
     pub fn seed_and_creator(&self) -> (TournamentSeed, SquireAccount) {
         (self.log.seed.clone(), self.log.owner.clone())
+    }
+
+    /// This method handles a completed sync request returned from the server.
+    pub fn handle_completion(&mut self, comp: SyncCompletion) -> Result<(), SyncError> {
+        // TODO: Ensure that the tournament has not updated
+        match comp {
+            // The client's operations were the only operations. There is nothing to update
+            SyncCompletion::ForeignOnly(_) => Ok(()),
+            SyncCompletion::Mixed(ops) => {
+                let Some(id) = ops.first_id() else { return Err(SyncError::EmptySync) };
+                let Some(tourn) = self.log.get_state_with_slice(ops) else { return Err(SyncError::UnknownOperation(id)) };
+                self.tourn = tourn;
+                Ok(())
+            }
+        }
     }
 }
 
@@ -138,21 +153,6 @@ impl TournamentManager {
         self.log.create_sync_request(self.last_sync)
     }
 
-    /// This method handles a completed sync request returned from the server.
-    pub fn handle_completion(&mut self, comp: SyncCompletion) -> Result<(), SyncError> {
-        // TODO: Ensure that the tournament has not updated
-        match comp {
-            // The client's operations were the only operations. There is nothing to update
-            SyncCompletion::ForeignOnly(_) => Ok(()),
-            SyncCompletion::Mixed(ops) => {
-                let Some(id) = ops.first_id() else { return Err(SyncError::EmptySync) };
-                let Some(tourn) = self.log.get_state_with_slice(ops) else { return Err(SyncError::UnknownOperation(id)) };
-                self.tourn = tourn;
-                Ok(())
-            }
-        }
-    }
-
     /// Handles an sync request that is forwarded from the backend.
     pub fn handle_forwarded_sync(&mut self, sync: OpSync) -> SyncForwardResp {
         println!("Processing forwarded sync request");
@@ -165,6 +165,10 @@ impl TournamentManager {
                     }
                     SyncError::EmptySync => ForwardError::EmptySync.into(),
                     SyncError::InvalidRequest(err) => err.into(),
+                    // TODO: Figure out what to do here... They shouldn't happen
+                    SyncError::NotInitialized => todo!(),
+                    SyncError::AlreadyInitialized => todo!(),
+                    SyncError::AlreadyCompleted => todo!(),
                 }
             }
         };
@@ -179,7 +183,7 @@ impl TournamentManager {
         //  Proc to_process: common ops | new ops
         if let Some(id) = proc.known.first_id() && proc.known.len() > 1 {
             let mut iter = self.log.ops.iter();
-            if iter.by_ref().find(|op| op.id == id).is_none() {
+            if iter.by_ref().all(|op| op.id != id) {
                 return ForwardError::EmptySync.into()
             }
             if iter.zip(proc.to_process.iter()).any(|(a, b)| { println!("Checking ops: {}, {}", a.id, b.id); a != b }) {

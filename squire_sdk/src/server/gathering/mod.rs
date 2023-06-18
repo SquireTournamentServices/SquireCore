@@ -20,7 +20,7 @@ use tokio::{
     },
     time::Instant,
 };
-use ulid::Ulid;
+use uuid::Uuid;
 
 use crate::{
     sync::{
@@ -114,6 +114,7 @@ impl Gathering {
         match msg {
             GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
             GatheringMessage::NewConnection(user, ws) => {
+                println!("Get new connection!!");
                 let (sink, stream) = ws.split();
                 let crier = Crier::new(stream, user.account.id);
                 let onlooker = Onlooker::new(sink);
@@ -140,6 +141,7 @@ impl Gathering {
             };
         match body {
             ServerBound::Fetch => {
+                println!("Got fetch request");
                 self.send_message(user, self.tourn.clone()).await;
             }
             ServerBound::SyncChain(sync) => {
@@ -156,7 +158,7 @@ impl Gathering {
 
     /// Checks that validitity of the sync msg (both in the sync manager and against the user's
     /// account info), processes the sync, updates the manager, and returns a response.
-    fn handle_sync_request(&mut self, id: Ulid, link: ClientOpLink) -> ServerOpLink {
+    fn handle_sync_request(&mut self, id: Uuid, link: ClientOpLink) -> ServerOpLink {
         if let Err(link) = self.syncs.validate_sync_message(&id, &link) {
             return link;
         }
@@ -199,7 +201,7 @@ impl Gathering {
         self.send_message_inner(id, msg).await;
     }
 
-    async fn send_reply<C: Into<ClientBound>>(&mut self, user: SquireAccountId, id: Ulid, msg: C) {
+    async fn send_reply<C: Into<ClientBound>>(&mut self, user: SquireAccountId, id: Uuid, msg: C) {
         let msg = ClientBoundMessage {
             id,
             body: msg.into(),
@@ -226,7 +228,6 @@ impl Gathering {
         }
     }
 
-    // TODO: Return an actual error
     // TODO: This method does not actually check to see if the person that sent the request is
     // allowed to send such a return. This will need to eventually change
     fn validate_sync_request(&mut self, sync: &OpSync) -> Result<(), SyncError> {

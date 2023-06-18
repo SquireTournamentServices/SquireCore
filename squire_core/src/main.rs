@@ -22,7 +22,7 @@ use squire_sdk::{
     response::SquireResponse,
     server::{self, state::ServerState, User},
     tournaments::{
-        OpSync, Rollback, RollbackError, SyncStatus, TournamentId, TournamentManager,
+        OpSync, TournamentId, TournamentManager,
         TournamentPreset,
     },
     version::{ServerMode, Version},
@@ -42,7 +42,7 @@ pub async fn init() {}
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>(state.clone())
         //.extend(TOURNAMENTS_ROUTE, tournaments::get_routes())
-        .into()
+        .into_router()
         .route("/", get(assets::landing))
         .route("/squire_web_bg.wasm", get(assets::get_wasm))
         .route("/squire_web.js", get(assets::get_js))

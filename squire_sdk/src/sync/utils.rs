@@ -5,7 +5,7 @@ use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::To
 use crate::sync::{FullOp, OpSlice, OpSync};
 
 use super::{
-    processor::{SyncCompletion, SyncProcessor},
+    processor::{SyncCompletion, SyncProcessor, SyncDecision},
     ClientBound, ClientOpLink, Disagreement, ForwardError, RequestError, ServerBound, ServerOpLink,
     SyncError, SyncForwardResp, TournamentManager,
 };
@@ -58,7 +58,7 @@ impl From<OpSync> for ClientBound {
 
 impl From<TournamentManager> for ClientBound {
     fn from(value: TournamentManager) -> Self {
-        Self::FetchResp(value)
+        Self::FetchResp(Box::new(value))
     }
 }
 
@@ -134,7 +134,21 @@ impl From<RequestError> for ForwardError {
 
 impl From<TournamentError> for ForwardError {
     fn from(value: TournamentError) -> Self {
-        ForwardError::TournError(value)
+        ForwardError::TournError(Box::new(value))
+    }
+}
+
+/* ---- ClientOpLink Helper Traits ---- */
+
+impl From<OpSync> for ClientOpLink {
+    fn from(value: OpSync) -> Self {
+        Self::Init(value)
+    }
+}
+
+impl From<SyncDecision> for ClientOpLink {
+    fn from(value: SyncDecision) -> Self {
+        Self::Decision(value)
     }
 }
 
