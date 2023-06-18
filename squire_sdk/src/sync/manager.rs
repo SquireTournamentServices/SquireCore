@@ -182,7 +182,7 @@ impl TournamentManager {
                 return SyncForwardResp::Aborted
             }
         } // TODO: None case? Error?
-        // FIXME: Ignore all to_process operations that we have seen
+          // FIXME: Ignore all to_process operations that we have seen
         match self.bulk_apply_ops_inner(proc.to_process.into_iter()) {
             Err(err) => err.into(),
             Ok(_) => SyncForwardResp::Success,
@@ -455,9 +455,13 @@ mod tests {
     fn conflicted_forwarded_sync() {}
 
     // Remaining test cases:
-    //  A client updates at any point in the syncing process
-    //  The server updates at any point in the syncing process
-    //  Sanity checks for all error cases captured by SyncError
-    //  Multi-stage "random" test where c1 and c2 take turns sending updates to the tournament
+    //   - A client updates at any point in the syncing process
+    //   - The server updates at any point in the syncing process
+    //   - Sanity checks for all error cases captured by SyncError
+    //   - Multi-stage "random" test where c1 and c2 take turns sending updates to the tournament
     //  (~10 cycles). This tests how the `last_updated` OpId is tracked
+    //   - C1 sends a sync request to server. Sync completes but the completion is not sent to the
+    //   C1. C1 sends a new sync request. Sync request should automatically complete. Test both
+    //   ForeignOnly and Mixed completion and with(out) the tournament get other updates (four
+    //   cases)
 }

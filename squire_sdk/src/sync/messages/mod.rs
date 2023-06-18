@@ -6,10 +6,10 @@ use super::{
     ForwardError, OpSync, SyncError, TournamentManager,
 };
 
-mod manager;
 mod chain;
-pub use manager::*;
+mod manager;
 pub use chain::*;
+pub use manager::*;
 
 pub type ServerBoundMessage = WebSocketMessage<ServerBound>;
 pub type ClientBoundMessage = WebSocketMessage<ClientBound>;
@@ -72,7 +72,7 @@ pub enum ServerBound {
     SyncChain(ClientOpLink),
     /// The backend has sent operations that need to be synced with the client. This is the
     /// client's response.
-    SyncResp(SyncForwardResp),
+    ForwardResp(SyncForwardResp),
 }
 
 /// This type encodes all of the messages that the backend might send to a client via a Websocket.
