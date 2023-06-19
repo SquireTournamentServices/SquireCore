@@ -27,6 +27,7 @@ jobs:
         uses: jetli/trunk-action@v0.4.0
         with:
           version: 'latest'
+      - run: cargo fmt --check --package squire_core
       - run: cargo build --package squire_core --verbose
       - run: cargo test --package squire_core --verbose
       - run: cargo doc --package squire_core --verbose
