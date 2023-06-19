@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: wget -qO- https://github.com/thedodd/trunk/releases/download/v0.16.0/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
       - run: pwd >> $GITHUB_PATH
+      - run: cargo fmt --check --manifest-path squire_web/Cargo.toml
       - run: cargo build --manifest-path squire_web/Cargo.toml --verbose
       #FIXME: - run: cargo test --package squire_web --target=wasm32-unknown-unknown --verbose
       - run: cargo doc --manifest-path squire_web/Cargo.toml --verbose

@@ -22,6 +22,7 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
       - uses: actions/checkout@v3
+      - run: cargo fmt --check --package squire_lib
       - run: cargo build --package squire_lib --verbose
       - run: cargo test --package squire_lib --verbose
       - run: cargo doc --package squire_lib --verbose
