@@ -31,6 +31,10 @@
 //!  - A copy is tracked as the response might be dropped in transit and the response needs to be
 //!  resent
 
+// TODO: Add max retries for both the client sync manager and the server forwarding manager. They
+// should not try after the other end suspects a hangful. In other words, the max retries should
+// not exceed TO_CLEAR_TIME_LIMIT / RETRY_LIMIT.
+
 use std::{
     collections::{HashMap, VecDeque},
     future::Future,
@@ -41,15 +45,18 @@ use std::{
 
 use instant::Instant;
 
-use squire_lib::tournament::TournamentId;
+use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use uuid::Uuid;
 
-use crate::sync::SyncError;
+use crate::sync::{OpSync, SyncError};
 
-use super::{ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain};
+use super::{
+    ClientBound, ClientBoundMessage, ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain,
+    SyncForwardResp,
+};
 
 const TO_CLEAR_TIME_LIMIT: Duration = Duration::from_secs(10);
-const RETRY_TIMER: Duration = Duration::from_millis(250);
+const RETRY_LIMIT: Duration = Duration::from_millis(250);
 
 /// Tracks messages chains on the server side used during the syncing process.
 #[derive(Debug, Default)]
@@ -159,6 +166,10 @@ impl ClientSyncManager {
         self.to_retry.remove_timer(id);
     }
 
+    pub fn update_timer(&mut self, id: &Uuid) {
+        self.to_retry.update_timer(id);
+    }
+
     pub fn retry(&self) -> MessageRetry<'_> {
         let inner = self
             .to_retry
@@ -187,16 +198,16 @@ pub struct MessageRetry<'a> {
 }
 
 impl Future for MessageRetry<'_> {
-    type Output = ServerBoundMessage;
+    type Output = (TournamentId, ServerBoundMessage);
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.inner.as_ref() {
-            Some(inner) if inner.1.elapsed() >= RETRY_TIMER => {
+            Some(inner) if inner.1.elapsed() >= RETRY_LIMIT => {
                 let msg = ServerBoundMessage {
                     id: inner.0,
                     body: inner.2.current.clone().into(),
                 };
-                Poll::Ready(msg)
+                Poll::Ready((inner.2.id, msg))
             }
             _ => Poll::Pending,
         }
@@ -209,10 +220,6 @@ struct TimerStack {
 }
 
 impl TimerStack {
-    fn new() -> Self {
-        Self::default()
-    }
-
     fn add_timer(&mut self, id: Uuid) {
         self.queue.push_back((id, Instant::now()));
     }
@@ -240,5 +247,90 @@ impl TimerStack {
 
     fn iter(&self) -> impl Iterator<Item = &(Uuid, Instant)> {
         self.queue.iter()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ServerForwardingManager {
+    outbound: HashMap<Uuid, (SquireAccountId, TournamentId, OpSync)>,
+    timers: TimerStack,
+}
+
+impl ServerForwardingManager {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add_msg(&mut self, id: Uuid, user: SquireAccountId, t_id: TournamentId, msg: OpSync) {
+        self.outbound.insert(id, (user, t_id, msg));
+        self.timers.add_timer(id);
+    }
+
+    pub fn terminate_chain(&mut self, id: &Uuid) {
+        self.outbound.remove(id);
+        self.timers.remove_timer(id);
+    }
+
+    pub fn update_timer(&mut self, id: &Uuid) {
+        self.timers.update_timer(id);
+    }
+
+    pub fn forward_retry(&self) -> ForwardingRetry<'_> {
+        let inner = self.timers.iter().find_map(|(id, timer)| {
+            self.outbound
+                .get(id)
+                .map(|(user, t_id, msg)| (*id, timer, user, t_id, msg))
+        });
+        ForwardingRetry { inner }
+    }
+}
+
+/// Tracks the next forwarded sync that needs to be retried.
+pub struct ForwardingRetry<'a> {
+    inner: Option<(Uuid, &'a Instant, &'a SquireAccountId, &'a TournamentId, &'a OpSync)>,
+}
+
+impl Future for ForwardingRetry<'_> {
+    type Output = (SquireAccountId, ClientBoundMessage);
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.inner.as_ref() {
+            Some(inner) if inner.1.elapsed() >= RETRY_LIMIT => {
+                let body: ClientBound = (*inner.3, inner.4.clone()).into();
+                let msg = ClientBoundMessage { id: inner.0, body };
+                Poll::Ready((*inner.2, msg))
+            }
+            _ => Poll::Pending,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ClientForwardingManager {
+    processed: HashMap<Uuid, (SyncForwardResp, Instant)>,
+}
+
+impl ClientForwardingManager {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn contains_resp(&self, id: &Uuid) -> bool {
+        self.processed.contains_key(id)
+    }
+
+    pub fn get_resp(&mut self, id: &Uuid) -> Option<SyncForwardResp> {
+        let inner = self.processed.get_mut(id)?;
+        inner.1 = Instant::now();
+        Some(inner.0.clone())
+    }
+
+    pub fn add_resp(&mut self, id: Uuid, msg: SyncForwardResp) {
+        self.processed.insert(id, (msg, Instant::now()));
+    }
+
+    pub fn clean(&mut self) {
+        self.processed
+            .retain(|_, (_, time)| time.elapsed() < TO_CLEAR_TIME_LIMIT);
     }
 }

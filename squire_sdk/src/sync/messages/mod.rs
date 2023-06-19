@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use squire_lib::tournament::TournamentId;
 use uuid::Uuid;
 
 use super::{
@@ -85,7 +86,7 @@ pub enum ClientBound {
     SyncChain(ServerOpLink),
     /// The server wishes to sync with a client. This encodes the messages the backend can send in
     /// that process.
-    SyncForward(OpSync),
+    SyncForward((TournamentId, OpSync)),
 }
 
 /// The process of syncing two instances of a tournament (between client and server) requires a
@@ -136,5 +137,5 @@ pub enum SyncForwardResp {
     Aborted,
     /// Some kind of error has occured. The client need to make the backend aware of this. This
     /// implicitly cancels the sync.
-    Error(ForwardError),
+    Error(Box<ForwardError>),
 }
