@@ -13,8 +13,8 @@ use squire_sdk::{
 };
 
 use crate::{
-    tournament::{overview::*, players::*, rounds::*, pairings::*, settings::*, standings::*},
-    utils::{fetch_tournament, console_log},
+    tournament::{overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*},
+    utils::console_log,
     CLIENT, ON_UPDATE,
 };
 
@@ -131,7 +131,11 @@ impl Component for TournamentViewer {
             TournViewMessage::TournamentImported(listener) => {
                 console_log("Data ready!!");
                 let id = self.id;
-                console_log(if listener.is_some() { "Connection successful!!" } else { "Connection failed..." });
+                console_log(if listener.is_some() {
+                    "Connection successful!!"
+                } else {
+                    "Connection failed..."
+                });
                 self.listener = listener;
                 ctx.link().send_future(async move {
                     let data = CLIENT
