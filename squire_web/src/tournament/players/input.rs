@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
-use squire_sdk::{
-    model::{identifiers::RoundIdentifier, players::PlayerStatus, rounds::RoundStatus},
-    players::Player,
+use squire_sdk::model::{
+    identifiers::RoundIdentifier,
+    players::{Player, PlayerStatus},
+    rounds::RoundStatus,
 };
 use web_sys::HtmlInputElement;
 
