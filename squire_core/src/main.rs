@@ -13,20 +13,16 @@ use axum::{
 use http::{header, request::Parts};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
-use state::AppState;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use squire_sdk::{
     api::TOURNAMENTS_ROUTE,
     model::accounts::SquireAccount,
     response::SquireResponse,
     server::{self, state::ServerState, User},
-    tournaments::{
-        OpSync, TournamentId, TournamentManager,
-        TournamentPreset,
-    },
+    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset},
     version::{ServerMode, Version},
 };
+use state::AppState;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(test)]
 mod tests;

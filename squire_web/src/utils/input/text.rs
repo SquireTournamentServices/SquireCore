@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use web_sys::HtmlInputElement;
-
 use yew::prelude::*;
 
 #[derive(PartialEq, Properties)]

@@ -1,9 +1,6 @@
-use squire_sdk::tournaments::TournamentPreset;
-use yew::functional::*;
-use yew::prelude::*;
+use squire_sdk::tournaments::{TournamentId, TournamentPreset};
+use yew::{functional::*, prelude::*};
 use yew_router::prelude::*;
-
-use squire_sdk::tournaments::TournamentId;
 
 use crate::{Route, CLIENT};
 

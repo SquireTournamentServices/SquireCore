@@ -6,11 +6,10 @@ use std::{
     time::Duration,
 };
 
+use squire_lib::tournament::TournamentId;
 use tokio::sync::oneshot::{
     channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
-
-use squire_lib::tournament::TournamentId;
 
 use crate::tournaments::TournamentManager;
 

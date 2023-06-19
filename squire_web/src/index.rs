@@ -1,5 +1,4 @@
-use yew::functional::*;
-use yew::prelude::*;
+use yew::{functional::*, prelude::*};
 use yew_router::prelude::*;
 
 use crate::Route;

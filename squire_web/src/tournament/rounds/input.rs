@@ -5,12 +5,10 @@ use squire_sdk::model::{
     rounds::{Round, RoundStatus},
 };
 use web_sys::HtmlInputElement;
-
 use yew::prelude::*;
 
-use crate::{tournament::players::RoundProfile, utils::TextInput};
-
 use super::RoundSummary;
+use crate::{tournament::players::RoundProfile, utils::TextInput};
 
 #[derive(PartialEq, Properties)]
 pub struct RoundFilterInputProps {

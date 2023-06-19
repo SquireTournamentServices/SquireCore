@@ -6,12 +6,10 @@ use squire_sdk::model::{
     rounds::RoundStatus,
 };
 use web_sys::HtmlInputElement;
-
 use yew::prelude::*;
 
-use crate::utils::TextInput;
-
 use super::PlayerSummary;
+use crate::utils::TextInput;
 
 #[derive(PartialEq, Properties)]
 pub struct PlayerFilterInputProps {

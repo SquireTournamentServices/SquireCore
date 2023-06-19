@@ -1,6 +1,5 @@
 use axum::Router;
 use once_cell::sync::OnceCell;
-
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::{create_router, AppState};

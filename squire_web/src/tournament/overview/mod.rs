@@ -1,8 +1,8 @@
-use squire_sdk::model::tournament::TournamentStatus;
+use squire_sdk::{
+    model::{players::PlayerStatus, rounds::RoundStatus, tournament::TournamentStatus},
+    tournaments::{TournamentId, TournamentManager},
+};
 use yew::prelude::*;
-
-use squire_sdk::model::{players::PlayerStatus, rounds::RoundStatus};
-use squire_sdk::tournaments::{TournamentId, TournamentManager};
 
 use crate::CLIENT;
 

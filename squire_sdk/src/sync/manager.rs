@@ -7,12 +7,11 @@ use squire_lib::{
     tournament::{Tournament, TournamentSeed},
 };
 
-use crate::sync::ForwardError;
-
 use super::{
     processor::{SyncCompletion, SyncDecision, SyncProcessor},
     FullOp, OpId, OpLog, OpSync, ServerOpLink, SyncError, SyncForwardResp,
 };
+use crate::sync::ForwardError;
 
 /// A state manager for the tournament struct
 ///

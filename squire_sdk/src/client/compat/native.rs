@@ -12,16 +12,15 @@ use tokio::{
     sync::{broadcast, mpsc, oneshot},
 };
 use tokio_tungstenite::{
-    tungstenite::Error as TungsError, tungstenite::Message as TungsMessage, MaybeTlsStream,
-    WebSocketStream,
+    tungstenite::{Error as TungsError, Message as TungsMessage},
+    MaybeTlsStream, WebSocketStream,
 };
 
+use super::{forget, WebsocketError, WebsocketMessage, WebsocketResult};
 use crate::{
     client::error::{ClientError, ClientResult},
     COOKIE_NAME,
 };
-
-use super::{forget, WebsocketError, WebsocketMessage, WebsocketResult};
 
 /* ------ General Utils ------ */
 

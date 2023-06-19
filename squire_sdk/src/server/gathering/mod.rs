@@ -22,6 +22,7 @@ use tokio::{
 };
 use uuid::Uuid;
 
+use super::{state::ServerState, User};
 use crate::{
     sync::{
         processor::{SyncCompletion, SyncDecision},
@@ -30,8 +31,6 @@ use crate::{
     },
     tournaments::TournamentManager,
 };
-
-use super::{state::ServerState, User};
 
 mod hall;
 mod onlooker;

@@ -3,15 +3,18 @@ use squire_sdk::{
     client::update::UpdateTracker,
     model::{
         identifiers::{AdminId, RoundIdentifier},
-        rounds::{RoundId, RoundStatus}, operations::AdminOp,
+        operations::AdminOp,
+        rounds::{RoundId, RoundStatus},
     },
-    tournaments::{TournamentId, OpResult, TournOp},
+    tournaments::{OpResult, TournOp, TournamentId},
 };
-
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::{utils::{TextInput, console_log}, CLIENT};
+use crate::{
+    utils::{console_log, TextInput},
+    CLIENT,
+};
 
 pub mod creator;
 pub mod input;
@@ -89,7 +92,10 @@ impl Component for RoundsView {
                 false
             }
             RoundsViewMessage::BulkConfirmation => {
-                let tracker = CLIENT.get().unwrap().update_tourn(self.id, TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::ConfirmAllRounds ));
+                let tracker = CLIENT.get().unwrap().update_tourn(
+                    self.id,
+                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::ConfirmAllRounds),
+                );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
                     console_log("Waiting for update to finish!");

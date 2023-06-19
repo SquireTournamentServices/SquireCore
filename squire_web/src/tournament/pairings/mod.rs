@@ -4,23 +4,20 @@ use futures::future::OrElse;
 use js_sys::Math::round;
 use squire_sdk::model::{
     identifiers::{AdminId, PlayerIdentifier, RoundIdentifier},
-    operations::AdminOp,
+    operations::{AdminOp, OpResult, TournOp},
     pairings::Pairings,
     players::{Player, PlayerId},
     rounds::{Round, RoundId, RoundStatus},
     tournament::{Tournament, TournamentId},
-    operations::{OpResult, TournOp},
 };
-
 use wasm_bindgen_futures::spawn_local;
 use yew::{prelude::*, virtual_dom::VNode};
 
+use super::{creator, rounds::SelectedRound, spawn_update_listener};
 use crate::{
     utils::{console_log, input, TextInput},
     CLIENT,
 };
-
-use super::{creator, rounds::SelectedRound, spawn_update_listener};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct PairingsWrapper {

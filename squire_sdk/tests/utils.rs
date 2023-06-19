@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 use std::{collections::HashMap, time::Duration};
 
-use uuid::Uuid;
-
 use squire_lib::{
     accounts::{SharingPermissions, SquireAccount},
     pairings::PairingSystem,
@@ -11,6 +9,7 @@ use squire_lib::{
     scoring::StandardScoring,
     tournament::{TournamentPreset, TournamentSeed},
 };
+use uuid::Uuid;
 
 pub fn get_seed() -> TournamentSeed {
     TournamentSeed::new(

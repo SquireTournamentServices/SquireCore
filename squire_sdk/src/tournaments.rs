@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::response::SquireResponse;
 pub use crate::{
     model::{
         error::TournamentError,
@@ -10,8 +11,6 @@ pub use crate::{
     },
     sync::{OpId, OpSlice, OpSync, TournamentManager},
 };
-
-use crate::response::SquireResponse;
 
 /// The response type used by the `tournaments/<id>/get` SC API. The option encodes that the
 /// requested tournament might not be found.

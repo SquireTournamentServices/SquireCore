@@ -20,12 +20,11 @@ use tokio::{
     time::Instant,
 };
 
+use super::{Gathering, GatheringMessage, PersistMessage, ServerState, User};
 use crate::{
     sync::{ClientBound, ClientBoundMessage, OpSync, ServerBound, ServerBoundMessage},
     tournaments::TournamentManager,
 };
-
-use super::{Gathering, GatheringMessage, PersistMessage, ServerState, User};
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
 

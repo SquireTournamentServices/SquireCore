@@ -1,11 +1,9 @@
 use std::borrow::Cow;
 
-use yew::functional::*;
-use yew::prelude::*;
+use yew::{functional::*, prelude::*};
 use yew_router::prelude::*;
 
-use crate::utils::TextInput;
-use crate::Route;
+use crate::{utils::TextInput, Route};
 
 pub enum RegisterMessage {
     NameInput(String),
