@@ -180,9 +180,8 @@ mod tests {
     use squire_lib::operations::TournOp;
     use squire_tests::spoof_account;
 
-    use crate::sync::{FullOp, OpSlice};
-
     use super::SyncProcessor;
+    use crate::sync::{FullOp, OpSlice};
 
     fn spoof_op() -> FullOp {
         FullOp::new(TournOp::RegisterPlayer(spoof_account()))

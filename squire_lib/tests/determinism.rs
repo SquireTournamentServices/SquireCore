@@ -10,6 +10,7 @@ mod tests {
         operations::{AdminOp, JudgeOp, TournOp},
         settings::{CommonPairingSetting, PairingSetting, TournamentSetting},
     };
+    use squire_tests::get_seed;
 
     #[test]
     fn basic_determinism() {

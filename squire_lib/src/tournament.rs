@@ -1,11 +1,15 @@
-use std::{collections::HashMap, fmt::Display, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Write},
+    time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
-use std::fmt::Write;
 use uuid::Uuid;
 
+pub use crate::identifiers::{TournamentId, TournamentIdentifier};
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
@@ -18,8 +22,6 @@ use crate::{
     scoring::{ScoringSystem, StandardScore, Standings},
     settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree},
 };
-
-pub use crate::identifiers::{TournamentId, TournamentIdentifier};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(C)]
@@ -300,7 +302,11 @@ impl Tournament {
 
     /// Gets a vec of all active rounds
     pub fn get_active_rounds(&self) -> Vec<&Round> {
-        self.round_reg.rounds.values().filter(|r| r.is_active()).collect()
+        self.round_reg
+            .rounds
+            .values()
+            .filter(|r| r.is_active())
+            .collect()
     }
 
     /// Gets all the rounds a player is in
@@ -999,14 +1005,13 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
 
+    use super::{Tournament, TournamentPreset};
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
     };
-
-    use super::{Tournament, TournamentPreset};
 
     fn spoof_account() -> SquireAccount {
         let id = Uuid::new_v4().into();

@@ -4,17 +4,16 @@ use std::{
     task::{Context, Poll},
 };
 
+use squire_lib::{
+    operations::{OpResult, TournOp},
+    tournament::TournamentId,
+};
 use tokio::sync::{
     broadcast::{Receiver as Subscriber, Sender as Broadcast},
     oneshot::{
         channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
         Sender as OneshotSender,
     },
-};
-
-use squire_lib::{
-    operations::{OpResult, TournOp},
-    tournament::TournamentId,
 };
 
 use super::error::ClientResult;

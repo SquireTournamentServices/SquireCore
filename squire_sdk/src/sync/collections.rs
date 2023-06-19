@@ -5,6 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use super::SyncError;
 use crate::{
     model::{
         accounts::SquireAccount,
@@ -12,8 +13,6 @@ use crate::{
     },
     sync::{FullOp, OpId, OpSync},
 };
-
-use super::SyncError;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 /// An ordered list of all operations applied to a tournament

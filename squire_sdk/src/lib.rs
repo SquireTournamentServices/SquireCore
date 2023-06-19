@@ -20,7 +20,6 @@
 #![warn(rust_2018_idioms)]
 
 use serde::{Deserialize, Serialize};
-
 /// The module wraps and re-exports the squire_lib crate
 pub use squire_lib as model;
 

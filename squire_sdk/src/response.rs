@@ -1,9 +1,8 @@
 use std::ops::{ControlFlow, Deref, DerefMut, FromResidual, Try};
 
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "axum")]
 use axum::{http::StatusCode, response::IntoResponse};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 /// This is the base wrapper struct used to wrap SC response data. This prevents having to

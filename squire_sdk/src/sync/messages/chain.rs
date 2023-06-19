@@ -1,6 +1,5 @@
-use crate::sync::{processor::SyncDecision, OpSync, RequestError, SyncError};
-
 use super::{ClientOpLink, ServerOpLink, SyncForwardResp};
+use crate::sync::{processor::SyncDecision, OpSync, RequestError, SyncError};
 
 /// A struct that tracks the messages passed between a client and server during the sync process.
 #[derive(Debug)]
@@ -63,10 +62,7 @@ impl SyncChain {
     /// Checks to see if an incoming message is valid and if we have already seen this message. If
     /// we have seen this message, we return `Err(Ok(ServerOpLink))`. This signals that the message
     /// should not be processed and instead, the returned message should be returned
-    pub fn validate_client_message(
-        &self,
-        msg: &ClientOpLink,
-    ) -> Result<(), ServerOpLink> {
+    pub fn validate_client_message(&self, msg: &ClientOpLink) -> Result<(), ServerOpLink> {
         // TODO: Turn these panics into errors? This should only happen if a chain is created from
         // a Init message and then that message is validated.
         let last = self.links.last().unwrap();

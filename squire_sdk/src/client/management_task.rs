@@ -12,26 +12,16 @@ use futures::{
     stream::{select_all, SelectAll, SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
+use squire_lib::{
+    operations::{OpData, OpResult, TournOp},
+    tournament::TournamentId,
+};
 use tokio::sync::{
     broadcast::{channel as broadcast_channel, Receiver as Subscriber, Sender as Broadcaster},
     mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::{channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender},
 };
-
-use squire_lib::{
-    operations::{OpData, OpResult, TournOp},
-    tournament::TournamentId,
-};
 use uuid::Uuid;
-
-use crate::{
-    api::SUBSCRIBE_ROUTE,
-    sync::{
-        ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
-        OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, WebSocketMessage,
-    },
-    tournaments::TournamentManager,
-};
 
 use super::{
     compat::{log, rest, spawn_task, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
@@ -40,6 +30,14 @@ use super::{
     query::{query_channel, QueryTracker, TournamentQuery},
     subscription::{sub_channel, SubTracker, TournamentSub},
     update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
+};
+use crate::{
+    api::SUBSCRIBE_ROUTE,
+    sync::{
+        ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
+        OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, WebSocketMessage,
+    },
+    tournaments::TournamentManager,
 };
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";
@@ -316,7 +314,8 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
 }
 
 async fn handle_ws_msg<F>(state: &mut ManagerState, on_update: &mut F, msg: WebsocketMessage)
-    where F: FnMut()
+where
+    F: FnMut(),
 {
     let WebsocketMessage::Bytes(data) = msg else { panic!("Server did not send bytes of Websocket") };
     let WebSocketMessage { body, id } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();

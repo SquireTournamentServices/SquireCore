@@ -2,7 +2,6 @@ use squire_lib::{
     operations::{OpResult, TournOp},
     tournament::TournamentId,
 };
-
 use tokio::sync::oneshot::{
     channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
 };

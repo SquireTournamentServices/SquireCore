@@ -44,16 +44,14 @@ use std::{
 };
 
 use instant::Instant;
-
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use uuid::Uuid;
-
-use crate::sync::{OpSync, SyncError};
 
 use super::{
     ClientBound, ClientBoundMessage, ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain,
     SyncForwardResp,
 };
+use crate::sync::{OpSync, SyncError};
 
 const TO_CLEAR_TIME_LIMIT: Duration = Duration::from_secs(10);
 const RETRY_LIMIT: Duration = Duration::from_millis(250);
@@ -287,7 +285,13 @@ impl ServerForwardingManager {
 
 /// Tracks the next forwarded sync that needs to be retried.
 pub struct ForwardingRetry<'a> {
-    inner: Option<(Uuid, &'a Instant, &'a SquireAccountId, &'a TournamentId, &'a OpSync)>,
+    inner: Option<(
+        Uuid,
+        &'a Instant,
+        &'a SquireAccountId,
+        &'a TournamentId,
+        &'a OpSync,
+    )>,
 }
 
 impl Future for ForwardingRetry<'_> {

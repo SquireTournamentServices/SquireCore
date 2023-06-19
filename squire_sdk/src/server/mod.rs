@@ -15,21 +15,19 @@ use axum::{
 };
 use http::{header, request::Parts};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
 use squire_lib::{
     accounts::{SharingPermissions, SquireAccount},
     identifiers::SquireAccountId,
 };
+use uuid::Uuid;
 
+use self::{gathering::init_gathering_hall, state::ServerState};
 use crate::{
     api::{ACCOUNTS_ROUTE, API_BASE, TOURNAMENTS_ROUTE, VERSION_ENDPOINT, VERSION_ROUTE},
     utils::Url,
     version::ServerVersionResponse,
     COOKIE_NAME,
 };
-
-use self::{gathering::init_gathering_hall, state::ServerState};
 
 //pub mod accounts;
 //mod cards;

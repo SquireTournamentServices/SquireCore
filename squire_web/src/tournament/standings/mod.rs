@@ -1,10 +1,9 @@
+use squire_sdk::tournaments::{StandardScore, Standings, Tournament, TournamentId};
 use web_sys::window;
 use yew::{prelude::*, virtual_dom::VNode};
 
-use crate::{tournament::standings, CLIENT};
-use squire_sdk::tournaments::{StandardScore, Standings, Tournament, TournamentId};
-
 use self::_StandingsPopoutProps::display_vnode;
+use crate::{tournament::standings, CLIENT};
 
 #[derive(Properties, PartialEq)]
 struct StandingsPopoutProps {

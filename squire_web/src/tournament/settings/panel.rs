@@ -1,11 +1,10 @@
-use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr, borrow::Cow};
+use std::{borrow::Cow, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 
 use squire_sdk::model::settings::{PairingSetting, TournamentSetting};
 use yew::prelude::*;
 
-use crate::utils::{TextInput, TextInputProps};
-
 use super::SettingsMessage;
+use crate::utils::{TextInput, TextInputProps};
 
 pub struct SettingPanel {
     label: &'static str,
