@@ -399,7 +399,7 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if self.is_planned() {
-            self.player_reg.check_in(id);
+            self.player_reg.check_in(id)?;
             Ok(OpData::Nothing)
         } else {
             Err(TournamentError::IncorrectStatus(self.status))

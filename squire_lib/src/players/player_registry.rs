@@ -46,8 +46,13 @@ impl PlayerRegistry {
     }
 
     /// Checks in a player for registration
-    pub fn check_in(&mut self, id: PlayerId) {
-        self.check_ins.insert(id);
+    pub fn check_in(&mut self, id: PlayerId) -> Result<(), TournamentError> {
+        if self.players.contains_key(&id) {
+            self.check_ins.insert(id);
+            Ok(())
+        } else {
+            Err(TournamentError::PlayerNotFound)
+        }
     }
 
     /// Calculates if a player is registered for the touranment
