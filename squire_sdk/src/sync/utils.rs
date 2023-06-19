@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, convert::Infallible, ops::FromResidual};
 
-use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::TournamentSeed};
+use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::{TournamentSeed, TournamentId}};
 
 use crate::sync::{FullOp, OpSlice, OpSync};
 
@@ -50,8 +50,8 @@ impl From<ServerOpLink> for ClientBound {
     }
 }
 
-impl From<OpSync> for ClientBound {
-    fn from(value: OpSync) -> Self {
+impl From<(TournamentId, OpSync)> for ClientBound {
+    fn from(value: (TournamentId, OpSync)) -> Self {
         Self::SyncForward(value)
     }
 }
@@ -65,25 +65,25 @@ impl From<TournamentManager> for ClientBound {
 /* ---- SyncError Helper Traits ---- */
 impl From<RequestError> for SyncError {
     fn from(value: RequestError) -> Self {
-        Self::InvalidRequest(value)
+        Self::InvalidRequest(Box::new(value))
     }
 }
 
 impl From<Disagreement<SquireAccount>> for SyncError {
     fn from(value: Disagreement<SquireAccount>) -> Self {
-        Self::InvalidRequest(value.into())
+        Self::InvalidRequest(Box::new(value.into()))
     }
 }
 
 impl From<Disagreement<TournamentSeed>> for SyncError {
     fn from(value: Disagreement<TournamentSeed>) -> Self {
-        Self::InvalidRequest(value.into())
+        Self::InvalidRequest(Box::new(value.into()))
     }
 }
 
 impl From<TournamentError> for SyncError {
     fn from(value: TournamentError) -> Self {
-        Self::InvalidRequest(value.into())
+        Self::InvalidRequest(Box::new(value.into()))
     }
 }
 
@@ -109,19 +109,19 @@ impl From<TournamentError> for RequestError {
 /* ---- SyncForwardResp Helper Traits ---- */
 impl From<ForwardError> for SyncForwardResp {
     fn from(value: ForwardError) -> Self {
-        SyncForwardResp::Error(value)
+        SyncForwardResp::Error(Box::new(value))
     }
 }
 
 impl From<RequestError> for SyncForwardResp {
     fn from(value: RequestError) -> Self {
-        SyncForwardResp::Error(value.into())
+        SyncForwardResp::Error(Box::new(value.into()))
     }
 }
 
 impl From<TournamentError> for SyncForwardResp {
     fn from(value: TournamentError) -> Self {
-        SyncForwardResp::Error(value.into())
+        SyncForwardResp::Error(Box::new(value.into()))
     }
 }
 
