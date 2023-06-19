@@ -26,7 +26,7 @@ use crate::{
     sync::{
         processor::{SyncCompletion, SyncDecision},
         ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
-        ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
+        ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
     },
     tournaments::TournamentManager,
 };
@@ -67,6 +67,7 @@ pub struct Gathering {
     onlookers: HashMap<SquireAccountId, Onlooker>,
     persist: Sender<PersistMessage>,
     syncs: ServerSyncManager,
+    forwarding: ServerForwardingManager,
 }
 
 impl Gathering {
@@ -83,6 +84,7 @@ impl Gathering {
             onlookers: HashMap::with_capacity(count),
             persist,
             syncs: ServerSyncManager::default(),
+            forwarding: ServerForwardingManager::new(),
         }
     }
 
@@ -94,6 +96,17 @@ impl Gathering {
                     self.process_channel_message(msg.unwrap()),
                 msg = self.ws_streams.next(), if !self.ws_streams.is_empty() =>
                     self.process_websocket_message(msg).await,
+                (user, msg) = self.forwarding.forward_retry() => {
+                    match self.onlookers.get_mut(&user) {
+                        Some(onlooker) => {
+                            onlooker.send_msg(&msg).await;
+                            self.forwarding.update_timer(&msg.id);
+                        },
+                        None => {
+                            self.forwarding.terminate_chain(&msg.id);
+                        }
+                    }
+                }
             }
         }
     }
@@ -152,7 +165,7 @@ impl Gathering {
                 }
                 self.send_reply(user, id, link).await;
             }
-            ServerBound::ForwardResp(resp) => self.handle_forwarding_resp(resp),
+            ServerBound::ForwardResp(resp) => self.handle_forwarding_resp(&id, resp),
         }
     }
 
@@ -222,8 +235,10 @@ impl Gathering {
             seed,
             ops: comp.clone().as_slice(),
         };
-        let msg = ClientBoundMessage::new(sync.into());
-        for (_, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != id) {
+        let msg = ClientBoundMessage::new((self.tourn.id, sync.clone()).into());
+        for (id, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != id) {
+            self.forwarding
+                .add_msg(msg.id, *id, self.tourn.id, sync.clone());
             onlooker.send_msg(&msg).await;
         }
     }
@@ -234,8 +249,8 @@ impl Gathering {
         Ok(())
     }
 
-    fn handle_forwarding_resp(&mut self, resp: SyncForwardResp) {
-        todo!()
+    fn handle_forwarding_resp(&mut self, id: &Uuid, _: SyncForwardResp) {
+        self.forwarding.terminate_chain(id);
     }
 
     fn disperse(self) {

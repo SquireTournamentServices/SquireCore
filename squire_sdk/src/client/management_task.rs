@@ -27,8 +27,8 @@ use uuid::Uuid;
 use crate::{
     api::SUBSCRIBE_ROUTE,
     sync::{
-        ClientBound, ClientBoundMessage, ClientOpLink, ClientSyncManager, ServerBound,
-        ServerBoundMessage, ServerOpLink, WebSocketMessage,
+        ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
+        OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, WebSocketMessage,
     },
     tournaments::TournamentManager,
 };
@@ -126,6 +126,7 @@ struct ManagerState {
     cache: TournamentCache,
     listener: SelectAll<SplitStream<Websocket>>,
     syncs: ClientSyncManager,
+    forwarded: ClientForwardingManager,
 }
 
 type TournamentCache = HashMap<TournamentId, TournComm>;
@@ -148,7 +149,7 @@ async fn tournament_management_task<F>(
         let opt_sub: Option<_> = tokio::select! {
             msg = state.listener.next(), if !state.listener.is_empty() => {
                 match msg {
-                    Some(Ok(msg)) => handle_ws_msg(&mut state, msg).await,
+                    Some(Ok(msg)) => handle_ws_msg(&mut state, &mut on_update, msg).await,
                     Some(Err(err)) => handle_ws_err(&mut state, err),
                     None => {}
                 }
@@ -170,6 +171,19 @@ async fn tournament_management_task<F>(
                     }
                     ManagementCommand::Subscribe(sub) => Some(sub),
                 }
+            }
+            (id, msg) = state.syncs.retry() => {
+                match state.cache.get_mut(&id).and_then(|tourn| tourn.comm.as_mut()) {
+                    Some(comm) => {
+                        state.syncs.update_timer(&msg.id);
+                        let bytes = WebsocketMessage::Bytes(postcard::to_allocvec(&msg).unwrap());
+                        let _ = comm.0.send(bytes).await;
+                    },
+                    None => {
+                        state.syncs.finalize_chain(&msg.id);
+                    }
+                };
+                None
             }
         };
         if let Some(sub) = opt_sub {
@@ -279,8 +293,8 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
             match create_ws_connection(&url).await {
                 Ok(ws) => {
                     let (mut sink, mut stream) = ws.split();
-                    let msg =
-                        postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch)).unwrap();
+                    let msg = postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch))
+                        .unwrap();
                     sink.send(WebsocketMessage::Bytes(msg)).await.unwrap();
                     let tourn = wait_for_tourn(&mut stream).await;
                     let (broad, _) = broadcast_channel(10);
@@ -301,15 +315,19 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
     }
 }
 
-async fn handle_ws_msg(state: &mut ManagerState, msg: WebsocketMessage) {
+async fn handle_ws_msg<F>(state: &mut ManagerState, on_update: &mut F, msg: WebsocketMessage)
+    where F: FnMut()
+{
     let WebsocketMessage::Bytes(data) = msg else { panic!("Server did not send bytes of Websocket") };
     let WebSocketMessage { body, id } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();
     match body {
         ClientBound::FetchResp(_) => { /* Do nothing, handled elsewhere */ }
         ClientBound::SyncChain(link) => {
-            handle_server_op_link(state, &id, link).await;
+            handle_server_op_link(state, on_update, &id, link).await;
         }
-        ClientBound::SyncForward(_) => todo!(),
+        ClientBound::SyncForward((t_id, sync)) => {
+            handle_forwarded_sync(state, on_update, &t_id, id, sync).await
+        }
     }
 }
 
@@ -317,7 +335,14 @@ fn handle_ws_err(state: &mut ManagerState, err: WebsocketError) {
     panic!("Got error from Websocket: {err:?}")
 }
 
-async fn handle_server_op_link(state: &mut ManagerState, msg_id: &Uuid, link: ServerOpLink) {
+async fn handle_server_op_link<F>(
+    state: &mut ManagerState,
+    on_update: &mut F,
+    msg_id: &Uuid,
+    link: ServerOpLink,
+) where
+    F: FnMut(),
+{
     // Get tourn
     let Some(t_id) = state.syncs.get_tourn_id(msg_id) else { return };
     let Some(tourn) = state.cache.get_mut(&t_id) else { return };
@@ -337,11 +362,45 @@ async fn handle_server_op_link(state: &mut ManagerState, msg_id: &Uuid, link: Se
         ServerOpLink::Completed(comp) => {
             tourn.tourn.handle_completion(comp).unwrap();
             state.syncs.finalize_chain(msg_id);
+            on_update();
         }
         ServerOpLink::Error(_) | ServerOpLink::TerminatedSeen { .. } => {
             state.syncs.finalize_chain(msg_id);
         }
     }
+}
+
+async fn handle_forwarded_sync<F>(
+    state: &mut ManagerState,
+    on_update: &mut F,
+    t_id: &TournamentId,
+    msg_id: Uuid,
+    sync: OpSync,
+) where
+    F: FnMut(),
+{
+    log("Handling forwarded sync...");
+    let Some(comm) = state.cache.get_mut(t_id) else { return };
+    log("Got tournament comm...");
+    let resp = if state.forwarded.contains_resp(&msg_id) {
+        log("Already saw this message. Auto-replying");
+        state.forwarded.get_resp(&msg_id).unwrap()
+    } else {
+        log("New request, processing...");
+        let resp = comm.tourn.handle_forwarded_sync(sync);
+        if matches!(resp, SyncForwardResp::Success) {
+            log("Processing was a success!!");
+            on_update();
+        }
+        state.forwarded.add_resp(msg_id, resp.clone());
+        resp
+    };
+    state.forwarded.clean();
+    let msg = ServerBoundMessage {
+        id: msg_id,
+        body: resp.into(),
+    };
+    comm.send(msg).await;
 }
 
 // TODO: Add retries

@@ -22,7 +22,7 @@ pub enum SyncError {
     /// The starting operation of the slice in unknown to the other log
     UnknownOperation(OpId),
     /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
-    InvalidRequest(RequestError),
+    InvalidRequest(Box<RequestError>),
 }
 
 /// An error used in the server-initialized sync process that the client uses to signal that an

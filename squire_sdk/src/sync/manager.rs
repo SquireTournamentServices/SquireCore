@@ -132,6 +132,17 @@ impl TournamentManager {
             },
         }
     }
+
+    /// Creates an `OpSync` that will be forwarded to all clients
+    pub fn init_sync_forwarding(&self, comp: SyncCompletion) -> OpSync {
+        match comp {
+            SyncCompletion::ForeignOnly(ops) | SyncCompletion::Mixed(ops) => OpSync {
+                owner: self.log.owner.clone(),
+                seed: self.log.seed.clone(),
+                ops,
+            },
+        }
+    }
 }
 
 #[cfg(feature = "client")]
@@ -139,7 +150,7 @@ impl TournamentManager {
     /// Takes an operation, ensures all idents are their Id variants, stores the operation, applies
     /// it to the tournament, and returns the result.
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
-        self.apply_op_inner(FullOp::new(op.clone()))
+        self.apply_op_inner(FullOp::new(op))
     }
 
     /// Takes an vector of operations and attempts to update the tournament. All operations must
@@ -155,7 +166,6 @@ impl TournamentManager {
 
     /// Handles an sync request that is forwarded from the backend.
     pub fn handle_forwarded_sync(&mut self, sync: OpSync) -> SyncForwardResp {
-        println!("Processing forwarded sync request");
         let proc = match SyncProcessor::new(sync, &self.log) {
             Ok(proc) => proc,
             Err(err) => {
@@ -164,15 +174,15 @@ impl TournamentManager {
                         SyncForwardResp::Aborted
                     }
                     SyncError::EmptySync => ForwardError::EmptySync.into(),
-                    SyncError::InvalidRequest(err) => err.into(),
+                    SyncError::InvalidRequest(err) => (*err).into(),
                     // TODO: Figure out what to do here... They shouldn't happen
                     SyncError::NotInitialized => todo!(),
                     SyncError::AlreadyInitialized => todo!(),
                     SyncError::AlreadyCompleted => todo!(),
-                }
+                };
             }
         };
-        println!("Proc known len: {}", proc.known.len());
+
         // Ensure the following holds:
         //  Log : anchor op | common ops
         //  Sync: anchor op | common ops | new ops
@@ -186,7 +196,7 @@ impl TournamentManager {
             if iter.by_ref().all(|op| op.id != id) {
                 return ForwardError::EmptySync.into()
             }
-            if iter.zip(proc.to_process.iter()).any(|(a, b)| { println!("Checking ops: {}, {}", a.id, b.id); a != b }) {
+            if iter.zip(proc.to_process.iter()).any(|(a, b)| a != b ) {
                 return SyncForwardResp::Aborted
             }
         } // TODO: None case? Error?
@@ -194,17 +204,6 @@ impl TournamentManager {
         match self.bulk_apply_ops_inner(proc.to_process.into_iter()) {
             Err(err) => err.into(),
             Ok(_) => SyncForwardResp::Success,
-        }
-    }
-
-    /// Creates an `OpSync` that will be forwarded to all clients
-    pub fn init_sync_forwarding(&self, comp: SyncCompletion) -> OpSync {
-        match comp {
-            SyncCompletion::ForeignOnly(ops) | SyncCompletion::Mixed(ops) => OpSync {
-                owner: self.log.owner.clone(),
-                seed: self.log.seed.clone(),
-                ops,
-            },
         }
     }
 }
