@@ -1,7 +1,8 @@
+use std::env;
+
 use axum::response::{Html, Response};
 use http::header;
 use hyper::{body::Bytes, Body};
-use std::env;
 
 #[cfg(debug_assertions)]
 pub async fn landing() -> Html<String> {

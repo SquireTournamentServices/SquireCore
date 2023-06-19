@@ -6,11 +6,10 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+pub use mtgjson::model::deck::Deck;
 use serde::{Deserialize, Serialize};
 //use serde_with::{serde_as, Seq};
 use uuid::Uuid;
-
-pub use mtgjson::model::deck::Deck;
 
 pub use crate::identifiers::PlayerId;
 use crate::{accounts::SquireAccount, error::TournamentError, identifiers::id_from_item};

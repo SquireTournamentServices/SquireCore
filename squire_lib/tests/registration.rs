@@ -1,13 +1,11 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-
-    use squire_tests::{get_seed, spoof_account};
-
     use squire_lib::{
         identifiers::AdminId,
         operations::{AdminOp::*, JudgeOp::*, TournOp},
     };
+    use squire_tests::{get_seed, spoof_account};
 
     #[test]
     fn regular_reg_tests() {

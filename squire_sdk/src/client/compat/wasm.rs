@@ -10,9 +10,8 @@ use gloo_net::websocket::{
 };
 use reqwest::Response;
 
-use crate::client::error::{ClientError, ClientResult};
-
 use super::{forget, WebsocketError, WebsocketMessage, WebsocketResult};
+use crate::client::error::{ClientError, ClientResult};
 
 /* ------ General Utils ------ */
 
@@ -69,7 +68,9 @@ impl Websocket {
     /// compatability reason between the native and WASM Websockets, the request that is sent needs
     /// to be a simple get request.
     pub async fn new(url: &str) -> Result<Self, ()> {
-        GlooSocket::open(url).map(Websocket).map_err(|err| panic!("{err}"))
+        GlooSocket::open(url)
+            .map(Websocket)
+            .map_err(|err| panic!("{err}"))
     }
 }
 

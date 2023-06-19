@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
-
 use cycle_map::GroupMap;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     identifiers::PlayerId,

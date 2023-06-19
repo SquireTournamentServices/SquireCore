@@ -9,14 +9,13 @@ use axum::{
     Json, Router,
 };
 
+use super::gathering::{self, handle_new_onlooker};
 use crate::{
     api::{GET_TOURNAMENT_ENDPOINT, SUBSCRIBE_ENDPOINT},
     server::{state::ServerState, User},
     tournaments::*,
     utils::Url,
 };
-
-use super::gathering::{self, handle_new_onlooker};
 
 pub fn get_routes_and_init<S: ServerState>(state: S) -> Router<S> {
     gathering::init_gathering_hall(state);

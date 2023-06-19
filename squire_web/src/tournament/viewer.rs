@@ -1,16 +1,15 @@
 use futures::executor::block_on;
 use gloo_net::http::Request;
-use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcaster};
-use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{console::error, window, HtmlDialogElement, RequestInit};
-use yew::{html, Callback, Component, Context, Html, Properties};
-
 use squire_sdk::{
     api::GET_TOURNAMENT_ROUTE,
     model::{admin::Admin, identifiers::AdminId},
     tournaments::{OpResult, TournamentId, TournamentManager},
 };
+use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcaster};
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{console::error, window, HtmlDialogElement, RequestInit};
+use yew::{html, Callback, Component, Context, Html, Properties};
 
 use crate::{
     tournament::{overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*},

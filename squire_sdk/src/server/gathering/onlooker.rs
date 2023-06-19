@@ -3,14 +3,13 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures::{
-    stream::{SplitSink, SplitStream},
-    Sink, SinkExt, Stream,
-};
-
 use axum::{
     extract::ws::{Message, WebSocket},
     Error as AxumError,
+};
+use futures::{
+    stream::{SplitSink, SplitStream},
+    Sink, SinkExt, Stream,
 };
 use squire_lib::identifiers::SquireAccountId;
 

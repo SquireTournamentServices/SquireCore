@@ -1,14 +1,17 @@
 use std::{collections::VecDeque, convert::Infallible, ops::FromResidual};
 
-use squire_lib::{accounts::SquireAccount, error::TournamentError, tournament::{TournamentSeed, TournamentId}};
-
-use crate::sync::{FullOp, OpSlice, OpSync};
+use squire_lib::{
+    accounts::SquireAccount,
+    error::TournamentError,
+    tournament::{TournamentId, TournamentSeed},
+};
 
 use super::{
-    processor::{SyncCompletion, SyncProcessor, SyncDecision},
+    processor::{SyncCompletion, SyncDecision, SyncProcessor},
     ClientBound, ClientOpLink, Disagreement, ForwardError, RequestError, ServerBound, ServerOpLink,
     SyncError, SyncForwardResp, TournamentManager,
 };
+use crate::sync::{FullOp, OpSlice, OpSync};
 
 impl Default for OpSlice {
     fn default() -> Self {

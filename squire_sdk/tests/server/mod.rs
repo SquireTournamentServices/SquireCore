@@ -10,7 +10,6 @@ use std::{error::Error, sync::Arc};
 use async_session::{async_trait, MemoryStore, SessionStore};
 use dashmap::DashMap;
 use mtgjson::mtgjson::{atomics::Atomics, meta::Meta};
-
 use squire_sdk::{
     model::{
         identifiers::SquireAccountId,

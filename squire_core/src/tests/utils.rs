@@ -1,10 +1,9 @@
+use axum::{body::HttpBody, http::Request, response::Response};
 use headers::{Cookie, HeaderName, HeaderValue};
 use http::{
     header::{CONTENT_TYPE, SET_COOKIE},
     Method,
 };
-
-use axum::{body::HttpBody, http::Request, response::Response};
 use hyper::Body;
 use serde::{de::DeserializeOwned, Serialize};
 use squire_sdk::utils::Url;

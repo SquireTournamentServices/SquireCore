@@ -1,9 +1,7 @@
 use axum::Router;
 use once_cell::sync::OnceCell;
-
-use tokio::sync::{Mutex, MutexGuard};
-
 use squire_sdk::server::create_router;
+use tokio::sync::{Mutex, MutexGuard};
 
 /*
 use super::AppState;

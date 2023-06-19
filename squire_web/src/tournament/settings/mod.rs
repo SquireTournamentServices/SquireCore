@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use yew::prelude::*;
-
 use squire_sdk::{
     model::settings::{
         GeneralSettingsTree, PairingSettingsTree, PairingStyleSettingsTree, ScoringSettingsTree,
@@ -9,6 +7,7 @@ use squire_sdk::{
     },
     tournaments::{TournamentId, TournamentPreset},
 };
+use yew::prelude::*;
 
 mod general;
 mod pairings;

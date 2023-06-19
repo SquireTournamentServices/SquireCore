@@ -1,6 +1,5 @@
 use axum::http::Request;
 use hyper::Body;
-
 use squire_sdk::{
     accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
     api::{CREATE_TOURNAMENT_ROUTE, LOGIN_ROUTE, REGISTER_ACCOUNT_ROUTE},

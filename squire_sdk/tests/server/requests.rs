@@ -1,6 +1,5 @@
 use axum::http::Request;
 use hyper::Body;
-
 use squire_sdk::{model::tournament::TournamentPreset, tournaments::CreateTournamentRequest};
 
 /*

@@ -5,16 +5,14 @@ use squire_sdk::{
     },
     tournaments::{Tournament, TournamentId},
 };
-
 use web_sys::console;
 use yew::prelude::*;
 
+use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
 use crate::{
     utils::{console_log, TextInput},
     CLIENT,
 };
-
-use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RoundScrollMessage {

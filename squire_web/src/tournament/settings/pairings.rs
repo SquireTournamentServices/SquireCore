@@ -1,5 +1,3 @@
-use yew::prelude::*;
-
 use squire_sdk::{
     model::{
         pairings::{FluidPairings, PairingStyle, SwissPairings},
@@ -12,6 +10,7 @@ use squire_sdk::{
     },
     tournaments::Tournament,
 };
+use yew::prelude::*;
 
 use super::panel::{make_panel, SettingPanel};
 

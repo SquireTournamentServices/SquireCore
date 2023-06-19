@@ -1,22 +1,18 @@
-use std::collections::HashMap;
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use chrono::{DateTime, Utc};
-use wasm_bindgen_futures::spawn_local;
-use yew::prelude::*;
-
 use squire_sdk::{
     model::{
         identifiers::AdminId,
         operations::{AdminOp, JudgeOp},
+        players::PlayerId,
         rounds::{Round, RoundId, RoundResult, RoundStatus},
         tournament::Tournament,
-    players::PlayerId,
     },
     tournaments::{OpResult, TournOp, TournamentId},
 };
-
-use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
+use wasm_bindgen_futures::spawn_local;
+use yew::prelude::*;
 
 use super::{
     roundchangesbuffer::{self, *},
@@ -24,6 +20,7 @@ use super::{
     RoundConfirmationTicker, RoundConfirmationTickerMessage, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
+use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
 
 /// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]
@@ -79,7 +76,7 @@ impl SelectedRound {
                     send_ticker_future(Default::default(), ctx);
                     false
                 }
-            }
+            },
             SelectedRoundMessage::RoundQueryReady(rnd) => {
                 let data = rnd.map(|rnd| {
                     send_ticker_future(rnd.id, ctx);

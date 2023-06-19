@@ -2,16 +2,14 @@ use reqwest::{
     header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
     Client, IntoUrl, Response, StatusCode,
 };
-
 use squire_lib::accounts::SquireAccount;
-
-use crate::{
-    api::{REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE},
-    version::{ServerMode, Version},
-};
 
 use super::{
     compat::Session, error::ClientError, management_task::spawn_management_task, SquireClient,
+};
+use crate::{
+    api::{REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE},
+    version::{ServerMode, Version},
 };
 
 fn noop() {}

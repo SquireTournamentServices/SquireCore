@@ -21,15 +21,23 @@ use reqwest::{
     Client, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
-use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcast};
-
 use squire_lib::{
     operations::{OpResult, TournOp},
     players::PlayerRegistry,
     rounds::RoundRegistry,
     tournament::TournamentSeed,
 };
+use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcast};
 
+use self::{
+    builder::ClientBuilder,
+    compat::Session,
+    error::ClientResult,
+    import::ImportTracker,
+    management_task::{spawn_management_task, ManagementTaskSender},
+    query::QueryTracker,
+    update::{UpdateTracker, UpdateType},
+};
 use crate::{
     api::{
         GET_TOURNAMENT_ROUTE, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
@@ -47,16 +55,6 @@ use crate::{
     tournaments::CreateTournamentRequest,
     version::{ServerMode, Version},
     COOKIE_NAME,
-};
-
-use self::{
-    builder::ClientBuilder,
-    compat::Session,
-    error::ClientResult,
-    import::ImportTracker,
-    management_task::{spawn_management_task, ManagementTaskSender},
-    query::QueryTracker,
-    update::{UpdateTracker, UpdateType},
 };
 
 pub mod builder;

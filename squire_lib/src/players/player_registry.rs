@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-
 use cycle_map::CycleMap;
+use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
+use TournamentError::{PlayerAlreadyRegistered, PlayerNotFound};
 
 use crate::{
     accounts::SquireAccount,
@@ -12,8 +12,6 @@ use crate::{
     identifiers::PlayerId,
     players::{Player, PlayerStatus},
 };
-
-use TournamentError::{PlayerAlreadyRegistered, PlayerNotFound};
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

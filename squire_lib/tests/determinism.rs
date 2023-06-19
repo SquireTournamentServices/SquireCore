@@ -1,15 +1,13 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-
-    use squire_tests::get_seed;
-
     use squire_lib::{
         accounts::SquireAccount,
         identifiers::AdminId,
         operations::{AdminOp, JudgeOp, TournOp},
         settings::{CommonPairingSetting, PairingSetting, TournamentSetting},
     };
+    use squire_tests::get_seed;
 
     #[test]
     fn basic_determinism() {

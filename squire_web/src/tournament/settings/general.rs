@@ -1,11 +1,10 @@
 use std::{str::FromStr, time::Duration};
 
-use yew::prelude::*;
-
 use squire_sdk::{
     model::settings::{GeneralSetting, GeneralSettingsTree, TournamentSetting},
     tournaments::Tournament,
 };
+use yew::prelude::*;
 
 use super::{
     panel::{make_panel, SettingPanel},

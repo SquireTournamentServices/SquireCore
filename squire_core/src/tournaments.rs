@@ -1,5 +1,4 @@
 use axum::{extract::State, routing::get, Router};
-
 use squire_sdk::server::state::ServerState;
 
 use crate::state::AppState;

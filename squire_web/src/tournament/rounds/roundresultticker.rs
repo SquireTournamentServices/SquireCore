@@ -1,3 +1,5 @@
+use std::{borrow::Cow, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
+
 use squire_sdk::{
     model::{
         identifiers::AdminId,
@@ -7,14 +9,10 @@ use squire_sdk::{
     },
     tournaments::TournOp,
 };
-use std::{fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 use yew::prelude::*;
 
-use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage, RoundsViewMessage};
-
 use super::SelectedRoundMessage;
-
-use std::borrow::Cow;
+use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage, RoundsViewMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a result and associated changes to that result

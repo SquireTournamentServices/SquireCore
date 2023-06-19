@@ -4,20 +4,18 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use cycle_map::CycleMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
 
-use cycle_map::CycleMap;
-
+use super::RoundContext;
 use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
     identifiers::{PlayerId, RoundId},
     pairings::Pairings,
     rounds::Round,
 };
-
-use super::RoundContext;
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

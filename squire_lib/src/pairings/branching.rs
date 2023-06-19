@@ -99,10 +99,12 @@ impl PairingTree {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{HashMap, HashSet};
+
+    use uuid::Uuid;
+
     use super::{branching_pairings, PairingTree};
     use crate::identifiers::PlayerId;
-    use std::collections::{HashMap, HashSet};
-    use uuid::Uuid;
 
     #[test]
     fn simple_tree() {

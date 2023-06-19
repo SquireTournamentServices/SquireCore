@@ -1,11 +1,11 @@
 use squire_sdk::{
     model::{
-        identifiers::PlayerIdentifier, identifiers::RoundIdentifier, players::PlayerId,
-        rounds::RoundId, rounds::RoundStatus,
+        identifiers::{PlayerIdentifier, RoundIdentifier},
+        players::PlayerId,
+        rounds::{RoundId, RoundStatus},
     },
     tournaments::{Tournament, TournamentId, TournamentManager},
 };
-
 use yew::prelude::*;
 
 use crate::{utils::TextInput, CLIENT};

@@ -6,11 +6,10 @@ use std::time::Duration;
 
 use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;
+use squire_sdk::{client::SquireClient, model::accounts::SquireAccount, tournaments::TournamentId};
 use utils::console_log;
 use yew::prelude::*;
 use yew_router::prelude::*;
-
-use squire_sdk::{model::accounts::SquireAccount, client::SquireClient, tournaments::TournamentId};
 
 mod account;
 mod header;
