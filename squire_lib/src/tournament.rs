@@ -104,7 +104,7 @@ impl Tournament {
     ) -> Result<Self, TournamentError> {
         // name validation
         if name.is_empty() || !name.is_ascii() {
-            return Err(TournamentError::BadTournamentName)
+            return Err(TournamentError::BadTournamentName);
         }
 
         Ok(Tournament {
