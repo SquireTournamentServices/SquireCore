@@ -65,8 +65,9 @@ pub enum PairingsViewMessage {
     QueryMatchSize,
     MatchSizeReady(u8),
     CreateSingleRound(),
-    CreateSingleBye(String),
+    CreateSingleBye(),
     SingleRoundInput(usize, String),
+    SingleByeInput(String),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -89,6 +90,7 @@ pub struct PairingsView {
     max_player_count: Option<u8>,
     send_max_player_count: Callback<u8>,
     single_round_inputs: Vec<String>,
+    single_bye_input: String,
     pub send_op_result: Callback<OpResult>,
 }
 
@@ -116,6 +118,7 @@ impl Component for PairingsView {
             max_player_count: None,
             send_max_player_count: ctx.link().callback(PairingsViewMessage::MatchSizeReady),
             single_round_inputs: Vec::new(),
+            single_bye_input: "".to_string(),
             send_op_result,
         };
         to_return.query_player_names(ctx);
@@ -123,7 +126,6 @@ impl Component for PairingsView {
         to_return
     }
 
-    // tourn.pairing_sys.common.match_size
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             PairingsViewMessage::QueryPlayerNames => {
@@ -226,12 +228,39 @@ impl Component for PairingsView {
                 });
                 true
             }
-            PairingsViewMessage::CreateSingleBye(player) => false,
+            PairingsViewMessage::CreateSingleBye() => {
+                if (self.names.is_none()) {
+                    return false;
+                };
+                let player_id: PlayerId = self.names
+                            .as_ref()
+                            .unwrap()
+                            .iter()
+                            .find_map(|(id, name)| (self.single_bye_input == *name).then_some(*id))
+                            .unwrap_or_default();
+                let tracker = CLIENT.get().unwrap().update_tourn(
+                    self.id,
+                    TournOp::AdminOp(
+                        self.admin_id.clone().into(),
+                        AdminOp::GiveBye(player_id),
+                    ),
+                );
+                let send_op_result = self.send_op_result.clone();
+                spawn_local(async move {
+                    console_log("Waiting for update to finish!");
+                    send_op_result.emit(tracker.process().await.unwrap())
+                });
+                true
+            }
             PairingsViewMessage::SingleRoundInput(vec_index, text) => {
                 let Some(name) = self.single_round_inputs.get_mut(vec_index) else {
                     return false;
                 };
                 *name = text;
+                false
+            }
+            PairingsViewMessage::SingleByeInput(text) => {
+                self.single_bye_input = text;
                 false
             }
         }
@@ -396,10 +425,11 @@ impl PairingsView {
                     <br/>
                     </>
                 })
-            }
-            let cb_single_round = ctx
-                .link()
-                .callback(move |_| PairingsViewMessage::CreateSingleRound());
+            };
+            let cb_single_round = ctx.link()
+            .callback(move |_| PairingsViewMessage::CreateSingleRound() );
+            let cb_single_bye = ctx.link()
+            .callback(move |_| PairingsViewMessage::CreateSingleBye() );
             html! {
                 <div class="py-5">
                     <h2>{ "Create single rounds: " }</h2>
@@ -410,11 +440,12 @@ impl PairingsView {
                     <hr />
                     <h2>{ "Create a bye: " }</h2>
                     <div class="py-2">
-                        <label for="bye_name">{ "Player to give bye" }</label>
-                        <input type="text" id="bye_name" name="bye_name" />
-                        <br/><br/>
+                        <>
+                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleByeInput(s)) }/>
+                        <br/>
+                        </>
                     </div>
-                    <button>{ "Create bye" }</button>
+                    <button onclick={cb_single_bye} >{ "Create bye" }</button>
                 </div>
             }
         } else {
