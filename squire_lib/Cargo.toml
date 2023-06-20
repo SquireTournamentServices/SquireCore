@@ -26,7 +26,6 @@ html-escape = { version = "0.2.12" }
 getrandom = { version = "0.2" }
 deterministic-hash = "=1.0.1"
 fxhash = "=0.2.1"
-no-panic = {version = "0.1.22", optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
