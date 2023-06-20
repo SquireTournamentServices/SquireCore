@@ -176,7 +176,7 @@ impl StandardScoring {
 
             // technically this might be wrong because or_insert doesn't overwrite entries,
             // but this will never happen in practice if all id in counters are unique
-            let score = digest.entry(*id).or_insert(score); 
+            let score = digest.entry(*id).or_insert(score);
 
             // If your only round was a bye, your percentages stay at 0
             // This also filters out folks that haven't played a match yet

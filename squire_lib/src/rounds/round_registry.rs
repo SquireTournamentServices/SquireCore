@@ -14,7 +14,7 @@ use crate::{
     error::TournamentError::{self, NoActiveRound, RoundLookup},
     identifiers::{PlayerId, RoundId},
     pairings::Pairings,
-    rounds::Round,
+    rounds::{Round, RoundStatus},
 };
 
 #[serde_as]

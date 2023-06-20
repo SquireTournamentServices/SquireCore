@@ -384,7 +384,7 @@ impl Tournament {
         if let Some(new_extension) = round.extension.checked_add(ext) {
             round.extension = new_extension;
         } else {
-            return Err(TournamentError::TimeOverflow)
+            return Err(TournamentError::TimeOverflow);
         }
         Ok(OpData::Nothing)
     }
