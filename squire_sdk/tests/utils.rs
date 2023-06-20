@@ -16,7 +16,7 @@ pub fn get_seed() -> TournamentSeed {
         "Test Tournament".into(),
         TournamentPreset::Swiss,
         "Pioneer".into(),
-    )
+    ).unwrap()
 }
 
 pub fn get_fluid_seed() -> TournamentSeed {
@@ -24,7 +24,7 @@ pub fn get_fluid_seed() -> TournamentSeed {
         "Test Tournament".into(),
         TournamentPreset::Fluid,
         "Pioneer".into(),
-    )
+    ).unwrap()
 }
 
 pub fn spoof_account() -> SquireAccount {

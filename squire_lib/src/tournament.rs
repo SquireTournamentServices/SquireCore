@@ -97,17 +97,8 @@ pub struct Tournament {
 
 impl Tournament {
     /// Creates a new tournament from the defaults established by the given preset
-    pub fn from_preset(
-        name: String,
-        preset: TournamentPreset,
-        format: String,
-    ) -> Result<Self, TournamentError> {
-        // name validation
-        if name.is_empty() || !name.is_ascii() {
-            return Err(TournamentError::BadTournamentName);
-        }
-
-        Ok(Tournament {
+    fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
+        Tournament {
             // TODO: This should be calculated from some salt and the name
             id: TournamentId::new(Uuid::new_v4()),
             name,
@@ -120,7 +111,7 @@ impl Tournament {
             status: TournamentStatus::Planned,
             judges: HashMap::new(),
             admins: HashMap::new(),
-        })
+        }
     }
 
     /// Applies a tournament operation to the tournament
@@ -971,19 +962,26 @@ impl Tournament {
 
 impl TournamentSeed {
     /// Creates a new tournament seed
-    pub fn new(name: String, preset: TournamentPreset, format: String) -> Self {
-        Self {
+    pub fn new(
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> Result<Self, TournamentError> {
+        // name validation
+        if name.is_empty() || !name.is_ascii() {
+            return Err(TournamentError::BadTournamentName);
+        }
+
+        Ok(Self {
             name,
             preset,
             format,
-        }
+        })
     }
 }
 
-impl TryFrom<TournamentSeed> for Tournament {
-    type Error = TournamentError;
-
-    fn try_from(seed: TournamentSeed) -> Result<Self, Self::Error> {
+impl From<TournamentSeed> for Tournament {
+    fn from(seed: TournamentSeed) -> Self {
         let TournamentSeed {
             name,
             preset,
@@ -1039,7 +1037,7 @@ mod tests {
     #[test]
     fn players_in_paired_rounds() {
         let mut tourn =
-            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into()).unwrap();
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
         assert_eq!(tourn.pairing_sys.common.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);
@@ -1074,7 +1072,7 @@ mod tests {
     #[test]
     fn confirm_all_rounds_test() {
         let mut tourn =
-            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into()).unwrap();
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
         assert_eq!(tourn.pairing_sys.common.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);

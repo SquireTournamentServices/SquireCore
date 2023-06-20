@@ -6,7 +6,6 @@ use uuid::Uuid;
 
 use crate::{
     admin::Admin,
-    error::TournamentError,
     identifiers::SquireAccountId,
     tournament::{Tournament, TournamentSeed},
 };
@@ -132,11 +131,11 @@ impl SquireAccount {
     }
 
     /// Creates a new tournament and loads it with the default settings of the org
-    pub fn create_tournament(&self, seed: TournamentSeed) -> Result<Tournament, TournamentError> {
-        let mut tourn = Tournament::try_from(seed)?;
+    pub fn create_tournament(&self, seed: TournamentSeed) -> Tournament {
+        let mut tourn = Tournament::from(seed);
         let admin = Admin::new(self.clone());
         tourn.admins.insert(admin.id, admin);
-        Ok(tourn)
+        tourn
     }
 }
 
