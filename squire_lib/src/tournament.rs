@@ -968,7 +968,7 @@ impl TournamentSeed {
         format: String,
     ) -> Result<Self, TournamentError> {
         // name validation
-        if name.is_empty() {
+        if name.trim().is_empty() {
             return Err(TournamentError::BadTournamentName);
         }
 
