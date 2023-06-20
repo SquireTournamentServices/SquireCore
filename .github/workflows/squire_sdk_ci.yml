@@ -21,6 +21,7 @@ jobs:
       - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+          components: rustfmt
       - uses: taiki-e/install-action@cargo-hack
       - uses: actions/checkout@v3
       - run: cargo fmt --check --package squire_sdk

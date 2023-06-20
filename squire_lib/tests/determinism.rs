@@ -1,9 +1,6 @@
 #[cfg(test)]
 mod tests {
     use chrono::{DateTime, Utc};
-
-    use squire_tests::get_seed;
-
     use squire_lib::{
         accounts::SquireAccount,
         identifiers::{AdminId, TypeId},
@@ -86,9 +83,9 @@ mod tests {
     /// platforms. Expected data is based off of linux.
     #[test]
     fn hash_determinism() {
-        let test_data: Vec<HashDeterminismCase> = serde_json::from_slice(
-            include_bytes!("./determinism/deterministic_uuid_test_cases.json"),
-        )
+        let test_data: Vec<HashDeterminismCase> = serde_json::from_slice(include_bytes!(
+            "./determinism/deterministic_uuid_test_cases.json"
+        ))
         .expect("Could not parse test cases");
 
         for (timestamp, payload, expected_hash_item, expected_hash_list) in test_data {

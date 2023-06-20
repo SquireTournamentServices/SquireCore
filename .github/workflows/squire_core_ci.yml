@@ -21,6 +21,7 @@ jobs:
       - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+          components: rustfmt
           targets: wasm32-unknown-unknown
       - uses: actions/checkout@v3
       - name: Fetch Trunk

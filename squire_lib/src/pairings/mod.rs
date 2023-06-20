@@ -225,34 +225,6 @@ impl PairingSystem {
     pub fn update_setting(&mut self, setting: PairingSetting) -> OpResult {
         use PairingSetting::*;
         match setting {
-<<<<<<< HEAD
-            MatchSize(size) => {
-                if size == 0 {
-                    return Err(TournamentError::InvalidMatchSize)
-                }
-                self.match_size = size;
-            }
-            RepairTolerance(tol) => {
-                self.repair_tolerance = tol;
-            }
-            Algorithm(alg) => {
-                self.alg = alg;
-            }
-            Swiss(s) => {
-                if let PairingStyle::Swiss(sys) = &mut self.style {
-                    sys.update_setting(s);
-                } else {
-                    return Err(TournamentError::IncompatiblePairingSystem);
-                }
-            }
-            Fluid(s) => {
-                if let PairingStyle::Fluid(sys) = &mut self.style {
-                    sys.update_setting(s);
-                } else {
-                    return Err(TournamentError::IncompatiblePairingSystem);
-                }
-            }
-=======
             Common(setting) => self.common.update(setting),
             Style(s) => self.style.update(s),
         }
@@ -286,7 +258,6 @@ impl PairingStyle {
                 style.update_setting(setting)
             }
             _ => Err(TournamentError::IncompatiblePairingSystem),
->>>>>>> 4fdb12a (Finished settings refactor.)
         }
     }
 }
