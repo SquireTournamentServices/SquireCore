@@ -1065,7 +1065,11 @@ impl TournamentSeed {
 
     /// Creates a new tournament seed, generating a name using [Self::default_name]
     pub fn new_named(preset: TournamentPreset, format: String) -> Self {
-        Self::new(Self::default_name(), preset, format)
+        Self {
+            name: Self::default_name(),
+            preset,
+            format,
+        }
     }
 
     /// Creates a new tournament seed
