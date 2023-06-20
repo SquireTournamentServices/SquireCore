@@ -97,8 +97,17 @@ pub struct Tournament {
 
 impl Tournament {
     /// Creates a new tournament from the defaults established by the given preset
-    pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
-        Tournament {
+    pub fn from_preset(
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> Result<Self, TournamentError> {
+        // name validation
+        if name.is_empty() || !name.is_ascii() {
+            return Err(TournamentError::BadTournamentName)
+        }
+
+        Ok(Tournament {
             // TODO: This should be calculated from some salt and the name
             id: TournamentId::new(Uuid::new_v4()),
             name,
@@ -111,7 +120,7 @@ impl Tournament {
             status: TournamentStatus::Planned,
             judges: HashMap::new(),
             admins: HashMap::new(),
-        }
+        })
     }
 
     /// Applies a tournament operation to the tournament
@@ -971,8 +980,10 @@ impl TournamentSeed {
     }
 }
 
-impl From<TournamentSeed> for Tournament {
-    fn from(seed: TournamentSeed) -> Self {
+impl TryFrom<TournamentSeed> for Tournament {
+    type Error = TournamentError;
+
+    fn try_from(seed: TournamentSeed) -> Result<Self, Self::Error> {
         let TournamentSeed {
             name,
             preset,
