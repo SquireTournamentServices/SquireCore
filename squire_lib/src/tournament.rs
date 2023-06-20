@@ -1018,6 +1018,7 @@ mod tests {
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
+        error::TournamentError,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
         tournament::TournamentSeed,
@@ -1151,19 +1152,19 @@ mod tests {
 
     #[test]
     fn valid_tournament_names() {
-        fn seed(name: &str) -> TournamentSeed {
-            TournamentSeed {
-                name: name.to_string(),
-                preset: TournamentPreset::Fluid,
-                format: "Test".to_string(),
-            }
+        fn seed(name: &str) -> Result<TournamentSeed, TournamentError> {
+            TournamentSeed::new(
+                name.to_string(),
+                TournamentPreset::Fluid,
+                "Test".to_string(),
+            )
         }
 
-        assert!(Tournament::try_from(seed("")).is_err());
-        assert!(Tournament::try_from(seed("😄")).is_err());
-        assert!(Tournament::try_from(seed("abc")).is_ok());
-        assert!(Tournament::try_from(seed("_!(:)#@")).is_ok());
-        assert!(Tournament::try_from(seed("Magic: the Gathering")).is_ok());
-        assert!(Tournament::try_from(seed("Prophecy: the Body")).is_ok());
+        assert!(seed("").is_err());
+        assert!(seed("😄").is_err());
+        assert!(seed("abc").is_ok());
+        assert!(seed("_!(:)@").is_ok());
+        assert!(seed("Magic: the Gathering").is_ok());
+        assert!(seed("Prophecy: the Body").is_ok());
     }
 }
