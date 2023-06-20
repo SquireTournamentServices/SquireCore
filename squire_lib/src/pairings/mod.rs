@@ -226,6 +226,9 @@ impl PairingSystem {
         use PairingSetting::*;
         match setting {
             MatchSize(size) => {
+                if size == 0 {
+                    return Err(TournamentError::InvalidMatchSize)
+                }
                 self.match_size = size;
             }
             RepairTolerance(tol) => {

@@ -181,7 +181,7 @@ impl Round {
     /// Calculates the time left in the round, factoring in time extenstions.
     pub fn time_left(&self) -> Duration {
         let length = self.length + self.extension;
-        let elapsed = Duration::from_secs((Utc::now() - self.timer).num_seconds() as u64);
+        let elapsed = Duration::from_secs((Utc::now() - self.timer).num_seconds().max(0) as u64);
         if elapsed < length {
             length - elapsed
         } else {

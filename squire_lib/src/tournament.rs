@@ -380,7 +380,11 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let round = self.round_reg.get_mut_round(rnd)?;
-        round.extension += ext;
+        if let Some(new_extension) = round.extension.checked_add(ext) {
+            round.extension = new_extension;
+        } else {
+            return Err(TournamentError::TimeOverflow)
+        }
         Ok(OpData::Nothing)
     }
 
@@ -390,7 +394,7 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         if self.is_planned() {
-            self.player_reg.check_in(id);
+            self.player_reg.check_in(id)?;
             Ok(OpData::Nothing)
         } else {
             Err(TournamentError::IncorrectStatus(self.status))

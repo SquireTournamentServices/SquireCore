@@ -39,12 +39,16 @@ pub enum TournamentError {
     IncompatiblePairingSystem,
     /// The specified setting applies to a scoring system different from the active one
     IncompatibleScoringSystem,
+    /// The match size was zero (must be nonzero)
+    InvalidMatchSize,
     /// The specified min deck count was greater than the max count or visa versa
     InvalidDeckCount,
     /// There is at least one active match without a result
     NoMatchResult,
     /// A player already had the max number of decks
     MaxDecksReached,
+    /// Time was added or subtracted such that the time could not be properly stored
+    TimeOverflow,
 }
 
 impl fmt::Display for TournamentError {
@@ -66,10 +70,12 @@ impl fmt::Display for TournamentError {
             PlayerNotCheckedIn => "PlayerNotCheckedIn",
             IncompatibleScoringSystem => "IncompatibleScoringSystem",
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
+            InvalidMatchSize => "InvalidMatchSize",
             InvalidDeckCount => "InvalidDeckCount",
             RoundConfirmed => "RoundConfirmed",
             NoMatchResult => "NoMatchResult",
             MaxDecksReached => "MaxDecksReached",
+            TimeOverflow => "TimeOverflow",
         };
         write!(f, "{s}")
     }

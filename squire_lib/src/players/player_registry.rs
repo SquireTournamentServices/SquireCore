@@ -46,8 +46,13 @@ impl PlayerRegistry {
     }
 
     /// Checks in a player for registration
-    pub fn check_in(&mut self, id: PlayerId) {
-        self.check_ins.insert(id);
+    pub fn check_in(&mut self, id: PlayerId) -> Result<(), TournamentError> {
+        if self.players.contains_key(&id) {
+            self.check_ins.insert(id);
+            Ok(())
+        } else {
+            Err(TournamentError::PlayerNotFound)
+        }
     }
 
     /// Calculates if a player is registered for the touranment
@@ -85,14 +90,13 @@ impl PlayerRegistry {
 
     /// Creates a new player
     pub fn register_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
-        match self.players.contains_key(&(account.id.0.into())) {
-            true => {
+        match self.players.get_mut(&(account.id.0.into())) {
+            Some(player) => {
                 // Re-registering
-                self.players.get_mut(&(account.id.0.into())).unwrap().status =
-                    PlayerStatus::Registered;
+                player.status = PlayerStatus::Registered;
                 Ok(account.id.0.into())
             }
-            false => {
+            None => {
                 // Not re-registering
                 match self.name_and_id.contains_left(&account.user_name) {
                     true => Err(PlayerAlreadyRegistered),

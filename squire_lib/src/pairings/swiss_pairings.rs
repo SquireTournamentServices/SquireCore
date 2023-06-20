@@ -89,7 +89,7 @@ impl SwissPairings {
 
     /// Updates with incoming pairings.
     pub fn update(&mut self, pairings: &Pairings) {
-        self.swiss_round_number += 1;
+        self.swiss_round_number = self.swiss_round_number.saturating_add(1); // TODO determine necessary size for swiss_round_number
         for p in pairings
             .paired
             .iter()
@@ -117,8 +117,6 @@ impl SwissPairings {
         if !self.ready_to_pair(match_size, players, matches) {
             return None;
         }
-        let max_count = 100;
-        let mut count = 0;
         let plyrs_and_scores: Vec<(PlayerId, r64)> = standings
             .scores
             .drain(0..)
@@ -138,15 +136,13 @@ impl SwissPairings {
             match_size,
             repair_tol,
         );
-        while count < max_count && !pairings.rejected.is_empty() {
-            count += 1;
+
+        for _ in 0..100 {
+            if pairings.rejected.is_empty() {
+                break;
+            }
             let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
-            plyrs.extend(
-                grouped_plyrs
-                    .iter_right()
-                    .flat_map(|r| grouped_plyrs.get_left_iter(r).unwrap())
-                    .cloned(),
-            );
+            plyrs.extend(grouped_plyrs.iter().filter_map(|(plyr, _)| plyr).cloned());
             let buffer = (alg.as_alg())(
                 plyrs.drain(0..).collect(),
                 &matches.opponents,

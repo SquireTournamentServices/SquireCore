@@ -17,7 +17,7 @@ use crate::{
     rounds::Round,
 };
 
-use super::RoundContext;
+use super::{RoundContext, RoundStatus};
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -115,12 +115,16 @@ impl RoundRegistry {
     pub fn kill_round(&mut self, ident: &RoundId) -> Result<(), TournamentError> {
         let rnd = self.get_mut_round(ident)?;
         let players = rnd.players.clone();
-        rnd.kill_round();
-        for (i, plyr) in players.iter().enumerate() {
-            self.seat_scores.entry(*plyr).and_modify(|n| *n -= i);
-            self.opponents
-                .entry(*plyr)
-                .and_modify(|opps| opps.retain(|o| !players.contains(o)));
+        if rnd.status != RoundStatus::Dead {
+            rnd.kill_round();
+            for (i, plyr) in players.iter().enumerate() {
+                self.seat_scores
+                    .entry(*plyr)
+                    .and_modify(|n| *n = n.saturating_sub(i));
+                self.opponents
+                    .entry(*plyr)
+                    .and_modify(|opps| opps.retain(|o| !players.contains(o)));
+            }
         }
         Ok(())
     }
