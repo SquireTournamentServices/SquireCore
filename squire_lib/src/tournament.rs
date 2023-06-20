@@ -1022,6 +1022,7 @@ mod tests {
         admin::Admin,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
+        tournament::TournamentSeed,
     };
 
     fn spoof_account() -> SquireAccount {
@@ -1038,7 +1039,7 @@ mod tests {
     #[test]
     fn players_in_paired_rounds() {
         let mut tourn =
-            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into()).unwrap();
         assert_eq!(tourn.pairing_sys.common.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);
@@ -1073,7 +1074,7 @@ mod tests {
     #[test]
     fn confirm_all_rounds_test() {
         let mut tourn =
-            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into()).unwrap();
         assert_eq!(tourn.pairing_sys.common.match_size, 2);
         let acc = spoof_account();
         let admin = Admin::new(acc);
@@ -1148,5 +1149,19 @@ mod tests {
             )
             .unwrap()
             .assume_pair();
+    }
+
+    #[test]
+    fn valid_tournament_names() {
+        fn seed(name: &str) -> TournamentSeed {
+            TournamentSeed {
+                name: name.to_string(),
+                preset: TournamentPreset::Fluid,
+                format: "Test".to_string(),
+            }
+        }
+
+        assert!(Tournament::try_from(seed("")).is_err());
+        assert!(Tournament::try_from(seed("😄")).is_err());
     }
 }
