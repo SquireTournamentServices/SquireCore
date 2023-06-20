@@ -1163,5 +1163,9 @@ mod tests {
 
         assert!(Tournament::try_from(seed("")).is_err());
         assert!(Tournament::try_from(seed("😄")).is_err());
+        assert!(Tournament::try_from(seed("abc")).is_ok());
+        assert!(Tournament::try_from(seed("_!(:)#@")).is_ok());
+        assert!(Tournament::try_from(seed("Magic: the Gathering")).is_ok());
+        assert!(Tournament::try_from(seed("Prophecy: the Body")).is_ok());
     }
 }
