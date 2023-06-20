@@ -1,14 +1,14 @@
 use axum::http::Request;
 use hyper::Body;
 use squire_sdk::{
-    accounts::{CreateAccountRequest, CreateAccountResponse, LoginRequest, SquireAccountId},
-    api::{CREATE_TOURNAMENT_ROUTE, LOGIN_ROUTE, REGISTER_ACCOUNT_ROUTE},
+    api::{LOGIN_ROUTE, REGISTER_ACCOUNT_ROUTE},
     model::tournament::TournamentPreset,
     tournaments::CreateTournamentRequest,
 };
 
 use crate::tests::utils::create_request;
 
+/*
 pub(crate) fn register_account_request() -> Request<Body> {
     let body = CreateAccountRequest {
         user_name: "Test User".into(),
@@ -30,3 +30,4 @@ pub(crate) fn create_tournament_request() -> Request<Body> {
     };
     create_request(&CREATE_TOURNAMENT_ROUTE, body)
 }
+*/
