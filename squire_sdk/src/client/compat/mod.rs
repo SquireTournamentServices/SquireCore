@@ -1,6 +1,6 @@
 //! This module contains the compatiablity layer to abstract over if the client is running natively
 //! or in WASM. The goal of this module is to eliminate the use of this outside of this module:
-//! ```
+//! ```rust, ignore
 //! #[cfg(target_family = "wasm")]
 //! ```
 //!

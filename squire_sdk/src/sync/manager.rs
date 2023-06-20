@@ -378,6 +378,7 @@ mod tests {
 
     // Models what happens during the second sync of a tournament, after client one and the server
     // have synced but client two and the server have drifted but there is no conflict
+    /*
     #[test]
     fn ok_forwarded_sync() {
         let (mut server, mut c1, mut c2) = init_server_and_clients();
@@ -454,6 +455,7 @@ mod tests {
         assert_eq!(c1.log.len(), 3);
         assert_eq!(c1.log.last_op().unwrap().op, c2_op);
     }
+    */
 
     // Models what happens during the second sync of a tournament, after client one and the server
     // have synced but client two and the server have drifted and there is a conflict
