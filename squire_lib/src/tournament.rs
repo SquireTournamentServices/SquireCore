@@ -97,7 +97,7 @@ pub struct Tournament {
 
 impl Tournament {
     /// Creates a new tournament from the defaults established by the given preset
-    pub fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
+    fn from_preset(name: String, preset: TournamentPreset, format: String) -> Self {
         Tournament {
             // TODO: This should be calculated from some salt and the name
             id: TournamentId::new(Uuid::new_v4()),
@@ -962,12 +962,21 @@ impl Tournament {
 
 impl TournamentSeed {
     /// Creates a new tournament seed
-    pub fn new(name: String, preset: TournamentPreset, format: String) -> Self {
-        Self {
+    pub fn new(
+        name: String,
+        preset: TournamentPreset,
+        format: String,
+    ) -> Result<Self, TournamentError> {
+        // name validation
+        if name.trim().is_empty() {
+            return Err(TournamentError::BadTournamentName);
+        }
+
+        Ok(Self {
             name,
             preset,
             format,
-        }
+        })
     }
 }
 
@@ -1009,8 +1018,10 @@ mod tests {
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
+        error::TournamentError,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
+        tournament::TournamentSeed,
     };
 
     fn spoof_account() -> SquireAccount {
@@ -1137,5 +1148,23 @@ mod tests {
             )
             .unwrap()
             .assume_pair();
+    }
+
+    #[test]
+    fn valid_tournament_names() {
+        fn seed(name: &str) -> Result<TournamentSeed, TournamentError> {
+            TournamentSeed::new(
+                name.to_string(),
+                TournamentPreset::Fluid,
+                "Test".to_string(),
+            )
+        }
+
+        assert!(seed("").is_err());
+        assert!(seed("😄").is_ok());
+        assert!(seed("abc").is_ok());
+        assert!(seed("_!(:)@").is_ok());
+        assert!(seed("Magic: the Gathering").is_ok());
+        assert!(seed("Prophecy: the Body").is_ok());
     }
 }
