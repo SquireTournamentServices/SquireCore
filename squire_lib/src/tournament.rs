@@ -968,7 +968,7 @@ impl TournamentSeed {
         format: String,
     ) -> Result<Self, TournamentError> {
         // name validation
-        if name.is_empty() || !name.is_ascii() {
+        if name.is_empty() {
             return Err(TournamentError::BadTournamentName);
         }
 
@@ -1161,7 +1161,7 @@ mod tests {
         }
 
         assert!(seed("").is_err());
-        assert!(seed("😄").is_err());
+        assert!(seed("😄").is_ok());
         assert!(seed("abc").is_ok());
         assert!(seed("_!(:)@").is_ok());
         assert!(seed("Magic: the Gathering").is_ok());
