@@ -184,7 +184,7 @@ mod tests {
     use crate::sync::{FullOp, OpSlice};
 
     fn spoof_op() -> FullOp {
-        FullOp::new(TournOp::RegisterPlayer(spoof_account()))
+        FullOp::new(TournOp::RegisterPlayer(spoof_account(), None))
     }
 
     fn spoof_ops(count: usize) -> impl IntoIterator<Item = FullOp> {

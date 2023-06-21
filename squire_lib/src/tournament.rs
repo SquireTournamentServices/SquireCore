@@ -118,7 +118,7 @@ impl Tournament {
     pub fn apply_op(&mut self, salt: DateTime<Utc>, op: TournOp) -> OpResult {
         use TournOp::*;
         match op {
-            RegisterPlayer(account) => self.register_player(account),
+            RegisterPlayer(account, tourn_name) => self.register_player(account, tourn_name),
             PlayerOp(p_id, op) => self.apply_player_op(salt, p_id, op),
             JudgeOp(ta_id, op) => self.apply_judge_op(salt, ta_id, op),
             AdminOp(a_id, op) => self.apply_admin_op(salt, a_id, op),
@@ -149,7 +149,9 @@ impl Tournament {
             return OpResult::Err(TournamentError::OfficalLookup);
         }
         match op {
-            JudgeOp::AdminRegisterPlayer(account) => self.admin_register_player(account),
+            JudgeOp::AdminRegisterPlayer(account, name) => {
+                self.admin_register_player(account, name)
+            }
             JudgeOp::RegisterGuest(name) => self.register_guest(salt, name),
             JudgeOp::ReRegisterGuest(name) => self.reregister_guest(name),
             JudgeOp::AdminAddDeck(plyr, name, deck) => self.admin_add_deck(plyr, name, deck),
@@ -514,13 +516,19 @@ impl Tournament {
     }
 
     /// Adds a player to the tournament
-    pub(crate) fn register_player(&mut self, account: SquireAccount) -> OpResult {
+    pub(crate) fn register_player(
+        &mut self,
+        account: SquireAccount,
+        tourn_name: Option<String>,
+    ) -> OpResult {
         if !self.is_ongoing() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else if !self.reg_open {
             Err(TournamentError::RegClosed)
         } else {
-            let id = self.player_reg.register_player(account)?;
+            let id = self
+                .player_reg
+                .register_player_with_name(account, tourn_name)?;
             Ok(OpData::RegisterPlayer(id))
         }
     }
@@ -738,12 +746,17 @@ impl Tournament {
         Ok(OpData::Nothing)
     }
 
-    fn admin_register_player(&mut self, account: SquireAccount) -> OpResult {
+    fn admin_register_player(
+        &mut self,
+        account: SquireAccount,
+        tourn_name: Option<String>,
+    ) -> OpResult {
         if !self.is_ongoing() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
             Ok(OpData::RegisterPlayer(
-                self.player_reg.register_player(account)?,
+                self.player_reg
+                    .register_player_with_name(account, tourn_name)?,
             ))
         }
     }
@@ -1164,12 +1177,12 @@ mod tests {
         tourn.admins.insert(admin.id, admin.clone());
         let acc = spoof_account();
         tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(acc, None))
             .unwrap()
             .assume_register_player();
         let acc = spoof_account();
         tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(acc, None))
             .unwrap()
             .assume_register_player();
         tourn
@@ -1201,7 +1214,7 @@ mod tests {
         for _ in 0..4 {
             let acc = spoof_account();
             let id = tourn
-                .apply_op(Utc::now(), TournOp::RegisterPlayer(acc))
+                .apply_op(Utc::now(), TournOp::RegisterPlayer(acc, None))
                 .unwrap()
                 .assume_register_player();
             plyrs.push(id);
