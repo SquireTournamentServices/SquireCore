@@ -49,6 +49,8 @@ pub enum TournamentError {
     MaxDecksReached,
     /// Time was added or subtracted such that the time could not be properly stored
     TimeOverflow,
+    /// The given name cannot be used as a tournament name
+    BadTournamentName,
 }
 
 impl fmt::Display for TournamentError {
@@ -76,6 +78,7 @@ impl fmt::Display for TournamentError {
             NoMatchResult => "NoMatchResult",
             MaxDecksReached => "MaxDecksReached",
             TimeOverflow => "TimeOverflow",
+            BadTournamentName => "BadTournamentName",
         };
         write!(f, "{s}")
     }
