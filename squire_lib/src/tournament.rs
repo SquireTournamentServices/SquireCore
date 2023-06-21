@@ -691,9 +691,13 @@ impl Tournament {
             return Err(TournamentError::IncorrectStatus(self.status));
         }
         let context = self.pairing_sys.get_context();
-        Ok(OpData::GiveBye(
-            self.round_reg.give_bye(salt, plyr, context),
-        ))
+        if self.player_reg.players.contains_key(&plyr) {
+            Ok(OpData::GiveBye(
+                self.round_reg.give_bye(salt, plyr, context),
+            ))
+        } else {
+            Err(TournamentError::PlayerNotFound)
+        }
     }
 
     /// Creates a new round from a list of players
