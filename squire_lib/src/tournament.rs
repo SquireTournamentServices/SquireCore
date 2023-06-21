@@ -581,8 +581,10 @@ impl Tournament {
             .rounds
             .values_mut()
             .filter(|r| r.is_active())
-            .for_each(|r| {
-                r.status = RoundStatus::Certified;
+            .for_each(|round| {
+                for player in round.players.clone() {
+                    let _ = round.confirm_round(player); // error should be impossible
+                }
             });
         Ok(OpData::Nothing)
     }
