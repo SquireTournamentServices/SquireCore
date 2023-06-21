@@ -20,8 +20,9 @@ pub use player_ops::PlayerOp;
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// This enum captures all ways in which a tournament can mutate.
 pub enum TournOp {
-    /// Operation for a player register themself for a tournament
-    RegisterPlayer(SquireAccount),
+    /// Operation for a player register themself for a tournament, using a tournament-specific name
+    /// if their user name is already taken
+    RegisterPlayer(SquireAccount, Option<String>),
     /// Opertions that a player can perform, after registering
     PlayerOp(PlayerId, PlayerOp),
     /// Opertions that a judges or admins can perform
@@ -176,7 +177,7 @@ impl TournOp {
     /// Returns the update that the operation can have
     pub fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
         match self {
-            TournOp::RegisterPlayer(_) => OpUpdate::None,
+            TournOp::RegisterPlayer(_, _) => OpUpdate::None,
             TournOp::PlayerOp(_, p_op) => p_op.get_update(salt),
             TournOp::JudgeOp(_, j_op) => j_op.get_update(salt),
             TournOp::AdminOp(_, a_op) => a_op.get_update(salt),
@@ -186,7 +187,7 @@ impl TournOp {
     /// Replaces an old player id with a new player id in the operation
     pub fn swap_player_ids(&mut self, old: PlayerId, new: PlayerId) {
         match self {
-            TournOp::RegisterPlayer(_) => {}
+            TournOp::RegisterPlayer(_, _) => {}
             TournOp::PlayerOp(p_id, _) => {
                 if *p_id == old {
                     *p_id = new;
@@ -200,7 +201,7 @@ impl TournOp {
     /// Replaces an old round id with a new round id in the operation
     pub fn swap_round_ids(&mut self, old: RoundId, new: RoundId) {
         match self {
-            TournOp::RegisterPlayer(_) => {}
+            TournOp::RegisterPlayer(_, _) => {}
             TournOp::PlayerOp(_, p_op) => p_op.swap_round_ids(old, new),
             TournOp::JudgeOp(_, j_op) => j_op.swap_round_ids(old, new),
             TournOp::AdminOp(_, a_op) => a_op.swap_round_ids(old, new),

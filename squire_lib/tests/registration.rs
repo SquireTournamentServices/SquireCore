@@ -14,32 +14,32 @@ mod tests {
         let mut tourn = admin.create_tournament(get_seed());
         // Reg status is respected
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_ok());
         assert!(tourn
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, UpdateReg(false)))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_err());
         assert!(tourn
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, UpdateReg(true)))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_ok());
         // Starting closes reg
         assert!(tourn
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, Start))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_err());
         assert!(tourn
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, UpdateReg(true)))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_ok());
         // Frozen tournament will never let people in
         assert!(tourn
@@ -49,7 +49,7 @@ mod tests {
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, Freeze))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_err());
         assert!(tourn
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, UpdateReg(false)))
@@ -64,7 +64,7 @@ mod tests {
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, Freeze))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_err());
         assert!(tourn
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, Thaw))
@@ -74,7 +74,7 @@ mod tests {
             .apply_op(Utc::now(), TournOp::AdminOp(admin_id, End))
             .is_ok());
         assert!(tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .is_err());
     }
 
@@ -87,7 +87,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_ok());
         assert!(tourn
@@ -96,7 +96,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_ok());
         assert!(tourn
@@ -105,7 +105,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_ok());
         // Starting closes reg
@@ -115,7 +115,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_ok());
         assert!(tourn
@@ -124,7 +124,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_ok());
         // Frozen tournament will never let people in
@@ -137,7 +137,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_err());
         assert!(tourn
@@ -155,7 +155,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_err());
         assert!(tourn
@@ -164,7 +164,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_ok());
         // Players can't join closed tournaments
@@ -174,7 +174,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account()))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
             )
             .is_err());
     }

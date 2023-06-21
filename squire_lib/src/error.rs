@@ -13,6 +13,8 @@ pub enum TournamentError {
     PlayerNotFound,
     /// The specified player couldn't be found
     PlayerAlreadyRegistered,
+    /// The name of the account is already taken by another player in the tournament
+    NameTaken,
     /// The specified round couldn't be found
     RoundLookup,
     /// The specified tournament official couldn't be found
@@ -61,6 +63,7 @@ impl fmt::Display for TournamentError {
             IncorrectRoundStatus(_) => "IncorrectRoundStatus",
             PlayerNotFound => "PlayerNotFound",
             PlayerAlreadyRegistered => "PlayerAlreadyRegistered",
+            NameTaken => "NameTaken",
             RoundLookup => "RoundLookup",
             OfficalLookup => "OfficalLookup",
             DeckLookup => "DeckLookup",

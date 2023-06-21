@@ -19,7 +19,7 @@ pub enum JudgeOp {
     /// Operation for re-registering a guest
     ReRegisterGuest(String),
     /// Operation to register a player via an admin
-    AdminRegisterPlayer(SquireAccount),
+    AdminRegisterPlayer(SquireAccount, Option<String>),
     /// Operation to record the result of a round via an admin
     AdminRecordResult(RoundId, RoundResult),
     /// Operation to confirm the result of a round via an admin

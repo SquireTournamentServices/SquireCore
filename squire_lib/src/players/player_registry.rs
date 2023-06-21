@@ -86,8 +86,19 @@ impl PlayerRegistry {
         self.players.iter().filter(|(_, p)| p.can_play()).count()
     }
 
-    /// Creates a new player
-    pub fn register_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
+    /// Checks if the name is known by the `name_and_id` map in the registry
+    fn name_known(&self, name: &String) -> bool {
+        self.name_and_id.contains_left(name)
+    }
+
+    /// Creates a new player, and attempts to give them the `tourn_name` if the account's user name
+    /// is already taken by another player in the tournament. If both of these names are taken, the
+    /// same error is returned.
+    pub fn register_player_with_name(
+        &mut self,
+        account: SquireAccount,
+        tourn_name: Option<String>,
+    ) -> Result<PlayerId, TournamentError> {
         match self.players.get_mut(&(account.id.0.into())) {
             Some(player) => {
                 // Re-registering
@@ -96,19 +107,24 @@ impl PlayerRegistry {
             }
             None => {
                 // Not re-registering
-                match self.name_and_id.contains_left(&account.user_name) {
-                    true => Err(PlayerAlreadyRegistered),
-                    false => {
-                        let name = account.get_user_name();
-                        let plyr = Player::from_account(account);
-                        let digest = Ok(plyr.id);
-                        self.name_and_id.insert(name, plyr.id);
-                        self.players.insert(plyr.id, plyr);
-                        digest
-                    }
-                }
+                let Some(name) = (!self.name_known(&account.user_name))
+                    .then_some(account.get_user_name())
+                    .or(tourn_name.filter(|name| !self.name_known(name)))
+                else {
+                    return Err(TournamentError::NameTaken);
+                };
+                let plyr = Player::from_account(account);
+                let digest = Ok(plyr.id);
+                self.name_and_id.insert(name, plyr.id);
+                self.players.insert(plyr.id, plyr);
+                digest
             }
         }
+    }
+
+    /// Creates a new player
+    pub fn register_player(&mut self, account: SquireAccount) -> Result<PlayerId, TournamentError> {
+        self.register_player_with_name(account, None)
     }
 
     /// Creates a new player without an account
@@ -186,5 +202,51 @@ impl PlayerRegistry {
 impl Default for PlayerRegistry {
     fn default() -> Self {
         PlayerRegistry::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    /// Copied from squire_tests
+    fn spoof_account() -> SquireAccount {
+        let id = Uuid::new_v4().into();
+        SquireAccount {
+            id,
+            user_name: id.to_string(),
+            display_name: id.to_string(),
+            gamer_tags: HashMap::new(),
+            permissions: SharingPermissions::Everything,
+        }
+    }
+
+    use std::collections::HashMap;
+
+    use uuid::Uuid;
+
+    use super::PlayerRegistry;
+    use crate::{
+        accounts::{SharingPermissions, SquireAccount},
+        error::TournamentError,
+    };
+
+    #[test]
+    fn conflicting_names() {
+        let mut registry = PlayerRegistry::new();
+        let account_one = spoof_account();
+        let mut account_two = spoof_account();
+
+        // these two accounts will have conflicting names
+        let account_two_previous_name =
+            std::mem::replace(&mut account_two.user_name, account_one.get_user_name());
+
+        assert!(registry.register_player(account_one).is_ok());
+        assert_eq!(
+            registry.register_player(account_two.clone()),
+            Err(TournamentError::NameTaken)
+        );
+        assert!(registry
+            .register_player_with_name(account_two, Some(account_two_previous_name))
+            .is_ok());
     }
 }
