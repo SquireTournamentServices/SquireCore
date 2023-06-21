@@ -552,8 +552,10 @@ impl Tournament {
         let round = self.round_reg.get_mut_round(id)?;
         match round.status {
             RoundStatus::Open if round.has_result() => {
-                round.status = RoundStatus::Certified;
-                Ok(OpData::Nothing)
+                for player in round.players.clone() {
+                    round.confirm_round(player)?;
+                }
+                Ok(OpData::ConfirmResult(*id, round.status))
             }
             RoundStatus::Open => Err(TournamentError::NoMatchResult),
             RoundStatus::Certified | RoundStatus::Dead => Err(TournamentError::RoundConfirmed),
@@ -579,8 +581,10 @@ impl Tournament {
             .rounds
             .values_mut()
             .filter(|r| r.is_active())
-            .for_each(|r| {
-                r.status = RoundStatus::Certified;
+            .for_each(|round| {
+                for player in round.players.clone() {
+                    let _ = round.confirm_round(player); // error should be impossible
+                }
             });
         Ok(OpData::Nothing)
     }
