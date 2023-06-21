@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  build:
+    image: squire_core_build 
+    container_name: squire_core_build 
+    build: ./docker_build
+
+  frontend:
+    image: sq_frontend
+    container_name: sq_frontend
+    build: ./squire_web
+    ports:
+     - "80:80"
+    depends_on:
+     - build
+
+  backend:
+    image: sq_backend
+    container_name: sq_backend
+    build: ./squire_core
+    ports:
+     - "8000:8000"
+    depends_on:
+     - build
+
