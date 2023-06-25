@@ -1,17 +1,19 @@
-use std::{
-    collections::vec_deque::{Drain, IntoIter, Iter, VecDeque},
-    mem,
-};
+#[cfg(feature = "server")]
+use std::collections::vec_deque::Drain;
+#[cfg(any(feature = "server", feature = "client"))]
+use std::collections::vec_deque::Iter;
+use std::collections::vec_deque::{IntoIter, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
-use super::SyncError;
+#[cfg(feature = "client")]
+use crate::sync::OpSync;
 use crate::{
     model::{
         accounts::SquireAccount,
         tournament::{Tournament, TournamentSeed},
     },
-    sync::{FullOp, OpId, OpSync},
+    sync::{FullOp, OpId},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -48,6 +50,7 @@ impl OpLog {
         self.ops.is_empty()
     }
 
+    #[cfg(feature = "client")]
     pub(crate) fn create_sync_request(&self, op: Option<OpId>) -> OpSync {
         let ops = match op {
             Some(id) => self.get_slice(id).unwrap(),
@@ -91,6 +94,7 @@ impl OpLog {
 
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
+    #[allow(dead_code)]
     pub(crate) fn get_slice(&self, id: OpId) -> Option<OpSlice> {
         if self.is_empty() {
             return None;
@@ -103,7 +107,7 @@ impl OpLog {
             .rev()
             .take_while(|op| {
                 println!("Looking at {}. Doesn't match? {}", op.id, op.id != id);
-                let digest = mem::replace(&mut not_found, op.id != id);
+                let digest = std::mem::replace(&mut not_found, op.id != id);
                 println!("Continue? {digest}");
                 digest
             })
@@ -128,32 +132,6 @@ impl OpLog {
     pub(crate) fn last_id(&self) -> Option<OpId> {
         self.ops.last().map(|op| op.id)
     }
-
-    /// This method is intended to be used in the syncing process.
-    /// It takes an iterator over `FullOp`s. The first yielded operation is anchored to back the log.
-    /// Then, the rest of the log is iterated over and zipped with the given iterator. The log
-    /// should contain no new operations; otherwise, it an update has occured. The given iterator
-    /// could (and probably does) contain operations past the end of the log. The iterator is then
-    /// returned and will only yield those new elements.
-    ///
-    /// NOTE: This method does *not* caught empty Sycn request. That must be handled elsewhere.
-    pub(crate) fn get_unknown_ops<I>(&self, mut iter: I) -> Result<I, SyncError>
-    where
-        I: Iterator<Item = FullOp>,
-    {
-        let Some(op) = iter.next() else {
-            return Ok(iter);
-        };
-        let id = op.id;
-        let mut log_iter = self.ops.iter();
-        if log_iter.by_ref().find(|op| op.id == id).is_none() {
-            return Err(SyncError::UnknownOperation(id));
-        }
-        if log_iter.zip(iter.by_ref()).any(|(a, b)| a.id != b.id) {
-            return Err(SyncError::TournUpdated);
-        }
-        Ok(iter)
-    }
 }
 
 impl OpSlice {
@@ -176,11 +154,13 @@ impl OpSlice {
 
     /// Remove all operations from the backing `VecDeque` while leaving the backing memory
     /// allocated
+    #[cfg(feature = "server")]
     pub(crate) fn clear(&mut self) {
         self.ops.clear()
     }
 
     /// Adds an operation to the end of the OpSlice
+    #[cfg(feature = "server")]
     pub(crate) fn add_op(&mut self, op: FullOp) {
         self.ops.push_back(op);
     }
@@ -201,14 +181,17 @@ impl OpSlice {
     }
 
     /// Returns the index of the first stored operation.
+    #[cfg(feature = "server")]
     pub(crate) fn last_id(&self) -> Option<OpId> {
         self.ops.back().map(|o| o.id)
     }
 
+    #[cfg(any(feature = "server", feature = "client"))]
     pub(crate) fn iter(&self) -> Iter<'_, FullOp> {
         self.ops.iter()
     }
 
+    #[cfg(feature = "server")]
     pub(crate) fn drain(&mut self) -> Drain<'_, FullOp> {
         self.ops.drain(0..)
     }

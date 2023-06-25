@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::{FullOp, OpId, OpLog, OpSlice, OpSync, SyncError};
+use super::OpSlice;
+#[cfg(feature = "server")]
+use super::{FullOp, OpId};
+#[cfg(any(feature = "client", feature = "server"))]
+use super::{OpLog, OpSync, SyncError};
 
 /// This type results from a client making a decision about what operations need to stay and what
 /// operations need to be removed from its log during the sync process.
@@ -28,6 +32,10 @@ impl SyncCompletion {
         match self {
             Self::ForeignOnly(ops) | Self::Mixed(ops) => ops.len(),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn as_slice(self) -> OpSlice {
@@ -61,6 +69,10 @@ impl SyncProcessor {
         self.processed.len() + self.to_process.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// This method is called by the client to decided how to process errors in the sync process.
     /// This method removes all of the remaining operations that it is trying to sync.
     pub fn purge(self) -> SyncDecision {
@@ -75,6 +87,7 @@ impl SyncProcessor {
     /// Creates a new processor from an `OpSync` and an `OpLog`. This method is fallible for a
     /// number of reasons, the sync could be a mismatch with the log, the sync could be empty, and
     /// the sync might have an incorrect anchor operation.
+    #[cfg(any(feature = "client", feature = "server"))]
     pub(crate) fn new(mut sync: OpSync, log: &OpLog) -> Result<Self, SyncError> {
         sync.validate(log)?;
         let id = sync.first_id()?;
@@ -82,7 +95,17 @@ impl SyncProcessor {
             Some(slice) => {
                 // Remove the anchor operation from the to_process slice
                 let _ = sync.pop_front()?;
-                // TODO: Iterate through the slice and the sync, front to back, and extend all shared ops
+                // Iterate through the slice and the sync, front to back, and extend all shared ops
+                let mut iter = slice.iter();
+                iter.next();
+                for op in iter {
+                    match sync.first_id() {
+                        Ok(id) if id == op.id => {
+                            let _ = sync.pop_front();
+                        }
+                        Ok(_) | Err(_) => break,
+                    }
+                }
                 slice
             }
             None if log.is_empty() => OpSlice::new(),
@@ -95,6 +118,7 @@ impl SyncProcessor {
         })
     }
 
+    #[cfg(feature = "server")]
     pub(crate) fn last_known(&self) -> Option<OpId> {
         self.known.last_id()
     }
@@ -109,11 +133,13 @@ impl SyncProcessor {
         }
     }
 
+    #[cfg(feature = "server")]
     pub(crate) fn processing(&mut self) -> Processing<'_> {
         Processing::new(&mut *self)
     }
 }
 
+#[cfg(feature = "server")]
 pub struct Processing<'a> {
     proc: &'a mut SyncProcessor,
     processed: OpSlice,
@@ -121,6 +147,7 @@ pub struct Processing<'a> {
     limbo: Option<FullOp>,
 }
 
+#[cfg(feature = "server")]
 impl<'a> Processing<'a> {
     fn new(proc: &'a mut SyncProcessor) -> Processing<'a> {
         let mut to_process = proc.processed.clone();
@@ -140,7 +167,8 @@ impl<'a> Processing<'a> {
     }
 }
 
-impl Iterator for Processing<'_> {
+#[cfg(feature = "server")]
+impl Iterator for &mut Processing<'_> {
     type Item = FullOp;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -156,12 +184,14 @@ impl Iterator for Processing<'_> {
     }
 }
 
-impl ExactSizeIterator for Processing<'_> {
+#[cfg(feature = "server")]
+impl ExactSizeIterator for &mut Processing<'_> {
     fn len(&self) -> usize {
         self.to_process.len()
     }
 }
 
+#[cfg(feature = "server")]
 impl Drop for Processing<'_> {
     fn drop(&mut self) {
         if let Some(op) = self.limbo.take() {
@@ -174,7 +204,7 @@ impl Drop for Processing<'_> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "server"))]
 mod tests {
     use squire_lib::operations::TournOp;
     use squire_tests::spoof_account;
@@ -252,19 +282,11 @@ mod tests {
     }
 
     #[test]
-    fn creation_tests() {
-        // The end of the log and the received slice are identical
-
-        // Additional test cases:
-        //
-    }
-
-    #[test]
     fn iter_all_tests() {
         process(5, |mut proc| {
             let len = proc.len();
             let mut iter = proc.processing();
-            iter.by_ref().for_each(drop);
+            iter.for_each(drop);
             iter.conclude();
             assert!(proc.to_process.is_empty());
             assert_eq!(proc.processed.len(), len);
@@ -292,7 +314,7 @@ mod tests {
             assert_eq!(proc.to_process.len(), 1);
             assert_eq!(proc.processed.len(), len - 1);
             let mut iter = proc.processing();
-            iter.by_ref().for_each(drop);
+            iter.for_each(drop);
             iter.conclude();
             assert!(proc.to_process.is_empty());
             assert_eq!(proc.processed.len(), len);
