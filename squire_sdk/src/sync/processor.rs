@@ -82,6 +82,7 @@ impl SyncProcessor {
             Some(slice) => {
                 // Remove the anchor operation from the to_process slice
                 let _ = sync.pop_front()?;
+                // TODO: Iterate through the slice and the sync, front to back, and extend all shared ops
                 slice
             }
             None if log.is_empty() => OpSlice::new(),
@@ -98,10 +99,6 @@ impl SyncProcessor {
         self.known.last_id()
     }
 
-    pub(crate) fn move_all(&mut self) {
-        self.processed.extend(self.to_process.drain())
-    }
-
     pub(crate) fn finalize(mut self) -> SyncCompletion {
         if self.is_foreign_only() {
             self.known.extend(self.processed);
@@ -112,7 +109,7 @@ impl SyncProcessor {
         }
     }
 
-    pub(crate) fn processing<'a>(&'a mut self) -> Processing<'a> {
+    pub(crate) fn processing(&mut self) -> Processing<'_> {
         Processing::new(&mut *self)
     }
 }
@@ -133,6 +130,12 @@ impl<'a> Processing<'a> {
             processed: OpSlice::new(),
             limbo: None,
             to_process,
+        }
+    }
+
+    pub(crate) fn conclude(mut self) {
+        if let Some(op) = self.limbo.take() {
+            self.processed.add_op(op);
         }
     }
 }
@@ -161,17 +164,13 @@ impl ExactSizeIterator for Processing<'_> {
 
 impl Drop for Processing<'_> {
     fn drop(&mut self) {
-        if self.to_process.is_empty() {
-            self.proc.move_all()
-        } else {
-            if let Some(op) = self.limbo.take() {
-                self.to_process.ops.push_front(op);
-            }
-            self.proc.processed.clear();
-            self.proc.to_process.clear();
-            self.proc.processed.extend(self.processed.drain());
-            self.proc.to_process.extend(self.to_process.drain());
+        if let Some(op) = self.limbo.take() {
+            self.to_process.ops.push_front(op);
         }
+        self.proc.processed.clear();
+        self.proc.to_process.clear();
+        self.proc.processed.extend(self.processed.drain());
+        self.proc.to_process.extend(self.to_process.drain());
     }
 }
 
@@ -192,104 +191,111 @@ mod tests {
     }
 
     fn spoof_foreign_proc(count: usize) -> SyncProcessor {
-        SyncProcessor {
+        let digest = SyncProcessor {
             known: OpSlice::from_iter(spoof_ops(1)),
             processed: OpSlice::new(),
             to_process: OpSlice::from_iter(spoof_ops(count)),
-        }
+        };
+        assert_eq!(digest.to_process.len(), count);
+        assert!(digest.processed.is_empty());
+        digest
     }
 
     fn spoof_mixed_proc(count: usize) -> SyncProcessor {
-        SyncProcessor {
+        let digest = SyncProcessor {
             known: OpSlice::from_iter(spoof_ops(2)),
             processed: OpSlice::new(),
             to_process: OpSlice::from_iter(spoof_ops(count)),
-        }
+        };
+        assert_eq!(digest.to_process.len(), count);
+        assert!(digest.processed.is_empty());
+        digest
     }
 
     fn spoof_in_progress_proc(count: usize) -> SyncProcessor {
-        SyncProcessor {
+        let digest = SyncProcessor {
             known: OpSlice::from_iter(spoof_ops(1)),
             processed: OpSlice::from_iter(spoof_ops(1)),
             to_process: OpSlice::from_iter(spoof_ops(count)),
-        }
+        };
+        assert_eq!(digest.to_process.len(), count);
+        assert_eq!(digest.processed.len(), 1);
+        digest
     }
 
     fn spoof_in_progress_mixed_proc(count: usize) -> SyncProcessor {
-        SyncProcessor {
+        let digest = SyncProcessor {
             known: OpSlice::from_iter(spoof_ops(1)),
             processed: OpSlice::from_iter(spoof_ops(1)),
             to_process: OpSlice::from_iter(spoof_ops(count)),
-        }
+        };
+        assert_eq!(digest.to_process.len(), count);
+        assert_eq!(digest.processed.len(), 1);
+        digest
+    }
+
+    fn process<F>(count: usize, f: F)
+    where
+        F: Fn(SyncProcessor),
+    {
+        println!("Testing foreign only...");
+        f(spoof_foreign_proc(count));
+
+        println!("Testing mixed only...");
+        f(spoof_mixed_proc(count));
+
+        println!("Testing foreign in-progress only...");
+        f(spoof_in_progress_proc(count));
+
+        println!("Mixed in-progress only...");
+        f(spoof_in_progress_mixed_proc(count));
+    }
+
+    #[test]
+    fn creation_tests() {
+        // The end of the log and the received slice are identical
+
+        // Additional test cases:
+        //
     }
 
     #[test]
     fn iter_all_tests() {
-        // Foreign only
-        let mut proc = spoof_foreign_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert!(proc.processed.is_empty());
-        proc.processing().for_each(drop);
-        assert!(proc.to_process.is_empty());
-        assert_eq!(proc.processed.len(), 5);
-
-        // Mixed only
-        let mut proc = spoof_mixed_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert!(proc.processed.is_empty());
-        proc.processing().for_each(drop);
-        assert!(proc.to_process.is_empty());
-        assert_eq!(proc.processed.len(), 5);
-
-        // Foreign in-progress only
-        let mut proc = spoof_in_progress_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert_eq!(proc.processed.len(), 1);
-        proc.processing().for_each(drop);
-        assert!(proc.to_process.is_empty());
-        assert_eq!(proc.processed.len(), 6);
-
-        // Mixed in-progress only
-        let mut proc = spoof_in_progress_mixed_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert_eq!(proc.processed.len(), 1);
-        proc.processing().for_each(drop);
-        assert!(proc.to_process.is_empty());
-        assert_eq!(proc.processed.len(), 6);
+        process(5, |mut proc| {
+            let len = proc.len();
+            let mut iter = proc.processing();
+            iter.by_ref().for_each(drop);
+            iter.conclude();
+            assert!(proc.to_process.is_empty());
+            assert_eq!(proc.processed.len(), len);
+        })
     }
 
     #[test]
     fn drop_tests() {
-        // Foreign only
-        let mut proc = spoof_foreign_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert!(proc.processed.is_empty());
-        let _ = proc.processing().take(2).for_each(drop);
-        assert_eq!(proc.to_process.len(), 4);
-        assert_eq!(proc.processed.len(), 1);
+        process(5, |mut proc| {
+            let len = proc.len();
+            proc.processing().take(1).for_each(drop);
+            assert_eq!(proc.to_process.len(), len);
+            assert!(proc.processed.is_empty());
+            proc.processing().take(3).for_each(drop);
+            assert_eq!(proc.to_process.len(), len - 2);
+            assert_eq!(proc.processed.len(), 2);
+        })
+    }
 
-        // Mixed only
-        let mut proc = spoof_mixed_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert!(proc.processed.is_empty());
-        let _ = proc.processing().take(2).for_each(drop);
-        assert_eq!(proc.to_process.len(), 4);
-        assert_eq!(proc.processed.len(), 1);
-
-        // Foreign in-progress only
-        let mut proc = spoof_in_progress_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert_eq!(proc.processed.len(), 1);
-        let _ = proc.processing().take(3).for_each(drop);
-        assert_eq!(proc.to_process.len(), 4);
-        assert_eq!(proc.processed.len(), 2);
-
-        // Mixed in-progress only
-        let mut proc = spoof_in_progress_mixed_proc(5);
-        assert_eq!(proc.to_process.len(), 5);
-        assert_eq!(proc.processed.len(), 1);
-        let _ = proc.processing().take(3).for_each(drop);
-        assert_eq!(proc.to_process.len(), 4);
-        assert_eq!(proc.processed.len(), 2);
+    #[test]
+    fn handle_final_op() {
+        process(5, |mut proc| {
+            let len = proc.len();
+            proc.processing().for_each(drop);
+            assert_eq!(proc.to_process.len(), 1);
+            assert_eq!(proc.processed.len(), len - 1);
+            let mut iter = proc.processing();
+            iter.by_ref().for_each(drop);
+            iter.conclude();
+            assert!(proc.to_process.is_empty());
+            assert_eq!(proc.processed.len(), len);
+        })
     }
 }

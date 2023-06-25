@@ -59,17 +59,19 @@ impl TournamentManager {
         digest
     }
 
-    fn bulk_apply_ops_inner<I>(&mut self, ops: I) -> OpResult
+    fn bulk_apply_ops_inner<I>(&mut self, mut ops: I) -> OpResult
     where
         I: ExactSizeIterator<Item = FullOp>,
     {
         let mut buffer = self.tourn().clone();
         let mut f_ops = Vec::with_capacity(ops.len());
-        for f_op in ops {
-            let FullOp { op, salt, .. } = f_op.clone();
+        for f_op in ops.by_ref() {
+            let FullOp { op, salt, id } = f_op.clone();
+            println!("Processing Op {id}");
             buffer.apply_op(salt, op)?;
             f_ops.push(f_op);
         }
+        println!("Finished bulk processing operations...");
         self.log.ops.extend(f_ops);
         self.tourn = buffer;
         Ok(OpData::Nothing)
@@ -81,8 +83,7 @@ impl TournamentManager {
 
     /// This method handles a completed sync request returned from the server.
     pub fn handle_completion(&mut self, comp: SyncCompletion) -> Result<(), SyncError> {
-        // TODO: Ensure that the tournament has not updated
-        match comp {
+        let digest = match comp {
             // The client's operations were the only operations. There is nothing to update
             SyncCompletion::ForeignOnly(_) => Ok(()),
             SyncCompletion::Mixed(ops) => {
@@ -95,7 +96,9 @@ impl TournamentManager {
                 self.tourn = tourn;
                 Ok(())
             }
-        }
+        };
+        self.last_sync = self.log.last_id();
+        digest
     }
 }
 
@@ -116,12 +119,19 @@ impl TournamentManager {
             (Some(p_id), Some(l_id)) if p_id == l_id => {}
             (Some(_), Some(_)) | (None, Some(_)) => return SyncError::TournUpdated.into(),
         }
+        let mut iter = proc.processing();
         // Bulk apply creates a copy of the tournament state and does not add any operations to the
         // log unless all operations succeed. The `SyncProcessor` will be updated when the
         // `Processing` iterator is dropped.
-        match self.bulk_apply_ops_inner(proc.processing()) {
-            Ok(_) => proc.finalize().into(),
-            Err(_) => proc.into(),
+        match self.bulk_apply_ops_inner(iter.by_ref()) {
+            Ok(_) => {
+                iter.conclude();
+                proc.finalize().into()
+            },
+            Err(_) => {
+                drop(iter);
+                proc.into()
+            },
         }
     }
 
@@ -185,6 +195,10 @@ impl TournamentManager {
                 };
             }
         };
+        println!("SyncProcessor created during forward processing...");
+        println!("SyncProcessor::to_process: {:?}", proc.to_process);
+        println!("SyncProcessor::processed: {:?}", proc.processed);
+        println!("SyncProcessor::known: {:?}", proc.known);
 
         // Ensure the following holds:
         //  Log : anchor op | common ops
@@ -206,7 +220,10 @@ impl TournamentManager {
           // FIXME: Ignore all to_process operations that we have seen
         match self.bulk_apply_ops_inner(proc.to_process.into_iter()) {
             Err(err) => err.into(),
-            Ok(_) => SyncForwardResp::Success,
+            Ok(_) => {
+                self.last_sync = self.log.last_id();
+                SyncForwardResp::Success
+            },
         }
     }
 }
@@ -222,15 +239,19 @@ impl Deref for TournamentManager {
 #[cfg(all(feature = "client", feature = "server"))]
 #[cfg(test)]
 mod tests {
-    use squire_lib::operations::TournOp;
+    use squire_lib::{operations::{TournOp, AdminOp}, identifiers::AdminId};
     use squire_tests::{get_seed, spoof_account};
 
     use crate::sync::{
-        processor::SyncCompletion, ServerOpLink, SyncForwardResp, TournamentManager,
+        processor::{SyncCompletion, SyncDecision}, ServerOpLink, SyncForwardResp, TournamentManager,
     };
 
-    fn spoof_op() -> TournOp {
+    fn reg_op() -> TournOp {
         TournOp::RegisterPlayer(spoof_account(), None)
+    }
+
+    fn start_op(admin: AdminId) -> TournOp {
+        TournOp::AdminOp(admin, AdminOp::Start)
     }
 
     fn init_server_and_clients() -> (TournamentManager, TournamentManager, TournamentManager) {
@@ -240,9 +261,12 @@ mod tests {
         let mut c1 = TournamentManager::new(owner.clone(), seed.clone());
         let mut c2 = TournamentManager::new(owner.clone(), seed.clone());
         let mut server = TournamentManager::new(owner, seed);
+        assert!(c1.last_sync.is_none());
+        assert!(c2.last_sync.is_none());
+        assert!(server.last_sync.is_none());
 
         // Client one receives an update
-        let op = spoof_op();
+        let op = reg_op();
         c1.apply_op(op.clone()).unwrap();
         assert_eq!(c1.log.len(), 1);
         assert_eq!(c1.log.last_op().unwrap().op, op);
@@ -270,6 +294,7 @@ mod tests {
         c1.handle_completion(comp.clone()).unwrap();
         assert_eq!(c1.log.len(), 1);
         assert_eq!(c1.log.last_op().unwrap().op, op);
+        assert_eq!(c1.last_sync, c1.log.last_id());
 
         // Server forwards to client two
         let forward = server.init_sync_forwarding(comp);
@@ -277,6 +302,7 @@ mod tests {
         assert_eq!(resp, SyncForwardResp::Success);
         assert_eq!(c2.log.len(), 1);
         assert_eq!(c2.log.last_op().unwrap().op, op);
+        assert_eq!(c2.last_sync, c2.log.last_id());
 
         // Done, return the initialized server and clients
         (server, c1, c2)
@@ -295,7 +321,7 @@ mod tests {
         let (mut server, mut c1, mut c2) = init_server_and_clients();
 
         // Client one receives an update
-        let op = spoof_op();
+        let op = reg_op();
         println!("{op:?}\n");
         c1.apply_op(op.clone()).unwrap();
         assert_eq!(c1.log.len(), 2);
@@ -334,14 +360,77 @@ mod tests {
         assert_eq!(c2.log.last_op().unwrap().op, op);
     }
 
+    #[test]
+    fn multiple_sync_test() {
+        let (mut server, mut c1, mut c2) = init_server_and_clients();
+
+        for i in 0..100 {
+            println!("Starting sync cycle #{i}");
+            let c1_op_len = c1.log.len();
+            let c2_op_len = c2.log.len();
+            let server_op_len = server.log.len();
+
+            // Client one receives an update
+            println!("Applying operation to C1...");
+            let op = reg_op();
+            c1.apply_op(op.clone()).unwrap();
+            assert_eq!(c1.log.len(), c1_op_len + 1);
+            assert_eq!(c1.log.last_op().unwrap().op, op);
+            println!("Generating C1 sync request...");
+            let sync = c1.sync_request();
+            assert_eq!(sync.ops.len(), 2);
+
+            // Client sends update to server
+            println!("Init sync between C1 and server...");
+            let proc = server.init_sync(sync).unwrap();
+            assert_eq!(proc.known.len(), 1);
+            assert_eq!(proc.processed.len(), 0);
+            assert_eq!(proc.to_process.len(), 1);
+            let link = server.process_sync(proc);
+            println!("Server processed sync init...");
+            println!("{link:?}\n");
+            let ServerOpLink::Completed(comp) = link else { panic!() };
+            let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+            assert_eq!(ops.len(), 2);
+            assert_eq!(ops.last_op().unwrap().op, op);
+            assert_eq!(server.log.len(), server_op_len + 1);
+            assert_eq!(server.log.last_op().unwrap().op, op);
+
+            // Server responds to client one
+            println!("C1 handling server sync resp...");
+            c1.handle_completion(comp.clone()).unwrap();
+            assert_eq!(c1.log.len(), c1_op_len + 1);
+            assert_eq!(c1.log.last_op().unwrap().op, op);
+
+            // Server forwards to client two
+            println!("C2 handling sync forward...");
+            let forward = server.init_sync_forwarding(comp);
+            let resp = c2.handle_forwarded_sync(forward);
+            assert_eq!(resp, SyncForwardResp::Success);
+            assert_eq!(c2.log.len(), c2_op_len + 1);
+            assert_eq!(c2.log.last_op().unwrap().op, op);
+            println!("Done with sync cycle #{i}\n");
+        }
+    }
+
     // Models what happens during the second sync of a tournament, after client one and the server
     // have drifted but there is no conflict
     #[test]
     fn second_sync_drift_test() {
+        todo!("Ensure everything in this test is correct");
         let (mut server, mut c1, mut c2) = init_server_and_clients();
 
         // Client one receives an update
-        let client_op = spoof_op();
+        let client_op = reg_op();
+        println!("{client_op:?}\n");
+        c1.apply_op(client_op.clone()).unwrap();
+        assert_eq!(c1.log.len(), 2);
+        assert_eq!(c1.log.last_op().unwrap().op, client_op);
+        let sync = c1.sync_request();
+        assert_eq!(sync.ops.len(), 2);
+
+        // Client two receives an update
+        let client_op = reg_op();
         println!("{client_op:?}\n");
         c1.apply_op(client_op.clone()).unwrap();
         assert_eq!(c1.log.len(), 2);
@@ -350,7 +439,7 @@ mod tests {
         assert_eq!(sync.ops.len(), 2);
 
         // Server receives an update before the client syncs
-        let server_op = spoof_op();
+        let server_op = reg_op();
         println!("{server_op:?}\n");
         server.apply_op(client_op.clone()).unwrap();
         assert_eq!(server.log.len(), 2);
@@ -390,7 +479,96 @@ mod tests {
     // Models what happens during the second sync of a tournament, after client one and the server
     // have drifted and there is a conflict
     #[test]
-    fn second_sync_collision_test() {}
+    fn second_sync_collision_test() {
+        let (mut server, mut c1, mut c2) = init_server_and_clients();
+        let admin = *server.tourn.admins.iter().next().unwrap().0;
+        let _c1_op_len = c1.log.len();
+        let _c2_op_len = c2.log.len();
+        let server_op_len = server.log.len();
+
+        // Client one receives an update
+        let c1_op = reg_op();
+        println!("{c1_op:?}");
+        c1.apply_op(c1_op.clone()).unwrap();
+        assert_eq!(c1.log.len(), 2);
+        assert_eq!(c1.log.last_op().unwrap().op, c1_op);
+        let c1_sync = c1.sync_request();
+        assert_eq!(c1_sync.ops.len(), 2);
+
+        // Client two receives an update
+        let c2_op = start_op(admin);
+        println!("{c2_op:?}");
+        c2.apply_op(c2_op.clone()).unwrap();
+        assert_eq!(c2.log.len(), 2);
+        assert_eq!(c2.log.last_op().unwrap().op, c2_op);
+        let c2_sync = c2.sync_request();
+        assert_eq!(c2_sync.ops.len(), 2);
+
+        // Server receives C2's update before C1's
+        println!("Init sync between C2 and server...");
+        let proc = server.init_sync(c2_sync).unwrap();
+        assert_eq!(proc.known.len(), 1);
+        assert_eq!(proc.processed.len(), 0);
+        assert_eq!(proc.to_process.len(), 1);
+        let link = server.process_sync(proc);
+        println!("Server processed sync init...");
+        println!("{link:?}\n");
+        let ServerOpLink::Completed(comp) = link else { panic!() };
+        let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+        assert_eq!(ops.len(), 2);
+        assert_eq!(ops.last_op().unwrap().op, c2_op);
+        assert_eq!(server.log.len(), server_op_len + 1);
+        assert_eq!(server.log.last_op().unwrap().op, c2_op);
+
+        // Server responds to client two
+        c2.handle_completion(comp.clone()).unwrap();
+        assert_eq!(c2.log.len(), 2);
+        assert_eq!(c2.log.last_op().unwrap().op, c2_op);
+        assert_eq!(c2.last_sync, c2.log.last_id());
+
+        // Server forwards to client one
+        let forward = server.init_sync_forwarding(comp);
+        let resp = c1.handle_forwarded_sync(forward);
+        assert_eq!(resp, SyncForwardResp::Aborted);
+        assert_eq!(c1.log.len(), 2);
+        assert_eq!(c1.log.last_op().unwrap().op, c1_op);
+
+        // Client one sends update to server
+        let proc = server.init_sync(c1_sync).unwrap();
+        assert_eq!(proc.known.len(), 2);
+        assert_eq!(proc.processed.len(), 0);
+        assert_eq!(proc.to_process.len(), 1);
+        let link = server.process_sync(proc);
+        println!("{link:?}\n");
+        let ServerOpLink::Conflict(conflict) = link else { panic!() };
+        assert_eq!(conflict.known.len(), 2);
+        assert_eq!(conflict.processed.len(), 0);
+        assert_eq!(conflict.to_process.len(), 1);
+        assert_eq!(server.log.len(), 2);
+        assert_eq!(server.log.last_op().unwrap().op, c2_op);
+
+        // Server resolves conflict via purging and responses
+        let decision = conflict.purge();
+        let link = server.handle_decision(decision);
+        let ServerOpLink::Completed(comp) = link else { panic!() };
+        assert_eq!(comp.len(), 2);
+        assert_eq!(server.log.len(), 2);
+        assert_eq!(server.log.last_op().unwrap().op, c2_op);
+
+        // Client one receives the completed sync
+        c1.handle_completion(comp.clone()).unwrap();
+        assert_eq!(c1.log.len(), 2);
+        assert_eq!(c1.log.last_op().unwrap().op, c2_op);
+        assert_eq!(c1.last_sync, c1.log.last_id());
+
+        // Server forwards to client two (effectively a noop)
+        let forward = server.init_sync_forwarding(comp);
+        let resp = c2.handle_forwarded_sync(forward);
+        assert_eq!(resp, SyncForwardResp::Success);
+        assert_eq!(c2.log.len(), 2);
+        assert_eq!(c2.log.last_op().unwrap().op, c2_op);
+        assert_eq!(c2.last_sync, c2.log.last_id());
+    }
 
     // Models what happens during the second sync of a tournament, after client one and the server
     // have synced but client two and the server have drifted but there is no conflict
