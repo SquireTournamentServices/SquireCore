@@ -3,15 +3,22 @@ use std::ops::Deref;
 use serde::{Deserialize, Serialize};
 use squire_lib::{
     accounts::SquireAccount,
-    operations::{OpData, OpResult, TournOp},
     tournament::{Tournament, TournamentSeed},
 };
 
-use super::{
-    processor::{SyncCompletion, SyncDecision, SyncProcessor},
-    FullOp, OpId, OpLog, OpSync, ServerOpLink, SyncError, SyncForwardResp,
+use super::{processor::SyncCompletion, OpId, OpLog, SyncError};
+#[cfg(feature = "server")]
+use crate::sync::{ServerOpLink, processor::SyncDecision};
+#[cfg(any(feature = "client", feature = "server"))]
+use crate::{
+    model::operations::{OpData, OpResult},
+    sync::{FullOp, processor::SyncProcessor, OpSync}
 };
-use crate::sync::ForwardError;
+#[cfg(feature = "client")]
+use crate::{
+    model::operations::TournOp,
+    sync::{error::ForwardError, SyncForwardResp},
+};
 
 /// A state manager for the tournament struct
 ///
@@ -50,15 +57,7 @@ impl TournamentManager {
         self.tourn
     }
 
-    fn apply_op_inner(&mut self, f_op: FullOp) -> OpResult {
-        let FullOp { op, salt, .. } = f_op.clone();
-        let digest = self.tourn.apply_op(salt, op);
-        if digest.is_ok() {
-            self.log.ops.push(f_op);
-        }
-        digest
-    }
-
+    #[cfg(any(feature = "server", feature = "client"))]
     fn bulk_apply_ops_inner<I>(&mut self, mut ops: I) -> OpResult
     where
         I: ExactSizeIterator<Item = FullOp>,
@@ -123,15 +122,15 @@ impl TournamentManager {
         // Bulk apply creates a copy of the tournament state and does not add any operations to the
         // log unless all operations succeed. The `SyncProcessor` will be updated when the
         // `Processing` iterator is dropped.
-        match self.bulk_apply_ops_inner(iter.by_ref()) {
+        match self.bulk_apply_ops_inner(&mut iter) {
             Ok(_) => {
                 iter.conclude();
                 proc.finalize().into()
-            },
+            }
             Err(_) => {
                 drop(iter);
                 proc.into()
-            },
+            }
         }
     }
 
@@ -164,6 +163,15 @@ impl TournamentManager {
     /// it to the tournament, and returns the result.
     pub fn apply_op(&mut self, op: TournOp) -> OpResult {
         self.apply_op_inner(FullOp::new(op))
+    }
+
+    fn apply_op_inner(&mut self, f_op: FullOp) -> OpResult {
+        let FullOp { op, salt, .. } = f_op.clone();
+        let digest = self.tourn.apply_op(salt, op);
+        if digest.is_ok() {
+            self.log.ops.push(f_op);
+        }
+        digest
     }
 
     /// Takes an vector of operations and attempts to update the tournament. All operations must
@@ -204,7 +212,7 @@ impl TournamentManager {
         //  Log : anchor op | common ops
         //  Sync: anchor op | common ops | new ops
         //
-        //  Note that the sync moves from this to that
+        //  Note that the proc moves from that to this
         //  Sync           : anchor op  | common ops | new ops
         //  Proc known     : anchor op  | common ops
         //  Proc to_process: common ops | new ops
@@ -213,7 +221,7 @@ impl TournamentManager {
             if iter.by_ref().all(|op| op.id != id) {
                 return ForwardError::EmptySync.into()
             }
-            if iter.zip(proc.to_process.iter()).any(|(a, b)| a != b ) {
+            if iter.zip(proc.to_process.iter()).any(|(a, b)| a != b) {
                 return SyncForwardResp::Aborted
             }
         } // TODO: None case? Error?
@@ -223,7 +231,7 @@ impl TournamentManager {
             Ok(_) => {
                 self.last_sync = self.log.last_id();
                 SyncForwardResp::Success
-            },
+            }
         }
     }
 }
@@ -239,11 +247,14 @@ impl Deref for TournamentManager {
 #[cfg(all(feature = "client", feature = "server"))]
 #[cfg(test)]
 mod tests {
-    use squire_lib::{operations::{TournOp, AdminOp}, identifiers::AdminId};
+    use squire_lib::{
+        identifiers::AdminId,
+        operations::{AdminOp, TournOp},
+    };
     use squire_tests::{get_seed, spoof_account};
 
     use crate::sync::{
-        processor::{SyncCompletion, SyncDecision}, ServerOpLink, SyncForwardResp, TournamentManager,
+        processor::SyncCompletion, ServerOpLink, SyncForwardResp, TournamentManager,
     };
 
     fn reg_op() -> TournOp {
@@ -417,7 +428,6 @@ mod tests {
     // have drifted but there is no conflict
     #[test]
     fn second_sync_drift_test() {
-        todo!("Ensure everything in this test is correct");
         let (mut server, mut c1, mut c2) = init_server_and_clients();
 
         // Client one receives an update
@@ -429,21 +439,12 @@ mod tests {
         let sync = c1.sync_request();
         assert_eq!(sync.ops.len(), 2);
 
-        // Client two receives an update
-        let client_op = reg_op();
-        println!("{client_op:?}\n");
-        c1.apply_op(client_op.clone()).unwrap();
-        assert_eq!(c1.log.len(), 2);
-        assert_eq!(c1.log.last_op().unwrap().op, client_op);
-        let sync = c1.sync_request();
-        assert_eq!(sync.ops.len(), 2);
-
         // Server receives an update before the client syncs
         let server_op = reg_op();
         println!("{server_op:?}\n");
-        server.apply_op(client_op.clone()).unwrap();
+        server.apply_op(server_op.clone()).unwrap();
         assert_eq!(server.log.len(), 2);
-        assert_eq!(server.log.last_op().unwrap().op, client_op);
+        assert_eq!(server.log.last_op().unwrap().op, server_op);
 
         // Client sends update to server
         let proc = server.init_sync(sync).unwrap();
@@ -572,13 +573,12 @@ mod tests {
 
     // Models what happens during the second sync of a tournament, after client one and the server
     // have synced but client two and the server have drifted but there is no conflict
-    /*
     #[test]
     fn ok_forwarded_sync() {
         let (mut server, mut c1, mut c2) = init_server_and_clients();
 
         // Client one receives an update
-        let op = spoof_op();
+        let op = reg_op();
         println!("{op:?}\n");
         c1.apply_op(op.clone()).unwrap();
         assert_eq!(c1.log.len(), 2);
@@ -606,7 +606,7 @@ mod tests {
         assert_eq!(c1.log.last_op().unwrap().op, op);
 
         // Client two receives an update before the server can forward the sync from client one
-        let c2_op = spoof_op();
+        let c2_op = reg_op();
         println!("{c2_op:?}\n");
         c2.apply_op(c2_op.clone()).unwrap();
         assert_eq!(c2.log.len(), 2);
@@ -649,12 +649,12 @@ mod tests {
         assert_eq!(c1.log.len(), 3);
         assert_eq!(c1.log.last_op().unwrap().op, c2_op);
     }
-    */
 
+    // TODO: I think this is covered by second sync collision test
     // Models what happens during the second sync of a tournament, after client one and the server
     // have synced but client two and the server have drifted and there is a conflict
-    #[test]
-    fn conflicted_forwarded_sync() {}
+    // #[test]
+    // fn conflicted_forwarded_sync() {}
 
     // Remaining test cases:
     //   - A client updates at any point in the syncing process

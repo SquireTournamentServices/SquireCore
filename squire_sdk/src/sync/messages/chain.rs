@@ -67,7 +67,7 @@ impl SyncChain {
         // a Init message and then that message is validated.
         let last = self.links.last().unwrap();
         if msg == &last.0 {
-            return Err(last.1.clone().into());
+            return Err(last.1.clone());
         }
         match msg {
             ClientOpLink::Init(_) => Err(SyncError::AlreadyInitialized.into()),
@@ -81,6 +81,8 @@ impl SyncChain {
 
 #[derive(Debug)]
 pub struct ForwardChain {
+    #[allow(dead_code)]
     init: OpSync,
+    #[allow(dead_code)]
     resp: Option<SyncForwardResp>,
 }

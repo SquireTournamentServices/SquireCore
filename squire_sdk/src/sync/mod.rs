@@ -55,7 +55,10 @@ impl OpSync {
     }
 
     /// Validates the sync against a log. Check id, seed, creator, and len.
-    fn validate(&self, log: &OpLog) -> Result<(), SyncError> {
+    #[allow(dead_code)] // This is a "private" method that is only used by private methods, which
+                        // are only used if "client" or "server are enabled. Its easier to just
+                        // allow "dead_code" here
+    pub(crate) fn validate(&self, log: &OpLog) -> Result<(), SyncError> {
         if self.is_empty() {
             return Err(SyncError::EmptySync);
         }
