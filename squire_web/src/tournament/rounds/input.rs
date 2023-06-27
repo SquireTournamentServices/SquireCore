@@ -8,7 +8,7 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use super::RoundSummary;
-use crate::{tournament::players::RoundProfile, utils::TextInput};
+use crate::{tournament::rounds::RoundProfile, utils::TextInput};
 
 #[derive(PartialEq, Properties)]
 pub struct RoundFilterInputProps {
