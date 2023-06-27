@@ -1,6 +1,6 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::{HashMap, HashSet}, time::Duration};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use squire_sdk::{
     model::{
         identifiers::AdminId,
@@ -20,7 +20,86 @@ use super::{
     RoundConfirmationTicker, RoundConfirmationTickerMessage, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
-use crate::{tournament::players::RoundProfile, utils::console_log, CLIENT};
+use crate::{utils::console_log, CLIENT};
+
+/// The set of data needed by the UI to display a round. Should be capable of rendering itself in
+/// HTML.
+///
+/// NOTE: Under construction
+#[derive(Debug, PartialEq, Clone)]
+pub struct RoundProfile {
+    pub id: RoundId,
+    pub order: Vec<PlayerId>,
+    pub player_names: HashMap<PlayerId, String>,
+    pub timer: DateTime<Utc>,
+    pub status: RoundStatus,
+    pub results: HashMap<PlayerId, u32>,
+    pub draws: u32,
+    pub confirmations: HashSet<PlayerId>,
+    pub length: std::time::Duration,
+    pub extensions: std::time::Duration,
+}
+impl RoundProfile {
+    pub fn new(tourn: &Tournament, rnd: &Round) -> Self {
+        Self {
+            id: rnd.id,
+            status: rnd.status,
+            order: rnd.players.clone(),
+            player_names: rnd
+                .players
+                .iter()
+                .filter_map(|p| {
+                    tourn
+                        .player_reg
+                        .players
+                        .get(p)
+                        .map(|plyr| (*p, plyr.name.clone()))
+                })
+                .collect(), // This is not a Vec<(PlayerId, String)>. This is a HashMap
+            length: rnd.length,
+            extensions: rnd.extension,
+            timer: rnd.timer,
+            results: rnd.results.clone(),
+            draws: rnd.draws,
+            confirmations: rnd.confirmations.clone(),
+        }
+    }
+
+    pub fn view(&self) -> Html {
+        // TODO: Remove unwrap here
+        let dur_left =
+            ChronoDuration::from_std(self.length + self.extensions).unwrap() - (Utc::now() - self.timer);
+        html! {
+            <>
+            <p>
+            { pretty_print_duration(dur_left) }
+            </p>
+            <ul>
+            {
+                self.order.iter()
+                    // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
+                    .map(|(pid)| {
+                        let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
+                        let player_wins = self.results.get(pid).cloned().unwrap_or_default();
+                        let player_confirm = self.confirmations.get(pid).is_some();
+                        html! {
+                            <li>
+                            <div>
+                            { format!( "{player_name}") }
+                            </div>
+                            <div>
+                            { format!( "wins : {player_wins}, confirmed : {player_confirm}") }
+                            </div>
+                            </li>
+                        }
+                    })
+                    .collect::<Html>()
+            }
+            </ul>
+            </>
+        }
+    }
+}
 
 /// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]
@@ -348,5 +427,16 @@ impl RoundUpdater {
             </div>
             </>
         }
+    }
+}
+
+fn pretty_print_duration(dur: ChronoDuration) -> String {
+    let hours = dur.num_hours();
+    let mins = dur.num_minutes().abs();
+    let secs = dur.num_seconds().abs();
+    if hours >= 0 {
+        format!("Time left: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
+    } else {
+        format!("Over time: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
     }
 }
