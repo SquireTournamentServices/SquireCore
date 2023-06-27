@@ -3,7 +3,9 @@ use web_sys::window;
 use yew::{prelude::*, virtual_dom::VNode};
 
 use self::_StandingsPopoutProps::display_vnode;
-use crate::{tournament::standings, CLIENT};
+use crate::{tournament::standings, CLIENT, utils::{console_log, generic_scroll_vnode, generic_popout_window}};
+
+use super::players::scroll;
 
 #[derive(Properties, PartialEq)]
 struct StandingsPopoutProps {
@@ -37,6 +39,7 @@ pub struct StandingsView {
 }
 
 pub fn fetch_standings_profile(ctx: &Context<StandingsView>, id: TournamentId) {
+    console_log("Standings are being fetched...");
     ctx.link().send_future(async move {
         let data = CLIENT
             .get()
@@ -53,44 +56,46 @@ impl Component for StandingsView {
     type Properties = StandingsProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        StandingsView {
+        let to_return = StandingsView {
             id: ctx.props().id,
             scroll_vnode: None,
             process: ctx.link().callback(StandingsMessage::SpawnPopout),
             standings: Default::default(),
-        }
+        };
+        fetch_standings_profile(ctx, to_return.id);
+        to_return
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             StandingsMessage::SpawnPopout(num) => {
-                self.scroll_vnode = Some(self.standings.gen_popout_page(120));
-                window()
-                    .and_then(|w| w.open().ok().flatten())
-                    .and_then(|new_w_o| new_w_o.document())
-                    .and_then(|doc| doc.get_elements_by_tag_name("html").get_with_index(0))
-                    .map(|r| {
-                        yew::Renderer::<StandingsPopout>::with_root_and_props(
-                            r,
-                            StandingsPopoutProps {
-                                display_vnode: self.scroll_vnode.clone().unwrap(),
-                            },
-                        )
-                        .render()
-                    });
+                let scroll_strings = self.standings.standings.iter().map(|(i, s)|{
+                    format!("{i} : {s}")
+                });
+                self.scroll_vnode = Some(generic_scroll_vnode( 120, scroll_strings));
+                generic_popout_window(self.scroll_vnode.clone().unwrap());
             }
             StandingsMessage::StandingsQueryReady(data) => {
                 self.standings = data.unwrap_or_default();
             }
         }
-        false
+        true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let cb = self.process.clone();
         html! {
             <div>
-                <p>{ self.standings.standings.len() }</p>
+                <div class="overflow-auto py-3 pairings-scroll-box">
+                    <ul class="force_left">{
+                        self.standings.standings.iter().map(|(i, name)| {
+                            html! {
+                                <li>{ format!("{} : {}", i, name) }</li>
+                            }
+                        })
+                        .collect::<Html>()
+                    }</ul>
+                </div>
                 <button onclick={ move |_| cb.emit(0) }>{ "Standings Scroll" }</button>
             </div>
         }
@@ -113,64 +118,5 @@ impl StandingsProfile {
             })
             .collect();
         Self { standings }
-    }
-
-    pub fn view(&self) -> Html {
-        todo!()
-    }
-
-    fn gen_popout_page(&self, vert_scroll_time: u32) -> Html {
-        html! {
-            <html>
-                <head>
-                    <title>{ "Standings!" }</title>
-                    <style>{format!("
-                html, body {{
-                    overflow: hidden;
-                }}
-                .scroll_holder {{
-                    overflow: hidden;
-                    box-sizing: border-box;
-                    position: relative;
-                    box-sizing: border-box;
-                }}
-                .vert_scroller {{
-                    position: relative;
-                    box-sizing: border-box;
-                    animation: vert_scroller {}s linear infinite;
-                }}
-                .scroll_item {{
-                    display: block;
-                    font-size: 3em;
-                    font-family: Arial, Helvetica, sans-serif;
-                    margin: auto;
-                    height: 4em;
-                    text-align: center;
-                }}
-                @keyframes vert_scroller {{
-                    0%   {{ top:  120vh }}
-                    100% {{ top: -100% }}
-                }}
-                ", vert_scroll_time)}</style>
-                </head>
-                <body>
-                    <div class="scroll_holder">
-                        <div class="vert_scroller">
-                        {
-                                self.standings
-                                .iter()
-                                .map(|(i, name)|
-                                    html! {
-                                        <div class="scroll_item">
-                                            <p>{ format!("#{i} : {name}") }</p>
-                                        </div>
-                                    })
-                                .collect::<Html>()
-                        }
-                        </div>
-                    </div>
-                </body>
-            </html>
-        }
     }
 }

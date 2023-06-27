@@ -15,9 +15,10 @@ use yew::{prelude::*, virtual_dom::VNode};
 
 use super::{creator, rounds::SelectedRound, spawn_update_listener};
 use crate::{
-    utils::{console_log, input, TextInput},
+    utils::{console_log, input, TextInput, generic_scroll_vnode, generic_popout_window},
     CLIENT,
 };
+
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct PairingsWrapper {
@@ -62,6 +63,7 @@ pub enum PairingsViewMessage {
     PairingsReady(PairingsWrapper),
     QueryActiveRounds,
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
+    PopoutActiveRounds(),
     QueryMatchSize,
     MatchSizeReady(u8),
     CreateSingleRound(),
@@ -186,6 +188,18 @@ impl Component for PairingsView {
                 v_ars.sort_by_cached_key(|r| r.round_number);
                 self.active = Some(v_ars);
                 true
+            }
+            PairingsViewMessage::PopoutActiveRounds() => {
+                if (self.active.is_none()) { return false }
+                let scroll_strings = self.active.as_ref().unwrap().iter().map(|ars|{
+                    //let player_list = ars.players.iter().map(|pn|{ 
+                    //    format!("{}, ", pn)
+                    //}).collect();
+                    format!("Round #{}, Table #{} :: {}", ars.round_number, ars.table_number, ars.players.join(", ")) 
+                });
+                let scroll_vnode = generic_scroll_vnode( 90, scroll_strings);
+                generic_popout_window(scroll_vnode.clone());
+                false
             }
             PairingsViewMessage::QueryMatchSize => {
                 self.query_match_size(ctx);
@@ -382,6 +396,8 @@ impl PairingsView {
     }
 
     fn view_active_menu(&self, ctx: &Context<Self>) -> Html {
+        let cb_active_popout = ctx.link()
+        .callback(move |_| PairingsViewMessage::PopoutActiveRounds() );
         html! {
             <div class="py-5">
                 <div class="overflow-auto py-3 pairings-scroll-box">
@@ -409,6 +425,7 @@ impl PairingsView {
                         }
                     }</ul>
                 </div>
+                <button onclick={cb_active_popout} >{ "Pop-out Scrolling Display" }</button>
             </div>
         }
     }
