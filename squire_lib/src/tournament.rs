@@ -710,7 +710,7 @@ impl Tournament {
         if !self.is_active() {
             Err(TournamentError::IncorrectStatus(self.status))
         } else if plyrs.len() != self.pairing_sys.common.match_size as usize {
-            Err(TournamentError::InvalidMatchSize)
+            Err(TournamentError::IncorrectMatchSize)
         } else if plyrs.iter().any(|p| !self.player_reg.is_registered(p)) {
             Err(TournamentError::PlayerNotFound)
         } else if !plyrs.iter().all_unique() {
