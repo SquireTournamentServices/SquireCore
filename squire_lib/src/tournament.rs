@@ -708,18 +708,18 @@ impl Tournament {
     /// Creates a new round from a list of players
     pub fn create_round(&mut self, salt: DateTime<Utc>, plyrs: Vec<PlayerId>) -> OpResult {
         if !self.is_active() {
-            return Err(TournamentError::IncorrectStatus(self.status));
-        }
-        if plyrs.len() == self.pairing_sys.common.match_size as usize
-            && plyrs.iter().all(|p| self.player_reg.is_registered(p))
-            && plyrs.iter().all_unique()
-        {
+            Err(TournamentError::IncorrectStatus(self.status))
+        } else if plyrs.len() != self.pairing_sys.common.match_size as usize {
+            Err(TournamentError::InvalidMatchSize)
+        } else if plyrs.iter().any(|p| !self.player_reg.is_registered(p)) {
+            Err(TournamentError::PlayerNotFound)
+        } else if !plyrs.iter().all_unique() {
+            Err(TournamentError::RepeatedPlayerInMatch)
+        } else {
             let context = self.pairing_sys.get_context();
             Ok(OpData::CreateRound(
                 self.round_reg.create_round(salt, plyrs, context),
             ))
-        } else {
-            Err(TournamentError::PlayerNotFound)
         }
     }
 
