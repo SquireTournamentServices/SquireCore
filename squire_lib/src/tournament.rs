@@ -1132,7 +1132,8 @@ impl Display for TournamentStatus {
 mod tests {
     use std::collections::HashMap;
 
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
+    use itertools::Itertools;
     use uuid::Uuid;
 
     use super::{Tournament, TournamentPreset};
@@ -1140,6 +1141,7 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
         error::TournamentError,
+        identifiers::PlayerId,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
         tournament::TournamentSeed,
@@ -1269,6 +1271,52 @@ mod tests {
             )
             .unwrap()
             .assume_pair();
+    }
+
+    #[test]
+    fn create_round_test() {
+        let mut tourn =
+            Tournament::from_preset("Test".into(), TournamentPreset::Swiss, "Test".into());
+        assert_eq!(tourn.pairing_sys.common.match_size, 2);
+        assert!(tourn.start().is_ok());
+
+        fn make_player(tourn: &mut Tournament) -> PlayerId {
+            tourn
+                .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+                .unwrap()
+                .assume_register_player()
+        }
+        let default_salt = DateTime::<Utc>::MIN_UTC;
+
+        let players_too_large = std::iter::repeat_with(|| make_player(&mut tourn))
+            .take(4)
+            .collect_vec();
+        let players_too_small = vec![make_player(&mut tourn)];
+        let players_none = vec![];
+        let players_correct = std::iter::repeat_with(|| make_player(&mut tourn))
+            .take(2)
+            .collect_vec();
+        assert_eq!(
+            tourn.create_round(default_salt, players_too_large),
+            Err(TournamentError::InvalidMatchSize)
+        );
+        assert_eq!(
+            tourn.create_round(default_salt, players_too_small),
+            Err(TournamentError::InvalidMatchSize)
+        );
+        assert_eq!(
+            tourn.create_round(default_salt, players_none),
+            Err(TournamentError::InvalidMatchSize)
+        );
+        assert!(tourn.create_round(default_salt, players_correct).is_ok());
+
+        let repeated_players = std::iter::repeat(make_player(&mut tourn))
+            .take(2)
+            .collect_vec();
+        assert_eq!(
+            tourn.create_round(default_salt, repeated_players),
+            Err(TournamentError::RepeatedPlayerInMatch)
+        );
     }
 
     #[test]
