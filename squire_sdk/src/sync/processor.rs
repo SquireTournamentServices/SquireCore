@@ -101,6 +101,7 @@ impl SyncProcessor {
                 for op in iter {
                     match sync.first_id() {
                         Ok(id) if id == op.id => {
+                            println!("Found a matching Op: {id}! Dropping it from the proc!");
                             let _ = sync.pop_front();
                         }
                         Ok(_) | Err(_) => break,

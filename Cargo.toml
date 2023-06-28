@@ -11,8 +11,7 @@ resolver = "2"
 # We exclude the frontend so that we can compile it as part of the compilation
 # of the backend. Otherwise, there is a deadlock. This is ok since the frontend
 # should always be compiled as WASM, so it doesn't share any deps with.
-exclude = ["squire_web",
-]
+exclude = ["squire_web"]
 
 [profile.release]
 lto = true

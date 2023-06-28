@@ -50,6 +50,25 @@ impl OpLog {
         self.ops.is_empty()
     }
 
+    /// Returns an iterator for the log that ignores all elements before the given `OpId`. The
+    /// given `OpId` is also ignored. None is returned if the given operation is not found.
+    pub(crate) fn iter_passed_op(&self, id: OpId) -> Option<impl Iterator<Item = &FullOp>> {
+        let mut iter = self.ops.iter();
+        iter.by_ref().find(|op| op.id == id).map(|_| iter)
+    }
+
+    /*
+    /// Returns an iterator like `iter_passed_op` but also filters operations based on the given
+    /// predicate *before* trying to find the operation. None is return if the given operation is
+    /// not found.
+    pub(crate) fn iter_passed_op_with<F>(&self, id: OpId, mut f: F) -> Option<impl Iterator<Item = &FullOp>>
+        where F: FnMut(&FullOp) -> bool,
+    {
+        let mut iter = self.ops.iter();
+        iter.by_ref().filter(|op| f(op)).find(|op| op.id == id).map(|_| iter)
+    }
+    */
+
     #[cfg(feature = "client")]
     pub(crate) fn create_sync_request(&self, op: Option<OpId>) -> OpSync {
         let ops = match op {
@@ -94,7 +113,7 @@ impl OpLog {
 
     /// Creates a slice of this log starting at the given index. `None` is returned if `index` is
     /// out of bounds.
-    #[allow(dead_code)]
+    #[cfg(any(feature = "server", feature = "client"))]
     pub(crate) fn get_slice(&self, id: OpId) -> Option<OpSlice> {
         if self.is_empty() {
             return None;

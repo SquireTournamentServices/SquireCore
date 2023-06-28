@@ -8,16 +8,16 @@ use squire_lib::{
 
 use super::{processor::SyncCompletion, OpId, OpLog, SyncError};
 #[cfg(feature = "server")]
-use crate::sync::{ServerOpLink, processor::SyncDecision};
-#[cfg(any(feature = "client", feature = "server"))]
-use crate::{
-    model::operations::{OpData, OpResult},
-    sync::{FullOp, processor::SyncProcessor, OpSync}
-};
+use crate::sync::{processor::SyncDecision, ServerOpLink};
 #[cfg(feature = "client")]
 use crate::{
     model::operations::TournOp,
     sync::{error::ForwardError, SyncForwardResp},
+};
+#[cfg(any(feature = "client", feature = "server"))]
+use crate::{
+    model::operations::{OpData, OpResult},
+    sync::{processor::SyncProcessor, FullOp, OpSync},
 };
 
 /// A state manager for the tournament struct
@@ -187,6 +187,31 @@ impl TournamentManager {
 
     /// Handles an sync request that is forwarded from the backend.
     pub fn handle_forwarded_sync(&mut self, sync: OpSync) -> SyncForwardResp {
+        let Ok(anchor_id) = sync.first_id() else { return SyncForwardResp::Aborted };
+
+        // Ensure the following holds:
+        //  Log : known ops | anchor op | common ops
+        //  Sync:             anchor op | common ops | new ops
+        //
+        //  I.e. we don't want the sync to be of the form:
+        //  Log : known ops | anchor op | common ops
+        //  Sync:             anchor op | new ops    | common ops
+        //
+        //  Note that the proc divides the sync at the first unknown operation. A well formed proc
+        //  should look like this:
+        //  Sync           : anchor op | common ops | new ops
+        //  Proc known     : anchor op | common ops
+        //  Proc to_process: new ops
+        //
+        //  And a problematic proc will like this:
+        //  Sync           : anchor op | common ops | new op | a mix of common and new ops
+        //  Proc known     : anchor op | common ops |
+        //  Proc to_process: new op    | a mix of common and new ops
+        if let Some(iter) = self.log.iter_passed_op(anchor_id) {
+            if iter.zip(sync.ops.iter().skip(1)).any(|(a, b)| a != b) {
+                return SyncForwardResp::Aborted;
+            }
+        }
         let proc = match SyncProcessor::new(sync, &self.log) {
             Ok(proc) => proc,
             Err(err) => {
@@ -203,31 +228,12 @@ impl TournamentManager {
                 };
             }
         };
-        println!("SyncProcessor created during forward processing...");
-        println!("SyncProcessor::to_process: {:?}", proc.to_process);
-        println!("SyncProcessor::processed: {:?}", proc.processed);
-        println!("SyncProcessor::known: {:?}", proc.known);
 
-        // Ensure the following holds:
-        //  Log : anchor op | common ops
-        //  Sync: anchor op | common ops | new ops
-        //
-        //  Note that the proc moves from that to this
-        //  Sync           : anchor op  | common ops | new ops
-        //  Proc known     : anchor op  | common ops
-        //  Proc to_process: common ops | new ops
-        if let Some(id) = proc.known.first_id() && proc.known.len() > 1 {
-            let mut iter = self.log.ops.iter();
-            if iter.by_ref().all(|op| op.id != id) {
-                return ForwardError::EmptySync.into()
-            }
-            if iter.zip(proc.to_process.iter()).any(|(a, b)| a != b) {
-                return SyncForwardResp::Aborted
-            }
-        } // TODO: None case? Error?
-          // FIXME: Ignore all to_process operations that we have seen
         match self.bulk_apply_ops_inner(proc.to_process.into_iter()) {
-            Err(err) => err.into(),
+            Err(err) => {
+                println!("{err:?}");
+                err.into()
+            }
             Ok(_) => {
                 self.last_sync = self.log.last_id();
                 SyncForwardResp::Success
@@ -530,6 +536,9 @@ mod tests {
         // Server forwards to client one
         let forward = server.init_sync_forwarding(comp);
         let resp = c1.handle_forwarded_sync(forward);
+        // Aborted because the log and sync look like this:
+        // C1's log: init op | C1 op
+        // Sync    : init op | C2 op
         assert_eq!(resp, SyncForwardResp::Aborted);
         assert_eq!(c1.log.len(), 2);
         assert_eq!(c1.log.last_op().unwrap().op, c1_op);
@@ -564,6 +573,7 @@ mod tests {
 
         // Server forwards to client two (effectively a noop)
         let forward = server.init_sync_forwarding(comp);
+        assert_eq!(forward.ops.len(), 2);
         let resp = c2.handle_forwarded_sync(forward);
         assert_eq!(resp, SyncForwardResp::Success);
         assert_eq!(c2.log.len(), 2);
@@ -661,9 +671,10 @@ mod tests {
     //   - The server updates at any point in the syncing process
     //   - Sanity checks for all error cases captured by SyncError
     //   - Multi-stage "random" test where c1 and c2 take turns sending updates to the tournament
-    //  (~10 cycles). This tests how the `last_updated` OpId is tracked
+    //  (~100 cycles). This tests how the `last_updated` OpId is tracked
     //   - C1 sends a sync request to server. Sync completes but the completion is not sent to the
     //   C1. C1 sends a new sync request. Sync request should automatically complete. Test both
     //   ForeignOnly and Mixed completion and with(out) the tournament get other updates (four
     //   cases)
+    //   Ensure that a forwarded sync that is applied twice does nothing and returns a success
 }
