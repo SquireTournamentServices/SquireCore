@@ -5,6 +5,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
 use uuid::Uuid;
@@ -711,6 +712,7 @@ impl Tournament {
         }
         if plyrs.len() == self.pairing_sys.common.match_size as usize
             && plyrs.iter().all(|p| self.player_reg.is_registered(p))
+            && plyrs.iter().all_unique()
         {
             let context = self.pairing_sys.get_context();
             Ok(OpData::CreateRound(
