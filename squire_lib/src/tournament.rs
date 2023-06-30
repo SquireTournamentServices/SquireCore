@@ -1132,7 +1132,7 @@ impl Display for TournamentStatus {
 mod tests {
     use std::collections::HashMap;
 
-    use chrono::{DateTime, Utc};
+    use chrono::Utc;
     use itertools::Itertools;
     use uuid::Uuid;
 
@@ -1285,7 +1285,6 @@ mod tests {
                 .unwrap()
                 .assume_register_player()
         }
-        let default_salt = DateTime::<Utc>::MIN_UTC;
 
         let players_too_large = std::iter::repeat_with(|| make_player(&mut tourn))
             .take(4)
@@ -1302,29 +1301,29 @@ mod tests {
         assert!(tourn.start().is_ok());
 
         assert_eq!(
-            tourn.create_round(default_salt, players_too_large),
+            tourn.create_round(Utc::now(), players_too_large),
             Err(TournamentError::IncorrectMatchSize)
         );
         assert_eq!(
-            tourn.create_round(default_salt, players_too_small),
+            tourn.create_round(Utc::now(), players_too_small),
             Err(TournamentError::IncorrectMatchSize)
         );
         assert_eq!(
-            tourn.create_round(default_salt, players_none),
+            tourn.create_round(Utc::now(), players_none),
             Err(TournamentError::IncorrectMatchSize)
         );
-        assert!(tourn.create_round(default_salt, players_correct).is_ok());
+        assert!(tourn.create_round(Utc::now(), players_correct).is_ok());
 
         let unregistered_players = std::iter::repeat_with(|| PlayerId::new(Uuid::new_v4()))
             .take(2)
             .collect_vec();
         assert_eq!(
-            tourn.create_round(default_salt, unregistered_players),
+            tourn.create_round(Utc::now(), unregistered_players),
             Err(TournamentError::PlayerNotFound)
         );
 
         assert_eq!(
-            tourn.create_round(default_salt, repeated_players),
+            tourn.create_round(Utc::now(), repeated_players),
             Err(TournamentError::RepeatedPlayerInMatch)
         );
     }
