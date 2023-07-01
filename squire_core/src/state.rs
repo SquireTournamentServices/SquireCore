@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
-use mongodb::{options::ClientOptions, Client as DbClient, Collection, Database};
+use mongodb::{
+    bson::doc, options::ClientOptions, Client as DbClient, Collection, Database, IndexModel,
+};
 use squire_sdk::{
     model::{accounts::SquireAccount, tournament::TournamentSeed},
     server::{state::ServerState, User},
@@ -25,7 +27,12 @@ impl AppState {
 
         let client = DbClient::with_options(client_options).unwrap();
 
-        Self { client }
+        let slf = Self { client };
+
+        let index = IndexModel::builder().keys(doc! {"tourn_id": 1}).build();
+        slf.get_tourns().create_index(index, None).await;
+
+        slf
     }
 
     pub fn get_db(&self) -> Database {
