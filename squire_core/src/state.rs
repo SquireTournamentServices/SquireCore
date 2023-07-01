@@ -35,8 +35,14 @@ impl AppState {
         slf
     }
 
+    #[cfg(not(test))]
     pub fn get_db(&self) -> Database {
         self.client.database("Squire")
+    }
+
+    #[cfg(test)]
+    pub fn get_db(&self) -> Database {
+        self.client.database("SquireTesting")
     }
 
     pub fn get_tourns(&self) -> Collection<TournamentManager> {
