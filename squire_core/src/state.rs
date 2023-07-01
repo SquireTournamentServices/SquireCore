@@ -88,7 +88,8 @@ impl ServerState for AppState {
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
-        todo!()
+        self.get_tourns().insert_one(tourn, None).await;
+        false // TODO: wrong, but fix later
     }
 }
 
@@ -114,5 +115,29 @@ impl SessionStore for AppState {
 
     async fn clear_store(&self) -> async_session::Result {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use squire_sdk::tournaments::TournamentManager;
+
+    use super::AppState;
+
+    #[tokio::test]
+    async fn insert_remove_tourn() {
+        use squire_sdk::server::state::ServerState;
+
+        let manager =
+            TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
+        let state = AppState::new().await;
+
+        state.persist_tourn(&manager).await;
+        let retrieved_tourn = state
+            .get_tourn(manager.id)
+            .await
+            .expect("Could not retrieve tournament from database");
+
+        assert_eq!(manager, retrieved_tourn);
     }
 }
