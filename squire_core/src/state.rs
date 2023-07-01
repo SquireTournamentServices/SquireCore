@@ -130,9 +130,15 @@ mod tests {
 
     use super::AppState;
 
+    async fn clear_database() {
+        AppState::new().await.get_db().drop(None).await;
+    }
+
     #[tokio::test]
     async fn insert_remove_tourn() {
         use squire_sdk::server::state::ServerState;
+
+        clear_database().await;
 
         let manager =
             TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
