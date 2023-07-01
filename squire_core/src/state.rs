@@ -3,10 +3,12 @@ use std::sync::Arc;
 use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
 use mongodb::{
-    bson::doc, options::ClientOptions, Client as DbClient, Collection, Database, IndexModel,
+    bson::{doc, spec::BinarySubtype, Binary, Document},
+    options::ClientOptions,
+    Client as DbClient, Collection, Database, IndexModel,
 };
 use squire_sdk::{
-    model::{accounts::SquireAccount, tournament::TournamentSeed},
+    model::{accounts::SquireAccount, identifiers::TypeId, tournament::TournamentSeed},
     server::{state::ServerState, User},
     tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset},
     version::{ServerMode, Version},
@@ -29,7 +31,7 @@ impl AppState {
 
         let slf = Self { client };
 
-        let index = IndexModel::builder().keys(doc! {"tourn_id": 1}).build();
+        let index = IndexModel::builder().keys(doc! {"tourn.id": 1}).build();
         slf.get_tourns().create_index(index, None).await;
 
         slf
@@ -47,6 +49,14 @@ impl AppState {
 
     pub fn get_tourns(&self) -> Collection<TournamentManager> {
         self.get_db().collection("Tournaments")
+    }
+
+    fn make_query(id: TournamentId) -> Document {
+        let b = Binary {
+            bytes: id.as_bytes().to_vec(),
+            subtype: BinarySubtype::Generic,
+        };
+        doc! { "tourn.id": b }
     }
 
     /*
@@ -84,13 +94,10 @@ impl ServerState for AppState {
     }
 
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager> {
-        let mut cursor = self.get_tourns().find(None, None).await.unwrap();
-        while let Some(tourn) = cursor.try_next().await.unwrap() {
-            if tourn.id == id {
-                return Some(tourn);
-            }
-        }
-        None
+        self.get_tourns()
+            .find_one(Some(Self::make_query(id)), None)
+            .await
+            .unwrap()
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
