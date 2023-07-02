@@ -118,7 +118,7 @@ impl ServerState for AppState {
         // well) use the raw document serializer, which unfortunately behave differently. Therefore
         // `Collection::update_one` is used as a workaround so that we can call the raw document
         // serializer here
-        let doc: Document = bson::to_raw_document_buf(tourn)
+        let doc: Document = mongodb::bson::to_raw_document_buf(tourn)
             .unwrap()
             .try_into()
             .unwrap();
