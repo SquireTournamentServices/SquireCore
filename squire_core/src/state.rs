@@ -13,6 +13,7 @@ use squire_sdk::{
     tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset},
     version::{ServerMode, Version},
 };
+use tracing::Level;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -107,7 +108,8 @@ impl ServerState for AppState {
         self.get_tourns()
             .find_one(Some(Self::make_query(id)), None)
             .await
-            .unwrap()
+            .ok()
+            .flatten()
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
@@ -120,7 +122,7 @@ impl ServerState for AppState {
             .unwrap()
             .try_into()
             .unwrap();
-        let result = self
+        match self
             .get_tourns()
             .update_one(
                 Self::make_query(tourn.id),
@@ -128,8 +130,13 @@ impl ServerState for AppState {
                 UpdateOptions::builder().upsert(true).build(),
             )
             .await
-            .unwrap();
-        result.matched_count != 0
+        {
+            Ok(result) => result.matched_count != 0,
+            Err(e) => {
+                tracing::event!(Level::WARN, "Could not persist tournament: {e}");
+                false
+            }
+        }
     }
 }
 
