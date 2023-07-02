@@ -129,7 +129,6 @@ impl ServerState for AppState {
             )
             .await
             .unwrap();
-        println!("{result:?}");
         result.matched_count != 0
     }
 }
