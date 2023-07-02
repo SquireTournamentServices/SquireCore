@@ -4,7 +4,7 @@ use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
-    options::ClientOptions,
+    options::{ClientOptions, ReplaceOptions, UpdateModifications, UpdateOptions},
     Client as DbClient, Collection, Database, IndexModel,
 };
 use squire_sdk::{
@@ -56,7 +56,17 @@ impl AppState {
             bytes: id.as_bytes().to_vec(),
             subtype: BinarySubtype::Generic,
         };
-        doc! { "tourn.id": b }
+        let out = doc! {
+            "tourn.id": b,
+        };
+        // let out = doc! {"tourn.id": {
+        //     "$gte": Binary { bytes: id.as_bytes().to_vec(), subtype: BinarySubtype::Generic },
+        //     "$lte": Binary { bytes: id.as_bytes().to_vec(), subtype: BinarySubtype::Reserved(127)},
+        // }};
+
+        // let out = doc! {"tourn.id": id.to_string()};
+        println!("{out}");
+        out
     }
 
     /*
@@ -101,8 +111,24 @@ impl ServerState for AppState {
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
-        self.get_tourns().insert_one(tourn, None).await;
-        false // TODO: wrong, but fix later
+        // There appears to be a problem in bson right now where `Collection::replace_one` uses the
+        // normal document serializer, but `Collection::find_one` (and `Collection::insert_one` as
+        // well) use the raw document serializer, which unfortunately behave differently. Therefore
+        // `Collection::update_one` is used as a workaround so that we can call the raw document
+        // serializer here
+        let doc: Document = bson::to_raw_document_buf(tourn)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let result = self.get_tourns()
+            .update_one(
+                Self::make_query(tourn.id),
+                UpdateModifications::Document(doc! {"$set": doc}),
+                UpdateOptions::builder().upsert(true).build(),
+            )
+            .await
+            .unwrap();
+        result.modified_count != 0
     }
 }
 
@@ -142,7 +168,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn insert_remove_tourn() {
+    async fn insert_fetch_tourn() {
         use squire_sdk::server::state::ServerState;
 
         clear_database().await;
