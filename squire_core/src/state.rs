@@ -120,7 +120,8 @@ impl ServerState for AppState {
             .unwrap()
             .try_into()
             .unwrap();
-        let result = self.get_tourns()
+        let result = self
+            .get_tourns()
             .update_one(
                 Self::make_query(tourn.id),
                 UpdateModifications::Document(doc! {"$set": doc}),
@@ -128,7 +129,8 @@ impl ServerState for AppState {
             )
             .await
             .unwrap();
-        result.modified_count != 0
+        println!("{result:?}");
+        result.matched_count != 0
     }
 }
 
@@ -159,7 +161,11 @@ impl SessionStore for AppState {
 
 #[cfg(test)]
 mod tests {
-    use squire_sdk::tournaments::TournamentManager;
+    use async_session::chrono::Utc;
+    use squire_sdk::{
+        server::state::ServerState,
+        tournaments::{TournOp, TournamentManager},
+    };
 
     use super::AppState;
 
@@ -169,8 +175,6 @@ mod tests {
 
     #[tokio::test]
     async fn insert_fetch_tourn() {
-        use squire_sdk::server::state::ServerState;
-
         clear_database().await;
 
         let manager =
@@ -184,5 +188,17 @@ mod tests {
             .expect("Could not retrieve tournament from database");
 
         assert_eq!(manager, retrieved_tourn);
+    }
+
+    #[tokio::test]
+    async fn check_already_persisted() {
+        clear_database().await;
+
+        let mut manager =
+            TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
+        let state = AppState::new().await;
+
+        assert!(!state.persist_tourn(&manager).await);
+        assert!(state.persist_tourn(&manager).await);
     }
 }
