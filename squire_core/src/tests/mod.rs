@@ -1,7 +1,7 @@
 mod init;
 mod requests;
-mod utils;
 mod state;
+mod utils;
 
 //pub mod tournaments;
 //pub use tournaments::*;
