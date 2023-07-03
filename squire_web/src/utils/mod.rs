@@ -1,10 +1,10 @@
 pub mod input;
-pub mod requests;
 pub mod popout;
+pub mod requests;
 
 pub use input::*;
-pub use requests::*;
 pub use popout::*;
+pub use requests::*;
 use wasm_bindgen::__rt::RefMut;
 
 /// A wrapper around web_sys console log_1

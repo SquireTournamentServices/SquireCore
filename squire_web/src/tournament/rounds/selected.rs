@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use squire_sdk::{
@@ -67,8 +70,8 @@ impl RoundProfile {
 
     pub fn view(&self) -> Html {
         // TODO: Remove unwrap here
-        let dur_left =
-            ChronoDuration::from_std(self.length + self.extensions).unwrap() - (Utc::now() - self.timer);
+        let dur_left = ChronoDuration::from_std(self.length + self.extensions).unwrap()
+            - (Utc::now() - self.timer);
         html! {
             <>
             <p>

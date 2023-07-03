@@ -3,9 +3,12 @@ use web_sys::window;
 use yew::{prelude::*, virtual_dom::VNode};
 
 use self::_StandingsPopoutProps::display_vnode;
-use crate::{tournament::standings, CLIENT, utils::{console_log, generic_scroll_vnode, generic_popout_window}};
-
 use super::players::scroll;
+use crate::{
+    tournament::standings,
+    utils::{console_log, generic_popout_window, generic_scroll_vnode},
+    CLIENT,
+};
 
 #[derive(Properties, PartialEq)]
 struct StandingsPopoutProps {
@@ -69,10 +72,12 @@ impl Component for StandingsView {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             StandingsMessage::SpawnPopout(num) => {
-                let scroll_strings = self.standings.standings.iter().map(|(i, s)|{
-                    format!("{i} : {s}")
-                });
-                self.scroll_vnode = Some(generic_scroll_vnode( 120, scroll_strings));
+                let scroll_strings = self
+                    .standings
+                    .standings
+                    .iter()
+                    .map(|(i, s)| format!("{i} : {s}"));
+                self.scroll_vnode = Some(generic_scroll_vnode(120, scroll_strings));
                 generic_popout_window(self.scroll_vnode.clone().unwrap());
             }
             StandingsMessage::StandingsQueryReady(data) => {
