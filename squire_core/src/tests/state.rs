@@ -44,4 +44,10 @@ async fn check_already_persisted() {
 
     assert!(!state.persist_tourn(&manager).await);
     assert!(state.persist_tourn(&manager).await);
+
+    let retrieved_tourn = state
+        .get_tourn(manager.id)
+        .await
+        .expect("Could not retrieve tournament from database");
+    assert_eq!(manager, retrieved_tourn);
 }
