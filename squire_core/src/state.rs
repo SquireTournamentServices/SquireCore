@@ -78,9 +78,7 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new_with_settings(settings: AppSettings) -> Self {
-        let mut client_options = ClientOptions::parse("mongodb://localhost:27017")
-            .await
-            .unwrap();
+        let mut client_options = ClientOptions::parse(settings.get_address()).await.unwrap();
 
         client_options.app_name = Some("SquireCore Public Server".to_string());
 
@@ -98,18 +96,13 @@ impl AppState {
         Self::new_with_settings(AppSettings::default()).await
     }
 
-    #[cfg(not(test))]
     pub fn get_db(&self) -> Database {
-        self.client.database("Squire")
-    }
-
-    #[cfg(test)]
-    pub fn get_db(&self) -> Database {
-        self.client.database("SquireTesting")
+        self.client.database(self.settings.get_database_name())
     }
 
     pub fn get_tourns(&self) -> Collection<TournamentManager> {
-        self.get_db().collection("Tournaments")
+        self.get_db()
+            .collection(self.settings.get_tournament_collection_name())
     }
 
     fn make_query(id: TournamentId) -> Document {
