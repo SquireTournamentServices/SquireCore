@@ -187,7 +187,9 @@ impl TournamentManager {
 
     /// Handles an sync request that is forwarded from the backend.
     pub fn handle_forwarded_sync(&mut self, sync: OpSync) -> SyncForwardResp {
-        let Ok(anchor_id) = sync.first_id() else { return SyncForwardResp::Aborted };
+        let Ok(anchor_id) = sync.first_id() else {
+            return SyncForwardResp::Aborted;
+        };
 
         // Ensure the following holds:
         //  Log : known ops | anchor op | common ops
@@ -293,8 +295,12 @@ mod tests {
         assert_eq!(proc.processed.len(), proc_len[1]);
         assert_eq!(proc.to_process.len(), proc_len[2]);
         let link = server.process_sync(proc);
-        let ServerOpLink::Completed(comp) = link.clone() else { panic!() };
-        let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link.clone() else {
+            panic!()
+        };
+        let SyncCompletion::ForeignOnly(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), proc_len[0] + proc_len[2]);
         assert_eq!(&ops.last_op().unwrap().op, op);
         assert_eq!(server.log.len(), log_len + proc_len[2]);
@@ -319,7 +325,9 @@ mod tests {
 
         // Client sends update to server
         let link = proc_sync(&mut server, sync, [0, 0, 1], &op);
-        let ServerOpLink::Completed(comp) = link else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
 
         // Server responds to client one
         c1.handle_completion(comp.clone()).unwrap();
@@ -358,7 +366,9 @@ mod tests {
 
         // Client sends update to server
         let link = proc_sync(&mut server, sync, [1, 0, 1], &op);
-        let ServerOpLink::Completed(comp) = link else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
 
         // Server responds to client one
         c1.handle_completion(comp.clone()).unwrap();
@@ -389,7 +399,9 @@ mod tests {
 
             // Client sends update to server
             let link = proc_sync(&mut server, sync, [1, 0, 1], &op);
-            let ServerOpLink::Completed(comp) = link else { panic!() };
+            let ServerOpLink::Completed(comp) = link else {
+                panic!()
+            };
 
             // Server responds to client one
             c1.handle_completion(comp.clone()).unwrap();
@@ -490,8 +502,12 @@ mod tests {
         let link = server.process_sync(proc);
         println!("Server processed sync init...");
         println!("{link:?}\n");
-        let ServerOpLink::Completed(comp) = link else { panic!() };
-        let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
+        let SyncCompletion::ForeignOnly(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), 2);
         assert_eq!(ops.last_op().unwrap().op, c2_op);
         assert_eq!(server.log.len(), server_op_len + 1);
@@ -520,7 +536,9 @@ mod tests {
         assert_eq!(proc.to_process.len(), 1);
         let link = server.process_sync(proc);
         println!("{link:?}\n");
-        let ServerOpLink::Conflict(conflict) = link else { panic!() };
+        let ServerOpLink::Conflict(conflict) = link else {
+            panic!()
+        };
         assert_eq!(conflict.known.len(), 2);
         assert_eq!(conflict.processed.len(), 0);
         assert_eq!(conflict.to_process.len(), 1);
@@ -530,7 +548,9 @@ mod tests {
         // Server resolves conflict via purging and responses
         let decision = conflict.purge();
         let link = server.handle_decision(decision);
-        let ServerOpLink::Completed(comp) = link else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
         assert_eq!(comp.len(), 2);
         assert_eq!(server.log.len(), 2);
         assert_eq!(server.log.last_op().unwrap().op, c2_op);
@@ -573,8 +593,12 @@ mod tests {
         assert_eq!(proc.to_process.len(), 1);
         let link = server.process_sync(proc);
         println!("{link:?}\n");
-        let ServerOpLink::Completed(comp) = link else { panic!() };
-        let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
+        let SyncCompletion::ForeignOnly(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), 2);
         assert_eq!(ops.last_op().unwrap().op, op);
         assert_eq!(server.log.len(), 2);
@@ -610,8 +634,12 @@ mod tests {
         assert_eq!(proc.to_process.len(), 1);
         let link = server.process_sync(proc);
         println!("{link:?}\n");
-        let ServerOpLink::Completed(comp) = link else { panic!() };
-        let SyncCompletion::Mixed(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
+        let SyncCompletion::Mixed(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), 3);
         assert_eq!(ops.last_op().unwrap().op, c2_op);
         assert_eq!(server.log.len(), 3);
