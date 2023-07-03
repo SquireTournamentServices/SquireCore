@@ -106,21 +106,10 @@ impl AppState {
     }
 
     fn make_query(id: TournamentId) -> Document {
-        let b = Binary {
+        doc! { "tourn.id": Binary {
             bytes: id.as_bytes().to_vec(),
             subtype: BinarySubtype::Generic,
-        };
-        let out = doc! {
-            "tourn.id": b,
-        };
-        // let out = doc! {"tourn.id": {
-        //     "$gte": Binary { bytes: id.as_bytes().to_vec(), subtype: BinarySubtype::Generic },
-        //     "$lte": Binary { bytes: id.as_bytes().to_vec(), subtype: BinarySubtype::Reserved(127)},
-        // }};
-
-        // let out = doc! {"tourn.id": id.to_string()};
-        println!("{out}");
-        out
+        }}
     }
 
     /*
