@@ -175,7 +175,12 @@ impl ServerState for AppState {
         {
             Ok(result) => result.matched_count != 0,
             Err(e) => {
-                tracing::event!(Level::WARN, "Could not persist tournament: {e}");
+                tracing::event!(
+                    Level::WARN,
+                    r#"Could not persist tournament with name "{}" and id "{}" due to error: {e}"#,
+                    tourn.tourn().name,
+                    tourn.tourn().id,
+                );
                 false
             }
         }
