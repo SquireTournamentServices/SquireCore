@@ -110,8 +110,12 @@ impl ServerSyncManager {
     }
 
     pub fn add_sync_link(&mut self, id: Uuid, client: ClientOpLink, server: ServerOpLink) {
-        let Some(chain) = self.sync_chains.get_mut(&id) else { return };
-        let Some(comp) = chain.add_link(client, server) else { return };
+        let Some(chain) = self.sync_chains.get_mut(&id) else {
+            return;
+        };
+        let Some(comp) = chain.add_link(client, server) else {
+            return;
+        };
         self.sync_chains.remove(&id);
         self.completed_syncs.insert(id, comp);
         self.to_clear.add_timer(id);
@@ -223,7 +227,9 @@ impl TimerStack {
     }
 
     fn update_timer(&mut self, id: &Uuid) {
-        let Some(mut timer) = self.remove_timer(id) else { return };
+        let Some(mut timer) = self.remove_timer(id) else {
+            return;
+        };
         timer.1 = Instant::now();
         self.queue.push_back(timer);
     }

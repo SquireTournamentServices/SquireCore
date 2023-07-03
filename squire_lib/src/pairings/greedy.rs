@@ -31,7 +31,9 @@ where
         rejected: Vec::new(),
     };
     'outer: while plyrs.len() >= match_size {
-        let Some(first) = plyrs.pop_front() else { break; };
+        let Some(first) = plyrs.pop_front() else {
+            break;
+        };
         let mut id_buffer: Vec<PlayerId> = Vec::with_capacity(match_size);
 
         for plyr in &plyrs {

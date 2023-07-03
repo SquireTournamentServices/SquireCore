@@ -154,7 +154,9 @@ impl Component for PairingsView {
                 false
             }
             PairingsViewMessage::PairingsToRounds => {
-                let Some(pairings) = self.pairings.take() else { return false };
+                let Some(pairings) = self.pairings.take() else {
+                    return false;
+                };
                 let tracker = CLIENT.get().unwrap().update_tourn(
                     self.id,
                     TournOp::AdminOp(
@@ -226,7 +228,9 @@ impl Component for PairingsView {
             }
             PairingsViewMessage::CreateSingleBye(player) => false,
             PairingsViewMessage::SingleRoundInput(vec_index, text) => {
-                let Some(name) = self.single_round_inputs.get_mut(vec_index) else { return false };
+                let Some(name) = self.single_round_inputs.get_mut(vec_index) else {
+                    return false;
+                };
                 *name = text;
                 false
             }

@@ -317,7 +317,9 @@ async fn handle_ws_msg<F>(state: &mut ManagerState, on_update: &mut F, msg: Webs
 where
     F: FnMut(),
 {
-    let WebsocketMessage::Bytes(data) = msg else { panic!("Server did not send bytes of Websocket") };
+    let WebsocketMessage::Bytes(data) = msg else {
+        panic!("Server did not send bytes of Websocket")
+    };
     let WebSocketMessage { body, id } = postcard::from_bytes::<ClientBoundMessage>(&data).unwrap();
     match body {
         ClientBound::FetchResp(_) => { /* Do nothing, handled elsewhere */ }
@@ -343,8 +345,12 @@ async fn handle_server_op_link<F>(
     F: FnMut(),
 {
     // Get tourn
-    let Some(t_id) = state.syncs.get_tourn_id(msg_id) else { return };
-    let Some(tourn) = state.cache.get_mut(&t_id) else { return };
+    let Some(t_id) = state.syncs.get_tourn_id(msg_id) else {
+        return;
+    };
+    let Some(tourn) = state.cache.get_mut(&t_id) else {
+        return;
+    };
     match link {
         ServerOpLink::Conflict(proc) => {
             let server = ServerOpLink::Conflict(proc.clone());
@@ -379,7 +385,9 @@ async fn handle_forwarded_sync<F>(
     F: FnMut(),
 {
     log("Handling forwarded sync...");
-    let Some(comm) = state.cache.get_mut(t_id) else { return };
+    let Some(comm) = state.cache.get_mut(t_id) else {
+        return;
+    };
     log("Got tournament comm...");
     let resp = if state.forwarded.contains_resp(&msg_id) {
         log("Already saw this message. Auto-replying");
@@ -410,11 +418,15 @@ async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
 async fn wait_for_tourn(stream: &mut SplitStream<Websocket>) -> TournamentManager {
     loop {
         log("Waiting for tourn...");
-        let Some(Ok(WebsocketMessage::Bytes(msg))) = stream.next().await else { continue };
+        let Some(Ok(WebsocketMessage::Bytes(msg))) = stream.next().await else {
+            continue;
+        };
         log("Got response back!!!");
         let ClientBoundMessage { body, .. } = postcard::from_bytes(&msg).unwrap();
         log("Converted response to message");
-        let ClientBound::FetchResp(tourn) = body else { panic!("Server did not return a tournament") };
+        let ClientBound::FetchResp(tourn) = body else {
+            panic!("Server did not return a tournament")
+        };
         log("Successfully destructured the message into a tournament!!!");
         return *tourn;
     }

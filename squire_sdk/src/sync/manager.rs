@@ -86,8 +86,12 @@ impl TournamentManager {
             // The client's operations were the only operations. There is nothing to update
             SyncCompletion::ForeignOnly(_) => Ok(()),
             SyncCompletion::Mixed(ops) => {
-                let Some(id) = ops.first_id() else { return Err(SyncError::EmptySync) };
-                let Some(tourn) = self.log.get_state_with_slice(ops) else { return Err(SyncError::UnknownOperation(id)) };
+                let Some(id) = ops.first_id() else {
+                    return Err(SyncError::EmptySync);
+                };
+                let Some(tourn) = self.log.get_state_with_slice(ops) else {
+                    return Err(SyncError::UnknownOperation(id));
+                };
                 self.tourn = tourn;
                 Ok(())
             }
@@ -251,8 +255,12 @@ mod tests {
         assert_eq!(proc.processed.len(), 0);
         assert_eq!(proc.to_process.len(), 1);
         let link = server.process_sync(proc);
-        let ServerOpLink::Completed(comp) = link else { panic!() };
-        let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
+        let SyncCompletion::ForeignOnly(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), 1);
         assert_eq!(ops.first_op().unwrap().op, op);
         assert_eq!(server.log.len(), 1);
@@ -302,8 +310,12 @@ mod tests {
         assert_eq!(proc.to_process.len(), 1);
         let link = server.process_sync(proc);
         println!("{link:?}\n");
-        let ServerOpLink::Completed(comp) = link else { panic!() };
-        let SyncCompletion::ForeignOnly(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
+        let SyncCompletion::ForeignOnly(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), 2);
         assert_eq!(ops.last_op().unwrap().op, op);
         assert_eq!(server.log.len(), 2);
@@ -351,8 +363,12 @@ mod tests {
         assert_eq!(proc.to_process.len(), 1);
         let link = server.process_sync(proc);
         println!("{link:?}\n");
-        let ServerOpLink::Completed(comp) = link else { panic!() };
-        let SyncCompletion::Mixed(ref ops) = &comp else { panic!() };
+        let ServerOpLink::Completed(comp) = link else {
+            panic!()
+        };
+        let SyncCompletion::Mixed(ref ops) = &comp else {
+            panic!()
+        };
         assert_eq!(ops.len(), 3);
         assert_eq!(ops.last_op().unwrap().op, client_op);
         assert_eq!(server.log.len(), 3);

@@ -138,7 +138,9 @@ impl<S: ServerState> GatheringHall<S> {
 
     async fn process_new_gathering(&mut self, id: TournamentId) {
         // TODO: We need a way to communicate that a tournament can not be found
-        let Some(send) = self.spawn_gathering(id).await else { return };
+        let Some(send) = self.spawn_gathering(id).await else {
+            return;
+        };
         self.gatherings.insert(id, send);
     }
 

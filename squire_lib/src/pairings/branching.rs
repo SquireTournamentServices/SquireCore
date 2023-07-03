@@ -24,7 +24,9 @@ pub fn branching_pairings(
 
     loop {
         let mut iter = plyrs.iter().filter(|p| !is_paired.contains(p)).cloned();
-        let Some(root) = iter.next() else { break; };
+        let Some(root) = iter.next() else {
+            break;
+        };
         let mut tree = PairingTree::new(root);
         let mut pairing = None;
         for plyr in iter {

@@ -100,7 +100,9 @@ impl SelectedRound {
                 false
             }
             SelectedRoundMessage::BufferMessage(msg) => {
-                let Some((rnd, updater)) = self.round.as_mut() else { return false };
+                let Some((rnd, updater)) = self.round.as_mut() else {
+                    return false;
+                };
                 if (updater.round_changes_buffer.is_some()) {
                     updater.round_changes_buffer.as_mut().unwrap().update(msg)
                 } else {
@@ -200,7 +202,9 @@ impl SelectedRound {
     }
 
     pub fn view(&self) -> Html {
-        let Some((rnd, updater)) = self.round.as_ref() else { return Html::default() };
+        let Some((rnd, updater)) = self.round.as_ref() else {
+            return Html::default();
+        };
         // Moved to rnd.view()
         html! {
             <div class="m-2">

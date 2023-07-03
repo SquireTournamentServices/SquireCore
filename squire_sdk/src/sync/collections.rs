@@ -133,7 +133,9 @@ impl OpLog {
     where
         I: Iterator<Item = FullOp>,
     {
-        let Some(op) = iter.next() else { return Ok(iter) };
+        let Some(op) = iter.next() else {
+            return Ok(iter);
+        };
         let id = op.id;
         let mut log_iter = self.ops.iter();
         if log_iter.by_ref().find(|op| op.id == id).is_none() {
