@@ -26,19 +26,19 @@ pub struct AppSettings {
 impl AppSettings {
     /// Sets the address used as the MongoDB connection string. Default is
     /// `mongodb://localhost:27017`.
-    pub fn address(mut self, addr: impl Into<Option<String>>) -> Self {
-        self.address = addr.into();
+    pub fn address(mut self, addr: impl Into<String>) -> Self {
+        self.address = Some(addr.into());
         self
     }
     /// Sets the name of the database. Default is `Squire`, or `SquireTesting` if the crate is
     /// compiled for testing.
-    pub fn database_name(mut self, name: impl Into<Option<String>>) -> Self {
-        self.database_name = name.into();
+    pub fn database_name(mut self, name: impl Into<String>) -> Self {
+        self.database_name = Some(name.into());
         self
     }
     /// Sets the name of the collection used for storing tournaments. Default is `Tournaments`.
-    pub fn tournament_collection_name(mut self, name: impl Into<Option<String>>) -> Self {
-        self.tournament_collection_name = name.into();
+    pub fn tournament_collection_name(mut self, name: impl Into<String>) -> Self {
+        self.tournament_collection_name = Some(name.into());
         self
     }
 
