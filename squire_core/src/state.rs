@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
@@ -15,13 +15,69 @@ use squire_sdk::{
 };
 use tracing::Level;
 
+/// Specifies how the Squire app connects to a MongoDB instance
+#[derive(Debug, Clone, Default)]
+pub struct AppSettings {
+    address: Option<String>,
+    database_name: Option<String>,
+    tournament_collection_name: Option<String>,
+}
+
+impl AppSettings {
+    /// Sets the address used as the MongoDB connection string. Default is
+    /// `mongodb://localhost:27017`.
+    pub fn address(mut self, addr: impl Into<Option<String>>) -> Self {
+        self.address = addr.into();
+        self
+    }
+    /// Sets the name of the database. Default is `Squire`, or `SquireTesting` if the crate is
+    /// compiled for testing.
+    pub fn database_name(mut self, name: impl Into<Option<String>>) -> Self {
+        self.database_name = name.into();
+        self
+    }
+    /// Sets the name of the collection used for storing tournaments. Default is `Tournaments`.
+    pub fn tournament_collection_name(mut self, name: impl Into<Option<String>>) -> Self {
+        self.tournament_collection_name = name.into();
+        self
+    }
+
+    fn get_address(&self) -> &str {
+        self.address
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("mongodb://localhost:27017")
+    }
+    #[cfg(not(test))]
+    fn get_database_name(&self) -> &str {
+        self.database_name
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("Squire")
+    }
+    #[cfg(test)]
+    fn get_database_name(&self) -> &str {
+        self.database_name
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("SquireTesting")
+    }
+    fn get_tournament_collection_name(&self) -> &str {
+        self.tournament_collection_name
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("Tournaments")
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     client: DbClient,
+    settings: AppSettings,
 }
 
 impl AppState {
-    pub async fn new() -> Self {
+    pub async fn new_with_settings(settings: AppSettings) -> Self {
         let mut client_options = ClientOptions::parse("mongodb://localhost:27017")
             .await
             .unwrap();
@@ -30,12 +86,16 @@ impl AppState {
 
         let client = DbClient::with_options(client_options).unwrap();
 
-        let slf = Self { client };
+        let slf = Self { client, settings };
 
         let index = IndexModel::builder().keys(doc! {"tourn.id": 1}).build();
         slf.get_tourns().create_index(index, None).await;
 
         slf
+    }
+
+    pub async fn new() -> Self {
+        Self::new_with_settings(AppSettings::default()).await
     }
 
     #[cfg(not(test))]
