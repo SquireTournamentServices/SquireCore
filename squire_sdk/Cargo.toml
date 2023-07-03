@@ -6,7 +6,6 @@ license = "AGPL-3.0"
 authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [features]
-default = []
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
 client = [
   "cookie",

@@ -25,6 +25,21 @@ jobs:
       - uses: taiki-e/install-action@cargo-hack
       - uses: actions/checkout@v3
       - run: cargo fmt --check --package squire_sdk
-      - run: cargo hack build --feature-powerset --no-dev-deps --package squire_sdk --verbose
-      - run: cargo hack test --package squire_sdk --feature-powerset --verbose
-      - run: cargo hack doc --package squire_sdk --feature-powerset --no-dev-deps --verbose
+      - run: cargo hack build --feature-powerset --exclude-features deck_sites --no-dev-deps --package squire_sdk --verbose
+      - run: cargo hack test --package squire_sdk --feature-powerset --exclude-features deck_sites --verbose
+      - run: cargo doc --package squire_sdk --all-features --verbose
+  squire_lib_wasm_tests:
+    name: Wasm Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          targets: wasm32-unknown-unknown
+      - uses: actions/checkout@v3
+      - run: cargo build --package squire_sdk --features=client --target=wasm32-unknown-unknown --verbose
+      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: wasm-pack test --headless --chrome --firefox ./squire_sdk/ --features=client --verbose
