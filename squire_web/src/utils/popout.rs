@@ -1,7 +1,6 @@
 use web_sys::window;
 use yew::{prelude::*, virtual_dom::VNode};
 
-
 #[function_component]
 fn GeneralPopout(props: &GeneralPopoutProps) -> Html {
     props.display_vnode.clone()
@@ -27,8 +26,9 @@ pub fn generic_popout_window(vnode: VNode) {
         });
 }
 
-pub fn generic_scroll_vnode<I>(vert_scroll_time: u32, string_vec: I) -> Html 
-where I : Iterator<Item = String>
+pub fn generic_scroll_vnode<I>(vert_scroll_time: u32, string_vec: I) -> Html
+where
+    I: Iterator<Item = String>,
 {
     html! {
         <html>

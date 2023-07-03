@@ -15,10 +15,9 @@ use yew::{prelude::*, virtual_dom::VNode};
 
 use super::{creator, rounds::SelectedRound, spawn_update_listener};
 use crate::{
-    utils::{console_log, input, TextInput, generic_scroll_vnode, generic_popout_window},
+    utils::{console_log, generic_popout_window, generic_scroll_vnode, input, TextInput},
     CLIENT,
 };
-
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct PairingsWrapper {
@@ -190,14 +189,21 @@ impl Component for PairingsView {
                 true
             }
             PairingsViewMessage::PopoutActiveRounds() => {
-                if (self.active.is_none()) { return false }
-                let scroll_strings = self.active.as_ref().unwrap().iter().map(|ars|{
-                    //let player_list = ars.players.iter().map(|pn|{ 
+                if (self.active.is_none()) {
+                    return false;
+                }
+                let scroll_strings = self.active.as_ref().unwrap().iter().map(|ars| {
+                    //let player_list = ars.players.iter().map(|pn|{
                     //    format!("{}, ", pn)
                     //}).collect();
-                    format!("Round #{}, Table #{} :: {}", ars.round_number, ars.table_number, ars.players.join(", ")) 
+                    format!(
+                        "Round #{}, Table #{} :: {}",
+                        ars.round_number,
+                        ars.table_number,
+                        ars.players.join(", ")
+                    )
                 });
-                let scroll_vnode = generic_scroll_vnode( 90, scroll_strings);
+                let scroll_vnode = generic_scroll_vnode(90, scroll_strings);
                 generic_popout_window(scroll_vnode.clone());
                 false
             }
@@ -246,18 +252,16 @@ impl Component for PairingsView {
                 if (self.names.is_none()) {
                     return false;
                 };
-                let player_id: PlayerId = self.names
-                            .as_ref()
-                            .unwrap()
-                            .iter()
-                            .find_map(|(id, name)| (self.single_bye_input == *name).then_some(*id))
-                            .unwrap_or_default();
+                let player_id: PlayerId = self
+                    .names
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .find_map(|(id, name)| (self.single_bye_input == *name).then_some(*id))
+                    .unwrap_or_default();
                 let tracker = CLIENT.get().unwrap().update_tourn(
                     self.id,
-                    TournOp::AdminOp(
-                        self.admin_id.clone().into(),
-                        AdminOp::GiveBye(player_id),
-                    ),
+                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::GiveBye(player_id)),
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
@@ -396,8 +400,9 @@ impl PairingsView {
     }
 
     fn view_active_menu(&self, ctx: &Context<Self>) -> Html {
-        let cb_active_popout = ctx.link()
-        .callback(move |_| PairingsViewMessage::PopoutActiveRounds() );
+        let cb_active_popout = ctx
+            .link()
+            .callback(move |_| PairingsViewMessage::PopoutActiveRounds());
         html! {
             <div class="py-5">
                 <div class="overflow-auto py-3 pairings-scroll-box">
@@ -442,11 +447,13 @@ impl PairingsView {
                     <br/>
                     </>
                 })
-            };
-            let cb_single_round = ctx.link()
-            .callback(move |_| PairingsViewMessage::CreateSingleRound() );
-            let cb_single_bye = ctx.link()
-            .callback(move |_| PairingsViewMessage::CreateSingleBye() );
+            }
+            let cb_single_round = ctx
+                .link()
+                .callback(move |_| PairingsViewMessage::CreateSingleRound());
+            let cb_single_bye = ctx
+                .link()
+                .callback(move |_| PairingsViewMessage::CreateSingleBye());
             html! {
                 <div class="py-5">
                     <h2>{ "Create single rounds: " }</h2>
