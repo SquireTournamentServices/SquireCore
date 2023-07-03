@@ -230,7 +230,7 @@ mod tests {
     };
 
     fn spoof_op() -> TournOp {
-        TournOp::RegisterPlayer(spoof_account())
+        TournOp::RegisterPlayer(spoof_account(), None)
     }
 
     fn init_server_and_clients() -> (TournamentManager, TournamentManager, TournamentManager) {
