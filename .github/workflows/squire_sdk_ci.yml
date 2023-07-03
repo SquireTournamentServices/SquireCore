@@ -25,6 +25,6 @@ jobs:
       - uses: taiki-e/install-action@cargo-hack
       - uses: actions/checkout@v3
       - run: cargo fmt --check --package squire_sdk
-      - run: cargo hack build --package squire_sdk --verbose
-      - run: cargo hack test --package squire_sdk --verbose
-      - run: cargo hack doc --package squire_sdk --verbose
+      - run: cargo hack build --feature-powerset --no-dev-deps --package squire_sdk --verbose
+      - run: cargo hack test --package squire_sdk --feature-powerset --verbose
+      - run: cargo hack doc --package squire_sdk --feature-powerset --no-dev-deps --verbose
