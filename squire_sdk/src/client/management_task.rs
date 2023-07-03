@@ -24,7 +24,7 @@ use tokio::sync::{
 use uuid::Uuid;
 
 use super::{
-    compat::{log, rest, spawn_task, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
+    compat::{rest, spawn_task, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     error::ClientResult,
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
@@ -302,7 +302,6 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
                     };
                     let _ = entry.insert(tc);
                     state.listener.push(stream);
-                    log("Tournament successfully fetched and imported!!");
                 }
                 Err(_) => {
                     let _ = send.send(None);
@@ -384,19 +383,14 @@ async fn handle_forwarded_sync<F>(
 ) where
     F: FnMut(),
 {
-    log("Handling forwarded sync...");
     let Some(comm) = state.cache.get_mut(t_id) else {
         return;
     };
-    log("Got tournament comm...");
     let resp = if state.forwarded.contains_resp(&msg_id) {
-        log("Already saw this message. Auto-replying");
         state.forwarded.get_resp(&msg_id).unwrap()
     } else {
-        log("New request, processing...");
         let resp = comm.tourn.handle_forwarded_sync(sync);
         if matches!(resp, SyncForwardResp::Success) {
-            log("Processing was a success!!");
             on_update();
         }
         state.forwarded.add_resp(msg_id, resp.clone());
@@ -417,17 +411,13 @@ async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
 
 async fn wait_for_tourn(stream: &mut SplitStream<Websocket>) -> TournamentManager {
     loop {
-        log("Waiting for tourn...");
         let Some(Ok(WebsocketMessage::Bytes(msg))) = stream.next().await else {
             continue;
         };
-        log("Got response back!!!");
         let ClientBoundMessage { body, .. } = postcard::from_bytes(&msg).unwrap();
-        log("Converted response to message");
         let ClientBound::FetchResp(tourn) = body else {
             panic!("Server did not return a tournament")
         };
-        log("Successfully destructured the message into a tournament!!!");
         return *tourn;
     }
 }
