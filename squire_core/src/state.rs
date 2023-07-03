@@ -4,7 +4,9 @@ use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::stream::TryStreamExt;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
-    options::{ClientOptions, ReplaceOptions, UpdateModifications, UpdateOptions},
+    options::{
+        ClientOptions, Hint, IndexOptions, ReplaceOptions, UpdateModifications, UpdateOptions,
+    },
     Client as DbClient, Collection, Database, IndexModel,
 };
 use squire_sdk::{
@@ -77,6 +79,8 @@ pub struct AppState {
 }
 
 impl AppState {
+    const TOURN_INDEX_NAME: &str = "tourn_id";
+
     pub async fn new_with_settings(settings: AppSettings) -> Self {
         let mut client_options = ClientOptions::parse(settings.get_address()).await.unwrap();
 
@@ -86,7 +90,14 @@ impl AppState {
 
         let slf = Self { client, settings };
 
-        let index = IndexModel::builder().keys(doc! {"tourn.id": 1}).build();
+        let index = IndexModel::builder()
+            .keys(doc! {"tourn.id": 1})
+            .options(
+                IndexOptions::builder()
+                    .name(Self::TOURN_INDEX_NAME.to_string())
+                    .build(),
+            )
+            .build();
         slf.get_tourns().create_index(index, None).await;
 
         slf
@@ -169,7 +180,10 @@ impl ServerState for AppState {
             .update_one(
                 Self::make_query(tourn.id),
                 UpdateModifications::Document(doc! {"$set": doc}),
-                UpdateOptions::builder().upsert(true).build(),
+                UpdateOptions::builder()
+                    .upsert(true)
+                    .hint(Hint::Name(Self::TOURN_INDEX_NAME.to_string()))
+                    .build(),
             )
             .await
         {
