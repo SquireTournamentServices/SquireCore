@@ -16,7 +16,7 @@ fn create_round_test() {
 
     fn make_player(tourn: &mut Tournament) -> PlayerId {
         tourn
-            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account()))
+            .apply_op(Utc::now(), TournOp::RegisterPlayer(spoof_account(), None))
             .unwrap()
             .assume_register_player()
     }
