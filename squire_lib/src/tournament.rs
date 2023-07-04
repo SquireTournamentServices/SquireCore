@@ -1133,7 +1133,6 @@ mod tests {
     use std::collections::HashMap;
 
     use chrono::Utc;
-    use itertools::Itertools;
     use uuid::Uuid;
 
     use super::{Tournament, TournamentPreset};
@@ -1141,7 +1140,6 @@ mod tests {
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
         error::TournamentError,
-        identifiers::PlayerId,
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
         tournament::TournamentSeed,
