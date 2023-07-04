@@ -2,23 +2,22 @@ use reqwest::{
     header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
     Client, IntoUrl, Response, StatusCode,
 };
-use squire_lib::accounts::SquireAccount;
+use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
 
 use super::{
-    compat::Session, error::ClientError, management_task::spawn_management_task, SquireClient,
+    compat::Session, error::ClientError, management_task::spawn_management_task, OnUpdate,
+    SquireClient,
 };
 use crate::{
     api::{REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE},
     version::{ServerMode, Version},
 };
 
-fn noop() {}
-
 /// A builder for the SquireClient. This builder is generic over most of its fields. This is used
 /// to gate access to the build methods, requiring all necessary fields are filled before
 /// construction of the client can occur.
 #[derive(Debug)]
-pub struct ClientBuilder<UP = Box<dyn 'static + Send + FnMut()>, URL = (), USER = ()> {
+pub struct ClientBuilder<UP = Box<dyn OnUpdate>, URL = (), USER = ()> {
     url: URL,
     user: USER,
     on_update: UP,
@@ -30,15 +29,12 @@ impl ClientBuilder {
         ClientBuilder {
             url: (),
             user: (),
-            on_update: Box::new(noop),
+            on_update: Box::new(drop),
         }
     }
 }
 
-impl<UP, URL, USER> ClientBuilder<UP, URL, USER>
-where
-    UP: 'static + Send + FnMut(),
-{
+impl<UP: OnUpdate, URL, USER> ClientBuilder<UP, URL, USER> {
     /// Adds a URL to the configuration of the client. This method is required for construction.
     /// If there was already a URL in the configuration, it is discarded
     pub fn url(self, url: String) -> ClientBuilder<UP, String, USER> {
@@ -65,10 +61,7 @@ where
 
     /// Adds a function that is called on update to the configuration of the client.
     /// If there was already a function in the configuration, it is discarded
-    pub fn on_update<F>(self, on_update: F) -> ClientBuilder<F, URL, USER>
-    where
-        F: 'static + Send + FnMut(),
-    {
+    pub fn on_update<F: OnUpdate>(self, on_update: F) -> ClientBuilder<F, URL, USER> {
         let ClientBuilder { url, user, .. } = self;
         ClientBuilder {
             url,
@@ -78,10 +71,7 @@ where
     }
 }
 
-impl<UP> ClientBuilder<UP, String, SquireAccount>
-where
-    UP: 'static + Send + FnMut(),
-{
+impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
     /// Tries to create a client. Fails if a connection can not be made at the held URL
     pub async fn build(self) -> Result<SquireClient, ClientError> {
         let ClientBuilder {

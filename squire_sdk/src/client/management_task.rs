@@ -30,6 +30,7 @@ use super::{
     query::{query_channel, QueryTracker, TournamentQuery},
     subscription::{sub_channel, SubTracker, TournamentSub},
     update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
+    OnUpdate,
 };
 use crate::{
     api::SUBSCRIBE_ROUTE,
@@ -100,10 +101,7 @@ impl ManagementTaskSender {
 
 /// Spawns a new tournament management tokio task. Communication with this task is done via a
 /// collection of channels. This collection is returned
-pub(super) fn spawn_management_task<F>(on_update: F) -> ManagementTaskSender
-where
-    F: 'static + Send + FnMut(),
-{
+pub(super) fn spawn_management_task<F: OnUpdate>(on_update: F) -> ManagementTaskSender {
     let (send, recv) = unbounded_channel();
     // Spawn the task that will manage the tournaments and run forever
     spawn_task(tournament_management_task(recv, on_update));
@@ -140,7 +138,7 @@ async fn tournament_management_task<F>(
     mut recv: UnboundedReceiver<ManagementCommand>,
     mut on_update: F,
 ) where
-    F: FnMut(),
+    F: FnMut(TournamentId),
 {
     let mut state = ManagerState::default();
     loop {
@@ -200,7 +198,7 @@ fn handle_import(state: &mut ManagerState, import: TournamentImport) {
 
 async fn handle_update<F>(state: &mut ManagerState, update: TournamentUpdate, on_update: &mut F)
 where
-    F: FnMut(),
+    F: FnMut(TournamentId),
 {
     let TournamentUpdate {
         local,
@@ -224,7 +222,7 @@ where
         // go out.
         let _ = remote.send(Some(Ok(())));
         if is_ok {
-            on_update();
+            on_update(id);
         }
         if is_ok && !to_remove {
             let id = Uuid::new_v4();
@@ -314,7 +312,7 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
 
 async fn handle_ws_msg<F>(state: &mut ManagerState, on_update: &mut F, msg: WebsocketMessage)
 where
-    F: FnMut(),
+    F: FnMut(TournamentId),
 {
     let WebsocketMessage::Bytes(data) = msg else {
         panic!("Server did not send bytes of Websocket")
@@ -341,7 +339,7 @@ async fn handle_server_op_link<F>(
     msg_id: &Uuid,
     link: ServerOpLink,
 ) where
-    F: FnMut(),
+    F: FnMut(TournamentId),
 {
     // Get tourn
     let Some(t_id) = state.syncs.get_tourn_id(msg_id) else {
@@ -366,7 +364,7 @@ async fn handle_server_op_link<F>(
         ServerOpLink::Completed(comp) => {
             tourn.tourn.handle_completion(comp).unwrap();
             state.syncs.finalize_chain(msg_id);
-            on_update();
+            on_update(t_id);
         }
         ServerOpLink::Error(_) | ServerOpLink::TerminatedSeen { .. } => {
             state.syncs.finalize_chain(msg_id);
@@ -381,7 +379,7 @@ async fn handle_forwarded_sync<F>(
     msg_id: Uuid,
     sync: OpSync,
 ) where
-    F: FnMut(),
+    F: FnMut(TournamentId),
 {
     let Some(comm) = state.cache.get_mut(t_id) else {
         return;
@@ -391,7 +389,7 @@ async fn handle_forwarded_sync<F>(
     } else {
         let resp = comm.tourn.handle_forwarded_sync(sync);
         if matches!(resp, SyncForwardResp::Success) {
-            on_update();
+            on_update(*t_id);
         }
         state.forwarded.add_resp(msg_id, resp.clone());
         resp

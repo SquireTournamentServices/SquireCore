@@ -62,15 +62,9 @@ fn app() -> Html {
 }
 
 fn main() {
-    web_sys::console::log_1(&format!("Starting everything up...").into());
-
     let (send, recv) = unbounded();
-    let on_update = move || {
-        //let _ = send.send(0);
-        match (send.try_send(0)) {
-            Ok(_) => console_log("Sent successfully"),
-            Err(_) => console_log("Failed to send"),
-        }
+    let on_update = move |_| {
+        let _ = send.try_send(0);
     };
 
     let client = SquireClient::builder()
@@ -80,6 +74,5 @@ fn main() {
         .build_unchecked();
     CLIENT.set(client).unwrap();
     ON_UPDATE.set(recv).unwrap();
-    web_sys::console::log_1(&format!("Client launched!! Starting yew app").into());
     yew::Renderer::<app>::new().render();
 }

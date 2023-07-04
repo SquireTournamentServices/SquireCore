@@ -57,6 +57,8 @@ use crate::{
     COOKIE_NAME,
 };
 
+pub trait OnUpdate = 'static + Send + FnMut(TournamentId);
+
 pub mod builder;
 pub mod compat;
 pub mod error;
@@ -76,7 +78,7 @@ pub struct SquireClient {
 
 impl SquireClient {
     /// Returns a builder for the client
-    pub fn builder() -> ClientBuilder<Box<dyn 'static + Send + FnMut()>, (), ()> {
+    pub fn builder() -> ClientBuilder<Box<dyn OnUpdate>, (), ()> {
         ClientBuilder::new()
     }
 
