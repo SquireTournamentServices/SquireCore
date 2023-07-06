@@ -110,13 +110,22 @@ impl<S: ServerState> GatheringHall<S> {
         let wait_time = Duration::from_secs(5);
         let now_then = || Instant::now().checked_add(wait_time).unwrap();
         let mut then = now_then();
+        let mut to_persist = HashSet::new();
         let mut persist_reqs = HashMap::new();
         loop {
             tokio::select! {
                 _ = tokio::time::sleep_until(then) => {
                     then = now_then();
-                    while let Ok(PersistMessage(tourn)) = self.persists.try_recv() {
-                        persist_reqs.insert(tourn.id, tourn);
+                    while let Ok(PersistMessage(id)) = self.persists.try_recv() {
+                        to_persist.insert(id);
+                    }
+                    for id in to_persist.drain() {
+                        let sender = self.gatherings.get_mut(&id).unwrap();
+                        let (send, recv) = oneshot_channel();
+                        let msg = GatheringMessage::GetTournament(send);
+                        sender.send(msg);
+                        let tourn = recv.await.unwrap();
+                        persist_reqs.insert(id, tourn);
                     }
                     self.state.bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn)).await;
                 }

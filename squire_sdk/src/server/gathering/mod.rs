@@ -47,7 +47,7 @@ pub enum GatheringMessage {
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
 /// How this data is backed up depends on the server implementation.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct PersistMessage(Arc<TournamentManager>);
+struct PersistMessage(TournamentId);
 
 /// This structure contains all users currently subscribed to a tournament and can be thought of as
 /// the crowd of people that gathers for a tournament. New subscribers, called `Onlooker`s, are
@@ -85,6 +85,10 @@ impl Gathering {
             syncs: ServerSyncManager::default(),
             forwarding: ServerForwardingManager::new(),
         }
+    }
+
+    fn send_persist_message(&mut self) {
+        self.persist.send(PersistMessage(self.tourn.id));
     }
 
     async fn run(mut self) -> ! {
@@ -126,7 +130,6 @@ impl Gathering {
         match msg {
             GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
             GatheringMessage::NewConnection(user, ws) => {
-                println!("Get new connection!!");
                 let (sink, stream) = ws.split();
                 let crier = Crier::new(stream, user.account.id);
                 let onlooker = Onlooker::new(sink);
@@ -153,13 +156,13 @@ impl Gathering {
             };
         match body {
             ServerBound::Fetch => {
-                println!("Got fetch request");
                 self.send_message(user, self.tourn.clone()).await;
             }
             ServerBound::SyncChain(sync) => {
                 let link = self.handle_sync_request(id, sync);
                 // If completed, send forwarding requests
                 if let ServerOpLink::Completed(comp) = &link {
+                    self.send_persist_message();
                     self.send_forwarding(&user, comp).await;
                 }
                 self.send_reply(user, id, link).await;
