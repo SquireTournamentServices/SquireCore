@@ -86,9 +86,7 @@ impl CommonScoringSettingsTree {
 
     /// Returns an iterator over all the contained settings
     pub fn iter(&self) -> impl Iterator<Item = CommonScoringSetting> {
-        Option::<CommonScoringSetting>::None
-            .into_iter()
-            .map(Into::into)
+        std::iter::empty()
     }
 }
 

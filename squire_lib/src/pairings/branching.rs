@@ -40,7 +40,7 @@ pub fn branching_pairings(
                 break;
             }
         }
-        is_paired.insert(tree.id);
+        _ = is_paired.insert(tree.id);
         match pairing {
             None => {
                 digest.rejected.push(tree.id);

@@ -52,12 +52,12 @@ impl SwissPairings {
 
     /// Marks a player as ready to play in their next round
     pub fn ready_player(&mut self, plyr: PlayerId) {
-        self.check_ins.insert(plyr);
+        _ =self.check_ins.insert(plyr);
     }
 
     /// Marks a player as unready to play in their next round
     pub fn unready_player(&mut self, plyr: PlayerId) {
-        self.check_ins.remove(&plyr);
+        _ =self.check_ins.remove(&plyr);
     }
 
     /// Updates a single pairings setting
@@ -98,7 +98,7 @@ impl SwissPairings {
             .flatten()
             .chain(pairings.rejected.iter())
         {
-            self.check_ins.remove(p);
+            _ =self.check_ins.remove(p);
         }
     }
 

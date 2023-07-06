@@ -123,7 +123,7 @@ impl<T> Clone for TypeId<T> {
 impl<T> Copy for TypeId<T> {}
 
 impl<T> Hash for TypeId<T> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state)
     }
 }

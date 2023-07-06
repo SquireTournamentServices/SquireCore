@@ -95,7 +95,7 @@ impl Player {
 
     /// Adds a deck to the player
     pub fn add_deck(&mut self, name: String, deck: Deck) {
-        self.decks.insert(name.clone(), deck);
+        _ = self.decks.insert(name.clone(), deck);
         self.deck_ordering.retain(|n| n != &name);
         self.deck_ordering.push(name);
     }
@@ -107,7 +107,7 @@ impl Player {
 
     /// Removes a deck from the player
     pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
-        self.decks
+        _ = self.decks
             .remove(&name)
             .ok_or(TournamentError::DeckLookup)?;
         self.deck_ordering.retain(|n| n != &name);

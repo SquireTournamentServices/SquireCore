@@ -55,8 +55,8 @@ impl Display for GeneralSetting {
     }
 }
 
-impl fmt::Display for PairingSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for PairingSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use PairingSetting::*;
         match self {
             Common(s) => write!(f, "{s}"),
@@ -65,8 +65,8 @@ impl fmt::Display for PairingSetting {
     }
 }
 
-impl fmt::Display for PairingStyleSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for PairingStyleSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             PairingStyleSetting::Swiss(s) => write!(f, "{s}"),
             PairingStyleSetting::Fluid(s) => write!(f, "{s}"),
@@ -74,8 +74,8 @@ impl fmt::Display for PairingStyleSetting {
     }
 }
 
-impl fmt::Display for ScoringSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for ScoringSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use ScoringSetting::*;
         match self {
             Common(s) => write!(f, "{s}"),
@@ -84,14 +84,14 @@ impl fmt::Display for ScoringSetting {
     }
 }
 
-impl fmt::Display for CommonScoringSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for CommonScoringSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "CommonScoring Setting")
     }
 }
 
-impl fmt::Display for ScoringStyleSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for ScoringStyleSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use ScoringStyleSetting::*;
         match self {
             Standard(s) => write!(f, "{s}"),
@@ -99,8 +99,8 @@ impl fmt::Display for ScoringStyleSetting {
     }
 }
 
-impl fmt::Display for CommonPairingSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for CommonPairingSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use CommonPairingSetting::*;
         match self {
             MatchSize(size) => write!(f, "Match Size: {size}"),
@@ -110,8 +110,8 @@ impl fmt::Display for CommonPairingSetting {
     }
 }
 
-impl fmt::Display for SwissPairingSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for SwissPairingSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use SwissPairingSetting::*;
         match self {
             DoCheckIns(s) => write!(f, "Check Ins?: {s}"),
@@ -119,15 +119,15 @@ impl fmt::Display for SwissPairingSetting {
     }
 }
 
-impl fmt::Display for FluidPairingSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for FluidPairingSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         //use FluidPairingsSetting::*;
         write!(f, "FluidPairingSetting")
     }
 }
 
-impl fmt::Display for StandardScoringSetting {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for StandardScoringSetting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use StandardScoringSetting::*;
         match self {
             MatchWinPoints(s) => write!(f, "Match Win: {s}"),
