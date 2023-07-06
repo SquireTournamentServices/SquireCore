@@ -192,7 +192,7 @@ fn handle_import(state: &mut ManagerState, import: TournamentImport) {
     let TournamentImport { tourn, tracker } = import;
     let id = tourn.id;
     let tc = TournComm { tourn, comm: None };
-    state.cache.insert(id, tc);
+    _ = state.cache.insert(id, tc);
     let _ = tracker.send(id);
 }
 

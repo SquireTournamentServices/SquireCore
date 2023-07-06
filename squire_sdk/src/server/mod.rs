@@ -73,7 +73,7 @@ where
         } else {
             new_router
         };
-        self.router.insert(url.as_str(), router);
+        _ = self.router.insert(url.as_str(), router);
         Self {
             router: self.router,
         }

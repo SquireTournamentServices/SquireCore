@@ -67,7 +67,7 @@ impl TournamentManager {
         for f_op in ops.by_ref() {
             let FullOp { op, salt, id } = f_op.clone();
             println!("Processing Op {id}");
-            buffer.apply_op(salt, op)?;
+            _ = buffer.apply_op(salt, op)?;
             f_ops.push(f_op);
         }
         println!("Finished bulk processing operations...");
@@ -254,6 +254,7 @@ impl Deref for TournamentManager {
 
 #[cfg(all(feature = "client", feature = "server"))]
 #[cfg(test)]
+#[allow(unused_results)]
 mod tests {
     use squire_lib::{
         identifiers::AdminId,

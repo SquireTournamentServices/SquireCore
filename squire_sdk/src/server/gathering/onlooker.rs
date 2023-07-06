@@ -18,6 +18,7 @@ use crate::{server::User, sync::ClientBoundMessage};
 /// This structure captures messages being sent to a person that is in some way participating in
 /// the tournament. This person could be a spectator, player, judge, or admin. Messages they pass
 /// in are often operations to the tournament that are processed and then forwarded to other.
+#[derive(Debug)]
 pub struct Crier {
     stream: SplitStream<WebSocket>,
     user: SquireAccountId,
@@ -37,6 +38,7 @@ impl Crier {
 /// This structure captures messages being sent to a person that is in some way participating in
 /// the tournament. This person could be a spectator, player, judge, or admin. Messages passed to
 /// them are usually from other users that are submitting operations to the tournament.
+#[derive(Debug)]
 pub struct Onlooker(SplitSink<WebSocket, Message>);
 
 impl Onlooker {

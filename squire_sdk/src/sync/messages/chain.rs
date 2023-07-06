@@ -80,9 +80,8 @@ impl SyncChain {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ForwardChain {
-    #[allow(dead_code)]
     init: OpSync,
-    #[allow(dead_code)]
     resp: Option<SyncForwardResp>,
 }

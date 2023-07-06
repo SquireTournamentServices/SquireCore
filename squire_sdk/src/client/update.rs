@@ -22,7 +22,6 @@ pub struct UpdateTracker {
     remote: OneshotReceiver<Option<ClientResult<()>>>,
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum UpdateType {
     Removal,

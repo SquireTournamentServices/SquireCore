@@ -59,6 +59,7 @@ struct PersistMessage(TournamentId);
 /// NOTE: The Gathering contains a copy of the tournament manager. This copy is the most up-to-date
 /// version of the tournament. However, backup copies of the tournament are sent to `GatheringHall`
 /// whenever there is a change and other locations upon request.
+#[derive(Debug)]
 pub struct Gathering {
     tourn: TournamentManager,
     messages: Receiver<GatheringMessage>,
@@ -120,7 +121,7 @@ impl Gathering {
                 self.process_incoming_message(user, bytes).await;
             }
             Some((user, None)) => {
-                self.onlookers.remove(&user);
+                _ = self.onlookers.remove(&user);
             }
             None => {}
         }
@@ -137,7 +138,7 @@ impl Gathering {
                 match self.onlookers.get_mut(&user.account.id) {
                     Some(ol) => *ol = onlooker,
                     None => {
-                        self.onlookers.insert(user.account.id, onlooker);
+                        _ = self.onlookers.insert(user.account.id, onlooker);
                     }
                 }
             }

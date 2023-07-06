@@ -36,7 +36,7 @@ pub fn init_gathering_hall<S: ServerState>(state: S) {
     let (send, recv) = channel(GATHERING_HALL_CHANNEL_SIZE);
     let hall = GatheringHall::new(state, recv);
     GATHERING_HALL_MESSAGER.set(send).unwrap();
-    tokio::spawn(hall.run());
+    _ = tokio::spawn(hall.run());
 }
 
 /// This function communicates with the gathering hall task to add a new onlooker into a
@@ -84,6 +84,7 @@ pub enum GatheringHallMessage {
 /// This structure manages all of the `Gathering`s around tournaments. This includes adding new
 /// users to different gatherings and persisting data to the database. All of this is handled
 /// through message passing and tokio tasks.
+#[derive(Debug)]
 pub struct GatheringHall<S> {
     state: S,
     gatherings: HashMap<TournamentId, Sender<GatheringMessage>>,
@@ -117,7 +118,7 @@ impl<S: ServerState> GatheringHall<S> {
                 _ = tokio::time::sleep_until(then) => {
                     then = now_then();
                     while let Ok(PersistMessage(id)) = self.persists.try_recv() {
-                        to_persist.insert(id);
+                        _ = to_persist.insert(id);
                     }
                     for id in to_persist.drain() {
                         let sender = self.gatherings.get_mut(&id).unwrap();
@@ -125,9 +126,9 @@ impl<S: ServerState> GatheringHall<S> {
                         let msg = GatheringMessage::GetTournament(send);
                         sender.send(msg);
                         let tourn = recv.await.unwrap();
-                        persist_reqs.insert(id, tourn);
+                        _ = persist_reqs.insert(id, tourn);
                     }
-                    self.state.bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn)).await;
+                    _ = self.state.bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn)).await;
                 }
                 msg = self.inbound.recv() => match msg.unwrap() {
                     GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
@@ -141,7 +142,7 @@ impl<S: ServerState> GatheringHall<S> {
         let tourn = self.get_tourn(&id).await?;
         let (send, recv) = channel(100);
         let gathering = Gathering::new(tourn, recv, self.persist_sender.clone());
-        tokio::spawn(gathering.run());
+        _ = tokio::spawn(gathering.run());
         Some(send)
     }
 
@@ -150,7 +151,7 @@ impl<S: ServerState> GatheringHall<S> {
         let Some(send) = self.spawn_gathering(id).await else {
             return;
         };
-        self.gatherings.insert(id, send);
+        _ = self.gatherings.insert(id, send);
     }
 
     async fn process_new_onlooker(&mut self, id: TournamentId, user: User, ws: WebSocket) {
@@ -165,7 +166,7 @@ impl<S: ServerState> GatheringHall<S> {
         }
         // FIXME: This can fail. We need a way to signal this possibility.
         let send = self.spawn_gathering(id).await.unwrap();
-        self.gatherings.insert(id, send.clone());
+        _ = self.gatherings.insert(id, send.clone());
         send
     }
 
