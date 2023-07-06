@@ -16,7 +16,7 @@
     trivial_bounds,
     trivial_numeric_casts,
     unconditional_panic,
-    clippy::pedantic,
+    clippy::pedantic
 )]
 
 #[allow(non_camel_case_types)]

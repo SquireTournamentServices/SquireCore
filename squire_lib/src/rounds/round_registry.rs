@@ -68,10 +68,7 @@ impl RoundRegistry {
 
     /// Gets a round's id by its match number
     pub fn get_round_id(&self, n: &u64) -> Result<RoundId, TournamentError> {
-        self.num_and_id
-            .get_right(n)
-            .cloned()
-            .ok_or(RoundLookup)
+        self.num_and_id.get_right(n).cloned().ok_or(RoundLookup)
     }
 
     /// Gets a round's id by its match number
@@ -116,10 +113,12 @@ impl RoundRegistry {
         if rnd.status != RoundStatus::Dead {
             rnd.kill_round();
             for (i, plyr) in players.iter().enumerate() {
-                _ = self.seat_scores
+                _ = self
+                    .seat_scores
                     .entry(*plyr)
                     .and_modify(|n| *n = n.saturating_sub(i));
-                _ = self.opponents
+                _ = self
+                    .opponents
                     .entry(*plyr)
                     .and_modify(|opps| opps.retain(|o| !players.contains(o)));
             }

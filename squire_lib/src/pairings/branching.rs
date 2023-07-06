@@ -100,6 +100,7 @@ impl PairingTree {
 }
 
 #[cfg(test)]
+#[allow(unused_results)]
 mod tests {
     use std::collections::{HashMap, HashSet};
 

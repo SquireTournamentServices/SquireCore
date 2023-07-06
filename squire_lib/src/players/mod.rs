@@ -107,7 +107,8 @@ impl Player {
 
     /// Removes a deck from the player
     pub fn remove_deck(&mut self, name: String) -> Result<(), TournamentError> {
-        _ = self.decks
+        _ = self
+            .decks
             .remove(&name)
             .ok_or(TournamentError::DeckLookup)?;
         self.deck_ordering.retain(|n| n != &name);
