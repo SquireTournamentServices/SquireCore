@@ -46,10 +46,10 @@ impl PlayerRegistry {
     /// Checks in a player for registration
     pub fn check_in(&mut self, id: PlayerId) -> Result<(), TournamentError> {
         if self.players.contains_key(&id) {
-            self.check_ins.insert(id);
+            _ = self.check_ins.insert(id);
             Ok(())
         } else {
-            Err(TournamentError::PlayerNotFound)
+            Err(PlayerNotFound)
         }
     }
 
@@ -115,8 +115,8 @@ impl PlayerRegistry {
                 };
                 let plyr = Player::from_account(account);
                 let digest = Ok(plyr.id);
-                self.name_and_id.insert(name, plyr.id);
-                self.players.insert(plyr.id, plyr);
+                _ = self.name_and_id.insert(name, plyr.id);
+                _ = self.players.insert(plyr.id, plyr);
                 digest
             }
         }
@@ -139,8 +139,8 @@ impl PlayerRegistry {
             let mut plyr = Player::new(name.clone());
             plyr.id = Player::create_guest_id(salt, &name);
             let digest = Ok(plyr.id);
-            self.name_and_id.insert(name, plyr.id);
-            self.players.insert(plyr.id, plyr);
+            _ = self.name_and_id.insert(name, plyr.id);
+            _ = self.players.insert(plyr.id, plyr);
             digest
         }
     }

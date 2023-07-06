@@ -38,21 +38,21 @@ impl FluidPairings {
     /// Marks a player as ready to play a game
     pub fn ready_player(&mut self, plyr: PlayerId) {
         if !self.queue.iter().any(|p| *p == plyr) {
-            self.check_ins.insert(plyr);
+            _ = self.check_ins.insert(plyr);
         }
     }
 
     /// Removes the player from the LFG queue
     pub fn unready_player(&mut self, plyr: PlayerId) {
         if self.check_ins.contains(&plyr) {
-            self.check_ins.remove(&plyr);
+            _ = self.check_ins.remove(&plyr);
         } else if let Some(index) =
             self.queue
                 .iter()
                 .enumerate()
                 .find_map(|(i, p)| if *p == plyr { Some(i) } else { None })
         {
-            self.queue.remove(index);
+            _ = self.queue.remove(index);
         }
     }
 
@@ -107,7 +107,7 @@ impl FluidPairings {
             *match_size as usize,
             *repair_tolerance,
         );
-        digest.rejected.drain(0..);
+        drop(digest.rejected.drain(0..));
         Some(digest)
     }
 }

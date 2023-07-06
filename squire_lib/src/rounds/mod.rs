@@ -219,7 +219,7 @@ impl Round {
             }
             match result {
                 RoundResult::Wins(p_id, count) => {
-                    self.results.insert(p_id, count);
+                    _ = self.results.insert(p_id, count);
                     let mut max = 0;
                     for (p, num) in self.results.iter() {
                         match max.cmp(num) {
@@ -256,7 +256,7 @@ impl Round {
         } else if self.drops.contains(&player) {
             Ok(self.status)
         } else {
-            self.confirmations.insert(player);
+            _ = self.confirmations.insert(player);
             if self.confirmations.iter().chain(self.drops.iter()).count() == self.players.len() {
                 self.status = Certified;
             }
@@ -293,7 +293,7 @@ impl Round {
     }
 }
 
-impl fmt::Display for RoundStatus {
+impl Display for RoundStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

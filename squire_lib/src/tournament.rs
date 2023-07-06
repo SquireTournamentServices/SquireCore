@@ -562,7 +562,7 @@ impl Tournament {
         match round.status {
             RoundStatus::Open if round.has_result() => {
                 for player in round.players.clone() {
-                    round.confirm_round(player)?;
+                    _ = round.confirm_round(player)?;
                 }
                 Ok(OpData::ConfirmResult(*id, round.status))
             }
@@ -787,7 +787,7 @@ impl Tournament {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
             let judge = Judge::new(account);
-            self.judges.insert(judge.id, judge.clone());
+            _ = self.judges.insert(judge.id, judge.clone());
             Ok(OpData::RegisterJudge(judge))
         }
     }
@@ -797,7 +797,7 @@ impl Tournament {
             Err(TournamentError::IncorrectStatus(self.status))
         } else {
             let admin = Admin::new(account);
-            self.admins.insert(admin.id, admin.clone());
+            _ = self.admins.insert(admin.id, admin.clone());
             Ok(OpData::RegisterAdmin(admin))
         }
     }

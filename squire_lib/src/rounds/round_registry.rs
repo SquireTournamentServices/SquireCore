@@ -71,7 +71,7 @@ impl RoundRegistry {
         self.num_and_id
             .get_right(n)
             .cloned()
-            .ok_or(TournamentError::RoundLookup)
+            .ok_or(RoundLookup)
     }
 
     /// Gets a round's id by its match number
@@ -79,14 +79,14 @@ impl RoundRegistry {
         self.rounds
             .values()
             .find(|r| r.table_number == n && r.is_active())
-            .ok_or(TournamentError::RoundLookup)
+            .ok_or(RoundLookup)
     }
 
     pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {
         self.num_and_id
             .get_right(n)
             .and_then(|id| self.rounds.get(id))
-            .ok_or(TournamentError::RoundLookup)
+            .ok_or(RoundLookup)
     }
 
     /// Gets the next table number. Not all pairing systems force all matches to be over before
@@ -116,10 +116,10 @@ impl RoundRegistry {
         if rnd.status != RoundStatus::Dead {
             rnd.kill_round();
             for (i, plyr) in players.iter().enumerate() {
-                self.seat_scores
+                _ = self.seat_scores
                     .entry(*plyr)
                     .and_modify(|n| *n = n.saturating_sub(i));
-                self.opponents
+                _ = self.opponents
                     .entry(*plyr)
                     .and_modify(|opps| opps.retain(|o| !players.contains(o)));
             }
@@ -165,8 +165,8 @@ impl RoundRegistry {
         let match_num = self.rounds.len() as u64;
         let round = Round::new_bye(salt, plyr, match_num, self.length, context);
         let id = round.id;
-        self.num_and_id.insert(match_num, id);
-        self.rounds.insert(id, round);
+        _ = self.num_and_id.insert(match_num, id);
+        _ = self.rounds.insert(id, round);
         id
     }
 
@@ -185,7 +185,7 @@ impl RoundRegistry {
             .map(|(p, _)| p)
             .collect();
         for (i, plyr) in plyrs.iter().enumerate() {
-            self.seat_scores.entry(*plyr).and_modify(|n| *n += i);
+            _ = self.seat_scores.entry(*plyr).and_modify(|n| *n += i);
             self.opponents
                 .entry(*plyr)
                 .or_default()
@@ -195,8 +195,8 @@ impl RoundRegistry {
         let table_number = self.get_table_number();
         let round = Round::new(salt, plyrs, match_num, table_number, self.length, context);
         let id = round.id;
-        self.num_and_id.insert(match_num, id);
-        self.rounds.insert(id, round);
+        _ = self.num_and_id.insert(match_num, id);
+        _ = self.rounds.insert(id, round);
         id
     }
 
