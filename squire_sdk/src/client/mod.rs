@@ -94,7 +94,7 @@ impl SquireClient {
     pub async fn create_tournament(&self, seed: TournamentSeed) -> TournamentId {
         let tourn = TournamentManager::new(self.user.clone(), seed);
         let digest = tourn.id;
-        self.sender.import(tourn).await;
+        _ = self.sender.import(tourn).await;
         digest
     }
 

@@ -60,7 +60,7 @@ impl SyncProcessor {
     /// This method simply removes the operation that is causing the problem, preserving both the
     /// rest of its log
     pub fn pluck(mut self) -> SyncDecision {
-        self.to_process.pop_front();
+        _ = self.to_process.pop_front();
         SyncDecision::Plucked(self)
     }
 
@@ -97,7 +97,7 @@ impl SyncProcessor {
                 let _ = sync.pop_front()?;
                 // Iterate through the slice and the sync, front to back, and extend all shared ops
                 let mut iter = slice.iter();
-                iter.next();
+                _ = iter.next(); // The first operation is the anchor. Skip it
                 for op in iter {
                     match sync.first_id() {
                         Ok(id) if id == op.id => {
@@ -141,6 +141,7 @@ impl SyncProcessor {
 }
 
 #[cfg(feature = "server")]
+#[derive(Debug)]
 pub struct Processing<'a> {
     proc: &'a mut SyncProcessor,
     processed: OpSlice,

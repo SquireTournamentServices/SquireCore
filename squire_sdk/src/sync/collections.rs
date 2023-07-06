@@ -52,6 +52,7 @@ impl OpLog {
 
     /// Returns an iterator for the log that ignores all elements before the given `OpId`. The
     /// given `OpId` is also ignored. None is returned if the given operation is not found.
+    #[cfg(feature = "client")]
     pub(crate) fn iter_passed_op(&self, id: OpId) -> Option<impl Iterator<Item = &FullOp>> {
         let mut iter = self.ops.iter();
         iter.by_ref().find(|op| op.id == id).map(|_| iter)
@@ -91,16 +92,16 @@ impl OpLog {
         let id = ops.first_id()?;
         // TODO: We should actually be able to do better on this check since the log should not
         // have updated since the sync started
-        self.ops.iter().rev().find(|op| op.id == id)?;
+        _ = self.ops.iter().rev().find(|op| op.id == id)?;
         let mut tourn = self.init_tourn();
         let mut iter = self.ops.iter().cloned();
         for FullOp { op, salt, .. } in iter.by_ref().take_while(|op| op.id != id) {
             // TODO: This should never error, but if it doesn't, it needs to be logged
-            tourn.apply_op(salt, op.clone()).ok()?;
+            _ = tourn.apply_op(salt, op.clone()).ok()?;
         }
         for FullOp { op, salt, .. } in iter {
             // TODO: This should never error, but if it doesn't, it needs to be logged
-            tourn.apply_op(salt, op).ok()?;
+            _ = tourn.apply_op(salt, op).ok()?;
         }
         let mut not_found = true;
         self.ops.retain(|op| {

@@ -1,7 +1,7 @@
 use reqwest::StatusCode;
 use squire_lib::error::TournamentError;
 
-pub type ClientResult<T> = std::result::Result<T, ClientError>;
+pub type ClientResult<T> = Result<T, ClientError>;
 
 #[derive(Debug)]
 pub enum ClientError {

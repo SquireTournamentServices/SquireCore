@@ -105,7 +105,7 @@ impl ServerSyncManager {
             return Err(SyncError::AlreadyCompleted.into());
         }
         let chain = SyncChain::new(msg)?;
-        self.sync_chains.insert(*id, chain);
+        _ = self.sync_chains.insert(*id, chain);
         Ok(())
     }
 
@@ -116,8 +116,8 @@ impl ServerSyncManager {
         let Some(comp) = chain.add_link(client, server) else {
             return;
         };
-        self.sync_chains.remove(&id);
-        self.completed_syncs.insert(id, comp);
+        _ = self.sync_chains.remove(&id);
+        _ = self.completed_syncs.insert(id, comp);
         self.to_clear.add_timer(id);
         self.to_clear.clear(TO_CLEAR_TIME_LIMIT);
     }
@@ -125,8 +125,8 @@ impl ServerSyncManager {
     /// Removes a chain from the in-progress map but does *not* insert it into the completed map.
     /// The bool that is returned indicates if the sync had already been completed.
     pub fn terminate_chain(&mut self, id: &Uuid) -> bool {
-        self.sync_chains.remove(id);
-        self.to_clear.remove_timer(id);
+        _ = self.sync_chains.remove(id);
+        _ = self.to_clear.remove_timer(id);
         self.completed_syncs.contains_key(id)
     }
 }
@@ -151,7 +151,7 @@ impl ClientSyncManager {
         msg: ClientOpLink,
     ) -> Result<(), SyncError> {
         let inner = ClientSyncTracker::new(t_id, msg)?;
-        self.syncs.insert(id, inner);
+        _ = self.syncs.insert(id, inner);
         self.to_retry.add_timer(id);
         Ok(())
     }
@@ -164,8 +164,8 @@ impl ClientSyncManager {
     }
 
     pub fn finalize_chain(&mut self, id: &Uuid) {
-        self.syncs.remove(id);
-        self.to_retry.remove_timer(id);
+        _ = self.syncs.remove(id);
+        _ = self.to_retry.remove_timer(id);
     }
 
     pub fn update_timer(&mut self, id: &Uuid) {
@@ -182,19 +182,20 @@ impl ClientSyncManager {
 }
 
 impl ClientSyncTracker {
-    pub fn new(id: TournamentId, current: ClientOpLink) -> Result<Self, SyncError> {
+    pub(crate) fn new(id: TournamentId, current: ClientOpLink) -> Result<Self, SyncError> {
         let chain = SyncChain::new(&current)?;
         Ok(Self { id, current, chain })
     }
 
     /// Progresses the chain. Return if the chain is complete or not.
-    pub fn progress(&mut self, mut client: ClientOpLink, server: ServerOpLink) -> bool {
+    pub(crate) fn progress(&mut self, mut client: ClientOpLink, server: ServerOpLink) -> bool {
         std::mem::swap(&mut self.current, &mut client);
         self.chain.add_link(client, server).is_some()
     }
 }
 
 /// Tracks the next message that need to be retried.
+#[derive(Debug)]
 pub struct MessageRetry<'a> {
     inner: Option<(Uuid, &'a Instant, &'a ClientSyncTracker)>,
 }
@@ -245,7 +246,7 @@ impl TimerStack {
 
     fn clear(&mut self, limit: Duration) {
         while let Some(timer) = self.queue.front() && timer.1.elapsed() >= limit {
-            self.queue.pop_front();
+            _ = self.queue.pop_front();
         }
     }
 
@@ -266,13 +267,13 @@ impl ServerForwardingManager {
     }
 
     pub fn add_msg(&mut self, id: Uuid, user: SquireAccountId, t_id: TournamentId, msg: OpSync) {
-        self.outbound.insert(id, (user, t_id, msg));
+        _ = self.outbound.insert(id, (user, t_id, msg));
         self.timers.add_timer(id);
     }
 
     pub fn terminate_chain(&mut self, id: &Uuid) {
-        self.outbound.remove(id);
-        self.timers.remove_timer(id);
+        _ = self.outbound.remove(id);
+        _ = self.timers.remove_timer(id);
     }
 
     pub fn update_timer(&mut self, id: &Uuid) {
@@ -290,6 +291,7 @@ impl ServerForwardingManager {
 }
 
 /// Tracks the next forwarded sync that needs to be retried.
+#[derive(Debug)]
 pub struct ForwardingRetry<'a> {
     inner: Option<(
         Uuid,
@@ -336,7 +338,7 @@ impl ClientForwardingManager {
     }
 
     pub fn add_resp(&mut self, id: Uuid, msg: SyncForwardResp) {
-        self.processed.insert(id, (msg, Instant::now()));
+        _ = self.processed.insert(id, (msg, Instant::now()));
     }
 
     pub fn clean(&mut self) {
