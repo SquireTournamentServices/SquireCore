@@ -41,6 +41,11 @@ pub enum TournamentError {
     IncompatiblePairingSystem,
     /// The specified setting applies to a scoring system different from the active one
     IncompatibleScoringSystem,
+    /// Tried to create a match which contained a player more than once
+    RepeatedPlayerInMatch,
+    /// Tried to create a match which was either too small or too large. A match should be exactly the
+    /// samze size as the tournament's match size.
+    IncorrectMatchSize,
     /// The match size was zero (must be nonzero)
     InvalidMatchSize,
     /// The specified min deck count was greater than the max count or visa versa
@@ -75,6 +80,8 @@ impl fmt::Display for TournamentError {
             PlayerNotCheckedIn => "PlayerNotCheckedIn",
             IncompatibleScoringSystem => "IncompatibleScoringSystem",
             IncompatiblePairingSystem => "IncompatiblePairingSystem",
+            RepeatedPlayerInMatch => "RepeatedPlayerInMatch",
+            IncorrectMatchSize => "IncorrectMatchSize",
             InvalidMatchSize => "InvalidMatchSize",
             InvalidDeckCount => "InvalidDeckCount",
             RoundConfirmed => "RoundConfirmed",
