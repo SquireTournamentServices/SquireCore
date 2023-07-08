@@ -32,7 +32,7 @@ jobs:
         uses: supercharge/mongodb-github-action@1.9.0
         with:
           mongodb-version: '6.0'
-      - run: cargo fmt --check --package squire_core
-      - run: cargo build --package squire_core --verbose
-      - run: cargo test --package squire_core --verbose
-      - run: cargo doc --package squire_core --verbose
+      - run: cargo fmt --check --package squire_core --features="db-tests"
+      - run: cargo build --package squire_core --verbose --features="db-tests"
+      - run: cargo test --package squire_core --verbose --features="db-tests"
+      - run: cargo doc --package squire_core --verbose --features="db-tests"
