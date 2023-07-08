@@ -46,28 +46,20 @@ impl AppSettings {
 
     fn get_address(&self) -> &str {
         self.address
-            .as_ref()
-            .map(|s| s.as_str())
+            .as_deref()
             .unwrap_or("mongodb://localhost:27017")
     }
     #[cfg(not(test))]
     fn get_database_name(&self) -> &str {
-        self.database_name
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("Squire")
+        self.address.as_deref().unwrap_or("Squire")
     }
     #[cfg(test)]
     fn get_database_name(&self) -> &str {
-        self.database_name
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("SquireTesting")
+        self.database_name.as_deref().unwrap_or("SquireTesting")
     }
     fn get_tournament_collection_name(&self) -> &str {
         self.tournament_collection_name
-            .as_ref()
-            .map(|s| s.as_str())
+            .as_deref()
             .unwrap_or("Tournaments")
     }
 }
