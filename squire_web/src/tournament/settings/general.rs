@@ -1,17 +1,16 @@
 use std::{str::FromStr, time::Duration};
 
 use squire_sdk::{
-    model::settings::{GeneralSetting, SettingsTree, GeneralSettingsTree, TournamentSetting},
+    model::settings::{GeneralSetting, GeneralSettingsTree, SettingsTree, TournamentSetting},
     tournaments::Tournament,
 };
 use yew::prelude::*;
-
-use crate::utils::console_log;
 
 use super::{
     panel::{make_panel, SettingPanel},
     SettingsMessage,
 };
+use crate::utils::console_log;
 
 pub struct GeneralSettings {
     starting_table: SettingPanel,
@@ -55,8 +54,6 @@ impl GeneralSettings {
     }
 
     pub fn view(&self) -> Html {
-        console_log(&format!("Starting table: {}", self.current.starting_table_number));
-        console_log(&format!("New Starting table: {}", self.to_change.starting_table_number));
         html! {
             <div>
                 <h2>{ "General Settings:" }</h2>

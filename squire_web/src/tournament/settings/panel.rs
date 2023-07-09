@@ -4,7 +4,7 @@ use squire_sdk::model::settings::{PairingSetting, TournamentSetting};
 use yew::prelude::*;
 
 use super::SettingsMessage;
-use crate::utils::{TextInput, TextInputProps};
+use crate::utils::{TextInput, TextInputProps, console_log};
 
 pub struct SettingPanel {
     label: &'static str,
@@ -60,7 +60,9 @@ impl SettingPanel {
             convert(s).map(|out| emitter.emit(out));
         };
         html! {
-            <TextInput label = { Cow::Owned(format!("{}: {data} change to ", self.label)) } process = { process }/>
+            <>
+            { format!("{}: {data} ", self.label) } <TextInput label = { Cow::Borrowed("change to ") } process = { process }/>
+            </>
         }
     }
 }
