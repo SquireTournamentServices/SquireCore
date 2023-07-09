@@ -60,10 +60,7 @@ impl SettingPanel {
             convert(s).map(|out| emitter.emit(out));
         };
         html! {
-            <div>
-                <p>{ format!("{} {data}", self.label) }</p>
-                <TextInput label = {Cow::from(" change to ")} process = { process }/>
-            </div>
+            <TextInput label = { Cow::Owned(format!("{}: {data} change to ", self.label)) } process = { process }/>
         }
     }
 }

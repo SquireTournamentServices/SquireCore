@@ -21,7 +21,7 @@ use crate::{
     players::{Deck, Player, PlayerRegistry, PlayerStatus},
     rounds::{Round, RoundRegistry, RoundResult, RoundStatus},
     scoring::{ScoringSystem, StandardScore, Standings},
-    settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree},
+    settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree, SettingsTree},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]

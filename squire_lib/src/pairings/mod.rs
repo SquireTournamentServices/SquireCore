@@ -16,7 +16,7 @@ use crate::{
     scoring::{Score, Standings},
     settings::{
         PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
-        PairingStyleSettingsTree,
+        PairingStyleSettingsTree, SettingsTree,
     },
     tournament::TournamentPreset,
 };

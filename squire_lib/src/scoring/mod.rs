@@ -8,7 +8,7 @@ use crate::{
     rounds::RoundRegistry,
     settings::{
         CommonScoringSettingsTree, ScoringSetting, ScoringSettingsTree, ScoringStyleSetting,
-        ScoringStyleSettingsTree,
+        ScoringStyleSettingsTree, SettingsTree,
     },
     tournament::TournamentPreset,
 };

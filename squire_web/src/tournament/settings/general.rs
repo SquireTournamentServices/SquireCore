@@ -1,10 +1,12 @@
 use std::{str::FromStr, time::Duration};
 
 use squire_sdk::{
-    model::settings::{GeneralSetting, GeneralSettingsTree, TournamentSetting},
+    model::settings::{GeneralSetting, SettingsTree, GeneralSettingsTree, TournamentSetting},
     tournaments::Tournament,
 };
 use yew::prelude::*;
+
+use crate::utils::console_log;
 
 use super::{
     panel::{make_panel, SettingPanel},
@@ -21,6 +23,12 @@ pub struct GeneralSettings {
     round_length: SettingPanel,
     current: GeneralSettingsTree,
     to_change: GeneralSettingsTree,
+}
+
+impl GeneralSettings {
+    pub(crate) fn get_changes(&self) -> impl Iterator<Item = TournamentSetting> {
+        self.to_change.diff(&self.current).map(Into::into)
+    }
 }
 
 impl GeneralSettings {
@@ -47,16 +55,18 @@ impl GeneralSettings {
     }
 
     pub fn view(&self) -> Html {
+        console_log(&format!("Starting table: {}", self.current.starting_table_number));
+        console_log(&format!("New Starting table: {}", self.to_change.starting_table_number));
         html! {
             <div>
                 <h2>{ "General Settings:" }</h2>
-                { self.starting_table.view(self.current.starting_table_number) }
-                { self.use_table_num.view(self.current.use_table_number) }
-                { self.min_decks.view(self.current.min_deck_count) }
-                { self.max_decks.view(self.current.max_deck_count) }
-                { self.require_checkin.view(self.current.require_check_in) }
-                { self.require_decks.view(self.current.require_deck_reg) }
-                { self.round_length.view(self.current.round_length.as_secs()/60) }
+                <p> { self.starting_table.view(self.current.starting_table_number) } </p>
+                <p> { self.use_table_num.view(self.current.use_table_number) } </p>
+                <p> { self.min_decks.view(self.current.min_deck_count) } </p>
+                <p> { self.max_decks.view(self.current.max_deck_count) } </p>
+                <p> { self.require_checkin.view(self.current.require_check_in) } </p>
+                <p> { self.require_decks.view(self.current.require_deck_reg) } </p>
+                <p> { self.round_length.view(self.current.round_length.as_secs()/60) } </p>
             </div>
         }
     }
