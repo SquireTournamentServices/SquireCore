@@ -9,6 +9,9 @@ pub const TOURNAMENTS_ROUTE: Url<0> = extend!(API_BASE, "/tournaments");
 pub(crate) const GET_TOURNAMENT_ENDPOINT: Url<1> = Url::new("/:t_id", [":t_id"]);
 pub const GET_TOURNAMENT_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT);
 
+pub(crate) const LIST_TOURNAMENTS_ENDPOINT: Url<1> = Url::new("/list/:page", [":page"]);
+pub const LIST_TOURNAMENTS_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, LIST_TOURNAMENTS_ENDPOINT);
+
 pub(crate) const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("/subscribe/:t_id", [":t_id"]);
 pub const SUBSCRIBE_ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, SUBSCRIBE_ENDPOINT);
 
@@ -39,7 +42,7 @@ mod tests {
     use crate::api::{
         GET_TOURNAMENT_ENDPOINT, GET_TOURNAMENT_ROUTE, LOAD_ACCOUNT_ENDPOINT, LOAD_ACCOUNT_ROUTE,
         LOGOUT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ENDPOINT, REGISTER_ACCOUNT_ROUTE,
-        VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
+        VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE, LIST_TOURNAMENTS_ROUTE,
     };
 
     #[test]
@@ -50,6 +53,7 @@ mod tests {
     #[test]
     fn verify_tournament_routes() {
         assert_eq!(GET_TOURNAMENT_ROUTE.as_str(), "/api/v1/tournaments/:t_id");
+        assert_eq!(LIST_TOURNAMENTS_ROUTE.as_str(), "/api/v1/tournaments/list/:page");
     }
 
     #[test]

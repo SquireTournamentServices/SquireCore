@@ -1,18 +1,19 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, ops::RangeInclusive, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
-use futures::stream::TryStreamExt;
+use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
     options::{
-        ClientOptions, Hint, IndexOptions, ReplaceOptions, UpdateModifications, UpdateOptions,
+        ClientOptions, FindOptions, Hint, IndexOptions, ReplaceOptions, UpdateModifications,
+        UpdateOptions,
     },
     Client as DbClient, Collection, Database, IndexModel,
 };
 use squire_sdk::{
     model::{accounts::SquireAccount, identifiers::TypeId, tournament::TournamentSeed},
     server::{state::ServerState, User},
-    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset},
+    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset, TournamentSummary},
     version::{ServerMode, Version},
 };
 use tracing::Level;
@@ -147,6 +148,29 @@ impl ServerState for AppState {
 
     async fn create_tourn(&self, user: User, seed: TournamentSeed) -> TournamentManager {
         todo!()
+    }
+
+    async fn get_tourn_summaries(
+        &self,
+        including: RangeInclusive<usize>,
+    ) -> Vec<TournamentSummary> {
+        if let Ok(cursor) = self
+            .get_tourns()
+            .find(
+                None,
+                FindOptions::builder().sort(doc! {"$natural":-1}).build(),
+            )
+            .await
+        {
+            cursor
+                .skip(*including.start())
+                .take(including.count())
+                .filter_map(|u| async { u.ok().as_ref().map(TournamentSummary::from) })
+                .collect()
+                .await
+        } else {
+            vec![]
+        }
     }
 
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager> {
