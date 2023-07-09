@@ -3,6 +3,8 @@ use std::borrow::Cow;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
+use crate::utils::console_log;
+
 #[derive(PartialEq, Properties)]
 pub struct TextInputProps<T = ()>
 where
@@ -57,16 +59,16 @@ where
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         self.process();
-        false
+        true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let on_input = ctx.link().callback(|_| ());
         html! {
-            <div>
-                <label>{ self.label.clone() }</label>
+            <>
+                <label>{ self.label.as_ref() }</label>
                 <input ref={self.input.clone()} type="text" oninput={ on_input } />
-            </div>
+            </>
         }
     }
 }

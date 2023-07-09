@@ -3,7 +3,7 @@ use squire_sdk::{
         scoring::{ScoringStyle, ScoringSystem, StandardScoring},
         settings::{
             ScoringSettingsTree, ScoringStyleSetting, ScoringStyleSettingsTree, SettingsTree,
-            StandardScoringSetting, StandardScoringSettingsTree, TournamentSetting,
+            StandardScoringSetting, StandardScoringSettingsTree, TournamentSetting, ScoringSetting,
         },
     },
     tournaments::Tournament,
@@ -109,6 +109,11 @@ impl ScoringSettings {
             current: tree.clone(),
             to_change: tree,
         }
+    }
+
+    pub fn update(&mut self, setting: ScoringSetting) -> bool {
+        self.to_change.update(setting);
+        false
     }
 
     pub fn view(&self) -> Html {
