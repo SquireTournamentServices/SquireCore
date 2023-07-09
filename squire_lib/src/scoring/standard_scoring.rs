@@ -11,7 +11,7 @@ use crate::{
     r64,
     rounds::{Round, RoundRegistry},
     scoring::{Score, Standings},
-    settings::{StandardScoringSetting, StandardScoringSettingsTree},
+    settings::{StandardScoringSetting, StandardScoringSettingsTree, SettingsTree},
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq, PartialOrd)]
@@ -133,7 +133,7 @@ impl StandardScoring {
 
     /// Updates a single scoring setting
     pub fn update_setting(&mut self, setting: StandardScoringSetting) {
-        self.settings.update(setting)
+        _ = self.settings.update(setting);
     }
 
     /// Calculates all the standing for the active players

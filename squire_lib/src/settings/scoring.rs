@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::SettingsTree;
 use crate::{
     operations::{OpData, OpResult},
     r64,
@@ -38,7 +39,7 @@ pub enum ScoringStyleSettingsTree {
 }
 
 /// A structure that holds a value for each scoring setting
-#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Default, Hash, Clone, PartialEq, Eq)]
 pub struct ScoringSettingsTree {
     /// Settings used by all scoring methods
     #[serde(default)]
@@ -49,67 +50,67 @@ pub struct ScoringSettingsTree {
 
 impl ScoringSettingsTree {
     /// Creates a new, default settings tree
-    pub fn new(preset: TournamentPreset) -> Self {
+    pub fn with_preset(preset: TournamentPreset) -> Self {
         Self {
             common: CommonScoringSettingsTree,
-            style: ScoringStyleSettingsTree::new(preset),
+            style: ScoringStyleSettingsTree::with_preset(preset),
         }
     }
+}
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: ScoringSetting) -> OpResult {
+impl SettingsTree for ScoringSettingsTree {
+    type Setting = ScoringSetting;
+
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             ScoringSetting::Common(setting) => self.common.update(setting),
             ScoringSetting::Style(setting) => self.style.update(setting),
         }
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = ScoringSetting> {
-        self.common
-            .iter()
-            .map(Into::into)
-            .chain(self.style.iter().map(Into::into))
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            self.common
+                .iter()
+                .map(Into::into)
+                .chain(self.style.iter().map(Into::into)),
+        )
     }
 }
 
-impl CommonScoringSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new() -> Self {
-        Self::default()
+impl SettingsTree for CommonScoringSettingsTree {
+    type Setting = CommonScoringSetting;
+
+    fn update(&mut self, _setting: Self::Setting) -> OpResult {
+        Ok(OpData::Nothing)
     }
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: CommonScoringSetting) -> ! {
-        match setting {}
-    }
-
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = CommonScoringSetting> {
-        std::iter::empty()
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(std::iter::empty())
     }
 }
 
 impl ScoringStyleSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new(_: TournamentPreset) -> Self {
-        Self::Standard(Default::default())
+    /// Creates a new tree from a tournament preset
+    pub fn with_preset(_: TournamentPreset) -> Self {
+        Self::default()
     }
+}
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: ScoringStyleSetting) -> OpResult {
+impl SettingsTree for ScoringStyleSettingsTree {
+    type Setting = ScoringStyleSetting;
+
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match (self, setting) {
             (ScoringStyleSettingsTree::Standard(style), ScoringStyleSetting::Standard(setting)) => {
                 style.update(setting)
             }
         }
-        Ok(OpData::Nothing)
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = ScoringStyleSetting> {
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
         match self {
-            ScoringStyleSettingsTree::Standard(tree) => tree.iter().map(Into::into),
+            ScoringStyleSettingsTree::Standard(tree) => Box::new(tree.iter().map(Into::into)),
         }
     }
 }
@@ -168,29 +169,10 @@ pub struct StandardScoringSettingsTree {
     pub include_opp_gwp: bool,
 }
 
-impl StandardScoringSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new() -> Self {
-        Self {
-            match_win_points: r64::from_integer(3),
-            match_draw_points: r64::from_integer(1),
-            match_loss_points: r64::from_integer(0),
-            game_win_points: r64::from_integer(3),
-            game_draw_points: r64::from_integer(1),
-            game_loss_points: r64::from_integer(0),
-            bye_points: r64::from_integer(3),
-            include_byes: true,
-            include_match_points: true,
-            include_game_points: true,
-            include_mwp: true,
-            include_gwp: true,
-            include_opp_mwp: true,
-            include_opp_gwp: true,
-        }
-    }
+impl SettingsTree for StandardScoringSettingsTree {
+    type Setting = StandardScoringSetting;
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: StandardScoringSetting) {
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             StandardScoringSetting::MatchWinPoints(points) => self.match_win_points = points,
             StandardScoringSetting::MatchDrawPoints(points) => self.match_draw_points = points,
@@ -211,26 +193,28 @@ impl StandardScoringSettingsTree {
             StandardScoringSetting::IncludeOppMwp(include) => self.include_opp_mwp = include,
             StandardScoringSetting::IncludeOppGwp(include) => self.include_opp_gwp = include,
         }
+        Ok(OpData::Nothing)
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = StandardScoringSetting> {
-        vec![
-            StandardScoringSetting::MatchWinPoints(self.match_win_points),
-            StandardScoringSetting::MatchDrawPoints(self.match_draw_points),
-            StandardScoringSetting::MatchLossPoints(self.match_loss_points),
-            StandardScoringSetting::GameWinPoints(self.game_win_points),
-            StandardScoringSetting::GameDrawPoints(self.game_draw_points),
-            StandardScoringSetting::GameLossPoints(self.game_loss_points),
-            StandardScoringSetting::ByePoints(self.bye_points),
-            StandardScoringSetting::IncludeByes(self.include_byes),
-            StandardScoringSetting::IncludeMatchPoints(self.include_match_points),
-            StandardScoringSetting::IncludeGamePoints(self.include_game_points),
-            StandardScoringSetting::IncludeMwp(self.include_mwp),
-            StandardScoringSetting::IncludeGwp(self.include_gwp),
-            StandardScoringSetting::IncludeOppMwp(self.include_opp_mwp),
-            StandardScoringSetting::IncludeOppGwp(self.include_opp_gwp),
-        ]
-        .into_iter()
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            [
+                StandardScoringSetting::MatchWinPoints(self.match_win_points),
+                StandardScoringSetting::MatchDrawPoints(self.match_draw_points),
+                StandardScoringSetting::MatchLossPoints(self.match_loss_points),
+                StandardScoringSetting::GameWinPoints(self.game_win_points),
+                StandardScoringSetting::GameDrawPoints(self.game_draw_points),
+                StandardScoringSetting::GameLossPoints(self.game_loss_points),
+                StandardScoringSetting::ByePoints(self.bye_points),
+                StandardScoringSetting::IncludeByes(self.include_byes),
+                StandardScoringSetting::IncludeMatchPoints(self.include_match_points),
+                StandardScoringSetting::IncludeGamePoints(self.include_game_points),
+                StandardScoringSetting::IncludeMwp(self.include_mwp),
+                StandardScoringSetting::IncludeGwp(self.include_gwp),
+                StandardScoringSetting::IncludeOppMwp(self.include_opp_mwp),
+                StandardScoringSetting::IncludeOppGwp(self.include_opp_gwp),
+            ]
+            .into_iter(),
+        )
     }
 }

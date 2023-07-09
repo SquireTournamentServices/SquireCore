@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use super::SettingsTree;
 use crate::{
     error::TournamentError,
     operations::{OpData, OpResult},
@@ -50,20 +51,18 @@ pub struct GeneralSettingsTree {
 }
 
 impl GeneralSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Creates a new settings tree with the given format field
     pub fn with_format(format: String) -> Self {
         let mut digest = Self::new();
         digest.format = format;
         digest
     }
+}
 
-    /// Updates the settings tree, replacing one setting with the given setting
-    pub fn update(&mut self, setting: GeneralSetting) -> OpResult {
+impl SettingsTree for GeneralSettingsTree {
+    type Setting = GeneralSetting;
+
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             GeneralSetting::Format(format) => self.format = format,
             GeneralSetting::StartingTableNumber(num) => self.starting_table_number = num,
@@ -83,18 +82,19 @@ impl GeneralSettingsTree {
         Ok(OpData::Nothing)
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = GeneralSetting> {
-        vec![
-            GeneralSetting::Format(self.format.clone()),
-            GeneralSetting::StartingTableNumber(self.starting_table_number),
-            GeneralSetting::UseTableNumbers(self.use_table_number),
-            GeneralSetting::MinDeckCount(self.min_deck_count),
-            GeneralSetting::MaxDeckCount(self.max_deck_count),
-            GeneralSetting::RequireCheckIn(self.require_check_in),
-            GeneralSetting::RequireDeckReg(self.require_deck_reg),
-            GeneralSetting::RoundLength(self.round_length),
-        ]
-        .into_iter()
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            [
+                GeneralSetting::Format(self.format.clone()),
+                GeneralSetting::StartingTableNumber(self.starting_table_number),
+                GeneralSetting::UseTableNumbers(self.use_table_number),
+                GeneralSetting::MinDeckCount(self.min_deck_count),
+                GeneralSetting::MaxDeckCount(self.max_deck_count),
+                GeneralSetting::RequireCheckIn(self.require_check_in),
+                GeneralSetting::RequireDeckReg(self.require_deck_reg),
+                GeneralSetting::RoundLength(self.round_length),
+            ]
+            .into_iter(),
+        )
     }
 }

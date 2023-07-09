@@ -93,7 +93,8 @@ impl TournamentViewer {
                 html! { <StandingsView id = { self.id }/> }
             }
             TournViewMode::Settings => {
-                html! { <SettingsView id = { self.id }/> }
+                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
+                html! { <SettingsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
         }
     }
@@ -154,7 +155,7 @@ impl Component for TournamentViewer {
                 false
             }
             TournViewMessage::QueryReady(Some((name, admin_id))) => {
-                web_sys::console::log_1(&format!("Tournament name ready and loaded!!").into());
+                console_log("Tournament name ready and loaded!!");
                 let digest = self.tourn_name != name;
                 self.tourn_name = name;
                 self.admin_id = admin_id;

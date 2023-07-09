@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 use serde::{Deserialize, Serialize};
 
 mod general;
@@ -9,6 +10,35 @@ pub use pairing::*;
 pub use scoring::*;
 
 use crate::{operations::OpResult, tournament::TournamentPreset};
+
+// TODO: These dyn iterators should be replaced with `impl Iterator` once Rust issue #91611
+// (https://github.com/rust-lang/rust/issues/91611) return_position_impl_trait_in_trait is
+// completed.
+/// A trait that encapsulates the methods needed by every settings tree
+pub trait SettingsTree: Default {
+    /// The setting type used by this tree
+    type Setting: 'static + PartialEq;
+
+    /// Creates a new, default settings tree
+    fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a new settings tree with the given format field
+    fn update(&mut self, setting: Self::Setting) -> OpResult;
+
+    /// Returns an iterator over all the contained settings
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>>;
+
+    /// Returns an iterator over this tree that yields all the settings that differ between the two
+    fn diff(&self, other: &Self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            self.iter()
+                .zip(other.iter())
+                .filter_map(|(new, old)| (new != old).then_some(new)),
+        )
+    }
+}
 
 /// An enum that encodes all the adjustable settings of a tournament
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
@@ -32,18 +62,32 @@ pub struct TournamentSettingsTree {
     pub scoring: ScoringSettingsTree,
 }
 
-impl TournamentSettingsTree {
-    /// Creates a new tournament settings tree with default values for all settings
-    pub fn new(preset: TournamentPreset) -> Self {
+impl Default for TournamentSettingsTree {
+    fn default() -> Self {
         Self {
-            general: Default::default(),
-            pairing: PairingSettingsTree::new(preset),
-            scoring: ScoringSettingsTree::new(preset),
+            general: GeneralSettingsTree::default(),
+            pairing: PairingSettingsTree::with_preset(TournamentPreset::Swiss),
+            scoring: ScoringSettingsTree::with_preset(TournamentPreset::Swiss),
         }
     }
+}
 
-    /// Updates the tournament settings tree, replacing one setting with the given setting
-    pub fn update(&mut self, setting: TournamentSetting) -> OpResult {
+impl TournamentSettingsTree {
+    /// Creates a new tournament settings tree with default values for all settings
+    #[must_use]
+    pub fn with_preset(preset: TournamentPreset) -> Self {
+        Self {
+            general: GeneralSettingsTree::default(),
+            pairing: PairingSettingsTree::with_preset(preset),
+            scoring: ScoringSettingsTree::with_preset(preset),
+        }
+    }
+}
+
+impl SettingsTree for TournamentSettingsTree {
+    type Setting = TournamentSetting;
+
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
             TournamentSetting::PairingSetting(setting) => self.pairing.update(setting),
@@ -52,18 +96,13 @@ impl TournamentSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = TournamentSetting> {
-        self.general
-            .iter()
-            .map(Into::into)
-            .chain(self.pairing.iter().map(Into::into))
-            .chain(self.scoring.iter().map(Into::into))
-    }
-
-    /// Returns an iterator that yields settings from this tree what differ from the given tree
-    pub fn diff(&self, other: &Self) -> impl Iterator<Item = TournamentSetting> {
-        self.iter()
-            .zip(other.iter())
-            .filter_map(|(new, old)| (new != old).then_some(new))
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            self.general
+                .iter()
+                .map(Into::into)
+                .chain(self.pairing.iter().map(Into::into))
+                .chain(self.scoring.iter().map(Into::into)),
+        )
     }
 }

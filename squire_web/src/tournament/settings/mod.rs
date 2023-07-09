@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use squire_sdk::{
-    model::settings::{
+    model::{settings::{
         GeneralSettingsTree, PairingSettingsTree, PairingStyleSettingsTree, ScoringSettingsTree,
-        TournamentSetting, TournamentSettingsTree,
-    },
-    tournaments::{TournamentId, TournamentPreset},
+        TournamentSetting, TournamentSettingsTree, SettingsTree,
+    }, identifiers::AdminId},
+    tournaments::{TournamentId, TournamentPreset, TournOp, OpResult},
 };
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 mod general;
@@ -18,24 +19,48 @@ use general::*;
 use pairings::*;
 use scoring::*;
 
-use crate::CLIENT;
+use super::spawn_update_listener;
+use crate::{CLIENT, utils::console_log};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SettingsMessage {
     Setting(TournamentSetting),
+    QueryReady(Box<TournamentSettingsTree>),
+    ReQuery,
     Submitted,
 }
 
-#[derive(Debug, Properties, PartialEq, Eq)]
+#[derive(Debug, Properties, PartialEq)]
 pub struct SettingsProps {
     pub id: TournamentId,
+    pub admin_id: AdminId,
+    pub send_op_result: Callback<OpResult>,
 }
 
 pub struct SettingsView {
     pub id: TournamentId,
+    admin_id: AdminId,
+    send_op_result: Callback<OpResult>,
     general: GeneralSettings,
     pairings: PairingsSettings,
     scoring: ScoringSettings,
+}
+
+impl SettingsView {
+    fn send_query(&self, ctx: &Context<Self>) {
+        let id = self.id;
+        ctx.link().send_future(async move {
+            let settings = CLIENT
+                .get()
+                .unwrap()
+                .query_tourn(id, |tourn| tourn.settings())
+                .process()
+                .await
+                .unwrap_or_else(TournamentSettingsTree::new);
+            console_log("Got settings from tournament...");
+            SettingsMessage::QueryReady(Box::new(settings))
+        })
+    }
 }
 
 impl Component for SettingsView {
@@ -43,43 +68,80 @@ impl Component for SettingsView {
     type Properties = SettingsProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+        spawn_update_listener(ctx, SettingsMessage::ReQuery);
         let emitter = ctx.link().callback(SettingsMessage::Setting);
-        let id = ctx.props().id;
-        SettingsView {
-            id,
+        let SettingsProps { id, send_op_result, admin_id } = ctx.props();
+        let digest = SettingsView {
+            id: *id,
+            admin_id: *admin_id,
+            send_op_result: send_op_result.clone(),
             general: GeneralSettings::new(emitter.clone(), GeneralSettingsTree::new()),
             pairings: PairingsSettings::new(
-                emitter,
-                PairingSettingsTree::new(TournamentPreset::Swiss),
+                emitter.clone(),
+                PairingSettingsTree::new(),
             ),
-            scoring: ScoringSettings::new(ScoringSettingsTree::new(TournamentPreset::Swiss)),
-        }
+            scoring: ScoringSettings::new(
+                emitter,
+                ScoringSettingsTree::new(),
+            ),
+        };
+        digest.send_query(ctx);
+        digest
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            SettingsMessage::Setting(setting) => match setting {
+            SettingsMessage::Setting(setting) => {
+                console_log(&format!("Got setting: {setting:?}"));
+                match setting {
                 TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
                 TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
                 TournamentSetting::ScoringSetting(_) => false,
-            },
+            }},
             SettingsMessage::Submitted => {
-                /* Diff the current and to_change lists of settings
-                 * Create a Vec of the changed settings
-                 *              ^^^^^^^^^^^^^^^^^^ Look different for you
-                 *
-                 * Submit bulk update to CLIENT
-                 * Create listener to follow the UpdateTracker
-                 * ^^^^^^^^^^^^^^^^^^ Look same between Rounds and Settings pages
-                 */
-                todo!()
+                let client = CLIENT.get().unwrap();
+                let iter = self
+                    .general
+                    .get_changes()
+                    .chain(self.scoring.get_changes())
+                    .chain(self.pairings.get_changes())
+                    .map(|s| TournOp::AdminOp(self.admin_id, s.into())).collect::<Vec<_>>();
+                console_log(&format!("Submitting settings: {iter:?}"));
+                let tracker = client.bulk_update(self.id, iter);
+                let send_op_result = self.send_op_result.clone();
+                spawn_local(async move {
+                    console_log("Waiting for update to finish!");
+                    send_op_result.emit(tracker.process().await.unwrap())
+                });
+                false
+            }
+            SettingsMessage::ReQuery => {
+                spawn_update_listener(ctx, SettingsMessage::ReQuery);
+                console_log("Time to requery");
+                self.send_query(ctx);
+                false
+            }
+            SettingsMessage::QueryReady(settings) => {
+                console_log("Query ready!!");
+                let TournamentSettingsTree {
+                    general,
+                    pairing,
+                    scoring,
+                } = *settings;
+                let emitter = ctx.link().callback(SettingsMessage::Setting);
+                self.general = GeneralSettings::new(emitter.clone(), general);
+                self.scoring = ScoringSettings::new(emitter.clone(), scoring);
+                self.pairings = PairingsSettings::new(emitter, pairing);
+                true
             }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let submit = ctx.link().callback(|_| SettingsMessage::Submitted);
         html! {
             <div>
+                <button onclick = { submit }> { "Update Settings"} </button>
                 { self.general.view() }
                 { self.pairings.view() }
                 { self.scoring.view() }

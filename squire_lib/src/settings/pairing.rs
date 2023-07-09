@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::SettingsTree;
 use crate::{
     error::TournamentError,
     operations::{OpData, OpResult},
@@ -70,41 +71,48 @@ pub struct PairingCommonSettingsTree {
 
 impl PairingSettingsTree {
     /// Creates a new, default settings tree
-    pub fn new(preset: TournamentPreset) -> Self {
+    pub fn with_preset(preset: TournamentPreset) -> Self {
         Self {
             common: Default::default(),
-            style: PairingStyleSettingsTree::new(preset),
+            style: PairingStyleSettingsTree::with_preset(preset),
         }
     }
+}
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: PairingSetting) -> OpResult {
+impl SettingsTree for PairingSettingsTree {
+    type Setting = PairingSetting;
+
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             PairingSetting::Common(setting) => self.common.update(setting),
             PairingSetting::Style(setting) => self.style.update(setting),
         }
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = PairingSetting> {
-        self.common
-            .iter()
-            .map(Into::into)
-            .chain(self.style.iter().map(Into::into))
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            self.common
+                .iter()
+                .map(Into::into)
+                .chain(self.style.iter().map(Into::into)),
+        )
     }
 }
 
 impl PairingStyleSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new(preset: TournamentPreset) -> Self {
+    /// Creates a new tree using a tournament preset
+    pub fn with_preset(preset: TournamentPreset) -> Self {
         match preset {
             TournamentPreset::Swiss => Self::Swiss(Default::default()),
             TournamentPreset::Fluid => Self::Fluid(Default::default()),
         }
     }
+}
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: PairingStyleSetting) -> OpResult {
+impl SettingsTree for PairingStyleSettingsTree {
+    type Setting = PairingStyleSetting;
+
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match (self, setting) {
             (PairingStyleSettingsTree::Swiss(style), PairingStyleSetting::Swiss(setting)) => {
                 style.update(setting)
@@ -116,24 +124,18 @@ impl PairingStyleSettingsTree {
         }
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = PairingSetting> {
-        let digest: Box<dyn Iterator<Item = PairingSetting>> = match self {
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        match self {
             PairingStyleSettingsTree::Swiss(style) => Box::new(style.iter().map(Into::into)),
             PairingStyleSettingsTree::Fluid(style) => Box::new(style.iter().map(Into::into)),
-        };
-        digest
+        }
     }
 }
 
-impl PairingCommonSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new() -> Self {
-        Self::default()
-    }
+impl SettingsTree for PairingCommonSettingsTree {
+    type Setting = CommonPairingSetting;
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: CommonPairingSetting) -> OpResult {
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             CommonPairingSetting::MatchSize(size) => {
                 if size == 0 {
@@ -147,15 +149,16 @@ impl PairingCommonSettingsTree {
         Ok(OpData::Nothing)
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = PairingSetting> {
-        vec![
-            CommonPairingSetting::MatchSize(self.match_size),
-            CommonPairingSetting::RepairTolerance(self.repair_tolerance),
-            CommonPairingSetting::Algorithm(self.algorithm),
-        ]
-        .into_iter()
-        .map(Into::into)
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(
+            [
+                CommonPairingSetting::MatchSize(self.match_size),
+                CommonPairingSetting::RepairTolerance(self.repair_tolerance),
+                CommonPairingSetting::Algorithm(self.algorithm),
+            ]
+            .into_iter()
+            .map(Into::into),
+        )
     }
 }
 
@@ -174,23 +177,20 @@ pub struct SwissPairingSettingsTree {
     pub do_checkins: bool,
 }
 
-impl SwissPairingSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new() -> Self {
-        Self::default()
-    }
+impl SettingsTree for SwissPairingSettingsTree {
+    type Setting = SwissPairingSetting;
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: SwissPairingSetting) -> OpResult {
+    fn update(&mut self, setting: Self::Setting) -> OpResult {
         match setting {
             SwissPairingSetting::DoCheckIns(b) => self.do_checkins = b,
         }
         Ok(OpData::Nothing)
     }
 
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = SwissPairingSetting> {
-        vec![SwissPairingSetting::DoCheckIns(self.do_checkins)].into_iter()
+    fn iter(&self) -> Box<dyn Iterator<Item = Self::Setting>> {
+        Box::new(std::iter::once(SwissPairingSetting::DoCheckIns(
+            self.do_checkins,
+        )))
     }
 }
 
@@ -202,19 +202,14 @@ pub enum FluidPairingSetting {}
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 pub struct FluidPairingSettingsTree {}
 
-impl FluidPairingSettingsTree {
-    /// Creates a new, default settings tree
-    pub fn new() -> Self {
-        Self::default()
+impl SettingsTree for FluidPairingSettingsTree {
+    type Setting = FluidPairingSetting;
+
+    fn update(&mut self, _setting: FluidPairingSetting) -> OpResult {
+        Ok(OpData::Nothing)
     }
 
-    /// Creates a new settings tree with the given format field
-    pub fn update(&mut self, setting: FluidPairingSetting) -> ! {
-        match setting {}
-    }
-
-    /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = FluidPairingSetting> {
-        vec![].into_iter()
+    fn iter(&self) -> Box<dyn Iterator<Item = FluidPairingSetting>> {
+        Box::new(std::iter::empty())
     }
 }

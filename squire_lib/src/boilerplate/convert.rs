@@ -12,6 +12,12 @@ use crate::{
 
 /* --------- Convert sub-settings to a `AdminOp` --------- */
 
+impl From<TournamentSetting> for AdminOp {
+    fn from(setting: TournamentSetting) -> Self {
+        AdminOp::UpdateTournSetting(setting)
+    }
+}
+
 impl From<GeneralSetting> for AdminOp {
     fn from(setting: GeneralSetting) -> Self {
         AdminOp::UpdateTournSetting(setting.into())
