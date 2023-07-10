@@ -1,4 +1,4 @@
-use std::{error::Error, ops::RangeInclusive, sync::Arc};
+use std::{error::Error, ops::Range, sync::Arc};
 
 use async_session::{async_trait, SessionStore};
 use squire_lib::tournament::TournamentSeed;
@@ -20,8 +20,7 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
 
     async fn create_tourn(&self, user: User, seed: TournamentSeed) -> TournamentManager;
 
-    async fn get_tourn_summaries(&self, including: RangeInclusive<usize>)
-        -> Vec<TournamentSummary>;
+    async fn get_tourn_summaries(&self, including: Range<usize>) -> Vec<TournamentSummary>;
 
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager>;
 

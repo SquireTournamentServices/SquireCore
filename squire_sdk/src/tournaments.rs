@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use squire_lib::tournament::TournamentStatus;
 
 use crate::response::SquireResponse;
 pub use crate::{
@@ -14,13 +15,15 @@ pub use crate::{
 
 /// Information useful for understanding the tournament at a glance, as well as for performing a
 /// query to find out more about it.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TournamentSummary {
     /// The unique identifier for the tournament -- this can be used to query the backend for more
     /// information about a tournament (using [server::ServerState::get_tourn])
     pub id: TournamentId,
     /// The display name of the tournament
     pub name: String,
+    /// The status of the tournament
+    pub status: TournamentStatus,
 }
 
 impl From<&Tournament> for TournamentSummary {
@@ -28,6 +31,7 @@ impl From<&Tournament> for TournamentSummary {
         Self {
             id: value.id,
             name: value.name.clone(),
+            status: value.status,
         }
     }
 }

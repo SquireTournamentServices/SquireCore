@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::RangeInclusive, sync::Arc};
+use std::{borrow::Cow, ops::Range, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::{stream::TryStreamExt, StreamExt};
@@ -150,27 +150,24 @@ impl ServerState for AppState {
         todo!()
     }
 
-    async fn get_tourn_summaries(
-        &self,
-        including: RangeInclusive<usize>,
-    ) -> Vec<TournamentSummary> {
-        if let Ok(cursor) = self
+    async fn get_tourn_summaries(&self, including: Range<usize>) -> Vec<TournamentSummary> {
+        let Ok(cursor) = self
             .get_tourns()
             .find(
                 None,
                 FindOptions::builder().sort(doc! {"$natural":-1}).build(),
             )
             .await
-        {
-            cursor
-                .skip(*including.start())
-                .take(including.count())
-                .filter_map(|u| async { u.ok().as_ref().map(TournamentSummary::from) })
-                .collect()
-                .await
-        } else {
-            vec![]
-        }
+        else {
+            return vec![];
+        };
+
+        cursor
+            .skip(including.start)
+            .take(including.count())
+            .filter_map(|u| async { u.ok().as_ref().map(TournamentSummary::from) })
+            .collect()
+            .await
     }
 
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager> {

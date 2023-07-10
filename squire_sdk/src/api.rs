@@ -40,9 +40,10 @@ pub const VERSION_ROUTE: Url<0> = extend!(API_BASE, VERSION_ENDPOINT);
 #[cfg(test)]
 mod tests {
     use crate::api::{
-        GET_TOURNAMENT_ENDPOINT, GET_TOURNAMENT_ROUTE, LOAD_ACCOUNT_ENDPOINT, LOAD_ACCOUNT_ROUTE,
-        LOGOUT_ENDPOINT, LOGOUT_ROUTE, REGISTER_ACCOUNT_ENDPOINT, REGISTER_ACCOUNT_ROUTE,
-        VERIFY_ACCOUNT_ENDPOINT, VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE, LIST_TOURNAMENTS_ROUTE,
+        GET_TOURNAMENT_ENDPOINT, GET_TOURNAMENT_ROUTE, LIST_TOURNAMENTS_ROUTE,
+        LOAD_ACCOUNT_ENDPOINT, LOAD_ACCOUNT_ROUTE, LOGOUT_ENDPOINT, LOGOUT_ROUTE,
+        REGISTER_ACCOUNT_ENDPOINT, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ENDPOINT,
+        VERIFY_ACCOUNT_ROUTE, VERSION_ROUTE,
     };
 
     #[test]
@@ -53,7 +54,10 @@ mod tests {
     #[test]
     fn verify_tournament_routes() {
         assert_eq!(GET_TOURNAMENT_ROUTE.as_str(), "/api/v1/tournaments/:t_id");
-        assert_eq!(LIST_TOURNAMENTS_ROUTE.as_str(), "/api/v1/tournaments/list/:page");
+        assert_eq!(
+            LIST_TOURNAMENTS_ROUTE.as_str(),
+            "/api/v1/tournaments/list/:page"
+        );
     }
 
     #[test]
