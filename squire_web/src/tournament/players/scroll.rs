@@ -23,7 +23,7 @@ pub struct PlayerScroll {
     players: Vec<PlayerSummary>,
 }
 
-fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
+pub fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
     ctx.link().send_future(async move {
         let mut data = CLIENT
             .get()
@@ -65,18 +65,66 @@ impl PlayerScroll {
     }
 
     pub fn view(&self, report: PlayerFilterReport) -> Html {
+        /*
+        let list = self
+            .rounds
+            .iter()
+            .cloned()
+            .filter_map(|r| {
+                report.matches(&r).then(|| {
+                    let cb = self.process.clone();
+                    html! {
+                        <tr onclick = { move |_| cb.emit(r.id) }>
+                            <td>{ r.match_number }</td>
+                            <td>{ r.table_number }</td>
+                            <td>{ r.status }</td>
+                        </tr>
+                    }
+                })
+            })
+            .collect::<Html>();
+        html! {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>{ "Round" }</th>
+                        <th>{ "Table" }</th>
+                        <th>{ "Status" }</th>
+                    </tr>
+                </thead>
+                <tbody> { list } </tbody>
+            </table>
+        }
+        */
         let mapper = |plyr: &PlayerSummary| {
             let cb = self.process.clone();
             let name = plyr.name.clone();
+            let status = plyr.status.clone();
             let id = plyr.id;
-            html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(id) }>{ name }</a></li> }
+            //html! { <li><a class="py-1 vert" onclick = { move |_| cb.emit(id) }>{ name }</a></li> }
+            html! {
+                <tr onclick = { move |_| cb.emit(id) }>
+                    <td>{ name }</td>
+                    <td>{ status }</td>
+                </tr>
+            }
         };
         let inner = self
             .players
             .iter()
             .filter_map(|p| report.matches(p).then(|| mapper(p)))
             .collect::<Html>();
-        html! { <ul>{ inner }</ul> }
+        html! {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>{ "Name" }</th>
+                        <th>{ "Status" }</th>
+                    </tr>
+                </thead>
+                <tbody> { inner } </tbody>
+            </table>
+        }
     }
 }
 

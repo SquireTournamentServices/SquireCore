@@ -116,7 +116,7 @@ impl Component for RoundsView {
                 </div>
                 <div class="d-flex flex-row my-4">
                     <div>
-                        <div class="overflow-auto player-scroll-box">
+                        <div class="overflow-auto player-scroll-box px-4">
                             { self.scroll.view(self.input.get_report()) }
                         </div>
                     </div>

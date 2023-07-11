@@ -1,18 +1,22 @@
 use std::borrow::Cow;
 
-use squire_sdk::model::{
-    identifiers::RoundIdentifier,
+use squire_sdk::{model::{
+    identifiers::{RoundIdentifier, AdminId},
     players::{Player, PlayerStatus},
-    rounds::RoundStatus,
-};
+    rounds::RoundStatus, operations::{AdminOp, JudgeOp},
+}, tournaments::{TournamentId, OpResult, TournOp}};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 use super::PlayerSummary;
-use crate::utils::TextInput;
+use crate::{utils::{TextInput, console_log}, CLIENT};
 
 #[derive(PartialEq, Properties)]
 pub struct PlayerFilterInputProps {
+    pub id: TournamentId,
+    pub admin_id: AdminId,
+    pub send_op_result: Callback<OpResult>,
     pub process: Callback<PlayerFilterReport>,
 }
 
@@ -20,6 +24,8 @@ pub struct PlayerFilterInputProps {
 pub enum PlayerFilterInputMessage {
     PlayerName(String),
     PlayerStatus(String),
+    GuestName(String),
+    SubmitGuest,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -29,9 +35,14 @@ pub struct PlayerFilterReport {
 }
 
 pub struct PlayerFilterInput {
+    pub id: TournamentId,
+    pub admin_id: AdminId,
+    pub send_op_result: Callback<OpResult>,
     name: Option<String>,
     status: Option<PlayerStatus>,
+    guest_name: Option<String>,
     process: Callback<PlayerFilterInputMessage>,
+
 }
 
 impl PlayerFilterInput {
@@ -44,10 +55,14 @@ impl PlayerFilterInput {
 }
 
 impl PlayerFilterInput {
-    pub fn new(process: Callback<PlayerFilterInputMessage>) -> Self {
+    pub fn new(process: Callback<PlayerFilterInputMessage>, id: TournamentId, admin_id: AdminId, send_op_result: Callback<OpResult>) -> Self {
         Self {
+            id,
+            admin_id,
+            send_op_result,
             name: None,
             status: None,
+            guest_name: None,
             process,
         }
     }
@@ -64,6 +79,28 @@ impl PlayerFilterInput {
                 self.status = status;
                 digest
             }
+            PlayerFilterInputMessage::GuestName(name) => {
+                self.guest_name = Some(name);
+                true
+            }
+            PlayerFilterInputMessage::SubmitGuest => {
+                if (self.guest_name.is_none()) {
+                    return false;
+                };
+                let tracker = CLIENT.get().unwrap().update_tourn(
+                    self.id,
+                    TournOp::JudgeOp(
+                        self.admin_id.clone().into(),
+                        JudgeOp::RegisterGuest(self.guest_name.as_ref().unwrap().clone()),
+                    ),
+                );
+                let send_op_result = self.send_op_result.clone();
+                spawn_local(async move {
+                    console_log("Waiting for update to finish!");
+                    send_op_result.emit(tracker.process().await.unwrap())
+                });
+                false
+            }
         }
     }
 
@@ -73,13 +110,29 @@ impl PlayerFilterInput {
         let status = self.process.clone();
         let status =
             Callback::from(move |s| status.emit(PlayerFilterInputMessage::PlayerStatus(s)));
+        let guest_name = self.process.clone();
+        let guest_name = Callback::from(move |s| guest_name.emit(PlayerFilterInputMessage::GuestName(s)));
+        let cb = self.process.clone();
+        let submit_guest = move |_| {
+            cb.emit(PlayerFilterInputMessage::SubmitGuest);
+        };
         html! {
-            <div>
-                <div class="my-1">
-                    <TextInput label = {Cow::from("Player Name:")} process = { number }/>
+            <div class="row">
+                <div class="col">
+                    <h3>{"Search"}</h3>
+                    <div class="my-1">
+                        <TextInput label = {Cow::from("Player Name:")} process = { number }/>
+                    </div>
+                    <div class="my-1">
+                        <TextInput label = {Cow::from("Player Status:")} process = { status }/>
+                    </div>
                 </div>
-                <div class="my-1">
-                    <TextInput label = {Cow::from("Player Status:")} process = { status }/>
+                <div class="col">
+                    <h3>{"Add Guest Player"}</h3>
+                    <div class="my-1">
+                        <TextInput label = {Cow::from("Guest Name:")} process = { guest_name }/>
+                        <button onclick={submit_guest} >{"Submit"}</button>
+                    </div>
                 </div>
             </div>
         }

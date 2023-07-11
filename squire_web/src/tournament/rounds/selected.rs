@@ -23,7 +23,7 @@ use super::{
     RoundConfirmationTicker, RoundConfirmationTickerMessage, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
-use crate::{utils::console_log, CLIENT};
+use crate::{utils::console_log, CLIENT, tournament::players::PlayerProfile};
 
 /// The set of data needed by the UI to display a round. Should be capable of rendering itself in
 /// HTML.
@@ -108,9 +108,11 @@ impl RoundProfile {
 #[derive(Debug, PartialEq, Clone)]
 pub enum SelectedRoundMessage {
     RoundSelected(RoundId),
+    PlayerSelected(PlayerId),
     TimerTicked(RoundId),
     /// Optional because the lookup "may" fail
     RoundQueryReady(Option<RoundProfile>),
+    PlayerQueryReady(Option<PlayerProfile>),
     BufferMessage(RoundChangesBufferMessage),
     PushChanges(RoundId),
     BulkConfirm(RoundId),
@@ -146,6 +148,9 @@ impl SelectedRound {
         send_op_result: &Callback<OpResult>,
     ) -> bool {
         match msg {
+            SelectedRoundMessage::PlayerSelected(p_id) => {
+                false
+            }
             SelectedRoundMessage::TimerTicked(r_id) => match self.round.as_ref() {
                 Some((rnd, _)) => {
                     let digest = rnd.id == r_id;
@@ -167,6 +172,9 @@ impl SelectedRound {
                 });
                 self.round = data;
                 true
+            }
+            SelectedRoundMessage::PlayerQueryReady(p_prof) => {
+                false
             }
             SelectedRoundMessage::RoundSelected(r_id) => {
                 console_log(&format!("Round selected: {r_id}"));

@@ -3,11 +3,11 @@ use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Duration, Utc};
 use squire_sdk::{
     model::{
-        identifiers::{PlayerIdentifier, TypeId},
+        identifiers::{PlayerIdentifier, TypeId, AdminId},
         players::{Deck, Player, PlayerId},
-        rounds::{Round, RoundId, RoundStatus},
+        rounds::{Round, RoundId, RoundStatus}, operations::AdminOp,
     },
-    tournaments::{Tournament, TournamentId, TournamentManager},
+    tournaments::{Tournament, TournamentId, TournamentManager, TournOp},
 };
 use yew::prelude::*;
 
@@ -59,20 +59,23 @@ pub enum SelectedPlayerMessage {
     PlayerQueryReady(Option<PlayerProfile>),
     /// Optional because the lookup "may" fail
     SubviewQueryReady(Option<SubviewProfile>),
+    DropPlayer(PlayerId),
 }
 
 pub struct SelectedPlayer {
     pub process: Callback<SelectedPlayerMessage>,
     pub id: TournamentId,
+    admin_id: AdminId,
     player: Option<PlayerProfile>,
     subview: Option<SubviewProfile>,
 }
 
 impl SelectedPlayer {
-    pub fn new(process: Callback<SelectedPlayerMessage>, id: TournamentId) -> Self {
+    pub fn new(process: Callback<SelectedPlayerMessage>, id: TournamentId, admin_id: AdminId) -> Self {
         Self {
             process,
             id,
+            admin_id,
             player: None,
             subview: None,
         }
@@ -103,7 +106,7 @@ impl SelectedPlayer {
                                 t.tourn()
                                     .player_reg
                                     .get_player(&p_id)
-                                    .map(PlayerProfile::new)
+                                    .map(|p|PlayerProfile::new(p, t) )
                             })
                             .process()
                             .await
@@ -144,6 +147,13 @@ impl SelectedPlayer {
             SelectedPlayerMessage::SubviewQueryReady(Some(data)) => self.load_subview_data(data),
             SelectedPlayerMessage::PlayerQueryReady(None)
             | SelectedPlayerMessage::SubviewQueryReady(None) => false,
+            SelectedPlayerMessage::DropPlayer(pid) => {
+                CLIENT.get().unwrap().update_tourn(
+                    self.id,
+                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::AdminDropPlayer(pid)),
+                );
+                false
+            }
         }
     }
 
@@ -161,7 +171,7 @@ impl SelectedPlayer {
         html! {
             <div class="m-2">
                 <div class="row">
-                    <div class="col"> { self.player.as_ref().map(|p| p.view()).unwrap_or_default() }</div>
+                    <div class="col"> { self.player.as_ref().map(|p| p.view(self.process.clone())).unwrap_or_default() }</div>
                     <div class="col">{ self.subview() }</div>
                 </div>
             </div>
@@ -170,17 +180,42 @@ impl SelectedPlayer {
 }
 
 impl PlayerProfile {
-    pub fn new(plyr: &Player) -> Self {
-        Self {
+    pub fn new(plyr: &Player, t: &TournamentManager) -> Self {
+        let mut to_return = Self {
             id: plyr.id,
             name: plyr.name.clone(),
             gamer_tag: plyr.game_name.clone(),
             can_play: plyr.can_play(),
-            rounds: Vec::new(), // TODO: This needs to be the player's list of rounds
-        }
+            rounds: t.get_player_rounds(&plyr.id.into() ).unwrap().iter().map(|r|{
+                RoundSummary::new(*r)
+            }).collect(),
+        };
+        to_return.rounds.sort_by_cached_key(|r| r.match_number);
+        to_return.rounds.sort_by_cached_key(|r| r.status);
+        to_return
     }
 
-    pub fn view(&self) -> Html {
+    pub fn view(&self, process: Callback<SelectedPlayerMessage>) -> Html {
+        let id = self.id.clone();
+        let cb = process.clone();
+        let dropplayer = move |me: MouseEvent| {
+            cb.emit(SelectedPlayerMessage::DropPlayer(id));
+        };
+        let list = self
+            .rounds
+            .iter()
+            .cloned()
+            .map(|r| {
+                let cb = process.clone();
+                html! {
+                    <tr onclick = {move |_| cb.emit(SelectedPlayerMessage::SubviewSelected(SubviewInfo::Round(r.id)))}>
+                        <td>{ r.match_number }</td>
+                        <td>{ r.table_number }</td>
+                        <td>{ r.status }</td>
+                    </tr>
+                }
+            })
+            .collect::<Html>();
         html! {
             <>
                 <>
@@ -191,20 +226,53 @@ impl PlayerProfile {
                         <p>{ format!("Rounds : {}", self.rounds.len()) }</p>
                     </>
                 </>
+                /*
                 <ul>
                 {
-                    html! { <h4> { "Player's round view not implemented yet..." } </h4> }
-                    /*
+                    // html! { <h4> { "Player's round view not implemented yet..." } </h4> }
                     self.rounds
                     .iter()
                     .map(|r| {
-                        let cb = self.process.clone();
-                        html! {<li class="sub_option" onclick={ move |_| cb.emit(SubviewInfo::Round(r.id)) }>{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>}
+                        let cb = process.clone();
+                        let rid = r.id.clone();
+                        html! {
+                            <li class="sub_option" onclick={move |_| cb.emit(SelectedPlayerMessage::SubviewSelected(SubviewInfo::Round(rid)))} >{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>
+                        }
                     })
                     .collect::<Html>()
-                    */
                 }
                 </ul>
+                */
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>{ "Round" }</th>
+                            <th>{ "Table" }</th>
+                            <th>{ "Status" }</th>
+                        </tr>
+                    </thead>
+                    <tbody> { list } </tbody>
+                </table>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#killModal">
+                {"Drop player"}
+                </button>
+                <div class="modal fade" id="killModal" tabindex="-1" aria-labelledby="killModalLabel" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel">{"Kill round confirmation"}</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        {"Do you REALLY want to drop this player?"}
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{"Go back"}</button>
+                        <button type="button" onclick={ dropplayer } class="btn btn-primary" data-bs-dismiss="modal">{"Kill round"}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
             </>
         }
     }
