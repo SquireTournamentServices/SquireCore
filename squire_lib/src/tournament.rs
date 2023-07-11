@@ -1102,7 +1102,7 @@ impl TournamentSeed {
         format: String,
     ) -> Result<Self, TournamentError> {
         // name validation
-        if name.trim().is_empty() {
+        if !Self::validate_name(&name) {
             return Err(TournamentError::BadTournamentName);
         }
 
@@ -1111,6 +1111,11 @@ impl TournamentSeed {
             preset,
             format,
         })
+    }
+
+    /// Validates a tournament name. Returns true if the name is valid.
+    pub fn validate_name(name: &str) -> bool {
+        !name.trim().is_empty()
     }
 }
 
