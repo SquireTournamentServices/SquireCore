@@ -1,10 +1,10 @@
 use squire_sdk::{
     model::{
-        identifiers::{PlayerIdentifier, RoundIdentifier},
+        identifiers::{PlayerIdentifier, RoundIdentifier, AdminId},
         players::PlayerId,
         rounds::{RoundId, RoundStatus},
     },
-    tournaments::{Tournament, TournamentId, TournamentManager},
+    tournaments::{Tournament, TournamentId, TournamentManager, OpResult},
 };
 use yew::prelude::*;
 
@@ -19,11 +19,13 @@ pub use input::*;
 pub use scroll::*;
 pub use selected::*;
 
-use super::rounds::SelectedRound;
+use super::{rounds::SelectedRound, spawn_update_listener};
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerViewProps {
     pub id: TournamentId,
+    pub admin_id: AdminId,
+    pub send_op_result: Callback<OpResult>
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -31,10 +33,12 @@ pub enum PlayerViewMessage {
     FilterInput(PlayerFilterInputMessage),
     PlayerScroll(PlayerScrollMessage),
     SelectedPlayer(SelectedPlayerMessage),
+    ReQuery,
 }
 
 pub struct PlayerView {
     pub id: TournamentId,
+    pub admin_id: AdminId,
     input: PlayerFilterInput,
     scroll: PlayerScroll,
     selected: SelectedPlayer,
@@ -45,14 +49,19 @@ impl Component for PlayerView {
     type Properties = PlayerViewProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+        spawn_update_listener(ctx, PlayerViewMessage::ReQuery);
         let id = ctx.props().id;
+        let admin_id = ctx.props().admin_id;
+        let send_op_result = ctx.props().send_op_result.clone();
         Self {
             id,
-            input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput)),
+            admin_id,
+            input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput), id, admin_id, send_op_result),
             scroll: PlayerScroll::new(ctx, id),
             selected: SelectedPlayer::new(
                 ctx.link().callback(PlayerViewMessage::SelectedPlayer),
                 id,
+                admin_id
             ),
         }
     }
@@ -62,6 +71,11 @@ impl Component for PlayerView {
             PlayerViewMessage::FilterInput(msg) => self.input.update(msg),
             PlayerViewMessage::SelectedPlayer(msg) => self.selected.update(ctx, msg),
             PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg),
+            PlayerViewMessage::ReQuery => {
+                spawn_update_listener(ctx, PlayerViewMessage::ReQuery);
+                fetch_player_summaries(ctx, self.id);
+                false
+            }
         }
     }
 
@@ -70,10 +84,10 @@ impl Component for PlayerView {
         let selected_pid = self.selected.id;
         html! {
             <div>
-                { self.input.view() }
+                <div>{ self.input.view() }</div>
                 <div class="d-flex flex-row my-4">
                     <div>
-                        <div class="overflow-auto player-scroll-box">
+                        <div class="overflow-auto player-scroll-box px-4">
                             { self.scroll.view(report) }
                         </div>
                     </div>

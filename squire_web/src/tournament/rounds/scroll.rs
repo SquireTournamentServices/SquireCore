@@ -112,7 +112,7 @@ pub struct RoundSummary {
 }
 
 impl RoundSummary {
-    fn new(rnd: &Round) -> Self {
+    pub fn new(rnd: &Round) -> Self {
         Self {
             id: rnd.id,
             match_number: rnd.match_number,
