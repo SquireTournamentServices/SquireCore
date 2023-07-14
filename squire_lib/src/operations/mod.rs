@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+pub use admin_ops::AdminOp;
+pub use judge_ops::JudgeOp;
+pub use player_ops::PlayerOp;
+
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
@@ -12,10 +16,6 @@ use crate::{
 mod admin_ops;
 mod judge_ops;
 mod player_ops;
-
-pub use admin_ops::AdminOp;
-pub use judge_ops::JudgeOp;
-pub use player_ops::PlayerOp;
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
 /// This enum captures all ways in which a tournament can mutate.

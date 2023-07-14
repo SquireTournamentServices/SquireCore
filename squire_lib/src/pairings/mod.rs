@@ -7,6 +7,12 @@ use std::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+pub use branching::branching_pairings;
+pub use fluid_pairings::FluidPairings;
+pub use greedy::greedy_pairings;
+pub use rotary::rotary_pairings;
+pub use swiss_pairings::SwissPairings;
+
 use crate::{
     error::TournamentError,
     identifiers::{PlayerId, RoundId},
@@ -32,12 +38,6 @@ pub mod branching;
 pub mod greedy;
 /// The rotary pairings module
 pub mod rotary;
-
-pub use branching::branching_pairings;
-pub use fluid_pairings::FluidPairings;
-pub use greedy::greedy_pairings;
-pub use rotary::rotary_pairings;
-pub use swiss_pairings::SwissPairings;
 
 /// A struct for communicating new pairings information
 #[derive(Serialize, Deserialize, Debug, Default, Hash, Clone, PartialEq, Eq)]
@@ -211,8 +211,8 @@ impl PairingSystem {
         rnd_reg: &RoundRegistry,
         standings: Standings<S>,
     ) -> Option<Pairings>
-    where
-        S: Score,
+        where
+            S: Score,
     {
         use PairingStyle::*;
         match &self.style {

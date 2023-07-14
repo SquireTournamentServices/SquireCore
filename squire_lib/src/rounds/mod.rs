@@ -9,17 +9,18 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, Seq};
+use serde_with::{Seq, serde_as};
 
-pub use crate::identifiers::RoundId;
+pub use round_registry::RoundRegistry;
+
 use crate::{
     error::TournamentError,
     identifiers::{id_from_list, PlayerId, RoundIdentifier},
     pairings::swiss_pairings::SwissContext,
 };
+pub use crate::identifiers::RoundId;
 
 mod round_registry;
-pub use round_registry::RoundRegistry;
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
 #[repr(C)]

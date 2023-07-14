@@ -105,8 +105,9 @@ mod tests {
 
     use uuid::Uuid;
 
-    use super::{branching_pairings, PairingTree};
     use crate::identifiers::PlayerId;
+
+    use super::{branching_pairings, PairingTree};
 
     #[test]
     fn simple_tree() {

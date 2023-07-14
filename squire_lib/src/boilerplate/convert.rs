@@ -201,10 +201,10 @@ mod tests {
     use crate::settings::{StandardScoringSetting, TournamentSetting};
 
     fn subsetting_to_tourn_setting<F, T, S>(f: F) -> TournamentSetting
-    where
-        T: Default,
-        F: Fn(T) -> S,
-        TournamentSetting: From<S>,
+        where
+            T: Default,
+            F: Fn(T) -> S,
+            TournamentSetting: From<S>,
     {
         f(Default::default()).into()
     }

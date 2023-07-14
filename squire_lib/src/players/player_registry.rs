@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use cycle_map::CycleMap;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, Seq};
+use serde_with::{Seq, serde_as};
+
 use TournamentError::{PlayerAlreadyRegistered, PlayerNotFound};
 
 use crate::{
@@ -110,9 +111,9 @@ impl PlayerRegistry {
                 let Some(name) = (!self.name_known(&account.user_name))
                     .then_some(account.get_user_name())
                     .or(tourn_name.filter(|name| !self.name_known(name)))
-                else {
-                    return Err(TournamentError::NameTaken);
-                };
+                    else {
+                        return Err(TournamentError::NameTaken);
+                    };
                 let plyr = Player::from_account(account);
                 let digest = Ok(plyr.id);
                 self.name_and_id.insert(name, plyr.id);
@@ -207,6 +208,16 @@ impl Default for PlayerRegistry {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use uuid::Uuid;
+
+    use crate::{
+        accounts::{SharingPermissions, SquireAccount},
+        error::TournamentError,
+    };
+
+    use super::PlayerRegistry;
 
     /// Copied from squire_tests
     fn spoof_account() -> SquireAccount {
@@ -219,16 +230,6 @@ mod tests {
             permissions: SharingPermissions::Everything,
         }
     }
-
-    use std::collections::HashMap;
-
-    use uuid::Uuid;
-
-    use super::PlayerRegistry;
-    use crate::{
-        accounts::{SharingPermissions, SquireAccount},
-        error::TournamentError,
-    };
 
     #[test]
     fn conflicting_names() {

@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-mod general;
-mod pairing;
-mod scoring;
-
 pub use general::*;
 pub use pairing::*;
 pub use scoring::*;
 
 use crate::{operations::OpResult, tournament::tournament::TournamentPreset};
+
+mod general;
+mod pairing;
+mod scoring;
 
 /// An enum that encodes all the adjustable settings of a tournament
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
@@ -52,7 +52,7 @@ impl TournamentSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    fn iter(&self) -> impl Iterator<Item = TournamentSetting> {
+    fn iter(&self) -> impl Iterator<Item=TournamentSetting> {
         self.general
             .iter()
             .map(Into::into)
@@ -61,7 +61,7 @@ impl TournamentSettingsTree {
     }
 
     /// Returns an iterator that yields settings from this tree what differ from the given tree
-    pub fn diff(&self, other: &Self) -> impl Iterator<Item = TournamentSetting> {
+    pub fn diff(&self, other: &Self) -> impl Iterator<Item=TournamentSetting> {
         self.iter()
             .zip(other.iter())
             .filter_map(|(new, old)| (new != old).then_some(new))

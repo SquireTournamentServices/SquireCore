@@ -65,7 +65,7 @@ impl ScoringSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = ScoringSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=ScoringSetting> {
         self.common
             .iter()
             .map(Into::into)
@@ -85,7 +85,7 @@ impl CommonScoringSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = CommonScoringSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=CommonScoringSetting> {
         Option::<CommonScoringSetting>::None
             .into_iter()
             .map(Into::into)
@@ -109,7 +109,7 @@ impl ScoringStyleSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = ScoringStyleSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=ScoringStyleSetting> {
         match self {
             ScoringStyleSettingsTree::Standard(tree) => tree.iter().map(Into::into),
         }
@@ -216,7 +216,7 @@ impl StandardScoringSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = StandardScoringSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=StandardScoringSetting> {
         vec![
             StandardScoringSetting::MatchWinPoints(self.match_win_points),
             StandardScoringSetting::MatchDrawPoints(self.match_draw_points),
@@ -233,6 +233,6 @@ impl StandardScoringSettingsTree {
             StandardScoringSetting::IncludeOppMwp(self.include_opp_mwp),
             StandardScoringSetting::IncludeOppGwp(self.include_opp_gwp),
         ]
-        .into_iter()
+            .into_iter()
     }
 }

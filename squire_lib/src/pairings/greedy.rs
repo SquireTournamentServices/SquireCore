@@ -22,8 +22,8 @@ pub fn greedy_pairings<Players>(
     match_size: usize,
     repair_tol: u64,
 ) -> Pairings
-where
-    Players: IntoIterator<Item = PlayerId>,
+    where
+        Players: IntoIterator<Item=PlayerId>,
 {
     let mut plyrs: VecDeque<_> = plyrs.into_iter().collect();
     let mut digest = Pairings {
@@ -58,7 +58,7 @@ where
 /// Checks to see if a player can be apart of a potential pairing
 fn valid_pairing<'a>(
     past_opponents: &HashMap<PlayerId, HashSet<PlayerId>>,
-    known: impl Iterator<Item = &'a PlayerId>,
+    known: impl Iterator<Item=&'a PlayerId>,
     new: &PlayerId,
     repair_tol: u64,
 ) -> bool {
@@ -156,8 +156,8 @@ mod tests {
             (players[0], [players[1]].into_iter().collect()),
             (players[1], [players[0]].into_iter().collect()),
         ]
-        .into_iter()
-        .collect();
+            .into_iter()
+            .collect();
 
         let pairings = super::greedy_pairings(players.iter().cloned(), &opponents, 4, 0);
         let Pairings {

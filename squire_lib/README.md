@@ -1,32 +1,45 @@
 ## Overview
+
 This library is the central library for all Squire Tournament Services.
-Since this library is the absolute fundation of all STS, it must implement all features of tournament model while satisfying all the environmental constraints of STS clients.
+Since this library is the absolute fundation of all STS, it must implement all features of tournament model while
+satisfying all the environmental constraints of STS clients.
 
 ## How It Works
+
 The primary feature of the Squire tournament model is flexiblity.
-We allow you to have things like arbitrary pairings size, so you can pair traditional two-player round or four-player EDH pods or eight-player draft tables or any other number your unique format requests.
+We allow you to have things like arbitrary pairings size, so you can pair traditional two-player round or four-player
+EDH pods or eight-player draft tables or any other number your unique format requests.
 We also allow for the customizing the scoring system, such as how many point a game win/loss/draw is worth.
-All of this is also adjustable on-the-fly, so you can pair draft pods for stage one of your tournament and then pair two-player tables for games of Modern.
+All of this is also adjustable on-the-fly, so you can pair draft pods for stage one of your tournament and then pair
+two-player tables for games of Modern.
 
 We also need to design around all of our client as well as.
-Because everything in the STS ecosystem relies on a local-first model of tournament management, there are two primary constraints endused by client: discrete actions and determinism.
+Because everything in the STS ecosystem relies on a local-first model of tournament management, there are two primary
+constraints endused by client: discrete actions and determinism.
 
-The discrete actions issues is fairly straightforward, any change to a tournament must be storable so it can be reproduced.
+The discrete actions issues is fairly straightforward, any change to a tournament must be storable so it can be
+reproduced.
 The library handles this by making all changes need to use a type called `TournOp`.
 These can be cloned, (de)serialized, and passed to a tournament to cause it perform some action.
 
-In order to create the same tournament state in any environment, the results of a tournament operation must be deterministic.
+In order to create the same tournament state in any environment, the results of a tournament operation must be
+deterministic.
 This determinism is also leveraged to be able to rollback to arbitrary points in a tournament's history.
 However, only mutations need to be deterministic.
-For example, getting a set of pairings does not mutable the tournament, so they could theoretically return completely random pairings of players
+For example, getting a set of pairings does not mutable the tournament, so they could theoretically return completely
+random pairings of players
 However, turning those pairings into rounds does mutate the tournament.
 This allows for pairings to be generate somewhere and shared.
 
-
 ## Current State
-This library has been mostly stabilized; however, before it can be release for it v1.0, it needs to be tested more thourghly for determinism.
-However, the vast majority of the tournament model is implemented and will function properly for clients that are local-only.
+
+This library has been mostly stabilized; however, before it can be release for it v1.0, it needs to be tested more
+thourghly for determinism.
+However, the vast majority of the tournament model is implemented and will function properly for clients that are
+local-only.
 
 ## Future Plans
-Even after full stabilization, this library will continue to grow and expand as we start to offer a more expansive range of tournament services.
+
+Even after full stabilization, this library will continue to grow and expand as we start to offer a more expansive range
+of tournament services.
 For example, we do not yet offer an EOL scoring system, and that will be added.

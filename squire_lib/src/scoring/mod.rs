@@ -20,8 +20,8 @@ pub use standard_scoring::{StandardScore, StandardScoring};
 
 /// The trait the defines the interface for a score
 pub trait Score
-where
-    Self: ToString,
+    where
+        Self: ToString,
 {
     /// Returns the primary value of the score
     fn primary_score(&self) -> r64;
@@ -93,8 +93,8 @@ impl ScoringStyle {
 }
 
 impl<S> Standings<S>
-where
-    S: Score,
+    where
+        S: Score,
 {
     /// Creates a new, empty standings object
     pub fn new(scores: Vec<(PlayerId, S)>) -> Self {

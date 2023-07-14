@@ -86,7 +86,7 @@ impl PairingSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = PairingSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=PairingSetting> {
         self.common
             .iter()
             .map(Into::into)
@@ -117,8 +117,8 @@ impl PairingStyleSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = PairingSetting> {
-        let digest: Box<dyn Iterator<Item = PairingSetting>> = match self {
+    pub fn iter(&self) -> impl Iterator<Item=PairingSetting> {
+        let digest: Box<dyn Iterator<Item=PairingSetting>> = match self {
             PairingStyleSettingsTree::Swiss(style) => Box::new(style.iter().map(Into::into)),
             PairingStyleSettingsTree::Fluid(style) => Box::new(style.iter().map(Into::into)),
         };
@@ -148,14 +148,14 @@ impl PairingCommonSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = PairingSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=PairingSetting> {
         vec![
             CommonPairingSetting::MatchSize(self.match_size),
             CommonPairingSetting::RepairTolerance(self.repair_tolerance),
             CommonPairingSetting::Algorithm(self.algorithm),
         ]
-        .into_iter()
-        .map(Into::into)
+            .into_iter()
+            .map(Into::into)
     }
 }
 
@@ -189,7 +189,7 @@ impl SwissPairingSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = SwissPairingSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=SwissPairingSetting> {
         vec![SwissPairingSetting::DoCheckIns(self.do_checkins)].into_iter()
     }
 }
@@ -214,7 +214,7 @@ impl FluidPairingSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = FluidPairingSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=FluidPairingSetting> {
         vec![].into_iter()
     }
 }

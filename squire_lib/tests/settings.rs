@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+
     use squire_lib::{
         error::TournamentError,
         identifiers::AdminId,
@@ -22,8 +23,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::GeneralSetting(
                         GeneralSetting::MinDeckCount(5)
-                    ))
-                )
+                    )),
+                ),
             )
             .is_err());
         assert!(tourn
@@ -33,8 +34,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::GeneralSetting(
                         GeneralSetting::MinDeckCount(2)
-                    ))
-                )
+                    )),
+                ),
             )
             .is_err());
         assert_eq!(0, tourn.settings.min_deck_count);
@@ -45,8 +46,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::GeneralSetting(
                         GeneralSetting::MaxDeckCount(1)
-                    ))
-                )
+                    )),
+                ),
             )
             .is_ok());
         assert!(tourn
@@ -56,8 +57,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::GeneralSetting(
                         GeneralSetting::MaxDeckCount(42)
-                    ))
-                )
+                    )),
+                ),
             )
             .is_ok());
         assert_eq!(42, tourn.settings.max_deck_count);
@@ -68,8 +69,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::GeneralSetting(
                         GeneralSetting::MinDeckCount(40)
-                    ))
-                )
+                    )),
+                ),
             )
             .is_ok());
         assert_eq!(40, tourn.settings.min_deck_count);
@@ -87,8 +88,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::PairingSetting(PairingSetting::Common(
                         CommonPairingSetting::MatchSize(10)
-                    )))
-                )
+                    ))),
+                ),
             )
             .is_ok());
         assert!(tourn
@@ -96,8 +97,8 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(SwissPairingSetting::DoCheckIns(true).into())
-                )
+                    UpdateTournSetting(SwissPairingSetting::DoCheckIns(true).into()),
+                ),
             )
             .is_ok());
         let mut tourn = admin.create_tournament(get_fluid_seed());
@@ -108,8 +109,8 @@ mod tests {
                     admin_id,
                     UpdateTournSetting(TournamentSetting::PairingSetting(PairingSetting::Common(
                         CommonPairingSetting::MatchSize(10)
-                    )))
-                )
+                    ))),
+                ),
             )
             .is_ok());
         assert_eq!(
@@ -118,8 +119,8 @@ mod tests {
                 Utc::now(),
                 TournOp::AdminOp(
                     admin_id,
-                    UpdateTournSetting(SwissPairingSetting::DoCheckIns(true).into())
-                )
+                    UpdateTournSetting(SwissPairingSetting::DoCheckIns(true).into()),
+                ),
             )
         );
     }

@@ -111,8 +111,8 @@ impl SwissPairings {
         matches: &RoundRegistry,
         mut standings: Standings<S>,
     ) -> Option<Pairings>
-    where
-        S: Score,
+        where
+            S: Score,
     {
         let PairingCommonSettingsTree {
             match_size,

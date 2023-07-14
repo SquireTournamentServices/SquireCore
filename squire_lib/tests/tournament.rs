@@ -1,5 +1,7 @@
 use chrono::Utc;
 use itertools::Itertools;
+use uuid::Uuid;
+
 use squire_lib::{
     error::TournamentError,
     operations::TournOp,
@@ -7,7 +9,6 @@ use squire_lib::{
     tournament::{Tournament, TournamentStatus},
 };
 use squire_tests::spoof_account;
-use uuid::Uuid;
 
 #[test]
 fn create_round_test() {

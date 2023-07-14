@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use chrono::{DateTime, Utc};
+
     use squire_lib::{
         accounts::SquireAccount,
         identifiers::{AdminId, TypeId},
@@ -86,7 +87,7 @@ mod tests {
         let test_data: Vec<HashDeterminismCase> = serde_json::from_slice(include_bytes!(
             "./determinism/deterministic_uuid_test_cases.json"
         ))
-        .expect("Could not parse test cases");
+            .expect("Could not parse test cases");
 
         for (timestamp, payload, expected_hash_item, expected_hash_list) in test_data {
             assert_eq!(

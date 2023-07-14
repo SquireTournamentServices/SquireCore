@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+
     use squire_lib::{
         identifiers::AdminId,
         operations::{AdminOp::*, JudgeOp::*, TournOp},
@@ -87,7 +88,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_ok());
         assert!(tourn
@@ -96,7 +97,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_ok());
         assert!(tourn
@@ -105,7 +106,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_ok());
         // Starting closes reg
@@ -115,7 +116,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_ok());
         assert!(tourn
@@ -124,7 +125,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_ok());
         // Frozen tournament will never let people in
@@ -137,7 +138,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_err());
         assert!(tourn
@@ -155,7 +156,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_err());
         assert!(tourn
@@ -164,7 +165,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_ok());
         // Players can't join closed tournaments
@@ -174,7 +175,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None))
+                TournOp::JudgeOp(admin_id.into(), AdminRegisterPlayer(spoof_account(), None)),
             )
             .is_err());
     }

@@ -27,8 +27,8 @@ fn id_hasher() -> DeterministicHasher<FxHasher64> {
 
 /// Creates an ID (of any type) from a time and a hashable value
 pub fn id_from_item<T, ID>(salt: DateTime<Utc>, item: T) -> TypeId<ID>
-where
-    T: Hash,
+    where
+        T: Hash,
 {
     let mut hasher = id_hasher();
     salt.hash(&mut hasher);
@@ -40,9 +40,9 @@ where
 
 /// Creates an ID (of any type) from a time and a iterator of hashable values
 pub fn id_from_list<I, T, ID>(salt: DateTime<Utc>, vals: I) -> TypeId<ID>
-where
-    I: Iterator<Item = T>,
-    T: Hash,
+    where
+        I: Iterator<Item=T>,
+        T: Hash,
 {
     let mut hasher = id_hasher();
     salt.hash(&mut hasher);
@@ -175,8 +175,8 @@ impl From<TournamentId> for TournamentIdentifier {
 
 impl<'de, T> Deserialize<'de> for TypeId<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         Uuid::deserialize(deserializer).map(|id| id.into())
     }
@@ -184,8 +184,8 @@ impl<'de, T> Deserialize<'de> for TypeId<T> {
 
 impl<T> Serialize for TypeId<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where
+            S: Serializer,
     {
         self.0.serialize(serializer)
     }
@@ -217,8 +217,9 @@ mod tests {
 
     use uuid::Uuid;
 
-    use super::{AdminId, PlayerId};
     use crate::admin::Admin;
+
+    use super::{AdminId, PlayerId};
 
     #[test]
     fn basic_serde() {

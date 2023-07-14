@@ -84,7 +84,7 @@ impl GeneralSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    pub fn iter(&self) -> impl Iterator<Item = GeneralSetting> {
+    pub fn iter(&self) -> impl Iterator<Item=GeneralSetting> {
         vec![
             GeneralSetting::Format(self.format.clone()),
             GeneralSetting::StartingTableNumber(self.starting_table_number),
@@ -95,6 +95,6 @@ impl GeneralSettingsTree {
             GeneralSetting::RequireDeckReg(self.require_deck_reg),
             GeneralSetting::RoundLength(self.round_length),
         ]
-        .into_iter()
+            .into_iter()
     }
 }

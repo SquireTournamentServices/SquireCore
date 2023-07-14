@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+
     use squire_lib::{
         rounds::{RoundContext, RoundResult},
         settings::SwissPairingSetting,

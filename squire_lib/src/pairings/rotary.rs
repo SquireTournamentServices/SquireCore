@@ -37,7 +37,7 @@ pub fn rotary_pairings(
 
 /// Takes a stream of players and creates pairings
 fn process(
-    plyrs: impl Iterator<Item = PlayerId>,
+    plyrs: impl Iterator<Item=PlayerId>,
     match_size: usize,
     opps: &HashMap<PlayerId, HashSet<PlayerId>>,
 ) -> Pairings {
@@ -70,16 +70,16 @@ fn process(
 }
 
 struct Partitions<T>
-where
-    T: Clone,
+    where
+        T: Clone,
 {
     vals: Vec<T>,
     combos: Combinations<IntoIter<T>>,
 }
 
 impl<T> Iterator for Partitions<T>
-where
-    T: Clone + PartialEq,
+    where
+        T: Clone + PartialEq,
 {
     type Item = (Vec<T>, Vec<T>);
 
@@ -92,10 +92,10 @@ where
 }
 
 impl<T> Partitions<T>
-where
-    T: Clone,
+    where
+        T: Clone,
 {
-    fn new(vals: impl Iterator<Item = T>, size: usize) -> Self {
+    fn new(vals: impl Iterator<Item=T>, size: usize) -> Self {
         let vals: Vec<_> = vals.collect();
         let combos = vals.clone().into_iter().combinations(size);
         Self { vals, combos }

@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::{Seq, serde_as};
 use uuid::Uuid;
 
-pub use crate::identifiers::{TournamentId, TournamentIdentifier};
 use crate::{
     accounts::SquireAccount,
     admin::{Admin, Judge, TournOfficialId},
@@ -23,6 +22,7 @@ use crate::{
     scoring::{ScoringSystem, StandardScore, Standings},
     settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree},
 };
+pub use crate::identifiers::{TournamentId, TournamentIdentifier};
 pub use crate::tournament::tournament_seed::TournamentSeed;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -36,7 +36,7 @@ pub enum TournamentPreset {
 }
 
 #[derive(
-    Serialize, Deserialize, Default, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord,
+Serialize, Deserialize, Default, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord,
 )]
 #[repr(C)]
 /// An enum that encodes all the statuses of a tournament
@@ -1007,7 +1007,6 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
 
-    use super::{Tournament, TournamentPreset};
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         admin::Admin,
@@ -1016,6 +1015,8 @@ mod tests {
         rounds::RoundResult,
     };
     use crate::tournament_seed::TournamentSeed;
+
+    use super::{Tournament, TournamentPreset};
 
     fn spoof_account() -> SquireAccount {
         let id = Uuid::new_v4().into();
@@ -1112,7 +1113,7 @@ mod tests {
         assert!(tourn
             .apply_op(
                 Utc::now(),
-                TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds)
+                TournOp::AdminOp(admin.id, AdminOp::ConfirmAllRounds),
             )
             .is_err());
         for p in plyrs {

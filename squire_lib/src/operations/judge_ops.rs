@@ -53,10 +53,10 @@ impl JudgeOp {
             | JudgeOp::AdminRemoveDeck(p_id, _)
             | JudgeOp::AdminReadyPlayer(p_id)
             | JudgeOp::AdminUnReadyPlayer(p_id)
-                if *p_id == old =>
-            {
-                *p_id = new;
-            }
+            if *p_id == old =>
+                {
+                    *p_id = new;
+                }
             _ => {}
         }
     }
@@ -67,10 +67,10 @@ impl JudgeOp {
             | JudgeOp::AdminConfirmResult(r_id, _)
             | JudgeOp::TimeExtension(r_id, _)
             | JudgeOp::ConfirmRound(r_id)
-                if *r_id == old =>
-            {
-                *r_id = new;
-            }
+            if *r_id == old =>
+                {
+                    *r_id = new;
+                }
             _ => {}
         }
     }

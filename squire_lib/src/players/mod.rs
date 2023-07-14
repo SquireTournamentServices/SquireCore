@@ -11,14 +11,15 @@ use serde::{Deserialize, Serialize};
 //use serde_with::{serde_as, Seq};
 use uuid::Uuid;
 
-pub use crate::identifiers::PlayerId;
-use crate::{accounts::SquireAccount, error::TournamentError, identifiers::id_from_item};
-
-mod player_registry;
 pub use player_registry::PlayerRegistry;
 
+use crate::{accounts::SquireAccount, error::TournamentError, identifiers::id_from_item};
+pub use crate::identifiers::PlayerId;
+
+mod player_registry;
+
 #[derive(
-    Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord,
+Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord,
 )]
 #[repr(C)]
 /// The registration status of a player
@@ -137,6 +138,7 @@ impl Display for PlayerStatus {
         )
     }
 }
+
 /// Error type returned when parsing a string into a `PlayerStatus`
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct PlayerStatusParseError;
