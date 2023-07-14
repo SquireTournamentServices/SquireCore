@@ -6,3 +6,4 @@ pub mod tournament_seed;
 pub mod tournament_preset;
 /// Contains the tournament status
 pub mod tournament_status;
+mod test_tournament;
