@@ -8,7 +8,7 @@ pub use general::*;
 pub use pairing::*;
 pub use scoring::*;
 
-use crate::{operations::OpResult, tournament::TournamentPreset};
+use crate::{operations::OpResult, tournament::tournament::TournamentPreset};
 
 /// An enum that encodes all the adjustable settings of a tournament
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]

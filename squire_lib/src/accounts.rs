@@ -7,9 +7,9 @@ use uuid::Uuid;
 use crate::{
     admin::Admin,
     identifiers::SquireAccountId,
-    tournament::Tournament,
+    tournament::tournament::Tournament,
 };
-use crate::tournament_seed::TournamentSeed;
+use crate::tournament::tournament_seed::TournamentSeed;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 /// The platforms that we officially support (plus a wildcard)

@@ -23,7 +23,7 @@ use crate::{
     scoring::{ScoringSystem, StandardScore, Standings},
     settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree},
 };
-pub use crate::tournament_seed::TournamentSeed;
+pub use crate::tournament::tournament_seed::TournamentSeed;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(C)]

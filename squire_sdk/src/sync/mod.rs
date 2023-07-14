@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::model::{accounts::SquireAccount, identifiers::TypeId, tournament::*};
+use crate::model::{accounts::SquireAccount, identifiers::TypeId};
 
 pub mod collections;
 pub mod error;
@@ -15,7 +15,7 @@ pub use error::*;
 pub use full_op::*;
 pub use manager::*;
 pub use messages::*;
-use squire_lib::tournament_seed::TournamentSeed;
+use squire_lib::tournament::tournament_seed::TournamentSeed;
 
 /// The id type for `FullOp`
 pub type OpId = TypeId<FullOp>;

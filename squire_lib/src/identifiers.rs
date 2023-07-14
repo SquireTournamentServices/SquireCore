@@ -17,7 +17,7 @@ use crate::{
     admin::{Admin, Judge},
     players::Player,
     rounds::Round,
-    tournament::Tournament,
+    tournament::tournament::Tournament,
 };
 
 #[inline(always)]

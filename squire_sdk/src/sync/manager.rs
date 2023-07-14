@@ -3,9 +3,9 @@ use std::ops::Deref;
 use serde::{Deserialize, Serialize};
 use squire_lib::{
     accounts::SquireAccount,
-    tournament::Tournament,
+    tournament::tournament::Tournament,
 };
-use squire_lib::tournament_seed::TournamentSeed;
+use squire_lib::tournament::tournament_seed::TournamentSeed;
 
 use super::{OpId, OpLog, processor::SyncCompletion, SyncError};
 #[cfg(feature = "server")]

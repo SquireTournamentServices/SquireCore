@@ -10,7 +10,7 @@ use crate::{
         CommonScoringSettingsTree, ScoringSetting, ScoringSettingsTree, ScoringStyleSetting,
         ScoringStyleSettingsTree,
     },
-    tournament::TournamentPreset,
+    tournament::tournament::TournamentPreset,
 };
 
 /// Contains the models for the standard score

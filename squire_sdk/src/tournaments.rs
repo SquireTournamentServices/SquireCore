@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::tournament::TournamentStatus;
+use squire_lib::tournament::tournament::TournamentStatus;
 
 use crate::response::SquireResponse;
 pub use crate::{
@@ -8,7 +8,7 @@ pub use crate::{
         identifiers::{TournamentId, TournamentIdentifier},
         operations::{OpResult, TournOp},
         scoring::{StandardScore, Standings},
-        tournament::{Tournament, TournamentPreset},
+        tournament::tournament::{Tournament, TournamentPreset},
     },
     sync::{OpId, OpSlice, OpSync, TournamentManager},
 };

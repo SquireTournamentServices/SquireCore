@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::error::TournamentError;
-use crate::tournament::TournamentPreset;
+use crate::tournament::tournament::TournamentPreset;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 /// Container for all the information needed to start a tournament

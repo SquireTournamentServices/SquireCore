@@ -44,7 +44,7 @@ use std::{
 };
 
 use instant::Instant;
-use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
+use squire_lib::{identifiers::SquireAccountId, tournament::tournament::TournamentId};
 use uuid::Uuid;
 
 use super::{

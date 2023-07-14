@@ -39,7 +39,5 @@ pub mod rounds;
 pub mod scoring;
 /// Contains the models for all the different tournament settings
 pub mod settings;
-/// Contains the core tournament model
+/// Contains the tournament model
 pub mod tournament;
-/// Stores the tournament's seed and impl
-pub mod tournament_seed;

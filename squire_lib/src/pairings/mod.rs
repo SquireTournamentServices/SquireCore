@@ -18,7 +18,7 @@ use crate::{
         PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
         PairingStyleSettingsTree,
     },
-    tournament::TournamentPreset,
+    tournament::tournament::TournamentPreset,
 };
 
 /// The fluid pairing sytle

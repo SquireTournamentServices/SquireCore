@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::tournament::TournamentId;
+use squire_lib::tournament::tournament::TournamentId;
 use uuid::Uuid;
 
 use super::{
