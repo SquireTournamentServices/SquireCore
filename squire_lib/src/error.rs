@@ -2,7 +2,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{rounds::RoundStatus, tournament::tournament::TournamentStatus};
+use crate::rounds::RoundStatus;
+use crate::tournament::tournament_status::TournamentStatus;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 /// All the errors that can occur when apply a tournament operation

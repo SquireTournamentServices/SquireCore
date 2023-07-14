@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use squire_lib::tournament::tournament::TournamentStatus;
+use squire_lib::tournament::tournament_status::TournamentStatus;
 pub use squire_lib::tournament::tournament_preset::TournamentPreset;
 
 use crate::response::SquireResponse;
