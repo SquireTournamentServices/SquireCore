@@ -4,8 +4,8 @@ use crate::{
     error::TournamentError,
     operations::{OpData, OpResult},
     pairings::PairingAlgorithm,
-    tournament::tournament::TournamentPreset,
 };
+use crate::tournament::tournament_preset::TournamentPreset;
 
 /// An enum that encodes all the adjustable settings of all pairing systems
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]

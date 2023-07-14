@@ -23,17 +23,8 @@ use crate::{
     settings::{GeneralSettingsTree, TournamentSetting, TournamentSettingsTree},
 };
 pub use crate::identifiers::{TournamentId, TournamentIdentifier};
+use crate::tournament::tournament_preset::TournamentPreset;
 pub use crate::tournament::tournament_seed::TournamentSeed;
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
-#[repr(C)]
-/// An enum that encode the initial values of a tournament
-pub enum TournamentPreset {
-    /// The tournament will have a swiss pairing system and a standard scoring system
-    Swiss,
-    /// The tournament will have a fluid pairing system and a standard scoring system
-    Fluid,
-}
 
 #[derive(
 Serialize, Deserialize, Default, Debug, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord,
@@ -1014,9 +1005,10 @@ mod tests {
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
     };
+    use crate::tournament::tournament_preset::TournamentPreset;
     use crate::tournament_seed::TournamentSeed;
 
-    use super::{Tournament, TournamentPreset};
+    use super::Tournament;
 
     fn spoof_account() -> SquireAccount {
         let id = Uuid::new_v4().into();

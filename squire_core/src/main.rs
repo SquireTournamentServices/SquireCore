@@ -4,11 +4,11 @@ use std::{net::SocketAddr, sync::Arc};
 
 use async_session::{async_trait, MemoryStore, SessionStore};
 use axum::{
-    extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts},
+    extract::{FromRef, FromRequestParts, rejection::TypedHeaderRejectionReason},
     http::StatusCode,
+    RequestPartsExt,
     response::{Html, IntoResponse, Response},
-    routing::get,
-    RequestPartsExt, Router, TypedHeader,
+    Router, routing::get, TypedHeader,
 };
 use http::{header, request::Parts};
 use once_cell::sync::OnceCell;
@@ -18,11 +18,12 @@ use squire_sdk::{
     model::accounts::SquireAccount,
     response::SquireResponse,
     server::{self, state::ServerState, User},
-    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset},
+    tournaments::{OpSync, TournamentId, TournamentManager},
     version::{ServerMode, Version},
 };
 use state::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use squire_lib::tournament::tournament_preset::TournamentPreset;
 
 #[cfg(test)]
 mod tests;

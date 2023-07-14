@@ -13,10 +13,11 @@ use mongodb::{
 use squire_sdk::{
     model::{accounts::SquireAccount, identifiers::TypeId},
     server::{state::ServerState, User},
-    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset, TournamentSummary},
+    tournaments::{OpSync, TournamentId, TournamentManager, TournamentSummary},
     version::{ServerMode, Version},
 };
 use tracing::Level;
+use squire_lib::tournament::tournament_preset::TournamentPreset;
 use squire_lib::tournament_seed::TournamentSeed;
 
 /// Specifies how the Squire app connects to a MongoDB instance

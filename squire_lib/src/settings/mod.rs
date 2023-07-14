@@ -4,7 +4,8 @@ pub use general::*;
 pub use pairing::*;
 pub use scoring::*;
 
-use crate::{operations::OpResult, tournament::tournament::TournamentPreset};
+use crate::operations::OpResult;
+use crate::tournament::tournament_preset::TournamentPreset;
 
 mod general;
 mod pairing;

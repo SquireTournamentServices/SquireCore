@@ -24,8 +24,8 @@ use crate::{
         PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
         PairingStyleSettingsTree,
     },
-    tournament::tournament::TournamentPreset,
 };
+use crate::tournament::tournament_preset::TournamentPreset;
 
 /// The fluid pairing sytle
 pub mod fluid_pairings;
@@ -138,7 +138,7 @@ impl Pairings {
 impl PairingSystem {
     /// Creates a new pairing system
     pub fn new(preset: TournamentPreset) -> Self {
-        use TournamentPreset::*;
+        use crate::tournament::tournament_preset::TournamentPreset::*;
         let common = PairingCommonSettingsTree {
             match_size: 2,
             repair_tolerance: 0,

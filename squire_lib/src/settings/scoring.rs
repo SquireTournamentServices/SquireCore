@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     operations::{OpData, OpResult},
     r64,
-    tournament::tournament::TournamentPreset,
 };
+use crate::tournament::tournament_preset::TournamentPreset;
 
 /// An enum that encodes all the adjustable settings of all scoring systems
 #[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq, Eq)]
