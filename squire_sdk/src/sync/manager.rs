@@ -3,10 +3,11 @@ use std::ops::Deref;
 use serde::{Deserialize, Serialize};
 use squire_lib::{
     accounts::SquireAccount,
-    tournament::{Tournament, TournamentSeed},
+    tournament::Tournament,
 };
+use squire_lib::tournament_seed::TournamentSeed;
 
-use super::{processor::SyncCompletion, OpId, OpLog, SyncError};
+use super::{OpId, OpLog, processor::SyncCompletion, SyncError};
 #[cfg(feature = "server")]
 use crate::sync::{processor::SyncDecision, ServerOpLink};
 #[cfg(feature = "client")]
@@ -17,7 +18,7 @@ use crate::{
 #[cfg(any(feature = "client", feature = "server"))]
 use crate::{
     model::operations::{OpData, OpResult},
-    sync::{processor::SyncProcessor, FullOp, OpSync},
+    sync::{FullOp, OpSync, processor::SyncProcessor},
 };
 
 /// A state manager for the tournament struct
@@ -262,7 +263,7 @@ mod tests {
     use squire_tests::{get_seed, spoof_account};
 
     use crate::sync::{
-        processor::SyncCompletion, OpSync, ServerOpLink, SyncForwardResp, TournamentManager,
+        OpSync, processor::SyncCompletion, ServerOpLink, SyncForwardResp, TournamentManager,
     };
 
     fn reg_op() -> TournOp {

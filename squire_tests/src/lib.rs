@@ -10,8 +10,9 @@ use squire_lib::{
     players::{Player, PlayerRegistry},
     rounds::RoundRegistry,
     scoring::StandardScoring,
-    tournament::{TournamentPreset, TournamentSeed},
+    tournament::TournamentPreset,
 };
+use squire_lib::tournament_seed::TournamentSeed;
 
 pub fn get_seed() -> TournamentSeed {
     TournamentSeed::new(

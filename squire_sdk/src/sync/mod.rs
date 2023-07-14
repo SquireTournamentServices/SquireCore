@@ -15,6 +15,7 @@ pub use error::*;
 pub use full_op::*;
 pub use manager::*;
 pub use messages::*;
+use squire_lib::tournament_seed::TournamentSeed;
 
 /// The id type for `FullOp`
 pub type OpId = TypeId<FullOp>;

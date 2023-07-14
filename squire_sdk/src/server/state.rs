@@ -1,7 +1,7 @@
 use std::{error::Error, ops::Range, sync::Arc};
 
 use async_session::{async_trait, SessionStore};
-use squire_lib::tournament::TournamentSeed;
+use squire_lib::tournament_seed::TournamentSeed;
 
 use crate::{
     model::{

@@ -3,20 +3,21 @@ use std::{borrow::Cow, ops::Range, sync::Arc};
 use async_session::{async_trait, MemoryStore, SessionStore};
 use futures::{stream::TryStreamExt, StreamExt};
 use mongodb::{
-    bson::{doc, spec::BinarySubtype, Binary, Document},
-    options::{
+    bson::{Binary, doc, Document, spec::BinarySubtype},
+    Client as DbClient,
+    Collection, Database, IndexModel, options::{
         ClientOptions, FindOptions, Hint, IndexOptions, ReplaceOptions, UpdateModifications,
         UpdateOptions,
     },
-    Client as DbClient, Collection, Database, IndexModel,
 };
 use squire_sdk::{
-    model::{accounts::SquireAccount, identifiers::TypeId, tournament::TournamentSeed},
+    model::{accounts::SquireAccount, identifiers::TypeId},
     server::{state::ServerState, User},
     tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset, TournamentSummary},
     version::{ServerMode, Version},
 };
 use tracing::Level;
+use squire_lib::tournament_seed::TournamentSeed;
 
 /// Specifies how the Squire app connects to a MongoDB instance
 #[derive(Debug, Clone, Default)]

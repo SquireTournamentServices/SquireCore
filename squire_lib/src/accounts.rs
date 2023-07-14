@@ -1,14 +1,15 @@
 use std::{collections::HashMap, hash::Hash};
 
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, Seq};
+use serde_with::{Seq, serde_as};
 use uuid::Uuid;
 
 use crate::{
     admin::Admin,
     identifiers::SquireAccountId,
-    tournament::{Tournament, TournamentSeed},
+    tournament::Tournament,
 };
+use crate::tournament_seed::TournamentSeed;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 /// The platforms that we officially support (plus a wildcard)

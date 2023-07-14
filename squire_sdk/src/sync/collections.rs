@@ -5,13 +5,14 @@ use std::collections::vec_deque::Iter;
 use std::collections::vec_deque::{IntoIter, VecDeque};
 
 use serde::{Deserialize, Serialize};
+use squire_lib::tournament_seed::TournamentSeed;
 
 #[cfg(feature = "client")]
 use crate::sync::OpSync;
 use crate::{
     model::{
         accounts::SquireAccount,
-        tournament::{Tournament, TournamentSeed},
+        tournament::Tournament,
     },
     sync::{FullOp, OpId},
 };

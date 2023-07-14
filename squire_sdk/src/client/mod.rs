@@ -17,24 +17,24 @@ use std::{
 
 use cookie::Cookie;
 use reqwest::{
-    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
-    Client, IntoUrl, Response, StatusCode,
+    Client,
+    header::{CONTENT_TYPE, COOKIE, SET_COOKIE}, IntoUrl, Response, StatusCode,
 };
 use serde::Serialize;
 use squire_lib::{
     operations::{OpResult, TournOp},
     players::PlayerRegistry,
     rounds::RoundRegistry,
-    tournament::TournamentSeed,
 };
 use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcast};
+use squire_lib::tournament_seed::TournamentSeed;
 
 use self::{
     builder::ClientBuilder,
     compat::Session,
     error::ClientResult,
     import::ImportTracker,
-    management_task::{spawn_management_task, ManagementTaskSender},
+    management_task::{ManagementTaskSender, spawn_management_task},
     query::QueryTracker,
     update::{UpdateTracker, UpdateType},
 };
@@ -44,6 +44,7 @@ use crate::{
         VERSION_ROUTE,
     },
     client::error::ClientError,
+    COOKIE_NAME,
     model::{
         accounts::SquireAccount,
         identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
@@ -54,7 +55,6 @@ use crate::{
     sync::TournamentManager,
     tournaments::CreateTournamentRequest,
     version::{ServerMode, Version},
-    COOKIE_NAME,
 };
 
 pub trait OnUpdate = 'static + Send + FnMut(TournamentId);

@@ -7,3 +7,5 @@ assets/*
 
 squire_web/dist/*
 squire_web/target
+
+.idea/
