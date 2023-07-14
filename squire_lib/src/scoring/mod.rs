@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub use standard_scoring::{StandardScore, StandardScoring};
+
 use crate::{
     identifiers::PlayerId,
     operations::{OpData, OpResult},
@@ -11,12 +13,10 @@ use crate::{
         ScoringStyleSettingsTree,
     },
 };
+use crate::tournament::tournament_preset::TournamentPreset;
 
 /// Contains the models for the standard score
 pub mod standard_scoring;
-
-pub use standard_scoring::{StandardScore, StandardScoring};
-use crate::tournament::tournament_preset::TournamentPreset;
 
 /// The trait the defines the interface for a score
 pub trait Score
