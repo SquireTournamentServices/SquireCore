@@ -52,7 +52,7 @@ impl TournamentSettingsTree {
     }
 
     /// Returns an iterator over all the contained settings
-    fn iter(&self) -> impl Iterator<Item = TournamentSetting> {
+    pub fn iter(&self) -> impl Iterator<Item = TournamentSetting> {
         self.general
             .iter()
             .map(Into::into)
