@@ -7,15 +7,6 @@
 //! By no means is this an exhuastive or future-proof module. Rather, the module just implements
 //! wrappers for functionalities that are presently needed.
 
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
-use futures::{future::FusedFuture, Future};
-
-pub(crate) fn forget<T>(_: T) {}
-
 #[cfg(not(target_family = "wasm"))]
 mod native;
 #[cfg(not(target_family = "wasm"))]
@@ -30,6 +21,7 @@ pub use wasm::*;
 pub type WebsocketResult = Result<WebsocketMessage, WebsocketError>;
 
 /// The common message return by the websocket types
+#[derive(Debug)]
 pub enum WebsocketMessage {
     Text(String),
     Bytes(Vec<u8>),

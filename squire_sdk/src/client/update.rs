@@ -3,15 +3,12 @@ use squire_lib::{
     tournament::TournamentId,
 };
 use tokio::sync::oneshot::{
-    channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
+    channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
-
-use super::error::ClientResult;
 
 #[derive(Debug)]
 pub(crate) struct TournamentUpdate {
     pub(crate) local: OneshotSender<Option<OpResult>>,
-    pub(crate) remote: OneshotSender<Option<ClientResult<()>>>,
     pub(crate) id: TournamentId,
     pub(crate) update: UpdateType,
 }
@@ -19,7 +16,6 @@ pub(crate) struct TournamentUpdate {
 #[derive(Debug)]
 pub struct UpdateTracker {
     local: OneshotReceiver<Option<OpResult>>,
-    remote: OneshotReceiver<Option<ClientResult<()>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -34,16 +30,13 @@ pub(crate) fn update_channel(
     update: UpdateType,
 ) -> (TournamentUpdate, UpdateTracker) {
     let (local_send, local_recv) = oneshot();
-    let (remote_send, remote_recv) = oneshot();
     let update = TournamentUpdate {
         local: local_send,
-        remote: remote_send,
         id,
         update,
     };
     let tracker = UpdateTracker {
         local: local_recv,
-        remote: remote_recv,
     };
     (update, tracker)
 }

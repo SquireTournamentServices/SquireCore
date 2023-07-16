@@ -3,13 +3,10 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
-    time::Duration,
 };
 
 use squire_lib::tournament::TournamentId;
-use tokio::sync::oneshot::{
-    channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
-};
+use tokio::sync::oneshot::{channel as oneshot, Receiver as OneshotReceiver};
 
 use crate::tournaments::TournamentManager;
 
