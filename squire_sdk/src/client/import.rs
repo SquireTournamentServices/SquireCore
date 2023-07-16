@@ -2,7 +2,6 @@ use std::{
     future::Future,
     pin::Pin,
     task::{self, Poll},
-    time::Duration,
 };
 
 use squire_lib::tournament::TournamentId;

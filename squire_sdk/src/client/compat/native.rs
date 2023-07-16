@@ -7,16 +7,13 @@ use std::{
 use cookie::Cookie;
 use futures::{Future, Sink, Stream};
 use reqwest::Response;
-use tokio::{
-    net::TcpStream,
-    sync::{broadcast, mpsc, oneshot},
-};
+use tokio::net::TcpStream;
 use tokio_tungstenite::{
     tungstenite::{Error as TungsError, Message as TungsMessage},
     MaybeTlsStream, WebSocketStream,
 };
 
-use super::{forget, WebsocketError, WebsocketMessage, WebsocketResult};
+use super::{WebsocketError, WebsocketMessage, WebsocketResult};
 use crate::{
     client::error::{ClientError, ClientResult},
     COOKIE_NAME,
@@ -74,6 +71,7 @@ impl Session {
 
 /* ------ Websockets ------ */
 
+#[derive(Debug)]
 pub struct Websocket(WebSocketStream<MaybeTlsStream<TcpStream>>);
 
 impl Websocket {

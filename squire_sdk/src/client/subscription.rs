@@ -4,19 +4,11 @@ use std::{
     task::{Context, Poll},
 };
 
-use squire_lib::{
-    operations::{OpResult, TournOp},
-    tournament::TournamentId,
-};
+use squire_lib::tournament::TournamentId;
 use tokio::sync::{
-    broadcast::{Receiver as Subscriber, Sender as Broadcast},
-    oneshot::{
-        channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver,
-        Sender as OneshotSender,
-    },
+    broadcast::Receiver as Subscriber,
+    oneshot::{channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender},
 };
-
-use super::error::ClientResult;
 
 /// Communicates two things:
 ///  - If there isn't one, open a Websocket connection for the specified tournament

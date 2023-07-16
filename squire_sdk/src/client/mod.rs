@@ -1,60 +1,23 @@
-#![allow(
-    missing_docs,
-    dead_code,
-    unused_variables,
-    unused_imports,
-    unused_import_braces,
-    rustdoc::broken_intra_doc_links,
-    missing_debug_implementations,
-    unreachable_pub
-)]
+use std::fmt::{self, Debug};
 
-use std::{
-    collections::HashMap,
-    fmt::{self, Debug},
-    sync::{Arc, Mutex, RwLock},
-};
-
-use cookie::Cookie;
-use reqwest::{
-    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
-    Client, IntoUrl, Response, StatusCode,
-};
+use reqwest::{header::CONTENT_TYPE, Client, Response};
 use serde::Serialize;
-use squire_lib::{
-    operations::{OpResult, TournOp},
-    players::PlayerRegistry,
-    rounds::RoundRegistry,
-    tournament::TournamentSeed,
-};
-use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcast};
+use tokio::sync::broadcast::Receiver as Subscriber;
 
 use self::{
     builder::ClientBuilder,
-    compat::Session,
-    error::ClientResult,
     import::ImportTracker,
-    management_task::{spawn_management_task, ManagementTaskSender},
+    management_task::ManagementTaskSender,
     query::QueryTracker,
     update::{UpdateTracker, UpdateType},
 };
 use crate::{
-    api::{
-        GET_TOURNAMENT_ROUTE, LOGOUT_ROUTE, REGISTER_ACCOUNT_ROUTE, VERIFY_ACCOUNT_ROUTE,
-        VERSION_ROUTE,
-    },
-    client::error::ClientError,
     model::{
-        accounts::SquireAccount,
-        identifiers::{PlayerIdentifier, RoundIdentifier, TournamentId},
-        players::Player,
-        rounds::Round,
-        tournament::{Tournament, TournamentPreset},
+        accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
+        players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
     sync::TournamentManager,
-    tournaments::CreateTournamentRequest,
-    version::{ServerMode, Version},
-    COOKIE_NAME,
+    version::ServerMode,
 };
 
 pub trait OnUpdate = 'static + Send + FnMut(TournamentId);
@@ -106,7 +69,7 @@ impl SquireClient {
 
     /// Retrieves a tournament with the given id from the backend. This tournament will not update
     /// as the backend updates its version of the tournament.
-    pub async fn fetch_tournament(&self, id: TournamentId) -> bool {
+    pub async fn fetch_tournament(&self, _id: TournamentId) -> bool {
         todo!()
     }
 
@@ -116,11 +79,13 @@ impl SquireClient {
         self.sender.subscribe(id).await
     }
 
+    #[allow(dead_code)]
     async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {
         println!("Sending a GET request to: {}{path}", self.url);
         self.client.get(format!("{}{path}", self.url)).send().await
     }
 
+    #[allow(dead_code)]
     async fn post_request<B>(&mut self, path: &str, body: B) -> Result<Response, reqwest::Error>
     where
         B: Serialize,

@@ -1,15 +1,9 @@
-use reqwest::{
-    header::{CONTENT_TYPE, COOKIE, SET_COOKIE},
-    Client, IntoUrl, Response, StatusCode,
-};
-use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
+use reqwest::{Client, StatusCode};
+use squire_lib::accounts::SquireAccount;
 
-use super::{
-    compat::Session, error::ClientError, management_task::spawn_management_task, OnUpdate,
-    SquireClient,
-};
+use super::{error::ClientError, management_task::spawn_management_task, OnUpdate, SquireClient};
 use crate::{
-    api::{REGISTER_ACCOUNT_ROUTE, VERSION_ROUTE},
+    api::VERSION_ROUTE,
     version::{ServerMode, Version},
 };
 

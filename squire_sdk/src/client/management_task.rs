@@ -1,31 +1,21 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::Debug,
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-    time::Duration,
 };
 
 use futures::{
-    future::FusedFuture,
-    stream::{select_all, SelectAll, SplitSink, SplitStream},
+    stream::{SelectAll, SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
-use squire_lib::{
-    operations::{OpData, OpResult, TournOp},
-    tournament::TournamentId,
-};
+use squire_lib::{operations::OpData, tournament::TournamentId};
 use tokio::sync::{
-    broadcast::{channel as broadcast_channel, Receiver as Subscriber, Sender as Broadcaster},
-    mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot::{channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender},
+    broadcast::{channel as broadcast_channel, Sender as Broadcaster},
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
 };
 use uuid::Uuid;
 
 use super::{
-    compat::{rest, spawn_task, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
-    error::ClientResult,
+    compat::{spawn_task, Websocket, WebsocketError, WebsocketMessage},
     import::{import_channel, ImportTracker, TournamentImport},
     query::{query_channel, QueryTracker, TournamentQuery},
     subscription::{sub_channel, SubTracker, TournamentSub},
@@ -138,7 +128,7 @@ async fn tournament_management_task<F>(
     mut recv: UnboundedReceiver<ManagementCommand>,
     mut on_update: F,
 ) where
-    F: FnMut(TournamentId),
+    F: OnUpdate,
 {
     let mut state = ManagerState::default();
     loop {
@@ -198,11 +188,10 @@ fn handle_import(state: &mut ManagerState, import: TournamentImport) {
 
 async fn handle_update<F>(state: &mut ManagerState, update: TournamentUpdate, on_update: &mut F)
 where
-    F: FnMut(TournamentId),
+    F: OnUpdate,
 {
     let TournamentUpdate {
         local,
-        remote,
         id,
         update,
     } = update;
@@ -218,9 +207,6 @@ where
         };
         let is_ok = res.is_ok();
         let _ = local.send(Some(res));
-        // TODO: This need to inform the cache manager that an update the be backend needs to
-        // go out.
-        let _ = remote.send(Some(Ok(())));
         if is_ok {
             on_update(id);
         }
@@ -239,7 +225,6 @@ where
         }
     } else {
         let _ = local.send(None);
-        let _ = remote.send(None);
     }
     if to_remove {
         // This has to exist, but we don't need to use it
@@ -329,7 +314,7 @@ where
     }
 }
 
-fn handle_ws_err(state: &mut ManagerState, err: WebsocketError) {
+fn handle_ws_err(_state: &mut ManagerState, err: WebsocketError) {
     panic!("Got error from Websocket: {err:?}")
 }
 
@@ -417,12 +402,6 @@ async fn wait_for_tourn(stream: &mut SplitStream<Websocket>) -> TournamentManage
             panic!("Server did not return a tournament")
         };
         return *tourn;
-    }
-}
-
-impl ManagerState {
-    fn new() -> Self {
-        Self::default()
     }
 }
 

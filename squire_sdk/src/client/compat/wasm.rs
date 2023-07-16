@@ -10,7 +10,7 @@ use gloo_net::websocket::{
 };
 use reqwest::Response;
 
-use super::{forget, WebsocketError, WebsocketMessage, WebsocketResult};
+use super::{WebsocketError, WebsocketMessage, WebsocketResult};
 use crate::client::error::{ClientError, ClientResult};
 
 /* ------ General Utils ------ */
@@ -44,7 +44,7 @@ pub struct Session {
 
 impl Session {
     /// From a auth response from the backend, create and load the session as needed
-    pub fn load_from_resp(&mut self, resp: &Response) -> ClientResult<()> {
+    pub fn load_from_resp(&mut self, _resp: &Response) -> ClientResult<()> {
         // TODO: This is really all that we can do because of the browser?
         self.session = Some(());
         Ok(())
@@ -61,6 +61,7 @@ impl Session {
 
 /* ------ Websockets ------ */
 
+#[allow(missing_debug_implementations)]
 pub struct Websocket(GlooSocket);
 
 impl Websocket {
