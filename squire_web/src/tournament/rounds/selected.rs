@@ -72,33 +72,37 @@ impl RoundProfile {
         // TODO: Remove unwrap here
         let dur_left = ChronoDuration::from_std(self.length + self.extensions).unwrap()
             - (Utc::now() - self.timer);
+        let list = self
+            .order
+            .iter()
+            .map(|pid| {
+                    let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
+                    let player_wins = self.results.get(pid).cloned().unwrap_or_default();
+                    let player_confirm = self.confirmations.get(pid).is_some();
+                    html! {
+                        <tr>
+                            <td>{ player_name }</td>
+                            <td>{ player_wins }</td>
+                            <td>{ player_confirm }</td>
+                        </tr>
+                    }
+            })
+            .collect::<Html>();
         html! {
             <>
             <p>
             { pretty_print_duration(dur_left) }
             </p>
-            <ul>
-            {
-                self.order.iter()
-                    // Right now this code is duplicated, however once SelectedRound has more functionality it will be made significantly different. (It will have onclick functionality.)
-                    .map(|(pid)| {
-                        let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
-                        let player_wins = self.results.get(pid).cloned().unwrap_or_default();
-                        let player_confirm = self.confirmations.get(pid).is_some();
-                        html! {
-                            <li>
-                            <div>
-                            { format!( "{player_name}") }
-                            </div>
-                            <div>
-                            { format!( "wins : {player_wins}, confirmed : {player_confirm}") }
-                            </div>
-                            </li>
-                        }
-                    })
-                    .collect::<Html>()
-            }
-            </ul>
+            <table class="table">
+            <thead>
+                <tr>
+                    <th>{ "Name" }</th>
+                    <th>{ "Wins" }</th>
+                    <th>{ "Status" }</th>
+                </tr>
+            </thead>
+            <tbody> { list } </tbody>
+            </table>
             </>
         }
     }
@@ -449,5 +453,11 @@ fn pretty_print_duration(dur: ChronoDuration) -> String {
         format!("Time left: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
     } else {
         format!("Over time: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
+    }
+}
+
+fn round_description_table(rnd: RoundProfile) -> Html {
+    html! {
+        <>{ "Nope" }</>
     }
 }
