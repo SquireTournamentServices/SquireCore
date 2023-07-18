@@ -1,10 +1,6 @@
-use squire_sdk::{
-    model::{
-        settings::{
-            ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree,
-            StandardScoringSetting, TournamentSetting,
-        },
-    },
+use squire_sdk::model::settings::{
+    ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree, StandardScoringSetting,
+    TournamentSetting,
 };
 use yew::prelude::*;
 

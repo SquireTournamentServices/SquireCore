@@ -1,15 +1,11 @@
 use squire_sdk::{
-    model::{
-        players::{Player, PlayerId, PlayerStatus},
-    },
-    tournaments::{TournamentId},
+    model::players::{Player, PlayerId, PlayerStatus},
+    tournaments::TournamentId,
 };
 use yew::prelude::*;
 
-use super::{
-    input::PlayerFilterReport, PlayerView, PlayerViewMessage, SelectedPlayerMessage,
-};
-use crate::{CLIENT};
+use super::{input::PlayerFilterReport, PlayerView, PlayerViewMessage, SelectedPlayerMessage};
+use crate::CLIENT;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerScrollMessage {

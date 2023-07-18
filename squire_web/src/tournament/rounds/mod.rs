@@ -1,17 +1,11 @@
 use squire_sdk::{
-    model::{
-        identifiers::{AdminId},
-        operations::AdminOp,
-    },
+    model::{identifiers::AdminId, operations::AdminOp},
     tournaments::{OpResult, TournOp, TournamentId},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::{
-    utils::{console_log},
-    CLIENT,
-};
+use crate::{utils::console_log, CLIENT};
 
 pub mod creator;
 pub mod input;

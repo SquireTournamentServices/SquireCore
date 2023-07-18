@@ -1,8 +1,6 @@
 use squire_sdk::{
-    model::{
-        identifiers::{AdminId},
-    },
-    tournaments::{TournamentId, OpResult},
+    model::identifiers::AdminId,
+    tournaments::{OpResult, TournamentId},
 };
 use yew::prelude::*;
 
@@ -15,13 +13,13 @@ pub use input::*;
 pub use scroll::*;
 pub use selected::*;
 
-use super::{spawn_update_listener};
+use super::spawn_update_listener;
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerViewProps {
     pub id: TournamentId,
     pub admin_id: AdminId,
-    pub send_op_result: Callback<OpResult>
+    pub send_op_result: Callback<OpResult>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -52,12 +50,17 @@ impl Component for PlayerView {
         Self {
             id,
             admin_id,
-            input: PlayerFilterInput::new(ctx.link().callback(PlayerViewMessage::FilterInput), id, admin_id, send_op_result),
+            input: PlayerFilterInput::new(
+                ctx.link().callback(PlayerViewMessage::FilterInput),
+                id,
+                admin_id,
+                send_op_result,
+            ),
             scroll: PlayerScroll::new(ctx, id),
             selected: SelectedPlayer::new(
                 ctx.link().callback(PlayerViewMessage::SelectedPlayer),
                 id,
-                admin_id
+                admin_id,
             ),
         }
     }

@@ -1,8 +1,8 @@
 use squire_sdk::{
-    model::{identifiers::AdminId},
+    model::identifiers::AdminId,
     tournaments::{OpResult, TournamentId},
 };
-use tokio::sync::broadcast::{Receiver as Subscriber};
+use tokio::sync::broadcast::Receiver as Subscriber;
 use wasm_bindgen::JsCast;
 use web_sys::{window, HtmlDialogElement};
 use yew::{html, Component, Context, Html, Properties};

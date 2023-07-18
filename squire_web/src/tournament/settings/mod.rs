@@ -1,11 +1,12 @@
-
-
 use squire_sdk::{
-    model::{settings::{
-        GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree,
-        TournamentSetting, TournamentSettingsTree, SettingsTree,
-    }, identifiers::AdminId},
-    tournaments::{TournamentId, TournOp, OpResult},
+    model::{
+        identifiers::AdminId,
+        settings::{
+            GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree, SettingsTree,
+            TournamentSetting, TournamentSettingsTree,
+        },
+    },
+    tournaments::{OpResult, TournOp, TournamentId},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -20,7 +21,7 @@ use pairings::*;
 use scoring::*;
 
 use super::spawn_update_listener;
-use crate::{CLIENT, utils::console_log};
+use crate::{utils::console_log, CLIENT};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SettingsMessage {
@@ -70,20 +71,18 @@ impl Component for SettingsView {
     fn create(ctx: &Context<Self>) -> Self {
         spawn_update_listener(ctx, SettingsMessage::ReQuery);
         let emitter = ctx.link().callback(SettingsMessage::Setting);
-        let SettingsProps { id, send_op_result, admin_id } = ctx.props();
+        let SettingsProps {
+            id,
+            send_op_result,
+            admin_id,
+        } = ctx.props();
         let digest = SettingsView {
             id: *id,
             admin_id: *admin_id,
             send_op_result: send_op_result.clone(),
             general: GeneralSettings::new(emitter.clone(), GeneralSettingsTree::new()),
-            pairings: PairingsSettings::new(
-                emitter.clone(),
-                PairingSettingsTree::new(),
-            ),
-            scoring: ScoringSettings::new(
-                emitter,
-                ScoringSettingsTree::new(),
-            ),
+            pairings: PairingsSettings::new(emitter.clone(), PairingSettingsTree::new()),
+            scoring: ScoringSettings::new(emitter, ScoringSettingsTree::new()),
         };
         digest.send_query(ctx);
         digest
@@ -94,10 +93,11 @@ impl Component for SettingsView {
             SettingsMessage::Setting(setting) => {
                 console_log(&format!("Got setting: {setting:?}"));
                 match setting {
-                TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
-                TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
-                TournamentSetting::ScoringSetting(_) => false,
-            }},
+                    TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
+                    TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
+                    TournamentSetting::ScoringSetting(_) => false,
+                }
+            }
             SettingsMessage::Submitted => {
                 let client = CLIENT.get().unwrap();
                 let iter = self
@@ -105,7 +105,8 @@ impl Component for SettingsView {
                     .get_changes()
                     .chain(self.scoring.get_changes())
                     .chain(self.pairings.get_changes())
-                    .map(|s| TournOp::AdminOp(self.admin_id, s.into())).collect::<Vec<_>>();
+                    .map(|s| TournOp::AdminOp(self.admin_id, s.into()))
+                    .collect::<Vec<_>>();
                 console_log(&format!("Submitting settings: {iter:?}"));
                 let tracker = client.bulk_update(self.id, iter);
                 let send_op_result = self.send_op_result.clone();

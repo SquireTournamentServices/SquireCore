@@ -1,17 +1,11 @@
-
 use squire_sdk::{
-    model::{
-        identifiers::AdminId,
-        operations::JudgeOp,
-        players::{PlayerId},
-        rounds::{RoundId},
-    },
+    model::{identifiers::AdminId, operations::JudgeOp, players::PlayerId, rounds::RoundId},
     tournaments::TournOp,
 };
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage};
+use crate::tournament::rounds::roundchangesbuffer::RoundChangesBufferMessage;
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a confirmation for a player

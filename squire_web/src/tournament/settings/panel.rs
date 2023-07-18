@@ -1,9 +1,9 @@
 use std::{borrow::Cow, fmt::Display, rc::Rc, str::FromStr};
 
-use squire_sdk::model::settings::{TournamentSetting};
+use squire_sdk::model::settings::TournamentSetting;
 use yew::prelude::*;
 
-use crate::utils::{TextInput};
+use crate::utils::TextInput;
 
 pub struct SettingPanel {
     label: &'static str,

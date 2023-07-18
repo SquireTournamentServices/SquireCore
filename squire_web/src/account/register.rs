@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use yew::{prelude::*};
+use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::{utils::TextInput, Route};
