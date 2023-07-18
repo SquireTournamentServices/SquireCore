@@ -1,14 +1,10 @@
 use squire_sdk::{
     model::{
-        identifiers::{PlayerIdentifier, RoundIdentifier, AdminId},
-        players::PlayerId,
-        rounds::{RoundId, RoundStatus},
+        identifiers::{AdminId},
     },
-    tournaments::{Tournament, TournamentId, TournamentManager, OpResult},
+    tournaments::{TournamentId, OpResult},
 };
 use yew::prelude::*;
-
-use crate::{utils::TextInput, CLIENT};
 
 pub mod creator;
 pub mod input;
@@ -19,7 +15,7 @@ pub use input::*;
 pub use scroll::*;
 pub use selected::*;
 
-use super::{rounds::SelectedRound, spawn_update_listener};
+use super::{spawn_update_listener};
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerViewProps {
@@ -79,9 +75,8 @@ impl Component for PlayerView {
         }
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         let report = self.input.get_report();
-        let selected_pid = self.selected.id;
         html! {
             <div>
                 <div>{ self.input.view() }</div>

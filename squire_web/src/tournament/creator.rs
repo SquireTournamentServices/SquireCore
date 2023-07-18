@@ -1,8 +1,7 @@
 use std::borrow::Cow;
 
-use squire_sdk::{tournaments::{TournamentId, TournamentPreset, TournamentSummary}, client::query::QueryTracker, model::tournament::TournamentSeed};
-use wasm_bindgen_futures::spawn_local;
-use yew::{functional::*, prelude::*};
+use squire_sdk::{tournaments::{TournamentId, TournamentPreset, TournamentSummary}, model::tournament::TournamentSeed};
+use yew::{prelude::*};
 use yew_router::prelude::*;
 
 use crate::{Route, CLIENT, utils::{TextInput, console_log}};
@@ -81,7 +80,7 @@ impl Component for TournamentCreator {
                 let new_tourn_name = self.new_tourn_name.clone();
                 ctx.link().send_future(async {
                     console_log("Sending future...");
-                    let account = CLIENT.get().unwrap().get_user().clone();
+                    let _account = CLIENT.get().unwrap().get_user().clone();
                     let t_seed = TournamentSeed::new(
                         new_tourn_name,
                         TournamentPreset::Swiss,
@@ -112,11 +111,24 @@ impl Component for TournamentCreator {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let list = html!{
+            <>
+                <tr>
+                    <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
+                </tr>
+                <tr>
+                    <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
+                </tr>
+                <tr>
+                    <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
+                </tr>
+            </>
+        };
         let onclick = ctx.link().callback(|_| TournamentCreatorMessage::CreateTourn);
         html! {
             <div class="container">
                 <div class="py-3">
-                    <TextInput label = {Cow::from("Tournament Name: ")} process = { ctx.link().callback(move |s| TournamentCreatorMessage::TournNameInput(s)) }/>
+                    <TextInput label = {Cow::from("Tournament Name: ")} process = {ctx.link().callback(move |s| TournamentCreatorMessage::TournNameInput(s))} default_text={"Default Name".to_owned()} />
                     <br />
                     <label for="format">{ "Format:" }</label>
                     <select name="format" id="format">
@@ -129,9 +141,18 @@ impl Component for TournamentCreator {
                     <button {onclick}>{"Create Tournament"}</button>
                 </div>
                 <hr />
-                <ul>
-                    <li>{ "List of active tournaments... (TODO)" }</li>
-                </ul>
+                <div class="py-3">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{ "Name" }</th>
+                                <th>{ "Format" }</th>
+                                <th>{ "Status" }</th>
+                            </tr>
+                        </thead>
+                        <tbody>{ list }</tbody>
+                    </table>
+                </div>
             </div>
         }
     }

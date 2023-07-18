@@ -1,11 +1,7 @@
-use squire_sdk::tournaments::{StandardScore, Standings, Tournament, TournamentId};
-use web_sys::window;
+use squire_sdk::tournaments::{Tournament, TournamentId};
 use yew::{prelude::*, virtual_dom::VNode};
 
-use self::_StandingsPopoutProps::display_vnode;
-use super::players::scroll;
 use crate::{
-    tournament::standings,
     utils::{console_log, generic_popout_window, generic_scroll_vnode},
     CLIENT,
 };
@@ -69,9 +65,9 @@ impl Component for StandingsView {
         to_return
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            StandingsMessage::SpawnPopout(num) => {
+            StandingsMessage::SpawnPopout(_num) => {
                 let scroll_strings = self
                     .standings
                     .standings
@@ -87,7 +83,7 @@ impl Component for StandingsView {
         true
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         let cb = self.process.clone();
         html! {
             <div>
@@ -114,7 +110,7 @@ impl StandingsProfile {
             .scores
             .into_iter()
             .enumerate()
-            .filter_map(|(i, (id, score))| {
+            .filter_map(|(i, (id, _score))| {
                 tourn
                     .player_reg
                     .get_player(&id)

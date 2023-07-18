@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
+use std::{collections::HashMap};
 
 use squire_sdk::model::{
-    players::{Player, PlayerId},
-    rounds::{Round, RoundId, RoundResult},
+    players::{PlayerId},
+    rounds::{RoundId},
 };
 use yew::prelude::*;
 
@@ -29,7 +29,6 @@ pub enum RoundChangesBufferMessage {
     ConfirmationClicked(PlayerId, RoundConfirmationTickerMessage),
     ExtensionIncrease(),
     ExtensionDecrease(),
-    ResetAll(),
 }
 
 impl RoundChangesBuffer {
@@ -69,6 +68,7 @@ impl RoundChangesBuffer {
             RoundChangesBufferMessage::ExtensionDecrease() => {
                 self.current_extension_minutes = self.current_extension_minutes.saturating_sub(1);
             }
+            /*
             RoundChangesBufferMessage::ResetAll() => {
                 self.draw_ticker
                     .update(RoundResultTickerMessage::SetChanged(false));
@@ -76,6 +76,7 @@ impl RoundChangesBuffer {
                     wt.update(RoundResultTickerMessage::SetChanged(false));
                 });
             }
+            */
         }
         true
     }
@@ -98,13 +99,13 @@ impl RoundChangesBuffer {
     /// View extension ticker
     pub fn view_extension_ticker(&self) -> Html {
         let cb = self.process.clone();
-        let up = move |s| {
+        let up = move |_| {
             cb.emit(SelectedRoundMessage::BufferMessage(
                 RoundChangesBufferMessage::ExtensionIncrease(),
             ));
         };
         let cb = self.process.clone();
-        let down = move |s| {
+        let down = move |_| {
             cb.emit(SelectedRoundMessage::BufferMessage(
                 RoundChangesBufferMessage::ExtensionDecrease(),
             ));

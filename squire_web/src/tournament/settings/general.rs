@@ -1,16 +1,13 @@
-use std::{str::FromStr, time::Duration};
+use std::{time::Duration};
 
 use squire_sdk::{
     model::settings::{GeneralSetting, GeneralSettingsTree, SettingsTree, TournamentSetting},
-    tournaments::Tournament,
 };
 use yew::prelude::*;
 
 use super::{
     panel::{make_panel, SettingPanel},
-    SettingsMessage,
 };
-use crate::utils::console_log;
 
 pub struct GeneralSettings {
     starting_table: SettingPanel,
@@ -49,7 +46,7 @@ impl GeneralSettings {
     }
 
     pub fn update(&mut self, setting: GeneralSetting) -> bool {
-        self.to_change.update(setting);
+        let _ = self.to_change.update(setting);
         false
     }
 

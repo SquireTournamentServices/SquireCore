@@ -1,20 +1,16 @@
-use futures::executor::block_on;
-use gloo_net::http::Request;
 use squire_sdk::{
-    api::GET_TOURNAMENT_ROUTE,
-    model::{admin::Admin, identifiers::AdminId},
-    tournaments::{OpResult, TournamentId, TournamentManager},
+    model::{identifiers::AdminId},
+    tournaments::{OpResult, TournamentId},
 };
-use tokio::sync::broadcast::{Receiver as Subscriber, Sender as Broadcaster};
+use tokio::sync::broadcast::{Receiver as Subscriber};
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{console::error, window, HtmlDialogElement, RequestInit};
-use yew::{html, Callback, Component, Context, Html, Properties};
+use web_sys::{window, HtmlDialogElement};
+use yew::{html, Component, Context, Html, Properties};
 
 use crate::{
     tournament::{overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*},
     utils::console_log,
-    CLIENT, ON_UPDATE,
+    CLIENT,
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -178,7 +174,7 @@ impl Component for TournamentViewer {
                     .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
                     .unwrap();
                 self.error_message = err.to_string();
-                element.show_modal();
+                let _ = element.show_modal();
                 true
             }
         }

@@ -1,19 +1,17 @@
-use std::{borrow::Cow, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
 
-use futures::future::OrElse;
 use squire_sdk::{
     model::{
         identifiers::AdminId,
         operations::JudgeOp,
-        players::{Player, PlayerId},
-        rounds::{Round, RoundId, RoundResult},
+        players::{PlayerId},
+        rounds::{RoundId},
     },
     tournaments::TournOp,
 };
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage, RoundsViewMessage};
+use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a confirmation for a player
@@ -52,24 +50,24 @@ impl RoundConfirmationTicker {
     pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
         // AdminConfirmResult(RoundId, PlayerId)
         (self.currently_confirmed && !self.pre_confirmed).then(|| {
-            (TournOp::JudgeOp(
+            TournOp::JudgeOp(
                 admin_id.clone().into(),
                 JudgeOp::AdminConfirmResult(rid, self.pid.clone()),
-            ))
+            )
         })
     }
 
     pub fn update(&mut self, msg: RoundConfirmationTickerMessage) -> bool {
         match msg {
             RoundConfirmationTickerMessage::Check => {
-                if (!self.pre_confirmed) {
+                if !self.pre_confirmed {
                     self.currently_confirmed = true;
                     return true;
                 }
                 false
             }
             RoundConfirmationTickerMessage::Uncheck => {
-                if (!self.pre_confirmed) {
+                if !self.pre_confirmed {
                     self.currently_confirmed = false;
                     return true;
                 }
@@ -84,7 +82,7 @@ impl RoundConfirmationTicker {
         let pre_confirmed = self.pre_confirmed.clone();
         let currently_confirmed = self.currently_confirmed.clone();
         let check = move |_| {
-            if (currently_confirmed) {
+            if currently_confirmed {
                 cb.emit(SelectedRoundMessage::BufferMessage(
                     RoundChangesBufferMessage::ConfirmationClicked(
                         pid,
