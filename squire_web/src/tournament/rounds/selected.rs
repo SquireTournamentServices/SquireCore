@@ -18,12 +18,11 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use super::{
-    roundchangesbuffer::{self, *},
-    roundresultticker::*,
-    RoundConfirmationTicker, RoundConfirmationTickerMessage, RoundResultTicker, RoundsView,
+    roundchangesbuffer::{*},
+    RoundConfirmationTicker, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
-use crate::{utils::console_log, CLIENT, tournament::players::PlayerProfile};
+use crate::{utils::console_log, CLIENT};
 
 /// The set of data needed by the UI to display a round. Should be capable of rendering itself in
 /// HTML.
@@ -112,11 +111,9 @@ impl RoundProfile {
 #[derive(Debug, PartialEq, Clone)]
 pub enum SelectedRoundMessage {
     RoundSelected(RoundId),
-    PlayerSelected(PlayerId),
     TimerTicked(RoundId),
     /// Optional because the lookup "may" fail
     RoundQueryReady(Option<RoundProfile>),
-    PlayerQueryReady(Option<PlayerProfile>),
     BufferMessage(RoundChangesBufferMessage),
     PushChanges(RoundId),
     BulkConfirm(RoundId),
@@ -152,9 +149,6 @@ impl SelectedRound {
         send_op_result: &Callback<OpResult>,
     ) -> bool {
         match msg {
-            SelectedRoundMessage::PlayerSelected(p_id) => {
-                false
-            }
             SelectedRoundMessage::TimerTicked(r_id) => match self.round.as_ref() {
                 Some((rnd, _)) => {
                     let digest = rnd.id == r_id;
@@ -177,9 +171,6 @@ impl SelectedRound {
                 self.round = data;
                 true
             }
-            SelectedRoundMessage::PlayerQueryReady(p_prof) => {
-                false
-            }
             SelectedRoundMessage::RoundSelected(r_id) => {
                 console_log(&format!("Round selected: {r_id}"));
                 if self
@@ -194,10 +185,10 @@ impl SelectedRound {
                 false
             }
             SelectedRoundMessage::BufferMessage(msg) => {
-                let Some((rnd, updater)) = self.round.as_mut() else {
+                let Some((_rnd, updater)) = self.round.as_mut() else {
                     return false;
                 };
-                if (updater.round_changes_buffer.is_some()) {
+                if updater.round_changes_buffer.is_some() {
                     updater.round_changes_buffer.as_mut().unwrap().update(msg)
                 } else {
                     false
@@ -214,7 +205,7 @@ impl SelectedRound {
                     .unwrap();
                 let mut ops = Vec::with_capacity(rcb.win_tickers.len() + 1);
 
-                if (rcb.draw_ticker.was_changed) {
+                if rcb.draw_ticker.was_changed {
                     ops.push(TournOp::JudgeOp(
                         self.admin_id.clone().into(),
                         JudgeOp::AdminRecordResult(rid, rcb.draw_ticker.stored_result.clone()),
@@ -230,7 +221,7 @@ impl SelectedRound {
                         .values()
                         .filter_map(|ct| ct.into_op(self.admin_id, rid)),
                 );
-                if (rcb.current_extension_minutes > 0) {
+                if rcb.current_extension_minutes > 0 {
                     ops.push(TournOp::JudgeOp(
                         self.admin_id.clone().into(),
                         JudgeOp::TimeExtension(
@@ -289,7 +280,7 @@ impl SelectedRound {
     }
 
     pub fn try_requery_existing(&self, ctx: &Context<RoundsView>) {
-        if (self.round.is_some()) {
+        if self.round.is_some() {
             let r_id = self.round.as_ref().unwrap().0.id;
             self.requery(ctx, self.t_id, r_id)
         }
@@ -363,7 +354,7 @@ impl RoundUpdater {
         }));
         rcb.confirmation_tickers
             .extend(rnd.player_names.iter().map(|r| {
-                let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
+                // let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
                 (
                     *r.0,
                     RoundConfirmationTicker::new(
@@ -383,21 +374,21 @@ impl RoundUpdater {
     pub fn view(&self, rnd: &RoundProfile) -> Html {
         let rid = self.rid.clone();
         let mut cb = self.process.clone();
-        let pushdata = move |me: MouseEvent| {
+        let pushdata = move |_| {
             cb.emit(SelectedRoundMessage::PushChanges(rid));
         };
         cb = self.process.clone();
-        let bulkconfirm = move |me: MouseEvent| {
+        let bulkconfirm = move |_| {
             cb.emit(SelectedRoundMessage::BulkConfirm(rid));
         };
         cb = self.process.clone();
-        let killround = move |me: MouseEvent| {
+        let killround = move |_| {
             cb.emit(SelectedRoundMessage::KillRound(rid));
         };
         let win_list = rnd
             .order
             .iter()
-            .map(|(pid)| {
+            .map(|pid| {
                 self.round_changes_buffer
                     .as_ref()
                     .unwrap()
@@ -456,8 +447,10 @@ fn pretty_print_duration(dur: ChronoDuration) -> String {
     }
 }
 
+/*
 fn round_description_table(rnd: RoundProfile) -> Html {
     html! {
         <>{ "Nope" }</>
     }
 }
+*/

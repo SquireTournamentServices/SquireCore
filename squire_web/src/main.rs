@@ -1,13 +1,10 @@
-#![allow(non_camel_case_types)]
-#![allow(dead_code, unused)]
+#![deny(non_camel_case_types)]
+#![deny(dead_code, unused)]
 #![feature(if_let_guard)]
-
-use std::time::Duration;
 
 use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;
 use squire_sdk::{client::SquireClient, model::accounts::SquireAccount, tournaments::TournamentId};
-use utils::console_log;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -52,7 +49,7 @@ fn switch(routes: Route) -> Html {
 }
 
 #[function_component]
-fn app() -> Html {
+fn App() -> Html {
     html! {
         <BrowserRouter>
             <Header />
@@ -74,5 +71,5 @@ fn main() {
         .build_unchecked();
     CLIENT.set(client).unwrap();
     ON_UPDATE.set(recv).unwrap();
-    yew::Renderer::<app>::new().render();
+    yew::Renderer::<App>::new().render();
 }

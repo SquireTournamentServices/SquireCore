@@ -1,11 +1,10 @@
 use std::borrow::Cow;
 
 use squire_sdk::{model::{
-    identifiers::{RoundIdentifier, AdminId},
-    players::{Player, PlayerStatus},
-    rounds::RoundStatus, operations::{AdminOp, JudgeOp},
+    identifiers::{AdminId},
+    players::{PlayerStatus},
+    operations::{JudgeOp},
 }, tournaments::{TournamentId, OpResult, TournOp}};
-use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -84,7 +83,7 @@ impl PlayerFilterInput {
                 true
             }
             PlayerFilterInputMessage::SubmitGuest => {
-                if (self.guest_name.is_none()) {
+                if self.guest_name.is_none() {
                     return false;
                 };
                 let tracker = CLIENT.get().unwrap().update_tourn(
@@ -121,16 +120,16 @@ impl PlayerFilterInput {
                 <div class="col">
                     <h3>{"Search"}</h3>
                     <div class="my-1">
-                        <TextInput label = {Cow::from("Player Name:")} process = { number }/>
+                        <TextInput label = {Cow::from("Player Name:")} process = { number } />
                     </div>
                     <div class="my-1">
-                        <TextInput label = {Cow::from("Player Status:")} process = { status }/>
+                        <TextInput label = {Cow::from("Player Status:")} process = { status } />
                     </div>
                 </div>
                 <div class="col">
                     <h3>{"Add Guest Player"}</h3>
                     <div class="my-1">
-                        <TextInput label = {Cow::from("Guest Name:")} process = { guest_name }/>
+                        <TextInput label = {Cow::from("Guest Name:")} process = { guest_name } />
                         <button onclick={submit_guest} >{"Submit"}</button>
                     </div>
                 </div>
@@ -140,9 +139,6 @@ impl PlayerFilterInput {
 }
 
 impl PlayerFilterReport {
-    pub fn new() -> Self {
-        Self::default()
-    }
 
     pub fn matches(&self, plyr: &PlayerSummary) -> bool {
         self.status

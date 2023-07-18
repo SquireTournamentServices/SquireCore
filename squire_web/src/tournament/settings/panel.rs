@@ -1,10 +1,9 @@
-use std::{borrow::Cow, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
+use std::{borrow::Cow, fmt::Display, rc::Rc, str::FromStr};
 
-use squire_sdk::model::settings::{PairingSetting, TournamentSetting};
+use squire_sdk::model::settings::{TournamentSetting};
 use yew::prelude::*;
 
-use super::SettingsMessage;
-use crate::utils::{TextInput, TextInputProps, console_log};
+use crate::utils::{TextInput};
 
 pub struct SettingPanel {
     label: &'static str,
@@ -61,7 +60,7 @@ impl SettingPanel {
         };
         html! {
             <>
-            { format!("{}: {data} ", self.label) } <TextInput label = { Cow::Borrowed("change to ") } process = { process }/>
+            { format!("{}: {data} ", self.label) } <TextInput label = { Cow::Borrowed("change to ") } process = { process } default_text={"Default Name".to_owned()} />
             </>
         }
     }

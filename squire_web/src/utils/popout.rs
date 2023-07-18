@@ -68,7 +68,7 @@ where
                     <div class="vert_scroller">
                     {
                             string_vec
-                            .map(|(s)|
+                            .map(|s|
                                 html! {
                                     <div class="scroll_item">
                                         <p>{ format!("#{s}") }</p>

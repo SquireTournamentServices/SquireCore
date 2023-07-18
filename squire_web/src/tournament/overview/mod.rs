@@ -42,7 +42,7 @@ impl Component for TournOverview {
         TournOverview { id, profile: None }
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TournOverviewMessage::OverviewQueryReady(data) => {
                 let digest = self.profile != data || data.is_none();
@@ -97,7 +97,6 @@ impl TournamentProfile {
                     match p.status {
                         PlayerStatus::Registered => acc.0 += 1,
                         PlayerStatus::Dropped => acc.1 += 1,
-                        _ => {}
                     }
                     acc
                 });

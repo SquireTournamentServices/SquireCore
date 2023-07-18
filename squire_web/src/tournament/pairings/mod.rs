@@ -1,21 +1,18 @@
-use std::{borrow::Cow, collections::HashMap, hash::Hash};
+use std::{borrow::Cow, collections::HashMap};
 
-use futures::future::OrElse;
-use js_sys::Math::round;
 use squire_sdk::model::{
-    identifiers::{AdminId, PlayerIdentifier, RoundIdentifier},
+    identifiers::{AdminId},
     operations::{AdminOp, OpResult, TournOp},
     pairings::Pairings,
-    players::{Player, PlayerId},
-    rounds::{Round, RoundId, RoundStatus},
+    players::{PlayerId},
+    rounds::{Round, RoundId},
     tournament::{Tournament, TournamentId},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::{prelude::*, virtual_dom::VNode};
 
-use super::{creator, rounds::SelectedRound, spawn_update_listener};
 use crate::{
-    utils::{console_log, generic_popout_window, generic_scroll_vnode, input, TextInput},
+    utils::{console_log, generic_popout_window, generic_scroll_vnode, TextInput},
     CLIENT,
 };
 
@@ -54,16 +51,13 @@ pub struct PairingsViewProps {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PairingsViewMessage {
-    QueryPlayerNames,
     PlayerNamesReady(HashMap<PlayerId, String>),
     ChangeMode(PairingsViewMode),
     GeneratePairings,
     PairingsToRounds,
     PairingsReady(PairingsWrapper),
-    QueryActiveRounds,
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
     PopoutActiveRounds(),
-    QueryMatchSize,
     MatchSizeReady(u8),
     CreateSingleRound(),
     CreateSingleBye(),
@@ -129,16 +123,12 @@ impl Component for PairingsView {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            PairingsViewMessage::QueryPlayerNames => {
-                self.query_player_names(ctx);
-                false
-            }
             PairingsViewMessage::PlayerNamesReady(pnhm) => {
                 self.names = Some(pnhm);
                 true
             }
             PairingsViewMessage::ChangeMode(vm) => {
-                if (vm == PairingsViewMode::ActivePairings) {
+                if vm == PairingsViewMode::ActivePairings {
                     self.query_active_rounds(ctx);
                 };
                 self.mode = vm;
@@ -178,10 +168,6 @@ impl Component for PairingsView {
                 self.pairings = Some(p);
                 true
             }
-            PairingsViewMessage::QueryActiveRounds => {
-                self.query_active_rounds(ctx);
-                false
-            }
             PairingsViewMessage::ActiveRoundsReady(v_ars) => {
                 let mut v_ars = v_ars.clone();
                 v_ars.sort_by_cached_key(|r| r.round_number);
@@ -189,7 +175,7 @@ impl Component for PairingsView {
                 true
             }
             PairingsViewMessage::PopoutActiveRounds() => {
-                if (self.active.is_none()) {
+                if self.active.is_none() {
                     return false;
                 }
                 let scroll_strings = self.active.as_ref().unwrap().iter().map(|ars| {
@@ -207,10 +193,6 @@ impl Component for PairingsView {
                 generic_popout_window(scroll_vnode.clone());
                 false
             }
-            PairingsViewMessage::QueryMatchSize => {
-                self.query_match_size(ctx);
-                false
-            }
             PairingsViewMessage::MatchSizeReady(msize) => {
                 self.max_player_count = Some(msize);
                 self.single_round_inputs = std::iter::repeat_with(String::new)
@@ -219,7 +201,7 @@ impl Component for PairingsView {
                 true
             }
             PairingsViewMessage::CreateSingleRound() => {
-                if (self.names.is_none()) {
+                if self.names.is_none() {
                     return false;
                 };
                 let player_ids: Vec<PlayerId> = self
@@ -249,7 +231,7 @@ impl Component for PairingsView {
                 true
             }
             PairingsViewMessage::CreateSingleBye() => {
-                if (self.names.is_none()) {
+                if self.names.is_none() {
                     return false;
                 };
                 let player_id: PlayerId = self
@@ -318,7 +300,7 @@ impl Component for PairingsView {
 }
 
 impl PairingsView {
-    fn query_player_names(&mut self, ctx: &Context<Self>) {
+    fn query_player_names(&mut self, _ctx: &Context<Self>) {
         let tracker = CLIENT.get().unwrap().query_tourn(self.id, |tourn| {
             let digest: HashMap<PlayerId, String> = tourn
                 .player_reg
@@ -335,7 +317,7 @@ impl PairingsView {
         });
     }
 
-    fn query_active_rounds(&mut self, ctx: &Context<Self>) {
+    fn query_active_rounds(&mut self, _ctx: &Context<Self>) {
         let tracker = CLIENT.get().unwrap().query_tourn(self.id, |tourn| {
             tourn
                 .get_active_rounds()
@@ -350,7 +332,7 @@ impl PairingsView {
         });
     }
 
-    fn query_match_size(&mut self, ctx: &Context<Self>) {
+    fn query_match_size(&mut self, _ctx: &Context<Self>) {
         let tracker = CLIENT
             .get()
             .unwrap()
@@ -374,7 +356,7 @@ impl PairingsView {
                 <button onclick={cb_gen_pairings} >{"Generate new pairings"}</button>
                 <div class="overflow-auto py-3 pairings-scroll-box">
                     <ul class="force_left">{
-                        if (self.pairings.is_some() && self.names.is_some())
+                        if self.pairings.is_some() && self.names.is_some()
                         {
                             self.pairings.as_ref().unwrap().clone().pairings.paired.into_iter().map( |p| {
                                 html!{
@@ -407,7 +389,7 @@ impl PairingsView {
             <div class="py-5">
                 <div class="overflow-auto py-3 pairings-scroll-box">
                     <ul class="force_left">{
-                        if (self.active.is_some())
+                        if self.active.is_some()
                         {
                             self.active.as_ref().unwrap().clone().into_iter().map( |ars| {
                                 html!{
@@ -436,14 +418,14 @@ impl PairingsView {
     }
 
     fn view_single_menu(&self, ctx: &Context<Self>) -> Html {
-        if (self.max_player_count.is_some() && self.names.is_some()) {
+        if self.max_player_count.is_some() && self.names.is_some() {
             let mut name_boxes: Vec<VNode> = Vec::new();
             let max_players = self.max_player_count.unwrap().clone();
             for i in 0..max_players {
                 let name_string = format!("player {}: ", i + 1);
                 name_boxes.push(html!{
                     <>
-                    <TextInput label = {Cow::from(name_string)} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleRoundInput(i.into(), s)) }/>
+                    <TextInput label = {Cow::from(name_string)} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleRoundInput(i.into(), s)) } default_text={"Default Name".to_owned()} />
                     <br/>
                     </>
                 })
@@ -465,7 +447,7 @@ impl PairingsView {
                     <h2>{ "Create a bye: " }</h2>
                     <div class="py-2">
                         <>
-                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleByeInput(s)) }/>
+                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleByeInput(s)) } default_text={"Default Name".to_owned()} />
                         <br/>
                         </>
                     </div>

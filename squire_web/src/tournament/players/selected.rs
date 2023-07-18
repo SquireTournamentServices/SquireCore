@@ -1,11 +1,8 @@
-use std::collections::{HashMap, HashSet};
-
-use chrono::{DateTime, Duration, Utc};
 use squire_sdk::{
     model::{
-        identifiers::{PlayerIdentifier, TypeId, AdminId},
-        players::{Deck, Player, PlayerId},
-        rounds::{Round, RoundId, RoundStatus}, operations::AdminOp,
+        identifiers::{AdminId},
+        players::{Player, PlayerId},
+        rounds::{RoundId}, operations::AdminOp,
     },
     tournaments::{Tournament, TournamentId, TournamentManager, TournOp},
 };
@@ -48,7 +45,6 @@ pub enum SubviewProfile {
 #[derive(Debug, PartialEq, Clone)]
 pub enum SubviewInfo {
     Round(RoundId),
-    Deck(PlayerId, String),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -198,7 +194,7 @@ impl PlayerProfile {
     pub fn view(&self, process: Callback<SelectedPlayerMessage>) -> Html {
         let id = self.id.clone();
         let cb = process.clone();
-        let dropplayer = move |me: MouseEvent| {
+        let dropplayer = move |_| {
             cb.emit(SelectedPlayerMessage::DropPlayer(id));
         };
         let list = self
@@ -279,12 +275,6 @@ impl PlayerProfile {
 }
 
 impl DeckProfile {
-    fn new(deck: &Deck) -> Self {
-        Self {
-            name: deck.name.clone().unwrap_or_default(),
-        }
-    }
-
     fn view(&self) -> Html {
         html! { <h4>{ "Not implemented yet... sorry" }</h4> }
     }
@@ -294,7 +284,7 @@ impl SubviewProfile {
     fn matches(&self, info: &SubviewInfo) -> bool {
         match (self, info) {
             (SubviewProfile::Round(rnd), SubviewInfo::Round(id)) => rnd.id == *id,
-            (SubviewProfile::Deck(deck), SubviewInfo::Deck(_, name)) => &deck.name == name,
+            // (SubviewProfile::Deck(deck), SubviewInfo::Deck(_, name)) => &deck.name == name,
             _ => false,
         }
     }
@@ -308,6 +298,7 @@ impl SubviewInfo {
                 .rounds
                 .get(&r_id)
                 .map(|rnd| RoundProfile::new(tourn, rnd).into()),
+            /*
             SubviewInfo::Deck(p_id, name) => tourn
                 .player_reg
                 .players
@@ -315,6 +306,7 @@ impl SubviewInfo {
                 .decks
                 .get(&name)
                 .map(|deck| DeckProfile::new(deck).into()),
+            */
         }
     }
 }

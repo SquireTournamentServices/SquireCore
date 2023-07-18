@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 
-use yew::prelude::*;
 
 mod text;
 pub use text::*;

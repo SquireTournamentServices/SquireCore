@@ -1,11 +1,11 @@
-use std::collections::HashSet;
+
 
 use squire_sdk::{
     model::{settings::{
-        GeneralSettingsTree, PairingSettingsTree, PairingStyleSettingsTree, ScoringSettingsTree,
+        GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree,
         TournamentSetting, TournamentSettingsTree, SettingsTree,
     }, identifiers::AdminId},
-    tournaments::{TournamentId, TournamentPreset, TournOp, OpResult},
+    tournaments::{TournamentId, TournOp, OpResult},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;

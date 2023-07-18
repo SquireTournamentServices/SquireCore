@@ -2,13 +2,12 @@ use std::borrow::Cow;
 
 use squire_sdk::model::{
     identifiers::RoundIdentifier,
-    rounds::{Round, RoundStatus},
+    rounds::{RoundStatus},
 };
-use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use super::RoundSummary;
-use crate::{tournament::rounds::RoundProfile, utils::TextInput};
+use crate::{utils::TextInput};
 
 #[derive(PartialEq, Properties)]
 pub struct RoundFilterInputProps {
@@ -87,10 +86,6 @@ impl RoundFilterInput {
 }
 
 impl RoundFilterReport {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn matches(&self, rnd: &RoundSummary) -> bool {
         self.status
             .as_ref()

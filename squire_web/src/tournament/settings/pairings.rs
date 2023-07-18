@@ -1,6 +1,5 @@
 use squire_sdk::{
     model::{
-        pairings::{FluidPairings, PairingStyle, SwissPairings},
         settings::{
             CommonPairingSetting, FluidPairingSetting, FluidPairingSettingsTree,
             PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
@@ -8,7 +7,6 @@ use squire_sdk::{
             TournamentSetting,
         },
     },
-    tournaments::Tournament,
 };
 use yew::prelude::*;
 
@@ -108,7 +106,7 @@ impl CommonPairingSection {
     }
 
     fn update(&mut self, setting: CommonPairingSetting) {
-        self.to_change.update(setting);
+        let _ = self.to_change.update(setting);
     }
 
     fn view(&self) -> Html {
@@ -176,7 +174,7 @@ impl SwissPairingSection {
     }
 
     fn update(&mut self, setting: SwissPairingSetting) {
-        self.to_change.update(setting);
+        let _ = self.to_change.update(setting);
     }
 
     fn view(&self) -> Html {
@@ -190,7 +188,7 @@ impl SwissPairingSection {
 }
 
 impl FluidPairingSection {
-    fn new(emitter: Callback<TournamentSetting>, settings: FluidPairingSettingsTree) -> Self {
+    fn new(_emitter: Callback<TournamentSetting>, settings: FluidPairingSettingsTree) -> Self {
         Self {
             current: settings.clone(),
             to_change: settings,
@@ -202,7 +200,7 @@ impl FluidPairingSection {
     }
 
     fn update(&mut self, setting: FluidPairingSetting) {
-        self.to_change.update(setting);
+        let _ = self.to_change.update(setting);
     }
 
     fn view(&self) -> Html {

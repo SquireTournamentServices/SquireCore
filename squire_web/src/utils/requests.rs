@@ -1,7 +1,9 @@
+/*
 use gloo_net::http::Request;
 use squire_sdk::{api::GET_TOURNAMENT_ROUTE, tournaments::TournamentId};
 
 use crate::CLIENT;
+*/
 
 /*
 pub async fn fetch_tournament(id: TournamentId) -> bool {

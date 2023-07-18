@@ -1,16 +1,14 @@
 use squire_sdk::{
     model::{
-        identifiers::RoundIdentifier,
         rounds::{Round, RoundId, RoundStatus},
     },
-    tournaments::{Tournament, TournamentId},
+    tournaments::{TournamentId},
 };
-use web_sys::console;
 use yew::prelude::*;
 
 use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
 use crate::{
-    utils::{console_log, TextInput},
+    utils::{console_log},
     CLIENT,
 };
 

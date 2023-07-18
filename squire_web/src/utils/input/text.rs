@@ -3,8 +3,6 @@ use std::borrow::Cow;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::utils::console_log;
-
 #[derive(PartialEq, Properties)]
 pub struct TextInputProps<T = ()>
 where
@@ -12,22 +10,28 @@ where
 {
     pub label: Cow<'static, str>,
     pub process: Callback<String, T>,
+    #[prop_or_default]
+    pub default_text: String,
 }
 
 pub struct TextInput<T = ()> {
     pub label: Cow<'static, str>,
     pub process: Callback<String, T>,
+    pub current_text: String,
     pub input: NodeRef,
 }
 
 impl<T> TextInput<T> {
-    pub fn new(label: Cow<'static, str>, process: Callback<String, T>) -> Self {
+    /*
+    pub fn new(label: Cow<'static, str>, process: Callback<String, T>, default_text: String) -> Self {
         Self {
             label,
             process,
+            current_text : default_text,
             input: Default::default(),
         }
     }
+    */
 
     pub fn get_data(&self) -> String {
         self.input
@@ -36,8 +40,9 @@ impl<T> TextInput<T> {
             .unwrap_or_default()
     }
 
-    pub fn process(&self) -> T {
-        self.process.emit(self.get_data())
+    pub fn process(&mut self) -> T {
+        self.current_text = self.get_data();
+        self.process.emit(self.current_text.clone())
     }
 }
 
@@ -53,11 +58,12 @@ where
         Self {
             label: props.label.clone(),
             process: props.process.clone(),
+            current_text: props.default_text.clone(),
             input: NodeRef::default(),
         }
     }
 
-    fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &yew::Context<Self>, _msg: Self::Message) -> bool {
         self.process();
         true
     }
@@ -67,7 +73,7 @@ where
         html! {
             <>
                 <label>{ self.label.as_ref() }</label>
-                <input ref={self.input.clone()} type="text" oninput={ on_input } />
+                <input ref={self.input.clone()} type="text" oninput={ on_input } value={ self.current_text.clone() } />
             </>
         }
     }

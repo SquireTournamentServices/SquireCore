@@ -1,18 +1,18 @@
-use std::{borrow::Cow, fmt::Display, marker::PhantomData, rc::Rc, str::FromStr};
+use std::{borrow::Cow};
 
 use squire_sdk::{
     model::{
         identifiers::AdminId,
         operations::JudgeOp,
         players::PlayerId,
-        rounds::{Round, RoundId, RoundResult},
+        rounds::{RoundId, RoundResult},
     },
     tournaments::TournOp,
 };
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage, RoundsViewMessage};
+use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a result and associated changes to that result
@@ -29,7 +29,6 @@ pub struct RoundResultTicker {
 pub enum RoundResultTickerMessage {
     Increment,
     Decrement,
-    SetChanged(bool),
 }
 
 impl RoundResultTicker {
@@ -49,7 +48,7 @@ impl RoundResultTicker {
     }
 
     pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
-        if (!self.was_changed) {
+        if !self.was_changed {
             return None;
         }
         Some(TournOp::JudgeOp(
@@ -68,9 +67,11 @@ impl RoundResultTicker {
                 self.stored_result.dec_result();
                 self.was_changed = true;
             }
+            /*
             RoundResultTickerMessage::SetChanged(val) => {
                 self.was_changed = val;
             }
+            */
         }
         true
     }
@@ -78,14 +79,14 @@ impl RoundResultTicker {
     pub fn view(&self) -> Html {
         let pid = self.pid.clone();
         let cb = self.process.clone();
-        let up = move |s| {
+        let up = move |_| {
             cb.emit(SelectedRoundMessage::BufferMessage(
                 RoundChangesBufferMessage::TickClicked(pid, RoundResultTickerMessage::Increment),
             ));
         };
         let pid = self.pid.clone();
         let cb = self.process.clone();
-        let down = move |s| {
+        let down = move |_| {
             cb.emit(SelectedRoundMessage::BufferMessage(
                 RoundChangesBufferMessage::TickClicked(pid, RoundResultTickerMessage::Decrement),
             ));
