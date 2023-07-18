@@ -1,15 +1,17 @@
 use std::borrow::Cow;
 
-use squire_sdk::{model::{
-    identifiers::{AdminId},
-    players::{PlayerStatus},
-    operations::{JudgeOp},
-}, tournaments::{TournamentId, OpResult, TournOp}};
-use yew::prelude::*;
+use squire_sdk::{
+    model::{identifiers::AdminId, operations::JudgeOp, players::PlayerStatus},
+    tournaments::{OpResult, TournOp, TournamentId},
+};
 use wasm_bindgen_futures::spawn_local;
+use yew::prelude::*;
 
 use super::PlayerSummary;
-use crate::{utils::{TextInput, console_log}, CLIENT};
+use crate::{
+    utils::{console_log, TextInput},
+    CLIENT,
+};
 
 #[derive(PartialEq, Properties)]
 pub struct PlayerFilterInputProps {
@@ -41,7 +43,6 @@ pub struct PlayerFilterInput {
     status: Option<PlayerStatus>,
     guest_name: Option<String>,
     process: Callback<PlayerFilterInputMessage>,
-
 }
 
 impl PlayerFilterInput {
@@ -54,7 +55,12 @@ impl PlayerFilterInput {
 }
 
 impl PlayerFilterInput {
-    pub fn new(process: Callback<PlayerFilterInputMessage>, id: TournamentId, admin_id: AdminId, send_op_result: Callback<OpResult>) -> Self {
+    pub fn new(
+        process: Callback<PlayerFilterInputMessage>,
+        id: TournamentId,
+        admin_id: AdminId,
+        send_op_result: Callback<OpResult>,
+    ) -> Self {
         Self {
             id,
             admin_id,
@@ -110,7 +116,8 @@ impl PlayerFilterInput {
         let status =
             Callback::from(move |s| status.emit(PlayerFilterInputMessage::PlayerStatus(s)));
         let guest_name = self.process.clone();
-        let guest_name = Callback::from(move |s| guest_name.emit(PlayerFilterInputMessage::GuestName(s)));
+        let guest_name =
+            Callback::from(move |s| guest_name.emit(PlayerFilterInputMessage::GuestName(s)));
         let cb = self.process.clone();
         let submit_guest = move |_| {
             cb.emit(PlayerFilterInputMessage::SubmitGuest);
@@ -139,7 +146,6 @@ impl PlayerFilterInput {
 }
 
 impl PlayerFilterReport {
-
     pub fn matches(&self, plyr: &PlayerSummary) -> bool {
         self.status
             .as_ref()

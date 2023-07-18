@@ -1,11 +1,16 @@
 use std::borrow::Cow;
 
-use squire_sdk::{tournaments::{TournamentId, TournamentPreset, TournamentSummary}, model::tournament::TournamentSeed};
-use yew::{prelude::*};
+use squire_sdk::{
+    model::tournament::TournamentSeed,
+    tournaments::{TournamentId, TournamentPreset, TournamentSummary},
+};
+use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{Route, CLIENT, utils::{TextInput, console_log}};
-
+use crate::{
+    utils::{console_log, TextInput},
+    Route, CLIENT,
+};
 
 // NOTES :
 // Remake this whole thing as a struct component with updates and whatnot
@@ -38,15 +43,14 @@ pub fn tournament_creator() -> Html {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TournamentCreator {
-    pub tourn_list : Option<Vec<TournamentSummary>>,
+    pub tourn_list: Option<Vec<TournamentSummary>>,
     pub send_tourn_list: Callback<Vec<TournamentSummary>>,
     pub send_create_tourn: Callback<TournamentId>,
     pub new_tourn_name: String,
 }
 
 #[derive(Debug, PartialEq, Properties, Clone)]
-pub struct TournamentCreatorProps {
-}
+pub struct TournamentCreatorProps {}
 
 pub enum TournamentCreatorMessage {
     TournsReady(Vec<TournamentSummary>),
@@ -61,9 +65,9 @@ impl Component for TournamentCreator {
 
     fn create(ctx: &Context<Self>) -> Self {
         let mut to_return = Self {
-            tourn_list : None,
-            send_tourn_list : ctx.link().callback(TournamentCreatorMessage::TournsReady),
-            send_create_tourn : ctx.link().callback(TournamentCreatorMessage::TournCreated),
+            tourn_list: None,
+            send_tourn_list: ctx.link().callback(TournamentCreatorMessage::TournsReady),
+            send_create_tourn: ctx.link().callback(TournamentCreatorMessage::TournCreated),
             new_tourn_name: "Tournament Name".to_owned(),
         };
         to_return.query_tourns(ctx);
@@ -75,7 +79,7 @@ impl Component for TournamentCreator {
             TournamentCreatorMessage::TournsReady(t_list) => {
                 self.tourn_list = Some(t_list);
                 true
-            },
+            }
             TournamentCreatorMessage::CreateTourn => {
                 let new_tourn_name = self.new_tourn_name.clone();
                 ctx.link().send_future(async {
@@ -85,33 +89,30 @@ impl Component for TournamentCreator {
                         new_tourn_name,
                         TournamentPreset::Swiss,
                         "EDH".to_owned(),
-                    ).unwrap();
+                    )
+                    .unwrap();
                     console_log("Seed created!");
-                    let id = CLIENT
-                    .get()
-                    .unwrap()
-                    .create_tournament(t_seed)
-                    .await;
+                    let id = CLIENT.get().unwrap().create_tournament(t_seed).await;
                     console_log("Tourn created!!!");
                     TournamentCreatorMessage::TournCreated(id)
                 });
                 false
-            },
+            }
             TournamentCreatorMessage::TournCreated(id) => {
                 console_log("Tourn created! Routing...");
                 let navigator = ctx.link().navigator().unwrap();
-                navigator.push(&Route::Tourn {id});
+                navigator.push(&Route::Tourn { id });
                 false
-            },
+            }
             TournamentCreatorMessage::TournNameInput(input) => {
                 self.new_tourn_name = input;
                 false
-            },
+            }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let list = html!{
+        let list = html! {
             <>
                 <tr>
                     <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
@@ -124,7 +125,9 @@ impl Component for TournamentCreator {
                 </tr>
             </>
         };
-        let onclick = ctx.link().callback(|_| TournamentCreatorMessage::CreateTourn);
+        let onclick = ctx
+            .link()
+            .callback(|_| TournamentCreatorMessage::CreateTourn);
         html! {
             <div class="container">
                 <div class="py-3">
@@ -168,8 +171,7 @@ impl TournamentCreator {
             send_tourn_list.emit(tracker.process().await.unwrap())
         });
         */
-        ctx.link().send_future(async {
-            TournamentCreatorMessage::TournsReady(Vec::new())
-        })
+        ctx.link()
+            .send_future(async { TournamentCreatorMessage::TournsReady(Vec::new()) })
     }
 }

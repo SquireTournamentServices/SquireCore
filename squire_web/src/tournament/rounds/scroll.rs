@@ -1,16 +1,11 @@
 use squire_sdk::{
-    model::{
-        rounds::{Round, RoundId, RoundStatus},
-    },
-    tournaments::{TournamentId},
+    model::rounds::{Round, RoundId, RoundStatus},
+    tournaments::TournamentId,
 };
 use yew::prelude::*;
 
 use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
-use crate::{
-    utils::{console_log},
-    CLIENT,
-};
+use crate::{utils::console_log, CLIENT};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RoundScrollMessage {

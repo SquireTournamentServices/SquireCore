@@ -1,13 +1,10 @@
 use std::borrow::Cow;
 
-use squire_sdk::model::{
-    identifiers::RoundIdentifier,
-    rounds::{RoundStatus},
-};
+use squire_sdk::model::{identifiers::RoundIdentifier, rounds::RoundStatus};
 use yew::prelude::*;
 
 use super::RoundSummary;
-use crate::{utils::TextInput};
+use crate::utils::TextInput;
 
 #[derive(PartialEq, Properties)]
 pub struct RoundFilterInputProps {

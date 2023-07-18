@@ -1,12 +1,7 @@
-use squire_sdk::{
-    model::{
-        settings::{
-            CommonPairingSetting, FluidPairingSetting, FluidPairingSettingsTree,
-            PairingCommonSettingsTree, PairingSetting, PairingSettingsTree, PairingStyleSetting,
-            PairingStyleSettingsTree, SettingsTree, SwissPairingSetting, SwissPairingSettingsTree,
-            TournamentSetting,
-        },
-    },
+use squire_sdk::model::settings::{
+    CommonPairingSetting, FluidPairingSetting, FluidPairingSettingsTree, PairingCommonSettingsTree,
+    PairingSetting, PairingSettingsTree, PairingStyleSetting, PairingStyleSettingsTree,
+    SettingsTree, SwissPairingSetting, SwissPairingSettingsTree, TournamentSetting,
 };
 use yew::prelude::*;
 

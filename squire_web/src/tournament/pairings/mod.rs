@@ -1,10 +1,10 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use squire_sdk::model::{
-    identifiers::{AdminId},
+    identifiers::AdminId,
     operations::{AdminOp, OpResult, TournOp},
     pairings::Pairings,
-    players::{PlayerId},
+    players::PlayerId,
     rounds::{Round, RoundId},
     tournament::{Tournament, TournamentId},
 };

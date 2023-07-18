@@ -1,10 +1,11 @@
 use squire_sdk::{
     model::{
-        identifiers::{AdminId},
+        identifiers::AdminId,
+        operations::AdminOp,
         players::{Player, PlayerId},
-        rounds::{RoundId}, operations::AdminOp,
+        rounds::RoundId,
     },
-    tournaments::{Tournament, TournamentId, TournamentManager, TournOp},
+    tournaments::{TournOp, Tournament, TournamentId, TournamentManager},
 };
 use yew::prelude::*;
 
@@ -67,7 +68,11 @@ pub struct SelectedPlayer {
 }
 
 impl SelectedPlayer {
-    pub fn new(process: Callback<SelectedPlayerMessage>, id: TournamentId, admin_id: AdminId) -> Self {
+    pub fn new(
+        process: Callback<SelectedPlayerMessage>,
+        id: TournamentId,
+        admin_id: AdminId,
+    ) -> Self {
         Self {
             process,
             id,
@@ -102,7 +107,7 @@ impl SelectedPlayer {
                                 t.tourn()
                                     .player_reg
                                     .get_player(&p_id)
-                                    .map(|p|PlayerProfile::new(p, t) )
+                                    .map(|p| PlayerProfile::new(p, t))
                             })
                             .process()
                             .await
@@ -182,9 +187,12 @@ impl PlayerProfile {
             name: plyr.name.clone(),
             gamer_tag: plyr.game_name.clone(),
             can_play: plyr.can_play(),
-            rounds: t.get_player_rounds(&plyr.id.into() ).unwrap().iter().map(|r|{
-                RoundSummary::new(*r)
-            }).collect(),
+            rounds: t
+                .get_player_rounds(&plyr.id.into())
+                .unwrap()
+                .iter()
+                .map(|r| RoundSummary::new(*r))
+                .collect(),
         };
         to_return.rounds.sort_by_cached_key(|r| r.match_number);
         to_return.rounds.sort_by_cached_key(|r| r.status);

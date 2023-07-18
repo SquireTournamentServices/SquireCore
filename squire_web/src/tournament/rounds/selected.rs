@@ -18,8 +18,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use super::{
-    roundchangesbuffer::{*},
-    RoundConfirmationTicker, RoundResultTicker, RoundsView,
+    roundchangesbuffer::*, RoundConfirmationTicker, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
 use crate::{utils::console_log, CLIENT};
@@ -75,16 +74,16 @@ impl RoundProfile {
             .order
             .iter()
             .map(|pid| {
-                    let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
-                    let player_wins = self.results.get(pid).cloned().unwrap_or_default();
-                    let player_confirm = self.confirmations.get(pid).is_some();
-                    html! {
-                        <tr>
-                            <td>{ player_name }</td>
-                            <td>{ player_wins }</td>
-                            <td>{ player_confirm }</td>
-                        </tr>
-                    }
+                let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
+                let player_wins = self.results.get(pid).cloned().unwrap_or_default();
+                let player_confirm = self.confirmations.get(pid).is_some();
+                html! {
+                    <tr>
+                        <td>{ player_name }</td>
+                        <td>{ player_wins }</td>
+                        <td>{ player_confirm }</td>
+                    </tr>
+                }
             })
             .collect::<Html>();
         html! {

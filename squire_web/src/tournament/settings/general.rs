@@ -1,13 +1,11 @@
-use std::{time::Duration};
+use std::time::Duration;
 
-use squire_sdk::{
-    model::settings::{GeneralSetting, GeneralSettingsTree, SettingsTree, TournamentSetting},
+use squire_sdk::model::settings::{
+    GeneralSetting, GeneralSettingsTree, SettingsTree, TournamentSetting,
 };
 use yew::prelude::*;
 
-use super::{
-    panel::{make_panel, SettingPanel},
-};
+use super::panel::{make_panel, SettingPanel};
 
 pub struct GeneralSettings {
     starting_table: SettingPanel,

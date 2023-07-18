@@ -1,4 +1,4 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
 use squire_sdk::{
     model::{
@@ -12,7 +12,7 @@ use squire_sdk::{
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::rounds::{roundchangesbuffer::RoundChangesBufferMessage};
+use crate::tournament::rounds::roundchangesbuffer::RoundChangesBufferMessage;
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a result and associated changes to that result
@@ -66,12 +66,11 @@ impl RoundResultTicker {
             RoundResultTickerMessage::Decrement => {
                 self.stored_result.dec_result();
                 self.was_changed = true;
-            }
-            /*
-            RoundResultTickerMessage::SetChanged(val) => {
-                self.was_changed = val;
-            }
-            */
+            } /*
+              RoundResultTickerMessage::SetChanged(val) => {
+                  self.was_changed = val;
+              }
+              */
         }
         true
     }
