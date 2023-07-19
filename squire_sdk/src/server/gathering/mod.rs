@@ -23,13 +23,11 @@ use tokio::{
 use uuid::Uuid;
 
 use super::{state::ServerState, User};
-use crate::{
-    sync::{
-        processor::{SyncCompletion, SyncDecision},
-        ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
-        ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
-    },
-    tournaments::TournamentManager,
+use crate::sync::{
+    processor::{SyncCompletion, SyncDecision},
+    ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
+    ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
+    TournamentManager,
 };
 
 mod hall;

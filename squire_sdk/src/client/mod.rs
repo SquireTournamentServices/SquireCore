@@ -108,7 +108,7 @@ impl SquireClient {
     }
 
     pub fn update_tourn(&self, id: TournamentId, op: TournOp) -> UpdateTracker {
-        self.sender.update(id, UpdateType::Single(op))
+        self.sender.update(id, UpdateType::Single(Box::new(op)))
     }
 
     pub fn bulk_update<I>(&self, id: TournamentId, iter: I) -> UpdateTracker

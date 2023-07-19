@@ -27,7 +27,7 @@ pub fn spawn_task<F>(fut: F)
 where
     F: 'static + Send + Future<Output = ()>,
 {
-    _ = tokio::spawn(fut);
+    drop(tokio::spawn(fut));
 }
 
 /// Creates a future that will perform a non-blocking sleep

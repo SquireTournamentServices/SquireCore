@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
+use squire_lib::tournament::TournamentId;
 
 use super::gathering::{self, handle_new_onlooker};
 use crate::{

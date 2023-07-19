@@ -9,7 +9,7 @@ use tokio::sync::oneshot::{
     channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
 
-use crate::tournaments::TournamentManager;
+use crate::sync::TournamentManager;
 
 #[derive(Debug)]
 pub struct TournamentImport {

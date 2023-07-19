@@ -21,7 +21,7 @@ pub struct UpdateTracker {
 #[derive(Debug, Clone)]
 pub enum UpdateType {
     Removal,
-    Single(TournOp),
+    Single(Box<TournOp>),
     Bulk(Vec<TournOp>),
 }
 
