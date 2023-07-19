@@ -131,7 +131,7 @@ impl From<TournamentError> for SyncForwardResp {
 /* ---- ForwardError Helper Traits ---- */
 impl From<RequestError> for ForwardError {
     fn from(value: RequestError) -> Self {
-        ForwardError::InvalidRequest(value)
+        ForwardError::InvalidRequest(Box::new(value))
     }
 }
 

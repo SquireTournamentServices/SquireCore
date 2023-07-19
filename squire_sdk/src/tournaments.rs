@@ -1,16 +1,13 @@
 use serde::{Deserialize, Serialize};
 use squire_lib::tournament::TournamentStatus;
 
-use crate::response::SquireResponse;
-pub use crate::{
+use crate::{
     model::{
-        error::TournamentError,
-        identifiers::{TournamentId, TournamentIdentifier},
-        operations::{OpResult, TournOp},
-        scoring::{StandardScore, Standings},
+        identifiers::TournamentId,
         tournament::{Tournament, TournamentPreset},
     },
-    sync::{OpId, OpSlice, OpSync, TournamentManager},
+    response::SquireResponse,
+    sync::TournamentManager,
 };
 
 /// Information useful for understanding the tournament at a glance, as well as for performing a

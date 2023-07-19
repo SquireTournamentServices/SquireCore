@@ -28,6 +28,12 @@ impl ClientBuilder {
     }
 }
 
+impl Default for ClientBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<UP: OnUpdate, URL, USER> ClientBuilder<UP, URL, USER> {
     /// Adds a URL to the configuration of the client. This method is required for construction.
     /// If there was already a URL in the configuration, it is discarded

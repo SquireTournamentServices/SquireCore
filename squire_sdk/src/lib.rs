@@ -10,7 +10,7 @@
 #![warn(rust_2018_idioms)]
 #![deny(
     //missing_docs,
-    missing_debug_implementations,
+    //missing_debug_implementations,
     rustdoc::broken_intra_doc_links,
     unreachable_pub,
     unreachable_patterns,
@@ -22,7 +22,7 @@
     trivial_bounds,
     trivial_numeric_casts,
     unconditional_panic,
-    clippy::pedantic,
+    clippy::all,
 )]
 
 use serde::{Deserialize, Serialize};

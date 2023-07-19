@@ -8,7 +8,7 @@ use std::{
 use squire_lib::tournament::TournamentId;
 use tokio::sync::oneshot::{channel as oneshot, Receiver as OneshotReceiver};
 
-use crate::tournaments::TournamentManager;
+use crate::sync::TournamentManager;
 
 /// The type used to send requests for arbitary calculations to the tournament management task. The
 /// boxed function contains a tokio oneshot channel, which communicates the calculation results

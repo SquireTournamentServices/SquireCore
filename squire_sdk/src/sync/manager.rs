@@ -109,28 +109,25 @@ impl TournamentManager {
         SyncProcessor::new(sync, &self.log)
     }
 
-    /// Processes the SyncProcessor and updated the log if it completes without error
+    /// Processes the `SyncProcessor` and updated the log if it completes without error
     pub fn process_sync(&mut self, mut proc: SyncProcessor) -> ServerOpLink {
         // Check the validity of the incoming processor
         match (proc.last_known(), self.log.last_id()) {
             (Some(id), None) => return SyncError::UnknownOperation(id).into(),
             (None, None) => {}
             (Some(p_id), Some(l_id)) if p_id == l_id => {}
-            (Some(_), Some(_)) | (None, Some(_)) => return SyncError::TournUpdated.into(),
+            (Some(_) | None, Some(_)) => return SyncError::TournUpdated.into(),
         }
         let mut iter = proc.processing();
         // Bulk apply creates a copy of the tournament state and does not add any operations to the
         // log unless all operations succeed. The `SyncProcessor` will be updated when the
         // `Processing` iterator is dropped.
-        match self.bulk_apply_ops_inner(&mut iter) {
-            Ok(_) => {
-                iter.conclude();
-                proc.finalize().into()
-            }
-            Err(_) => {
-                drop(iter);
-                proc.into()
-            }
+        if self.bulk_apply_ops_inner(&mut iter).is_ok() {
+            iter.conclude();
+            proc.finalize().into()
+        } else {
+            drop(iter);
+            proc.into()
         }
     }
 

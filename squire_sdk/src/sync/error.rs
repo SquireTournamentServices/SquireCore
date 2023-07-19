@@ -32,7 +32,7 @@ pub enum ForwardError {
     /// At least one of the logs was empty
     EmptySync,
     /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
-    InvalidRequest(RequestError),
+    InvalidRequest(Box<RequestError>),
     /// One of the new operations has caused a tournament error.
     ///
     /// NOTE: This is likely an un-recoverable error. Either the two tournaments do not have the

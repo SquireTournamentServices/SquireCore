@@ -26,9 +26,9 @@ use crate::{
     api::SUBSCRIBE_ROUTE,
     sync::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
-        OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, WebSocketMessage,
+        OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, TournamentManager,
+        WebSocketMessage,
     },
-    tournaments::TournamentManager,
 };
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";
@@ -198,7 +198,7 @@ where
     let mut to_remove = false;
     if let Some(tourn) = state.cache.get_mut(&id) {
         let res = match update {
-            UpdateType::Single(op) => tourn.tourn.apply_op(op),
+            UpdateType::Single(op) => tourn.tourn.apply_op(*op),
             UpdateType::Bulk(ops) => tourn.tourn.bulk_apply_ops(ops),
             UpdateType::Removal => {
                 to_remove = true;

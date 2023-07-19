@@ -21,9 +21,8 @@ use tokio::{
 };
 
 use super::{Gathering, GatheringMessage, PersistMessage, ServerState, User};
-use crate::{
-    sync::{ClientBound, ClientBoundMessage, OpSync, ServerBound, ServerBoundMessage},
-    tournaments::TournamentManager,
+use crate::sync::{
+    ClientBound, ClientBoundMessage, OpSync, ServerBound, ServerBoundMessage, TournamentManager,
 };
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
@@ -36,7 +35,7 @@ pub fn init_gathering_hall<S: ServerState>(state: S) {
     let (send, recv) = channel(GATHERING_HALL_CHANNEL_SIZE);
     let hall = GatheringHall::new(state, recv);
     GATHERING_HALL_MESSAGER.set(send).unwrap();
-    _ = tokio::spawn(hall.run());
+    drop(tokio::spawn(hall.run()));
 }
 
 /// This function communicates with the gathering hall task to add a new onlooker into a
@@ -142,7 +141,7 @@ impl<S: ServerState> GatheringHall<S> {
         let tourn = self.get_tourn(&id).await?;
         let (send, recv) = channel(100);
         let gathering = Gathering::new(tourn, recv, self.persist_sender.clone());
-        _ = tokio::spawn(gathering.run());
+        drop(tokio::spawn(gathering.run()));
         Some(send)
     }
 
