@@ -1,4 +1,4 @@
-use squire_sdk::tournaments::{Tournament, TournamentId};
+use squire_sdk::model::{identifiers::TournamentId, tournament::Tournament};
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{

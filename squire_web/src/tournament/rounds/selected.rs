@@ -1,12 +1,10 @@
 use std::time::Duration;
 
-use squire_sdk::{
-    model::{
-        identifiers::AdminId,
-        operations::{AdminOp, JudgeOp},
-        rounds::{RoundId, RoundResult, RoundStatus},
-    },
-    tournaments::{OpResult, TournOp, TournamentId},
+use squire_sdk::model::{
+    identifiers::{AdminId, TournamentId},
+    operations::{AdminOp, JudgeOp},
+    operations::{OpResult, TournOp},
+    rounds::{RoundId, RoundResult, RoundStatus},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -15,8 +13,7 @@ use super::{
     roundchangesbuffer::*, RoundConfirmationTicker, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
-use crate::{utils::console_log, CLIENT, tournament::model::RoundProfile};
-
+use crate::{tournament::model::RoundProfile, utils::console_log, CLIENT};
 
 /// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]

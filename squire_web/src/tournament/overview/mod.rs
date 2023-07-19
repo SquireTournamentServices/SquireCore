@@ -1,6 +1,9 @@
 use squire_sdk::{
-    model::{players::PlayerStatus, rounds::RoundStatus, tournament::TournamentStatus},
-    tournaments::{TournamentId, TournamentManager},
+    model::{
+        identifiers::TournamentId, players::PlayerStatus, rounds::RoundStatus,
+        tournament::TournamentStatus,
+    },
+    sync::TournamentManager,
 };
 use yew::prelude::*;
 

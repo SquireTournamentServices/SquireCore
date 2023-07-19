@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
-use squire_sdk::{
-    model::{identifiers::AdminId, operations::JudgeOp, players::PlayerStatus},
-    tournaments::{OpResult, TournOp, TournamentId},
+use squire_sdk::model::{
+    identifiers::{AdminId, TournamentId},
+    operations::{JudgeOp, OpResult, TournOp},
+    players::PlayerStatus,
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;

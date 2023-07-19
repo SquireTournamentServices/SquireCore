@@ -1,17 +1,19 @@
 use squire_sdk::{
     model::{
-        identifiers::AdminId,
-        operations::AdminOp,
-        players::PlayerId,
+        identifiers::{AdminId, TournamentId},
+        operations::{AdminOp, TournOp},
+        players::{Player, PlayerId},
         rounds::RoundId,
+        tournament::Tournament,
     },
-    tournaments::{TournOp, Tournament, TournamentId},
+    sync::TournamentManager,
 };
 use yew::prelude::*;
 
 use super::{PlayerView, PlayerViewMessage};
 use crate::{
-    CLIENT, tournament::model::{RoundProfile, PlayerProfile},
+    tournament::model::{PlayerProfile, RoundProfile},
+    CLIENT,
 };
 
 /// The set of data needed by the UI to display a deck. Should be capable of rendering itself in

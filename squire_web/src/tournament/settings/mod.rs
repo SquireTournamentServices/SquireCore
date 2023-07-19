@@ -1,12 +1,10 @@
-use squire_sdk::{
-    model::{
-        identifiers::AdminId,
-        settings::{
-            GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree, SettingsTree,
-            TournamentSetting, TournamentSettingsTree,
-        },
+use squire_sdk::model::{
+    identifiers::{AdminId, TournamentId},
+    operations::{OpResult, TournOp},
+    settings::{
+        GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree, SettingsTree,
+        TournamentSetting, TournamentSettingsTree,
     },
-    tournaments::{OpResult, TournOp, TournamentId},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
