@@ -1,27 +1,23 @@
 #![cfg(feature = "db-tests")]
 
-use async_session::chrono::Utc;
 use squire_sdk::{
-    server::state::ServerState,
-    tournaments::{TournOp, TournamentManager, TournamentSummary},
+    server::state::ServerState, sync::TournamentManager, tournaments::TournamentSummary,
 };
 
-use crate::state::{AppSettings, AppState};
+use crate::state::{AppState, AppStateBuilder};
 
-async fn clear_database(settings: AppSettings) {
-    AppState::new_with_settings(settings)
-        .await
-        .get_db()
-        .drop(None)
-        .await;
+async fn clear_database(state: AppState) {
+    state.get_db().drop(None).await;
 }
 
 #[tokio::test]
 async fn tournament_pages() {
-    let settings = AppSettings::default().database_name("SquireTesting_tourn_pages");
-    clear_database(settings.clone()).await;
+    let state = AppStateBuilder::new()
+        .database_name("SquireTesting_tourn_pages")
+        .build()
+        .await;
+    clear_database(state.clone()).await;
 
-    let state = AppState::new_with_settings(settings).await;
     let tournament_list = std::iter::repeat_with(|| {
         TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed())
     })
@@ -75,11 +71,10 @@ async fn tournament_pages() {
 
 #[tokio::test]
 async fn insert_fetch_tourn() {
-    let settings = AppSettings::default().database_name("SquireTesting_insert_fetch_tourn");
-    clear_database(settings.clone()).await;
+    let state = AppStateBuilder::new().database_name("SquireTesting_insert_fetch_tourn").build().await;
+    clear_database(state.clone()).await;
 
     let manager = TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
-    let state = AppState::new_with_settings(settings).await;
 
     state.persist_tourn(&manager).await;
     let retrieved_tourn = state
@@ -92,12 +87,11 @@ async fn insert_fetch_tourn() {
 
 #[tokio::test]
 async fn check_already_persisted() {
-    let settings = AppSettings::default().database_name("SquireTesting_check_already_persisted");
-    clear_database(settings.clone()).await;
+    let state = AppStateBuilder::new().database_name("SquireTesting_check_already_persisted").build().await;
+    clear_database(state.clone()).await;
 
-    let mut manager =
+    let manager =
         TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
-    let state = AppState::new_with_settings(settings).await;
 
     assert!(!state.persist_tourn(&manager).await);
     assert!(state.persist_tourn(&manager).await);
