@@ -1,112 +1,146 @@
 use std::{borrow::Cow, ops::Range, sync::Arc};
 
-use async_session::{async_trait, MemoryStore, SessionStore};
-use futures::{stream::TryStreamExt, StreamExt};
+use async_session::{async_trait, SessionStore};
+use futures::StreamExt;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
-    options::{
-        ClientOptions, FindOptions, Hint, IndexOptions, ReplaceOptions, UpdateModifications,
-        UpdateOptions,
-    },
-    Client as DbClient, Collection, Database, IndexModel,
+    options::{ClientOptions, FindOptions, Hint, UpdateModifications, UpdateOptions},
+    Client as DbClient, Collection, Database,
 };
 use squire_sdk::{
-    model::{accounts::SquireAccount, identifiers::TypeId, tournament::TournamentSeed},
+    model::{identifiers::TournamentId, tournament::TournamentSeed},
     server::{state::ServerState, User},
-    tournaments::{OpSync, TournamentId, TournamentManager, TournamentPreset, TournamentSummary},
+    sync::TournamentManager,
+    tournaments::TournamentSummary,
     version::{ServerMode, Version},
 };
 use tracing::Level;
 
-/// Specifies how the Squire app connects to a MongoDB instance
-#[derive(Debug, Clone, Default)]
-pub struct AppSettings {
-    address: Option<String>,
-    database_name: Option<String>,
-    tournament_collection_name: Option<String>,
+pub type Uri = Cow<'static, str>;
+pub type DbName = Option<String>;
+
+/// A builder for an `AppState`.
+#[derive(Debug, Clone)]
+pub struct AppStateBuilder<T, N> {
+    db_conn: T,
+    db_name: N,
+    tourn_coll: Option<String>,
 }
 
-impl AppSettings {
+impl AppStateBuilder<(), ()> {
+    /// Constructs an `AppStateBuilder` that uses the default MongoDB URL.
+    pub fn new() -> AppStateBuilder<Uri, DbName> {
+        AppStateBuilder {
+            db_conn: Cow::Borrowed("mongodb://localhost:27017"),
+            db_name: None,
+            tourn_coll: None,
+        }
+    }
+}
+
+impl AppStateBuilder<Uri, DbName> {
+    /// Creates a builder that hold the URL of the MongoDB instance. A connection will be
+    /// established upon building of the `AppState`
+    pub fn with_address<S: ToString>(uri: S) -> AppStateBuilder<Uri, DbName> {
+        AppStateBuilder {
+            db_conn: Cow::Owned(uri.to_string()),
+            db_name: None,
+            tourn_coll: None,
+        }
+    }
+
     /// Sets the address used as the MongoDB connection string. Default is
     /// `mongodb://localhost:27017`.
-    pub fn address(mut self, addr: impl Into<String>) -> Self {
-        self.address = Some(addr.into());
+    pub fn address<S: ToString>(mut self, addr: S) -> Self {
+        self.db_conn = Cow::Owned(addr.to_string());
         self
     }
+
     /// Sets the name of the database. Default is `Squire`, or `SquireTesting` if the crate is
     /// compiled for testing.
     pub fn database_name(mut self, name: impl Into<String>) -> Self {
-        self.database_name = Some(name.into());
-        self
-    }
-    /// Sets the name of the collection used for storing tournaments. Default is `Tournaments`.
-    pub fn tournament_collection_name(mut self, name: impl Into<String>) -> Self {
-        self.tournament_collection_name = Some(name.into());
+        self.db_name = Some(name.into());
         self
     }
 
-    fn get_address(&self) -> &str {
-        self.address
-            .as_deref()
-            .unwrap_or("mongodb://localhost:27017")
-    }
     #[cfg(not(test))]
-    fn get_database_name(&self) -> &str {
-        self.address.as_deref().unwrap_or("Squire")
+    fn get_db_name(&self) -> &str {
+        self.db_name.as_deref().unwrap_or("Squire")
     }
+
     #[cfg(test)]
-    fn get_database_name(&self) -> &str {
-        self.database_name.as_deref().unwrap_or("SquireTesting")
+    fn get_db_name(&self) -> &str {
+        self.db_name.as_deref().unwrap_or("SquireTesting")
     }
+
+    /// Constructs an `AppState` by trying to connect to the DB via the held address.
+    ///
+    /// # Panics
+    /// Panics if a connection can not be established
+    pub async fn build(self) -> AppState {
+        let tourn_coll = Arc::from(self.get_tournament_collection_name());
+        let client_options = ClientOptions::parse(&self.db_conn).await.unwrap();
+        let db_conn = DbClient::with_options(client_options)
+            .unwrap()
+            .database(self.get_db_name());
+        AppState {
+            db_conn,
+            tourn_coll,
+        }
+    }
+}
+
+impl AppStateBuilder<Database, ()> {
+    /// Creates a builder that holds a DB client
+    pub fn with_db(db: Database) -> AppStateBuilder<Database, ()> {
+        AppStateBuilder {
+            db_conn: db,
+            db_name: (),
+            tourn_coll: None,
+        }
+    }
+
+    /// Constructs an `AppState` using the held DB client.
+    pub fn build(self) -> AppState {
+        let tourn_coll = Arc::from(self.get_tournament_collection_name());
+        AppState {
+            db_conn: self.db_conn,
+            tourn_coll,
+        }
+    }
+}
+
+impl<T, S> AppStateBuilder<T, S> {
+    /// Sets the name of the collection used for storing tournaments. Default is `Tournaments`.
+    pub fn tournament_collection_name(mut self, name: impl Into<String>) -> Self {
+        self.tourn_coll = Some(name.into());
+        self
+    }
+
     fn get_tournament_collection_name(&self) -> &str {
-        self.tournament_collection_name
-            .as_deref()
-            .unwrap_or("Tournaments")
+        self.tourn_coll.as_deref().unwrap_or("Tournaments")
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    client: DbClient,
-    settings: AppSettings,
+    db_conn: Database,
+    tourn_coll: Arc<str>,
 }
 
 impl AppState {
     const TOURN_INDEX_NAME: &str = "tourn_id";
 
-    pub async fn new_with_settings(settings: AppSettings) -> Self {
-        let mut client_options = ClientOptions::parse(settings.get_address()).await.unwrap();
-
-        client_options.app_name = Some("SquireCore Public Server".to_string());
-
-        let client = DbClient::with_options(client_options).unwrap();
-
-        let slf = Self { client, settings };
-
-        let index = IndexModel::builder()
-            .keys(doc! {"tourn.id": 1})
-            .options(
-                IndexOptions::builder()
-                    .name(Self::TOURN_INDEX_NAME.to_string())
-                    .build(),
-            )
-            .build();
-        slf.get_tourns().create_index(index, None).await;
-
-        slf
-    }
-
     pub async fn new() -> Self {
-        Self::new_with_settings(AppSettings::default()).await
+        AppStateBuilder::new().build().await
     }
 
     pub fn get_db(&self) -> Database {
-        self.client.database(self.settings.get_database_name())
+        self.db_conn.clone()
     }
 
     pub fn get_tourns(&self) -> Collection<TournamentManager> {
-        self.get_db()
-            .collection(self.settings.get_tournament_collection_name())
+        self.get_db().collection(&self.tourn_coll)
     }
 
     fn make_query(id: TournamentId) -> Document {
@@ -115,33 +149,13 @@ impl AppState {
             subtype: BinarySubtype::Generic,
         }}
     }
-
-    /*
-    pub fn get_past_tourns(&self) -> Collection<CompressedTournament> {
-        self.get_db().collection("PastTournaments")
-    }
-
-    pub async fn query_all_past_tournaments<F, O, Out>(&self, mut f: F) -> Out
-    where
-        Out: FromIterator<O>,
-        O: Send,
-        F: Send + FnMut(&CompressedTournament) -> O,
-    {
-        let mut digest = Vec::new();
-        let mut cursor = self.get_past_tourns().find(None, None).await.unwrap();
-        while let Some(tourn) = cursor.try_next().await.unwrap() {
-            digest.push(f(&tourn));
-        }
-        digest.into_iter().collect()
-    }
-    */
 }
 
 #[async_trait]
 impl ServerState for AppState {
     fn get_version(&self) -> Version {
         Version {
-            version: "0.1.0-pre-alpha".to_string(),
+            version: "v0.1.0".into(),
             mode: ServerMode::Extended,
         }
     }
