@@ -1,6 +1,6 @@
-use squire_sdk::{
-    model::{identifiers::AdminId, operations::AdminOp},
-    tournaments::{OpResult, TournOp, TournamentId},
+use squire_sdk::model::{
+    identifiers::{AdminId, TournamentId},
+    operations::{AdminOp, TournOp, OpResult},
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;

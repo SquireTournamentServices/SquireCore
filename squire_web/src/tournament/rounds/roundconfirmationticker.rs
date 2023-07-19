@@ -1,6 +1,8 @@
-use squire_sdk::{
-    model::{identifiers::AdminId, operations::JudgeOp, players::PlayerId, rounds::RoundId},
-    tournaments::TournOp,
+use squire_sdk::model::{
+    identifiers::AdminId,
+    operations::{JudgeOp, TournOp},
+    players::PlayerId,
+    rounds::RoundId,
 };
 use yew::prelude::*;
 

@@ -1,6 +1,6 @@
-use squire_sdk::{
-    model::rounds::{Round, RoundId, RoundStatus},
-    tournaments::TournamentId,
+use squire_sdk::model::{
+    identifiers::TournamentId,
+    rounds::{Round, RoundId, RoundStatus},
 };
 use yew::prelude::*;
 

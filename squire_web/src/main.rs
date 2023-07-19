@@ -4,7 +4,10 @@
 
 use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;
-use squire_sdk::{client::SquireClient, model::accounts::SquireAccount, tournaments::TournamentId};
+use squire_sdk::{
+    client::SquireClient,
+    model::{accounts::SquireAccount, identifiers::TournamentId},
+};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
