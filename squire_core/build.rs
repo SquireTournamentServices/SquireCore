@@ -7,6 +7,7 @@ use std::{env, process::Command};
 
 fn main() -> Result<(), i32> {
     let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let fe_path = format!("{wd}/../squire_web");
 
     // Install external dependency (in the shuttle container only)
     if std::env::var("HOSTNAME")
@@ -20,33 +21,32 @@ fn main() -> Result<(), i32> {
             .expect("failed to run rustup")
             .success()
         {
-            panic!("failed to wasm32 target")
+            panic!("failed to install wasm32 target")
         }
 
         // Install `trunk` to compile the frontend
         if !std::process::Command::new("cargo")
             .args(["install", "trunk"])
             .status()
-            .expect("failed to run cargo")
+            .expect("failed to run cargo install")
             .success()
         {
             panic!("failed to install trunk")
         }
     }
 
-    let sw_path = format!("{wd}/../squire_web");
     let mut cmd = Command::new("trunk");
     cmd.args(["build", "-d", "../assets", "--filehash", "false"]);
 
     if Ok("release".to_owned()) == env::var("PROFILE") {
         cmd.arg("--release");
     }
-    cmd.arg(format!("{sw_path}/index.html"));
-    let status = cmd.status().map(|s| s.success());
-    if status.unwrap_or(true) {
-        return Err(1);
+    cmd.arg(format!("{fe_path}/index.html"));
+    match cmd.status().map(|s| s.success()) {
+        Ok(false) | Err(_) => return Err(1),
+        _ => {}
     }
-    println!("cargo:rerun-if-changed={sw_path}");
+    println!("cargo:rerun-if-changed={fe_path}");
     println!("cargo:rerun-if-changed=build.rs");
     Ok(())
 }
