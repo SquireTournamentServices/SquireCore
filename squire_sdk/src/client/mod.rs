@@ -20,7 +20,9 @@ use crate::{
     version::ServerMode,
 };
 
-pub trait OnUpdate = 'static + Send + FnMut(TournamentId);
+pub trait OnUpdate: 'static + Send + FnMut(TournamentId) {}
+
+impl<T> OnUpdate for T where T: 'static + Send + FnMut(TournamentId) {}
 
 pub mod builder;
 pub mod compat;
@@ -55,13 +57,13 @@ impl SquireClient {
     /// to the backend server but the remote import might not be completed by the time the value is
     /// returned
     pub async fn create_tournament(&self, seed: TournamentSeed) -> TournamentId {
-		/*
+        /*
         let tourn = TournamentManager::new(self.user.clone(), seed);
         let digest = tourn.id;
         _ = self.sender.import(tourn).await;
         digest
-		*/
-		self.sender
+        */
+        self.sender
             .import(TournamentManager::new(self.user.clone(), seed))
             .await
             .unwrap()

@@ -182,7 +182,10 @@ impl Gathering {
                     return err.into();
                 }
                 // Process the init
-                let proc = self.tourn.init_sync(sync)?;
+                let proc = match self.tourn.init_sync(sync) {
+                    Ok(proc) => proc,
+                    Err(err) => return ServerOpLink::Error(err),
+                };
                 let resp = self.tourn.process_sync(proc);
                 // Convert into a resp
                 self.syncs.add_sync_link(id, link, resp.clone());
@@ -199,7 +202,9 @@ impl Gathering {
             }
             ClientOpLink::Decision(SyncDecision::Purged(comp)) => {
                 // Apply and get resp
-                self.tourn.handle_completion(comp.clone())?;
+                if let Err(err) = self.tourn.handle_completion(comp.clone()) {
+                    return ServerOpLink::Error(err)
+                }
                 // Return resp
                 comp.into()
             }
