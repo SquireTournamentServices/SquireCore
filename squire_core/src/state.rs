@@ -41,6 +41,7 @@ impl AppStateBuilder<(), ()> {
 impl AppStateBuilder<Uri, DbName> {
     /// Creates a builder that hold the URL of the MongoDB instance. A connection will be
     /// established upon building of the `AppState`
+    #[allow(dead_code)]
     pub fn with_address<S: ToString>(uri: S) -> AppStateBuilder<Uri, DbName> {
         AppStateBuilder {
             db_conn: Cow::Owned(uri.to_string()),
@@ -51,6 +52,7 @@ impl AppStateBuilder<Uri, DbName> {
 
     /// Sets the address used as the MongoDB connection string. Default is
     /// `mongodb://localhost:27017`.
+    #[allow(dead_code)]
     pub fn address<S: ToString>(mut self, addr: S) -> Self {
         self.db_conn = Cow::Owned(addr.to_string());
         self
@@ -58,6 +60,7 @@ impl AppStateBuilder<Uri, DbName> {
 
     /// Sets the name of the database. Default is `Squire`, or `SquireTesting` if the crate is
     /// compiled for testing.
+    #[allow(dead_code)]
     pub fn database_name(mut self, name: impl Into<String>) -> Self {
         self.db_name = Some(name.into());
         self
@@ -112,6 +115,7 @@ impl AppStateBuilder<Database, ()> {
 
 impl<T, S> AppStateBuilder<T, S> {
     /// Sets the name of the collection used for storing tournaments. Default is `Tournaments`.
+    #[allow(dead_code)]
     pub fn tournament_collection_name(mut self, name: impl Into<String>) -> Self {
         self.tourn_coll = Some(name.into());
         self
@@ -160,7 +164,7 @@ impl ServerState for AppState {
         }
     }
 
-    async fn create_tourn(&self, user: User, seed: TournamentSeed) -> TournamentManager {
+    async fn create_tourn(&self, _user: User, _seed: TournamentSeed) -> TournamentManager {
         todo!()
     }
 
@@ -232,19 +236,19 @@ impl ServerState for AppState {
 impl SessionStore for AppState {
     async fn load_session(
         &self,
-        cookie_value: String,
+        _cookie_value: String,
     ) -> async_session::Result<Option<async_session::Session>> {
         todo!()
     }
 
     async fn store_session(
         &self,
-        session: async_session::Session,
+        _session: async_session::Session,
     ) -> async_session::Result<Option<String>> {
         todo!()
     }
 
-    async fn destroy_session(&self, session: async_session::Session) -> async_session::Result {
+    async fn destroy_session(&self, _session: async_session::Session) -> async_session::Result {
         todo!()
     }
 

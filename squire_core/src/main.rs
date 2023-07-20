@@ -8,7 +8,6 @@ mod tests;
 
 mod assets;
 mod state;
-mod tournaments;
 
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>(state.clone())
