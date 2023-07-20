@@ -1,4 +1,4 @@
-use std::ops::{ControlFlow, Deref, DerefMut, FromResidual, Try};
+use std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "axum")]
 use axum::{http::StatusCode, response::IntoResponse};
@@ -52,6 +52,7 @@ where
     }
 }
 
+/* TODO: Add back when feature is stable
 // Example: Fn() -> Result<O, R>? => SquireResponse(Err(R))
 impl<T, O, R> Try for SquireResponse<T>
 where
@@ -77,3 +78,4 @@ where
         Self::new(T::from_residual(residual))
     }
 }
+*/

@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, convert::Infallible, ops::FromResidual};
+use std::collections::VecDeque;
 
 use squire_lib::{
     accounts::SquireAccount,
@@ -184,11 +184,5 @@ impl From<SyncError> for ServerOpLink {
 impl From<RequestError> for ServerOpLink {
     fn from(value: RequestError) -> Self {
         Self::Error(value.into())
-    }
-}
-
-impl FromResidual<Result<Infallible, SyncError>> for ServerOpLink {
-    fn from_residual(residual: Result<Infallible, SyncError>) -> Self {
-        Self::Error(residual.unwrap_err())
     }
 }

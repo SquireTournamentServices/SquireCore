@@ -157,8 +157,10 @@ impl ClientSyncManager {
     }
 
     pub fn progress_chain(&mut self, id: &Uuid, client: ClientOpLink, server: ServerOpLink) {
-        if let Some(inner) = self.syncs.get_mut(id) && inner.progress(client, server) {
-            self.finalize_chain(id);
+        if let Some(inner) = self.syncs.get_mut(id) {
+            if inner.progress(client, server) {
+                self.finalize_chain(id);
+            }
         }
         self.to_retry.update_timer(id);
     }
@@ -245,7 +247,10 @@ impl TimerStack {
     }
 
     fn clear(&mut self, limit: Duration) {
-        while let Some(timer) = self.queue.front() && timer.1.elapsed() >= limit {
+        while let Some(timer) = self.queue.front() {
+            if timer.1.elapsed() >= limit {
+                break
+            }
             _ = self.queue.pop_front();
         }
     }

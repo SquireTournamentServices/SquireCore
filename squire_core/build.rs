@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 /* This build script ensure that everything needed to run the SquireCore server is in its place.
  * Primarily, this includes the static assets for the frontend, including the index, wasm app, and
  * JS bindings. Trunk is used to compile and generate the app and the JS bindings.
@@ -45,7 +43,7 @@ fn main() -> Result<(), i32> {
     }
     cmd.arg(format!("{sw_path}/index.html"));
     let status = cmd.status().map(|s| s.success());
-    if let Ok(false) | Err(_) = status {
+    if status.unwrap_or(true) {
         return Err(1);
     }
     println!("cargo:rerun-if-changed={sw_path}");
