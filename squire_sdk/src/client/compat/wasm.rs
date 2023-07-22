@@ -29,8 +29,8 @@ pub async fn rest(dur: Duration) {
     gloo_timers::future::sleep(dur).await;
 }
 
-pub fn log(_msg: &str) {
-    //web_sys::console::log_1(&msg.into());
+pub fn log(msg: &str) {
+    web_sys::console::log_1(&msg.into());
 }
 
 /* ------ Session ------ */

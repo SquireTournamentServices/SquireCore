@@ -1,14 +1,19 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
-use squire_sdk::{model::{players::{PlayerId, Player}, rounds::{RoundId, RoundStatus, Round}}, tournaments::{TournamentManager, Tournament}};
-use yew::{Callback, Html, html};
+use squire_sdk::{
+    model::{
+        players::{Player, PlayerId},
+        rounds::{Round, RoundId, RoundStatus},
+        tournament::Tournament,
+    },
+    sync::TournamentManager,
+};
+use yew::{html, Callback, Html};
 
 use crate::tournament::players::SubviewInfo;
 
-use super::{rounds::RoundSummary, players::SelectedPlayerMessage};
-
-
+use super::{players::SelectedPlayerMessage, rounds::RoundSummary};
 
 /// The set of data needed by the UI to display a player. Should be capable of rendering itself in
 /// HTML.
@@ -106,7 +111,6 @@ impl PlayerProfile {
         }
     }
 }
-
 
 /// The set of data needed by the UI to display a round. Should be capable of rendering itself in
 /// HTML.

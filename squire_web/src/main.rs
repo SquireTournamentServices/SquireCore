@@ -1,6 +1,5 @@
 #![deny(non_camel_case_types)]
 #![deny(dead_code, unused)]
-#![feature(if_let_guard)]
 
 use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;

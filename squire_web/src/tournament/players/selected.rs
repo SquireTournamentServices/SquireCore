@@ -1,12 +1,9 @@
-use squire_sdk::{
-    model::{
-        identifiers::{AdminId, TournamentId},
-        operations::{AdminOp, TournOp},
-        players::{Player, PlayerId},
-        rounds::RoundId,
-        tournament::Tournament,
-    },
-    sync::TournamentManager,
+use squire_sdk::model::{
+    identifiers::{AdminId, TournamentId},
+    operations::{AdminOp, TournOp},
+    players::PlayerId,
+    rounds::RoundId,
+    tournament::Tournament,
 };
 use yew::prelude::*;
 
