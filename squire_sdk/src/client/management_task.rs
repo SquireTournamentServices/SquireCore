@@ -28,7 +28,7 @@ use crate::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
         OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, TournamentManager,
         WebSocketMessage,
-    }, client::compat::log,
+    },
 };
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";
@@ -148,13 +148,12 @@ async fn tournament_management_task<F>(
                         None
                     },
                     ManagementCommand::Import(import) => {
-                        log("Received import message");
                         handle_import(&mut state, import);
                         None
                     },
                     ManagementCommand::Update(update) => {
                         handle_update(&mut state, update, &mut on_update).await;
-                            None
+                        None
                     }
                     ManagementCommand::Subscribe(sub) => Some(sub),
                 }
@@ -184,7 +183,6 @@ fn handle_import(state: &mut ManagerState, import: TournamentImport) {
     let id = tourn.id;
     let tc = TournComm { tourn, comm: None };
     _ = state.cache.insert(id, tc);
-    log("Sending id to caller");
     let _ = tracker.send(id);
 }
 
@@ -192,11 +190,7 @@ async fn handle_update<F>(state: &mut ManagerState, update: TournamentUpdate, on
 where
     F: OnUpdate,
 {
-    let TournamentUpdate {
-        local,
-        id,
-        update,
-    } = update;
+    let TournamentUpdate { local, id, update } = update;
     let mut to_remove = false;
     if let Some(tourn) = state.cache.get_mut(&id) {
         let res = match update {
