@@ -203,7 +203,7 @@ impl Gathering {
             ClientOpLink::Decision(SyncDecision::Purged(comp)) => {
                 // Apply and get resp
                 if let Err(err) = self.tourn.handle_completion(comp.clone()) {
-                    return ServerOpLink::Error(err)
+                    return ServerOpLink::Error(err);
                 }
                 // Return resp
                 comp.into()

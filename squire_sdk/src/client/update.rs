@@ -35,9 +35,7 @@ pub(crate) fn update_channel(
         id,
         update,
     };
-    let tracker = UpdateTracker {
-        local: local_recv,
-    };
+    let tracker = UpdateTracker { local: local_recv };
     (update, tracker)
 }
 

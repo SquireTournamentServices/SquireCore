@@ -249,7 +249,7 @@ impl TimerStack {
     fn clear(&mut self, limit: Duration) {
         while let Some(timer) = self.queue.front() {
             if timer.1.elapsed() >= limit {
-                break
+                break;
             }
             _ = self.queue.pop_front();
         }
