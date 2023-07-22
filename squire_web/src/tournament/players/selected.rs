@@ -2,31 +2,17 @@ use squire_sdk::{
     model::{
         identifiers::AdminId,
         operations::AdminOp,
-        players::{Player, PlayerId},
+        players::PlayerId,
         rounds::RoundId,
     },
-    tournaments::{TournOp, Tournament, TournamentId, TournamentManager},
+    tournaments::{TournOp, Tournament, TournamentId},
 };
 use yew::prelude::*;
 
 use super::{PlayerView, PlayerViewMessage};
 use crate::{
-    tournament::rounds::{RoundProfile, RoundSummary},
-    CLIENT,
+    CLIENT, tournament::model::{RoundProfile, PlayerProfile},
 };
-
-/// The set of data needed by the UI to display a player. Should be capable of rendering itself in
-/// HTML.
-///
-/// NOTE: Under construction
-#[derive(Debug, PartialEq, Clone)]
-pub struct PlayerProfile {
-    id: PlayerId,
-    name: String,
-    gamer_tag: Option<String>,
-    can_play: bool,
-    rounds: Vec<RoundSummary>,
-}
 
 /// The set of data needed by the UI to display a deck. Should be capable of rendering itself in
 /// HTML.
@@ -176,108 +162,6 @@ impl SelectedPlayer {
                     <div class="col">{ self.subview() }</div>
                 </div>
             </div>
-        }
-    }
-}
-
-impl PlayerProfile {
-    pub fn new(plyr: &Player, t: &TournamentManager) -> Self {
-        let mut to_return = Self {
-            id: plyr.id,
-            name: plyr.name.clone(),
-            gamer_tag: plyr.game_name.clone(),
-            can_play: plyr.can_play(),
-            rounds: t
-                .get_player_rounds(&plyr.id.into())
-                .unwrap()
-                .iter()
-                .map(|r| RoundSummary::new(*r))
-                .collect(),
-        };
-        to_return.rounds.sort_by_cached_key(|r| r.match_number);
-        to_return.rounds.sort_by_cached_key(|r| r.status);
-        to_return
-    }
-
-    pub fn view(&self, process: Callback<SelectedPlayerMessage>) -> Html {
-        let id = self.id.clone();
-        let cb = process.clone();
-        let dropplayer = move |_| {
-            cb.emit(SelectedPlayerMessage::DropPlayer(id));
-        };
-        let list = self
-            .rounds
-            .iter()
-            .cloned()
-            .map(|r| {
-                let cb = process.clone();
-                html! {
-                    <tr onclick = {move |_| cb.emit(SelectedPlayerMessage::SubviewSelected(SubviewInfo::Round(r.id)))}>
-                        <td>{ r.match_number }</td>
-                        <td>{ r.table_number }</td>
-                        <td>{ r.status }</td>
-                    </tr>
-                }
-            })
-            .collect::<Html>();
-        html! {
-            <>
-                <>
-                    <>
-                        <h4>{ self.name.as_str() }</h4>
-                        <p>{ format!("Gamertag : {}", self.gamer_tag.clone().unwrap_or_default() ) }</p>
-                        <p>{ format!("Can play : {}", self.can_play) }</p>
-                        <p>{ format!("Rounds : {}", self.rounds.len()) }</p>
-                    </>
-                </>
-                /*
-                <ul>
-                {
-                    // html! { <h4> { "Player's round view not implemented yet..." } </h4> }
-                    self.rounds
-                    .iter()
-                    .map(|r| {
-                        let cb = process.clone();
-                        let rid = r.id.clone();
-                        html! {
-                            <li class="sub_option" onclick={move |_| cb.emit(SelectedPlayerMessage::SubviewSelected(SubviewInfo::Round(rid)))} >{ format!("Match {} at table {}", r.match_number, r.table_number) }</li>
-                        }
-                    })
-                    .collect::<Html>()
-                }
-                </ul>
-                */
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>{ "Round" }</th>
-                            <th>{ "Table" }</th>
-                            <th>{ "Status" }</th>
-                        </tr>
-                    </thead>
-                    <tbody> { list } </tbody>
-                </table>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#killModal">
-                {"Drop player"}
-                </button>
-                <div class="modal fade" id="killModal" tabindex="-1" aria-labelledby="killModalLabel" aria-hidden="true">
-                  <div class="modal-dialog">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h1 class="modal-title fs-5" id="exampleModalLabel">{"Kill round confirmation"}</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                      </div>
-                      <div class="modal-body">
-                        {"Do you REALLY want to drop this player?"}
-                      </div>
-                      <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{"Go back"}</button>
-                        <button type="button" onclick={ dropplayer } class="btn btn-primary" data-bs-dismiss="modal">{"Kill round"}</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            </>
         }
     }
 }

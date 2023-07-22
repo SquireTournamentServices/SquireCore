@@ -2,6 +2,7 @@ use yew::{Component, Context};
 
 use crate::{utils::console_log, ON_UPDATE};
 
+pub mod model;
 pub mod creator;
 pub mod overview;
 pub mod pairings;
