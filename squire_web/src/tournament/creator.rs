@@ -10,11 +10,7 @@ use squire_sdk::{
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{
-    utils::{console_log, TextInput},
-    Route, CLIENT,
-};
-
+use crate::{utils::TextInput, Route, CLIENT};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TournamentCreator {
@@ -58,7 +54,6 @@ impl Component for TournamentCreator {
             TournamentCreatorMessage::CreateTourn => {
                 let new_tourn_name = self.new_tourn_name.clone();
                 ctx.link().send_future(async {
-                    console_log("Sending future...");
                     let _account = CLIENT.get().unwrap().get_user().clone();
                     let t_seed = TournamentSeed::new(
                         new_tourn_name,
@@ -66,15 +61,14 @@ impl Component for TournamentCreator {
                         "EDH".to_owned(),
                     )
                     .unwrap();
-                    console_log("Seed created!");
-                    let id = CLIENT.get().unwrap().create_tournament(t_seed).await;
-                    console_log("Tourn created!!!");
+                    let client = CLIENT.get().unwrap();
+                    let id = client.create_tournament(t_seed).await;
+                    let _ = client.persist_tourn_to_backend(id).await;
                     TournamentCreatorMessage::TournCreated(id)
                 });
                 false
             }
             TournamentCreatorMessage::TournCreated(id) => {
-                console_log("Tourn created! Routing...");
                 let navigator = ctx.link().navigator().unwrap();
                 navigator.push(&Route::Tourn { id });
                 false
@@ -106,7 +100,7 @@ impl Component for TournamentCreator {
         html! {
             <div class="container">
                 <div class="py-3">
-                    <TextInput label = {Cow::from("Tournament Name: ")} process = {ctx.link().callback(move |s| TournamentCreatorMessage::TournNameInput(s))} default_text={"Default Name".to_owned()} />
+                    <TextInput label = {Cow::from("Tournament Name: ")} process = {ctx.link().callback(move |s| TournamentCreatorMessage::TournNameInput(s))} default_text={ TournamentSeed::default_name() } />
                     <br />
                     <label for="format">{ "Format:" }</label>
                     <select name="format" id="format">

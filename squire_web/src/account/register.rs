@@ -48,8 +48,8 @@ impl Component for Register {
         let display_callback = ctx.link().callback(RegisterMessage::DisplayInput);
         let form = html! {
             <div>
-                <TextInput label = {Cow::from("Your name")} process = { name_callback } default_text={"Default Name".to_owned()} />
-                <TextInput label = {Cow::from("Display name")} process = { display_callback } default_text={"Default Name".to_owned()} />
+                <TextInput label = {Cow::from("Your name")} process = { name_callback } />
+                <TextInput label = {Cow::from("Display name")} process = { display_callback } />
             </div>
         };
         html! {

@@ -13,7 +13,7 @@ use super::{
     roundchangesbuffer::*, RoundConfirmationTicker, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
-use crate::{tournament::model::RoundProfile, utils::console_log, CLIENT};
+use crate::{tournament::model::RoundProfile, CLIENT};
 
 /// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]
@@ -80,7 +80,6 @@ impl SelectedRound {
                 true
             }
             SelectedRoundMessage::RoundSelected(r_id) => {
-                console_log(&format!("Round selected: {r_id}"));
                 if self
                     .round
                     .as_ref()
@@ -143,7 +142,6 @@ impl SelectedRound {
                 let tracker = CLIENT.get().unwrap().bulk_update(self.t_id, ops);
                 let send_op_result = send_op_result.clone();
                 spawn_local(async move {
-                    console_log("Waiting for update to finish!");
                     send_op_result.emit(tracker.process().await.unwrap())
                 });
                 false
@@ -182,7 +180,6 @@ impl SelectedRound {
                 .transpose()
                 .ok()
                 .flatten();
-            console_log(&format!("Round was found: {}", data.is_some()));
             RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(data))
         });
     }

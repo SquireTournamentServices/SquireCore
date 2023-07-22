@@ -9,7 +9,6 @@ use yew::{html, Component, Context, Html, Properties};
 
 use crate::{
     tournament::{overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*},
-    utils::console_log,
     CLIENT,
 };
 
@@ -126,13 +125,7 @@ impl Component for TournamentViewer {
                 digest
             }
             TournViewMessage::TournamentImported(listener) => {
-                console_log("Data ready!!");
                 let id = self.id;
-                console_log(if listener.is_some() {
-                    "Connection successful!!"
-                } else {
-                    "Connection failed..."
-                });
                 self.listener = listener;
                 ctx.link().send_future(async move {
                     let data = CLIENT
@@ -152,7 +145,6 @@ impl Component for TournamentViewer {
                 false
             }
             TournViewMessage::QueryReady(Some((name, admin_id))) => {
-                console_log("Tournament name ready and loaded!!");
                 let digest = self.tourn_name != name;
                 self.tourn_name = name;
                 self.admin_id = admin_id;

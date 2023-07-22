@@ -9,10 +9,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use super::PlayerSummary;
-use crate::{
-    utils::{console_log, TextInput},
-    CLIENT,
-};
+use crate::{utils::TextInput, CLIENT};
 
 #[derive(PartialEq, Properties)]
 pub struct PlayerFilterInputProps {
@@ -96,15 +93,12 @@ impl PlayerFilterInput {
                 let tracker = CLIENT.get().unwrap().update_tourn(
                     self.id,
                     TournOp::JudgeOp(
-                        self.admin_id.clone().into(),
+                        self.admin_id.into(),
                         JudgeOp::RegisterGuest(self.guest_name.as_ref().unwrap().clone()),
                     ),
                 );
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move {
-                    console_log("Waiting for update to finish!");
-                    send_op_result.emit(tracker.process().await.unwrap())
-                });
+                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
                 false
             }
         }

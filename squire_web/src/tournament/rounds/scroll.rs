@@ -5,7 +5,7 @@ use squire_sdk::model::{
 use yew::prelude::*;
 
 use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
-use crate::{utils::console_log, CLIENT};
+use crate::CLIENT;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RoundScrollMessage {
@@ -20,7 +20,6 @@ pub struct RoundScroll {
 
 fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
     ctx.link().send_future(async move {
-        console_log("Fetching round summaries...");
         let mut data = CLIENT
             .get()
             .unwrap()

@@ -1,6 +1,6 @@
 use yew::{Component, Context};
 
-use crate::{utils::console_log, ON_UPDATE};
+use crate::ON_UPDATE;
 
 pub mod creator;
 pub mod model;
@@ -18,10 +18,8 @@ where
     M: 'static,
 {
     let recv = ON_UPDATE.get().unwrap().clone();
-    console_log("Spawning update messenger");
     ctx.link().send_future(async move {
         let to_return = recv.recv().await.map(|_| msg).unwrap();
-        console_log("Update recieved!");
         to_return
     })
 }
