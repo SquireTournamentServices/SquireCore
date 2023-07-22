@@ -19,7 +19,7 @@ use pairings::*;
 use scoring::*;
 
 use super::spawn_update_listener;
-use crate::{utils::console_log, CLIENT};
+use crate::CLIENT;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SettingsMessage {
@@ -56,7 +56,6 @@ impl SettingsView {
                 .process()
                 .await
                 .unwrap_or_else(TournamentSettingsTree::new);
-            console_log("Got settings from tournament...");
             SettingsMessage::QueryReady(Box::new(settings))
         })
     }
@@ -88,14 +87,11 @@ impl Component for SettingsView {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            SettingsMessage::Setting(setting) => {
-                console_log(&format!("Got setting: {setting:?}"));
-                match setting {
-                    TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
-                    TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
-                    TournamentSetting::ScoringSetting(_) => false,
-                }
-            }
+            SettingsMessage::Setting(setting) => match setting {
+                TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
+                TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
+                TournamentSetting::ScoringSetting(_) => false,
+            },
             SettingsMessage::Submitted => {
                 let client = CLIENT.get().unwrap();
                 let iter = self
@@ -105,23 +101,17 @@ impl Component for SettingsView {
                     .chain(self.pairings.get_changes())
                     .map(|s| TournOp::AdminOp(self.admin_id, s.into()))
                     .collect::<Vec<_>>();
-                console_log(&format!("Submitting settings: {iter:?}"));
                 let tracker = client.bulk_update(self.id, iter);
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move {
-                    console_log("Waiting for update to finish!");
-                    send_op_result.emit(tracker.process().await.unwrap())
-                });
+                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
                 false
             }
             SettingsMessage::ReQuery => {
                 spawn_update_listener(ctx, SettingsMessage::ReQuery);
-                console_log("Time to requery");
                 self.send_query(ctx);
                 false
             }
             SettingsMessage::QueryReady(settings) => {
-                console_log("Query ready!!");
                 let TournamentSettingsTree {
                     general,
                     pairing,

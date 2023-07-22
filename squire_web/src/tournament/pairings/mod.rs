@@ -12,7 +12,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
-    utils::{console_log, generic_popout_window, generic_scroll_vnode, TextInput},
+    utils::{generic_popout_window, generic_scroll_vnode, TextInput},
     CLIENT,
 };
 
@@ -141,7 +141,6 @@ impl Component for PairingsView {
                 });
                 let send_pairings = self.send_pairings.clone();
                 spawn_local(async move {
-                    console_log("Waiting for update to finish!");
                     send_pairings.emit(tracker.process().await.unwrap())
                 });
                 false
@@ -159,7 +158,6 @@ impl Component for PairingsView {
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
-                    console_log("Waiting for update to finish!");
                     send_op_result.emit(tracker.process().await.unwrap())
                 });
                 true
@@ -225,7 +223,6 @@ impl Component for PairingsView {
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
-                    console_log("Waiting for update to finish!");
                     send_op_result.emit(tracker.process().await.unwrap())
                 });
                 true
@@ -247,7 +244,6 @@ impl Component for PairingsView {
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
-                    console_log("Waiting for update to finish!");
                     send_op_result.emit(tracker.process().await.unwrap())
                 });
                 true
@@ -312,7 +308,6 @@ impl PairingsView {
         });
         let send_names = self.send_names.clone();
         spawn_local(async move {
-            console_log("Waiting for update to finish!");
             send_names.emit(tracker.process().await.unwrap())
         });
     }
@@ -327,7 +322,6 @@ impl PairingsView {
         });
         let send_active = self.send_active.clone();
         spawn_local(async move {
-            console_log("Waiting for update to finish!");
             send_active.emit(tracker.process().await.unwrap())
         });
     }
@@ -339,7 +333,6 @@ impl PairingsView {
             .query_tourn(self.id, |tourn| tourn.pairing_sys.common.match_size);
         let send_match_size = self.send_max_player_count.clone();
         spawn_local(async move {
-            console_log("Waiting for update to finish!");
             send_match_size.emit(tracker.process().await.unwrap())
         });
     }
@@ -425,7 +418,7 @@ impl PairingsView {
                 let name_string = format!("player {}: ", i + 1);
                 name_boxes.push(html!{
                     <>
-                    <TextInput label = {Cow::from(name_string)} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleRoundInput(i.into(), s)) } default_text={"Default Name".to_owned()} />
+                    <TextInput label = {Cow::from(name_string)} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleRoundInput(i.into(), s)) } />
                     <br/>
                     </>
                 })
@@ -447,7 +440,7 @@ impl PairingsView {
                     <h2>{ "Create a bye: " }</h2>
                     <div class="py-2">
                         <>
-                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleByeInput(s)) } default_text={"Default Name".to_owned()} />
+                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleByeInput(s)) } />
                         <br/>
                         </>
                     </div>

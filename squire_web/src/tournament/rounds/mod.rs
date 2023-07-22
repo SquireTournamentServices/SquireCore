@@ -5,7 +5,7 @@ use squire_sdk::model::{
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::{utils::console_log, CLIENT};
+use crate::CLIENT;
 
 pub mod creator;
 pub mod input;
@@ -89,7 +89,6 @@ impl Component for RoundsView {
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move {
-                    console_log("Waiting for update to finish!");
                     send_op_result.emit(tracker.process().await.unwrap())
                 });
                 false

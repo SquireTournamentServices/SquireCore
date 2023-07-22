@@ -2,7 +2,7 @@ use squire_sdk::model::{identifiers::TournamentId, tournament::Tournament};
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
-    utils::{console_log, generic_popout_window, generic_scroll_vnode},
+    utils::{generic_popout_window, generic_scroll_vnode},
     CLIENT,
 };
 
@@ -38,7 +38,6 @@ pub struct StandingsView {
 }
 
 pub fn fetch_standings_profile(ctx: &Context<StandingsView>, id: TournamentId) {
-    console_log("Standings are being fetched...");
     ctx.link().send_future(async move {
         let data = CLIENT
             .get()

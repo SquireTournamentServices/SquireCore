@@ -60,7 +60,7 @@ impl SettingPanel {
         };
         html! {
             <>
-            { format!("{}: {data} ", self.label) } <TextInput label = { Cow::Borrowed("change to ") } process = { process } default_text={"Default Name".to_owned()} />
+            { format!("{}: {data} ", self.label) } <TextInput label = { Cow::Borrowed("change to ") } process = { process } />
             </>
         }
     }
