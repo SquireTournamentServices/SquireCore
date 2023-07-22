@@ -1,16 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::time::Duration;
 
-use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use squire_sdk::{
     model::{
         identifiers::AdminId,
         operations::{AdminOp, JudgeOp},
-        players::PlayerId,
-        rounds::{Round, RoundId, RoundResult, RoundStatus},
-        tournament::Tournament,
+        rounds::{RoundId, RoundResult, RoundStatus},
     },
     tournaments::{OpResult, TournOp, TournamentId},
 };
@@ -21,90 +15,8 @@ use super::{
     roundchangesbuffer::*, RoundConfirmationTicker, RoundResultTicker, RoundsView,
     RoundsViewMessage,
 };
-use crate::{utils::console_log, CLIENT};
+use crate::{utils::console_log, CLIENT, tournament::model::RoundProfile};
 
-/// The set of data needed by the UI to display a round. Should be capable of rendering itself in
-/// HTML.
-///
-/// NOTE: Under construction
-#[derive(Debug, PartialEq, Clone)]
-pub struct RoundProfile {
-    pub id: RoundId,
-    pub order: Vec<PlayerId>,
-    pub player_names: HashMap<PlayerId, String>,
-    pub timer: DateTime<Utc>,
-    pub status: RoundStatus,
-    pub results: HashMap<PlayerId, u32>,
-    pub draws: u32,
-    pub confirmations: HashSet<PlayerId>,
-    pub length: std::time::Duration,
-    pub extensions: std::time::Duration,
-}
-impl RoundProfile {
-    pub fn new(tourn: &Tournament, rnd: &Round) -> Self {
-        Self {
-            id: rnd.id,
-            status: rnd.status,
-            order: rnd.players.clone(),
-            player_names: rnd
-                .players
-                .iter()
-                .filter_map(|p| {
-                    tourn
-                        .player_reg
-                        .players
-                        .get(p)
-                        .map(|plyr| (*p, plyr.name.clone()))
-                })
-                .collect(), // This is not a Vec<(PlayerId, String)>. This is a HashMap
-            length: rnd.length,
-            extensions: rnd.extension,
-            timer: rnd.timer,
-            results: rnd.results.clone(),
-            draws: rnd.draws,
-            confirmations: rnd.confirmations.clone(),
-        }
-    }
-
-    pub fn view(&self) -> Html {
-        // TODO: Remove unwrap here
-        let dur_left = ChronoDuration::from_std(self.length + self.extensions).unwrap()
-            - (Utc::now() - self.timer);
-        let list = self
-            .order
-            .iter()
-            .map(|pid| {
-                let player_name = self.player_names.get(pid).cloned().unwrap_or_default();
-                let player_wins = self.results.get(pid).cloned().unwrap_or_default();
-                let player_confirm = self.confirmations.get(pid).is_some();
-                html! {
-                    <tr>
-                        <td>{ player_name }</td>
-                        <td>{ player_wins }</td>
-                        <td>{ player_confirm }</td>
-                    </tr>
-                }
-            })
-            .collect::<Html>();
-        html! {
-            <>
-            <p>
-            { pretty_print_duration(dur_left) }
-            </p>
-            <table class="table">
-            <thead>
-                <tr>
-                    <th>{ "Name" }</th>
-                    <th>{ "Wins" }</th>
-                    <th>{ "Status" }</th>
-                </tr>
-            </thead>
-            <tbody> { list } </tbody>
-            </table>
-            </>
-        }
-    }
-}
 
 /// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]
@@ -434,22 +346,3 @@ impl RoundUpdater {
         }
     }
 }
-
-fn pretty_print_duration(dur: ChronoDuration) -> String {
-    let hours = dur.num_hours();
-    let mins = dur.num_minutes().abs();
-    let secs = dur.num_seconds().abs();
-    if hours >= 0 {
-        format!("Time left: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
-    } else {
-        format!("Over time: {}:{}:{}", hours.abs(), mins % 60, secs % 60)
-    }
-}
-
-/*
-fn round_description_table(rnd: RoundProfile) -> Html {
-    html! {
-        <>{ "Nope" }</>
-    }
-}
-*/
