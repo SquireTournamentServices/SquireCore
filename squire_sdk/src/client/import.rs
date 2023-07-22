@@ -6,7 +6,7 @@ use std::{
 
 use squire_lib::tournament::TournamentId;
 use tokio::sync::oneshot::{
-    channel as oneshot, error::TryRecvError, Receiver as OneshotReceiver, Sender as OneshotSender,
+    channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
 
 use crate::sync::TournamentManager;
@@ -45,11 +45,7 @@ impl ImportTracker {
 impl Future for ImportTracker {
     type Output = Option<TournamentId>;
 
-    fn poll(mut self: Pin<&mut Self>, _: &mut task::Context<'_>) -> Poll<Self::Output> {
-        match self.tracker.try_recv() {
-            Ok(val) => Poll::Ready(Some(val)),
-            Err(TryRecvError::Closed) => Poll::Ready(None),
-            Err(TryRecvError::Empty) => Poll::Pending,
-        }
+    fn poll(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut self.tracker).poll(cx).map(Result::ok)
     }
 }

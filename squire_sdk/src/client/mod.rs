@@ -57,12 +57,6 @@ impl SquireClient {
     /// to the backend server but the remote import might not be completed by the time the value is
     /// returned
     pub async fn create_tournament(&self, seed: TournamentSeed) -> TournamentId {
-        /*
-        let tourn = TournamentManager::new(self.user.clone(), seed);
-        let digest = tourn.id;
-        _ = self.sender.import(tourn).await;
-        digest
-        */
         self.sender
             .import(TournamentManager::new(self.user.clone(), seed))
             .await
