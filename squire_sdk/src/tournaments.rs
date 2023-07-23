@@ -15,7 +15,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct TournamentSummary {
     /// The unique identifier for the tournament -- this can be used to query the backend for more
-    /// information about a tournament (using [server::ServerState::get_tourn])
+    /// information about a tournament
     pub id: TournamentId,
     /// The display name of the tournament
     pub name: String,

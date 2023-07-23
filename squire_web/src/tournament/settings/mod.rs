@@ -1,6 +1,6 @@
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::{OpResult, TournOp, AdminOp},
+    operations::{AdminOp, OpResult, TournOp},
     settings::{
         GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree, SettingsTree,
         TournamentSetting, TournamentSettingsTree,
