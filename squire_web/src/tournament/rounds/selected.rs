@@ -2,8 +2,7 @@ use std::time::Duration;
 
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::{AdminOp, JudgeOp},
-    operations::{OpResult, TournOp},
+    operations::{AdminOp, JudgeOp, OpResult, TournOp},
     rounds::{RoundId, RoundResult, RoundStatus},
 };
 use wasm_bindgen_futures::spawn_local;
@@ -141,9 +140,7 @@ impl SelectedRound {
                 // Update methods return a tracker that is a future and needs to be awaited
                 let tracker = CLIENT.get().unwrap().bulk_update(self.t_id, ops);
                 let send_op_result = send_op_result.clone();
-                spawn_local(async move {
-                    send_op_result.emit(tracker.process().await.unwrap())
-                });
+                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
                 false
             }
             SelectedRoundMessage::BulkConfirm(rid) => {

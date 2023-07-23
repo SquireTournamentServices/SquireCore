@@ -82,7 +82,9 @@ impl SquireClient {
     }
 
     pub async fn persist_tourn_to_backend(&self, id: TournamentId) -> BackendImportStatus {
-        let Some(tourn) = self.sender.query(id, |tourn| tourn.clone()).await else { return BackendImportStatus::NotFound };
+        let Some(tourn) = self.sender.query(id, |tourn| tourn.clone()).await else {
+            return BackendImportStatus::NotFound;
+        };
         let res = self
             .post_request(TOURNAMENTS_ROUTE.as_str(), tourn)
             .await

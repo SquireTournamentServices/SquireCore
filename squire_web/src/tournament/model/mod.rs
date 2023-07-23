@@ -11,9 +11,8 @@ use squire_sdk::{
 };
 use yew::{html, Callback, Html};
 
-use crate::tournament::players::SubviewInfo;
-
 use super::{players::SelectedPlayerMessage, rounds::RoundSummary};
+use crate::tournament::players::SubviewInfo;
 
 /// The set of data needed by the UI to display a player. Should be capable of rendering itself in
 /// HTML.

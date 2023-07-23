@@ -71,7 +71,7 @@ impl Component for PlayerView {
             PlayerViewMessage::SelectedPlayer(msg) => {
                 ctx.link().send_message(PlayerViewMessage::ReQuery);
                 self.selected.update(ctx, msg)
-            },
+            }
             PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg),
             PlayerViewMessage::ReQuery => {
                 spawn_update_listener(ctx, PlayerViewMessage::ReQuery);

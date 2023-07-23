@@ -20,9 +20,7 @@ pub fn create_router(state: AppState) -> Router {
 }
 
 #[shuttle_runtime::main]
-async fn axum(
-    #[shuttle_shared_db::MongoDb] db_conn: Database,
-) -> shuttle_axum::ShuttleAxum {
+async fn axum(#[shuttle_shared_db::MongoDb] db_conn: Database) -> shuttle_axum::ShuttleAxum {
     let app_state = AppStateBuilder::with_db(db_conn).build();
     Ok(create_router(app_state).into())
 }

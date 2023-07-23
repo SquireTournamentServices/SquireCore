@@ -114,7 +114,10 @@ impl ScoringSettings {
 
     pub fn view(&self) -> Html {
         #[allow(irrefutable_let_patterns)]
-        let ScoringStyleSettingsTree::Standard(style) = &self.current.style else { panic!() };
+        let ScoringStyleSettingsTree::Standard(style) = &self.current.style
+        else {
+            panic!()
+        };
         html! {
             <div>
                 <h2>{ "Scoring Settings:" }</h2>

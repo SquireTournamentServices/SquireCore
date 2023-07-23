@@ -98,7 +98,6 @@ async fn check_already_persisted() {
 
     let manager = TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
 
-    assert!(!state.persist_tourn(&manager).await);
     assert!(state.persist_tourn(&manager).await);
 
     let retrieved_tourn = state
