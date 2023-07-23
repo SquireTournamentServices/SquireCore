@@ -19,6 +19,8 @@ pub struct TournamentSummary {
     pub id: TournamentId,
     /// The display name of the tournament
     pub name: String,
+    /// The display name of the tournament
+    pub format: String,
     /// The status of the tournament
     pub status: TournamentStatus,
 }
@@ -28,6 +30,7 @@ impl From<&Tournament> for TournamentSummary {
         Self {
             id: value.id,
             name: value.name.clone(),
+            format: value.settings.format.clone(),
             status: value.status,
         }
     }

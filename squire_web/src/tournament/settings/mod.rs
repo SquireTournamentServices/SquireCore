@@ -1,6 +1,6 @@
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::{OpResult, TournOp},
+    operations::{OpResult, TournOp, AdminOp},
     settings::{
         GeneralSettingsTree, PairingSettingsTree, ScoringSettingsTree, SettingsTree,
         TournamentSetting, TournamentSettingsTree,
@@ -27,6 +27,7 @@ pub enum SettingsMessage {
     QueryReady(Box<TournamentSettingsTree>),
     ReQuery,
     Submitted,
+    StartTourn,
 }
 
 #[derive(Debug, Properties, PartialEq)]
@@ -92,6 +93,13 @@ impl Component for SettingsView {
                 TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
                 TournamentSetting::ScoringSetting(_) => false,
             },
+            SettingsMessage::StartTourn => {
+                let op = TournOp::AdminOp(self.admin_id, AdminOp::Start);
+                let tracker = CLIENT.get().unwrap().update_tourn(self.id, op);
+                let send_op_result = self.send_op_result.clone();
+                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                false
+            }
             SettingsMessage::Submitted => {
                 let client = CLIENT.get().unwrap();
                 let iter = self
@@ -116,7 +124,7 @@ impl Component for SettingsView {
                     general,
                     pairing,
                     scoring,
-                } = *settings;
+                }: TournamentSettingsTree = *settings;
                 let emitter = ctx.link().callback(SettingsMessage::Setting);
                 self.general = GeneralSettings::new(emitter.clone(), general);
                 self.scoring = ScoringSettings::new(emitter.clone(), scoring);
@@ -128,9 +136,11 @@ impl Component for SettingsView {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let submit = ctx.link().callback(|_| SettingsMessage::Submitted);
+        let start = ctx.link().callback(|_| SettingsMessage::StartTourn);
         html! {
             <div>
                 <button onclick = { submit }> { "Update Settings"} </button>
+                <button onclick = { start }> { "Start Tourn"} </button>
                 { self.general.view() }
                 { self.pairings.view() }
                 { self.scoring.view() }

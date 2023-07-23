@@ -71,7 +71,10 @@ async fn tournament_pages() {
 
 #[tokio::test]
 async fn insert_fetch_tourn() {
-    let state = AppStateBuilder::new().database_name("SquireTesting_insert_fetch_tourn").build().await;
+    let state = AppStateBuilder::new()
+        .database_name("SquireTesting_insert_fetch_tourn")
+        .build()
+        .await;
     clear_database(state.clone()).await;
 
     let manager = TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
@@ -87,11 +90,13 @@ async fn insert_fetch_tourn() {
 
 #[tokio::test]
 async fn check_already_persisted() {
-    let state = AppStateBuilder::new().database_name("SquireTesting_check_already_persisted").build().await;
+    let state = AppStateBuilder::new()
+        .database_name("SquireTesting_check_already_persisted")
+        .build()
+        .await;
     clear_database(state.clone()).await;
 
-    let manager =
-        TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
+    let manager = TournamentManager::new(squire_tests::spoof_account(), squire_tests::get_seed());
 
     assert!(!state.persist_tourn(&manager).await);
     assert!(state.persist_tourn(&manager).await);

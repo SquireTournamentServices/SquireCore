@@ -4,7 +4,7 @@
 use async_std::channel::{unbounded, Receiver};
 use once_cell::sync::OnceCell;
 use squire_sdk::{
-    client::SquireClient,
+    client::{SquireClient, HOST_ADDRESS},
     model::{accounts::SquireAccount, identifiers::TournamentId},
 };
 use yew::prelude::*;
@@ -67,7 +67,7 @@ fn main() {
     };
 
     let client = SquireClient::builder()
-        .url("/".to_string())
+        .url(format!("http{HOST_ADDRESS}"))
         .account(SquireAccount::new("Tester".into(), "Tester".into()))
         .on_update(on_update)
         .build_unchecked();

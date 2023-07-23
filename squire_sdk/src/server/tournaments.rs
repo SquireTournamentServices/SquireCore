@@ -8,13 +8,17 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use http::StatusCode;
 use serde::Deserialize;
 use squire_lib::tournament::TournamentId;
 
 use super::gathering::{self, handle_new_onlooker};
 use crate::{
-    api::{GET_TOURNAMENT_ENDPOINT, LIST_TOURNAMENTS_ENDPOINT, SUBSCRIBE_ENDPOINT},
+    api::{
+        GET_TOURNAMENT_ENDPOINT, LIST_TOURNAMENTS_ENDPOINT, SUBSCRIBE_ENDPOINT, TOURNAMENTS_ROUTE,
+    },
     server::{state::ServerState, User},
+    sync::TournamentManager,
     tournaments::*,
     utils::Url,
 };
@@ -26,6 +30,7 @@ pub fn get_routes_and_init<S: ServerState>(state: S) -> Router<S> {
 
 pub fn get_routes<S: ServerState>() -> Router<S> {
     Router::new()
+        .route("/", post(import_tournament::<S>))
         .route(
             LIST_TOURNAMENTS_ENDPOINT.as_str(),
             get(get_tournament_list::<S>),
@@ -72,15 +77,29 @@ where
     GetTournamentResponse::new(state.get_tourn(id).await)
 }
 
+pub async fn import_tournament<S>(
+    State(state): State<S>,
+    Json(tourn): Json<TournamentManager>,
+) -> impl IntoResponse
+where
+    S: ServerState,
+{
+    match state.get_tourn(tourn.id).await {
+        Some(_) => StatusCode::BAD_REQUEST,
+        None => {
+            let _ = state.persist_tourn(&tourn).await;
+            StatusCode::OK
+        }
+    }
+}
+
 /// Adds a user to the gathering via a websocket
 pub async fn join_gathering<S>(
     user: User,
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {
-    println!("Got Websocket request...");
     ws.on_upgrade(move |ws| {
-        println!("Websocket request got upgraded...");
         handle_new_onlooker(id, user, ws)
     })
 }

@@ -15,7 +15,6 @@ use crate::{utils::TextInput, Route, CLIENT};
 #[derive(Debug, PartialEq, Clone)]
 pub struct TournamentCreator {
     pub tourn_list: Option<Vec<TournamentSummary>>,
-    pub send_tourn_list: Callback<Vec<TournamentSummary>>,
     pub send_create_tourn: Callback<TournamentId>,
     pub new_tourn_name: String,
 }
@@ -24,7 +23,7 @@ pub struct TournamentCreator {
 pub struct TournamentCreatorProps {}
 
 pub enum TournamentCreatorMessage {
-    TournsReady(Vec<TournamentSummary>),
+    TournsReady(Option<Vec<TournamentSummary>>),
     CreateTourn,
     TournCreated(TournamentId),
     TournNameInput(String),
@@ -35,20 +34,20 @@ impl Component for TournamentCreator {
     type Properties = TournamentCreatorProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let mut to_return = Self {
+        ctx.link().send_future(async {
+            TournamentCreatorMessage::TournsReady(CLIENT.get().unwrap().get_tourn_summaries().await)
+        });
+        Self {
             tourn_list: None,
-            send_tourn_list: ctx.link().callback(TournamentCreatorMessage::TournsReady),
             send_create_tourn: ctx.link().callback(TournamentCreatorMessage::TournCreated),
-            new_tourn_name: "Tournament Name".to_owned(),
-        };
-        to_return.query_tourns(ctx);
-        to_return
+            new_tourn_name: TournamentSeed::default_name(),
+        }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TournamentCreatorMessage::TournsReady(t_list) => {
-                self.tourn_list = Some(t_list);
+                self.tourn_list = t_list;
                 true
             }
             TournamentCreatorMessage::CreateTourn => {
@@ -81,18 +80,33 @@ impl Component for TournamentCreator {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let list = html! {
-            <>
-                <tr>
-                    <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
-                </tr>
-                <tr>
-                    <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
-                </tr>
-                <tr>
-                    <td>{ "Test Tourny" }</td><td>{ "EDH" }</td><td>{ "Active" }</td>
-                </tr>
-            </>
+        let list = if let Some(tourns) = &self.tourn_list {
+            tourns
+                .iter()
+                .map(
+                    |TournamentSummary {
+                         id,
+                         name,
+                         status,
+                         format,
+                     }| {
+                        let id = *id;
+                        let nav = ctx.link().navigator().unwrap();
+                        let cb = Callback::from(move |_| {
+                            nav.push(&Route::Tourn { id });
+                        });
+                        html! {
+                            <>
+                            <tr onclick = { cb }>
+                                <td>{ name }</td><td>{ format }</td><td>{ status }</td>
+                            </tr>
+                            </>
+                        }
+                    },
+                )
+                .collect::<Html>()
+        } else {
+            Html::default()
         };
         let onclick = ctx
             .link()
@@ -100,16 +114,7 @@ impl Component for TournamentCreator {
         html! {
             <div class="container">
                 <div class="py-3">
-                    <TextInput label = {Cow::from("Tournament Name: ")} process = {ctx.link().callback(move |s| TournamentCreatorMessage::TournNameInput(s))} default_text={ TournamentSeed::default_name() } />
-                    <br />
-                    <label for="format">{ "Format:" }</label>
-                    <select name="format" id="format">
-                        <option value="EDH">{ "EDH" }</option>
-                        <option value="Standard">{ "Standard" }</option>
-                        <option value="Pioneer">{ "Pioneer" }</option>
-                        <option value="Something else">{ "Something else" }</option>
-                    </select>
-                    <br />
+                    <TextInput label = {Cow::from("Tournament Name: ")} process = {ctx.link().callback(TournamentCreatorMessage::TournNameInput)} default_text={ self.new_tourn_name.clone() } />
                     <button {onclick}>{"Create Tournament"}</button>
                 </div>
                 <hr />
@@ -127,20 +132,5 @@ impl Component for TournamentCreator {
                 </div>
             </div>
         }
-    }
-}
-
-impl TournamentCreator {
-    fn query_tourns(&mut self, ctx: &Context<Self>) {
-        /*
-        let tracker: QueryTracker<Vec<TournamentSummary>> = todo!(); // Get list of active tourns
-        let send_tourn_list = self.send_tourn_list.clone();
-        spawn_local(async move {
-            console_log("Waiting for update to finish!");
-            send_tourn_list.emit(tracker.process().await.unwrap())
-        });
-        */
-        ctx.link()
-            .send_future(async { TournamentCreatorMessage::TournsReady(Vec::new()) })
     }
 }

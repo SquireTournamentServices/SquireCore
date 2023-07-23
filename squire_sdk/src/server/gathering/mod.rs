@@ -91,7 +91,6 @@ impl Gathering {
     }
 
     async fn run(mut self) -> ! {
-        println!("Running gathering for tournament: {}", self.tourn.id);
         loop {
             tokio::select! {
                 msg = self.messages.recv() =>
