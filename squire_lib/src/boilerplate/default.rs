@@ -9,8 +9,10 @@ use crate::{
     r64,
     settings::{
         CommonScoringSettingsTree, FluidPairingSettingsTree, GeneralSettingsTree,
-        PairingCommonSettingsTree, StandardScoringSettingsTree, SwissPairingSettingsTree, ScoringStyleSettingsTree, PairingSettingsTree, PairingStyleSettingsTree,
-    }, tournament::TournamentPreset,
+        PairingCommonSettingsTree, PairingSettingsTree, PairingStyleSettingsTree,
+        ScoringStyleSettingsTree, StandardScoringSettingsTree, SwissPairingSettingsTree,
+    },
+    tournament::TournamentPreset,
 };
 
 /* --------- Defaults for settings trees --------- */
@@ -32,7 +34,8 @@ impl Default for GeneralSettingsTree {
 
 impl Default for PairingCommonSettingsTree {
     fn default() -> Self {
-        Self { match_size: 2,
+        Self {
+            match_size: 2,
             repair_tolerance: 0,
             algorithm: PairingAlgorithm::Branching,
         }

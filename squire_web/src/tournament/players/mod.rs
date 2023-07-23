@@ -68,7 +68,10 @@ impl Component for PlayerView {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             PlayerViewMessage::FilterInput(msg) => self.input.update(msg),
-            PlayerViewMessage::SelectedPlayer(msg) => self.selected.update(ctx, msg),
+            PlayerViewMessage::SelectedPlayer(msg) => {
+                ctx.link().send_message(PlayerViewMessage::ReQuery);
+                self.selected.update(ctx, msg)
+            },
             PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg),
             PlayerViewMessage::ReQuery => {
                 spawn_update_listener(ctx, PlayerViewMessage::ReQuery);

@@ -20,7 +20,7 @@ use super::{
     query::{query_channel, QueryTracker, TournamentQuery},
     subscription::{sub_channel, SubTracker, TournamentSub},
     update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
-    OnUpdate,
+    OnUpdate, HOST_ADDRESS,
 };
 use crate::{
     api::SUBSCRIBE_ROUTE,
@@ -244,7 +244,7 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
             // Tournament is cached but there is no communication for it
             None => {
                 let url = format!(
-                    "ws://localhost:8000{}",
+                    "ws{HOST_ADDRESS}{}",
                     SUBSCRIBE_ROUTE.replace([id.to_string().as_str()])
                 );
                 match create_ws_connection(&url).await {
@@ -264,7 +264,7 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
         // Tournament is not cached
         Entry::Vacant(entry) => {
             let url = format!(
-                "ws://localhost:8000{}",
+                "ws{HOST_ADDRESS}{}",
                 SUBSCRIBE_ROUTE.replace([id.to_string().as_str()])
             );
             match create_ws_connection(&url).await {

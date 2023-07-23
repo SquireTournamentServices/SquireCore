@@ -111,7 +111,6 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         Ok(Default::default())
         /*
-        println!("Loading Cookies from parts...");
         let cookies = parts
             .extract::<TypedHeader<headers::Cookie>>()
             .await
@@ -123,16 +122,13 @@ where
                 _ => panic!("unexpected error getting cookies: {e}"),
             })?;
 
-        println!("Looking for correct cookie:\n{cookies:?}");
         let session_cookie = cookies.get(COOKIE_NAME).ok_or(StatusCode::FORBIDDEN)?;
 
-        println!("Loading Session...");
         let session = state
             .load_session(session_cookie.to_string())
             .await
             .unwrap()
             .ok_or(StatusCode::FORBIDDEN)?;
-        println!("Session loaded successfully!");
 
         session.get("user").ok_or(StatusCode::FORBIDDEN)
         */

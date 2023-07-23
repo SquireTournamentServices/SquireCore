@@ -50,7 +50,6 @@ impl PlayerScroll {
     pub fn update(&mut self, msg: PlayerScrollMessage) -> bool {
         match msg {
             PlayerScrollMessage::ScrollQueryReady(data) => {
-                web_sys::console::log_1(&format!("Player scroll data ready and loaded!!").into());
                 let digest = self.players != data;
                 self.players = data;
                 digest

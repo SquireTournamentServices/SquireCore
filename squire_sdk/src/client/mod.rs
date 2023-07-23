@@ -12,14 +12,22 @@ use self::{
     update::{UpdateTracker, UpdateType},
 };
 use crate::{
-    api::GET_TOURNAMENT_ROUTE,
+    api::{LIST_TOURNAMENTS_ROUTE, TOURNAMENTS_ROUTE},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
     sync::TournamentManager,
+    tournaments::TournamentSummary,
     version::ServerMode,
 };
+
+#[cfg(not(debug_assertions))]
+/// The address of the service one Shuttle
+pub const HOST_ADDRESS: &str = "s://squire.shuttleapp.rs";
+#[cfg(debug_assertions)]
+/// The address of the local hosh
+pub const HOST_ADDRESS: &str = "://localhost:8000";
 
 pub trait OnUpdate: 'static + Send + FnMut(TournamentId) {}
 
@@ -75,7 +83,10 @@ impl SquireClient {
 
     pub async fn persist_tourn_to_backend(&self, id: TournamentId) -> BackendImportStatus {
         let Some(tourn) = self.sender.query(id, |tourn| tourn.clone()).await else { return BackendImportStatus::NotFound };
-        let Ok(res) = self.post_request(&GET_TOURNAMENT_ROUTE.replace([id.to_string().as_str()]), tourn).await else { return BackendImportStatus::AlreadyImported };
+        let res = self
+            .post_request(TOURNAMENTS_ROUTE.as_str(), tourn)
+            .await
+            .unwrap();
         if res.status().is_success() {
             BackendImportStatus::Success
         } else {
@@ -95,7 +106,6 @@ impl SquireClient {
         self.sender.subscribe(id).await
     }
 
-    #[allow(dead_code)]
     async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {
         self.client.get(format!("{}{path}", self.url)).send().await
     }
@@ -154,6 +164,15 @@ impl SquireClient {
         T: 'static + Send,
     {
         self.sender.query(id, move |tourn| query(&tourn.round_reg))
+    }
+
+    pub async fn get_tourn_summaries(&self) -> Option<Vec<TournamentSummary>> {
+        let res = self
+            .get_request(&LIST_TOURNAMENTS_ROUTE.replace(["0"]))
+            .await
+            .ok()?;
+        let data = res.text().await.ok()?;
+        serde_json::from_str(&data).ok()
     }
 }
 

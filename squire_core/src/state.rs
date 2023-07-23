@@ -219,15 +219,18 @@ impl ServerState for AppState {
             .await
         {
             Ok(result) => result.matched_count != 0,
-            Err(e) => {
-                tracing::event!(
-                    Level::WARN,
-                    r#"Could not persist tournament with name "{}" and id "{}" due to error: {e}"#,
-                    tourn.tourn().name,
-                    tourn.tourn().id,
-                );
-                false
-            }
+            Err(_) => match self.get_tourns().insert_one(tourn, None).await {
+                Ok(_) => true,
+                Err(err) => {
+                    tracing::event!(
+                        Level::WARN,
+                        r#"Could not persist tournament with name "{}" and id "{}" due to error: {err}"#,
+                        tourn.tourn().name,
+                        tourn.tourn().id,
+                    );
+                    false
+                }
+            },
         }
     }
 }

@@ -11,7 +11,9 @@ use crate::{
     r64,
     rounds::{RoundContext, RoundRegistry},
     scoring::{Score, Standings},
-    settings::{PairingCommonSettingsTree, SwissPairingSetting, SwissPairingSettingsTree, SettingsTree},
+    settings::{
+        PairingCommonSettingsTree, SettingsTree, SwissPairingSetting, SwissPairingSettingsTree,
+    },
 };
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone, Hash, PartialEq, Eq)]
