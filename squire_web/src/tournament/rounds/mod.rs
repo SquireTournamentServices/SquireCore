@@ -88,9 +88,7 @@ impl Component for RoundsView {
                     TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::ConfirmAllRounds),
                 );
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move {
-                    send_op_result.emit(tracker.process().await.unwrap())
-                });
+                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
                 false
             }
         }
