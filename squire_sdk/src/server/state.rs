@@ -1,17 +1,13 @@
-use std::{error::Error, ops::Range, sync::Arc};
+use std::ops::Range;
 
 use async_session::{async_trait, SessionStore};
 use squire_lib::tournament::TournamentSeed;
 
 use crate::{
-    model::{
-        identifiers::SquireAccountId,
-        tournament::{TournamentId, TournamentPreset},
-    },
+    api::{TournamentSummary, Version},
+    model::tournament::TournamentId,
     server::User,
-    sync::{OpSync, TournamentManager},
-    tournaments::TournamentSummary,
-    version::Version,
+    sync::TournamentManager,
 };
 
 #[async_trait]

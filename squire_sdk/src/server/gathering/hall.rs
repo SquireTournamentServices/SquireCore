@@ -1,29 +1,21 @@
 use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
-    hash::Hash,
+    collections::{HashMap, HashSet},
     time::Duration,
 };
 
-use async_session::Session;
-use axum::extract::ws::{Message, WebSocket};
-use futures::{
-    stream::{SelectAll, SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
+use axum::extract::ws::WebSocket;
 use squire_lib::tournament::TournamentId;
 use tokio::{
     sync::{
         mpsc::{channel, Receiver, Sender},
-        oneshot::{channel as oneshot_channel, Sender as OneshotSender},
+        oneshot::channel as oneshot_channel,
         OnceCell,
     },
     time::Instant,
 };
 
 use super::{Gathering, GatheringMessage, PersistMessage, ServerState, User};
-use crate::sync::{
-    ClientBound, ClientBoundMessage, OpSync, ServerBound, ServerBoundMessage, TournamentManager,
-};
+use crate::sync::TournamentManager;
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
 
@@ -123,7 +115,8 @@ impl<S: ServerState> GatheringHall<S> {
                         let sender = self.gatherings.get_mut(&id).unwrap();
                         let (send, recv) = oneshot_channel();
                         let msg = GatheringMessage::GetTournament(send);
-                        sender.send(msg);
+                        // If the listener is full, we continue on
+                        let _send_fut = sender.send(msg);
                         let tourn = recv.await.unwrap();
                         _ = persist_reqs.insert(id, tourn);
                     }

@@ -29,7 +29,7 @@ macro_rules! extend {
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Url<const N: usize> {
     pub(crate) route: &'static str,
     pub(crate) replacements: [&'static str; N],

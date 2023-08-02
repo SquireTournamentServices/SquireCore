@@ -23,7 +23,7 @@ use super::{
     OnUpdate, HOST_ADDRESS,
 };
 use crate::{
-    api::SUBSCRIBE_ROUTE,
+    api::{GetRequest, Subscribe},
     sync::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
         OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, TournamentManager,
@@ -234,6 +234,7 @@ fn handle_query(state: &ManagerState, query: TournamentQuery) {
 }
 
 // Needs to take a &mut to the SelectAll WS listener so it can be updated if need be
+#[allow(clippy::needless_pass_by_ref_mut)]
 async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: TournamentSub) {
     match state.cache.entry(id) {
         Entry::Occupied(mut entry) => match &mut entry.get_mut().comm {
@@ -245,7 +246,7 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
             None => {
                 let url = format!(
                     "ws{HOST_ADDRESS}{}",
-                    SUBSCRIBE_ROUTE.replace([id.to_string().as_str()])
+                    <Subscribe as GetRequest<1>>::ROUTE.replace([id.to_string().as_str()])
                 );
                 match create_ws_connection(&url).await {
                     Ok(ws) => {
@@ -265,7 +266,7 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
         Entry::Vacant(entry) => {
             let url = format!(
                 "ws{HOST_ADDRESS}{}",
-                SUBSCRIBE_ROUTE.replace([id.to_string().as_str()])
+                <Subscribe as GetRequest<1>>::ROUTE.replace([id.to_string().as_str()])
             );
             match create_ws_connection(&url).await {
                 Ok(ws) => {
@@ -291,6 +292,7 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
     }
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 async fn handle_ws_msg<F>(state: &mut ManagerState, on_update: &mut F, msg: WebsocketMessage)
 where
     F: FnMut(TournamentId),
@@ -310,10 +312,12 @@ where
     }
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 fn handle_ws_err(_state: &mut ManagerState, err: WebsocketError) {
     panic!("Got error from Websocket: {err:?}")
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 async fn handle_server_op_link<F>(
     state: &mut ManagerState,
     on_update: &mut F,
@@ -353,6 +357,7 @@ async fn handle_server_op_link<F>(
     }
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 async fn handle_forwarded_sync<F>(
     state: &mut ManagerState,
     on_update: &mut F,
@@ -388,6 +393,7 @@ async fn create_ws_connection(url: &str) -> Result<Websocket, ()> {
     Websocket::new(url).await
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 async fn wait_for_tourn(stream: &mut SplitStream<Websocket>) -> TournamentManager {
     loop {
         let Some(Ok(WebsocketMessage::Bytes(msg))) = stream.next().await else {

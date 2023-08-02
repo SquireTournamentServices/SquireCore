@@ -1,14 +1,14 @@
+/*
 use axum::http::Request;
 use hyper::Body;
 use squire_sdk::{
-    api::{LOGIN_ROUTE, REGISTER_ACCOUNT_ROUTE},
+    api::*,
     model::tournament::TournamentPreset,
     tournaments::CreateTournamentRequest,
 };
 
 use crate::tests::utils::create_request;
 
-/*
 pub(crate) fn register_account_request() -> Request<Body> {
     let body = CreateAccountRequest {
         user_name: "Test User".into(),
