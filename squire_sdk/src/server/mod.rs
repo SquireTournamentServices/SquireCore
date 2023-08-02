@@ -1,19 +1,14 @@
-#![allow(unused)]
+use std::collections::HashMap;
 
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    net::SocketAddr,
-    sync::Arc,
-};
-
-use async_session::{async_trait, MemoryStore, SessionStore};
+use async_session::async_trait;
 use axum::{
-    extract::{rejection::TypedHeaderRejectionReason, FromRef, FromRequestParts, State},
+    body::{Body, HttpBody},
+    extract::{FromRequestParts, State},
+    handler::Handler,
     http::StatusCode,
-    routing::get,
-    RequestPartsExt, Router, TypedHeader,
+    Router,
 };
-use http::{header, request::Parts};
+use http::request::Parts;
 use serde::{Deserialize, Serialize};
 use squire_lib::{
     accounts::{SharingPermissions, SquireAccount},
@@ -22,44 +17,30 @@ use squire_lib::{
 use uuid::Uuid;
 
 use self::{gathering::init_gathering_hall, state::ServerState};
-use crate::{
-    api::{ACCOUNTS_ROUTE, API_BASE, TOURNAMENTS_ROUTE, VERSION_ENDPOINT, VERSION_ROUTE},
-    utils::Url,
-    version::ServerVersionResponse,
-    COOKIE_NAME,
-};
+use crate::api::*;
 
-//pub mod accounts;
-//mod cards;
 pub mod gathering;
 pub mod state;
 pub mod tournaments;
 
-fn get_routes<S>() -> Router<S>
-where
-    S: ServerState,
-{
-    Router::new().route(VERSION_ENDPOINT.as_str(), get(get_version::<S>))
+pub fn create_router<S: ServerState>(state: S) -> SquireRouter<S, Body> {
+    init_gathering_hall(state);
+    get_routes::<S>().merge(tournaments::get_routes::<S>())
 }
 
-pub fn create_router<S>(state: S) -> SquireRouter<S>
-where
-    S: ServerState,
-{
-    init_gathering_hall(state);
-    SquireRouter::new()
-        .extend(API_BASE, get_routes::<S>())
-        .extend(TOURNAMENTS_ROUTE, tournaments::get_routes::<S>())
+fn get_routes<S: ServerState>() -> SquireRouter<S> {
+    SquireRouter::new().add_route::<0, GET, GetVersion, _, _>(get_version::<S>)
 }
 
 #[derive(Debug)]
-pub struct SquireRouter<S> {
-    router: HashMap<&'static str, Router<S>>,
+pub struct SquireRouter<S, B = Body> {
+    router: Router<S, B>,
 }
 
-impl<S> SquireRouter<S>
+impl<S, B> SquireRouter<S, B>
 where
-    S: 'static + Clone + Send + Sync,
+    S: ServerState,
+    B: HttpBody + Send + 'static,
 {
     pub fn new() -> Self {
         Self {
@@ -67,31 +48,30 @@ where
         }
     }
 
-    pub fn extend<const N: usize>(mut self, url: Url<N>, new_router: Router<S>) -> Self {
-        let router = if let Some(router) = self.router.remove(url.as_str()) {
-            router.merge(new_router)
-        } else {
-            new_router
-        };
-        _ = self.router.insert(url.as_str(), router);
+    pub fn add_route<const N: usize, const M: u8, R, T, H>(self, handler: H) -> Self
+    where
+        R: RestRequest<N, M>,
+        T: 'static,
+        H: Handler<T, S, B>,
+    {
         Self {
-            router: self.router,
+            router: self.router.route(R::ROUTE.as_str(), R::as_route(handler)),
         }
     }
 
-    pub fn into_router(self) -> Router<S> {
-        let mut router = Router::new();
-        for (base, sub) in self.router {
-            router = router.nest(base, sub);
+    pub fn merge(self, Self { router }: Self) -> Self {
+        Self {
+            router: self.router.merge(router),
         }
+    }
+
+    pub fn into_router(self) -> Router<S, B> {
+        let Self { router } = self;
         router
     }
 }
 
-pub async fn get_version<S>(State(state): State<S>) -> ServerVersionResponse
-where
-    S: ServerState,
-{
+pub async fn get_version<S: ServerState>(State(state): State<S>) -> ServerVersionResponse {
     ServerVersionResponse::new(state.get_version())
 }
 
@@ -108,7 +88,7 @@ where
     // If anything goes wrong or no session is found, redirect to the auth page
     type Rejection = StatusCode;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         Ok(Default::default())
         /*
         let cookies = parts
@@ -135,9 +115,9 @@ where
     }
 }
 
-impl<S> Default for SquireRouter<S>
+impl<S> Default for SquireRouter<S, Body>
 where
-    S: 'static + Clone + Send + Sync,
+    S: ServerState,
 {
     fn default() -> Self {
         Self::new()

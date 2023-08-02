@@ -138,7 +138,7 @@ impl SwissPairings {
             .collect();
         let mut plyrs: Vec<PlayerId> = plyrs_and_scores.iter().map(|(p, _)| p).cloned().collect();
         let mut pairings = (*algorithm).as_alg()(
-            plyrs.drain(0..).collect(),
+            std::mem::take(&mut plyrs),
             &matches.opponents,
             *match_size as usize,
             *repair_tolerance,
@@ -151,7 +151,7 @@ impl SwissPairings {
             let grouped_plyrs: GroupMap<_, _> = plyrs_and_scores.iter().cloned().collect();
             plyrs.extend(grouped_plyrs.iter().filter_map(|(plyr, _)| plyr).cloned());
             let buffer = (*algorithm).as_alg()(
-                plyrs.drain(0..).collect(),
+                std::mem::take(&mut plyrs),
                 &matches.opponents,
                 *match_size as usize,
                 *repair_tolerance,

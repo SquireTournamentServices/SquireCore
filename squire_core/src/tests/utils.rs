@@ -1,15 +1,15 @@
 use axum::{body::HttpBody, http::Request, response::Response};
-use headers::{Cookie, HeaderName, HeaderValue};
+use headers::HeaderValue;
 use http::{
     header::{CONTENT_TYPE, SET_COOKIE},
     Method,
 };
 use hyper::Body;
 use serde::{de::DeserializeOwned, Serialize};
-use squire_sdk::utils::Url;
+use squire_sdk::api::Url;
 use tower::{Service, ServiceExt};
 
-use crate::{create_router, tests::init::get_app};
+use crate::tests::init::get_app;
 
 pub(crate) async fn send_request(req: Request<Body>) -> Response {
     get_app()

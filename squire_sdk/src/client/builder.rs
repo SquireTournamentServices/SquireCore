@@ -2,10 +2,7 @@ use reqwest::{Client, StatusCode};
 use squire_lib::accounts::SquireAccount;
 
 use super::{error::ClientError, management_task::spawn_management_task, OnUpdate, SquireClient};
-use crate::{
-    api::VERSION_ROUTE,
-    version::{ServerMode, Version},
-};
+use crate::api::{GetRequest, GetVersion, ServerMode, Version};
 
 /// A builder for the SquireClient. This builder is generic over most of its fields. This is used
 /// to gate access to the build methods, requiring all necessary fields are filled before
@@ -80,7 +77,13 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
             on_update,
         } = self;
         let client = Client::builder().build()?;
-        let resp = client.get(format!("{url}{VERSION_ROUTE}")).send().await?;
+        let resp = client
+            .get(format!(
+                "{url}{}",
+                <GetVersion as GetRequest<0>>::ROUTE.as_str()
+            ))
+            .send()
+            .await?;
         if resp.status() != StatusCode::OK {
             return Err(ClientError::FailedToConnect);
         }

@@ -5,7 +5,7 @@ use squire_sdk::{
         identifiers::TournamentId,
         tournament::{TournamentPreset, TournamentSeed},
     },
-    tournaments::TournamentSummary,
+    api::TournamentSummary,
 };
 use yew::prelude::*;
 use yew_router::prelude::*;

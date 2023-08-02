@@ -1,8 +1,8 @@
+/*
 use axum::http::Request;
 use hyper::Body;
-use squire_sdk::{model::tournament::TournamentPreset, tournaments::CreateTournamentRequest};
+use squire_sdk::model::tournament::TournamentPreset;
 
-/*
 pub fn register_account_request() -> Request<Body> {
     let body = CreateAccountRequest {
         user_name: "Test User".into(),

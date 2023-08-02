@@ -1,24 +1,11 @@
-use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
-    hash::Hash,
-    sync::Arc,
-    time::Duration,
-};
+use std::collections::HashMap;
 
-use async_session::Session;
-use axum::extract::ws::{Message, WebSocket};
-use futures::{
-    stream::{SelectAll, SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
+use axum::extract::ws::WebSocket;
+use futures::{stream::SelectAll, StreamExt};
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
-use tokio::{
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        oneshot::{channel as oneshot_channel, Sender as OneshotSender},
-        OnceCell,
-    },
-    time::Instant,
+use tokio::sync::{
+    mpsc::{Receiver, Sender},
+    oneshot::Sender as OneshotSender,
 };
 use uuid::Uuid;
 
@@ -87,7 +74,8 @@ impl Gathering {
     }
 
     fn send_persist_message(&mut self) {
-        self.persist.send(PersistMessage(self.tourn.id));
+        // If the persistance queue is full, we continue on
+        let _persist_fut = self.persist.send(PersistMessage(self.tourn.id));
     }
 
     async fn run(mut self) -> ! {
@@ -100,7 +88,7 @@ impl Gathering {
                 (user, msg) = self.forwarding.forward_retry() => {
                     match self.onlookers.get_mut(&user) {
                         Some(onlooker) => {
-                            onlooker.send_msg(&msg).await;
+                            let _ = onlooker.send_msg(&msg).await;
                             self.forwarding.update_timer(&msg.id);
                         },
                         None => {
@@ -244,21 +232,18 @@ impl Gathering {
         for (id, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != id) {
             self.forwarding
                 .add_msg(msg.id, *id, self.tourn.id, sync.clone());
-            onlooker.send_msg(&msg).await;
+            let _ = onlooker.send_msg(&msg).await;
         }
     }
 
     // TODO: This method does not actually check to see if the person that sent the request is
     // allowed to send such a return. This will need to eventually change
-    fn validate_sync_request(&mut self, sync: &OpSync) -> Result<(), SyncError> {
+    #[allow(unused_variables)]
+    fn validate_sync_request(&mut self, _sync: &OpSync) -> Result<(), SyncError> {
         Ok(())
     }
 
     fn handle_forwarding_resp(&mut self, id: &Uuid, _: SyncForwardResp) {
         self.forwarding.terminate_chain(id);
-    }
-
-    fn disperse(self) {
-        todo!()
     }
 }

@@ -116,7 +116,7 @@ impl<T> Default for TypeId<T> {
 
 impl<T> Clone for TypeId<T> {
     fn clone(&self) -> Self {
-        Self(self.0, PhantomData)
+        *self
     }
 }
 

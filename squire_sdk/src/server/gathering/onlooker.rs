@@ -13,7 +13,7 @@ use futures::{
 };
 use squire_lib::identifiers::SquireAccountId;
 
-use crate::{server::User, sync::ClientBoundMessage};
+use crate::sync::ClientBoundMessage;
 
 /// This structure captures messages being sent to a person that is in some way participating in
 /// the tournament. This person could be a spectator, player, judge, or admin. Messages they pass

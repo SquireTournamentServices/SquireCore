@@ -1,42 +1,33 @@
-use std::sync::Arc;
-
-use async_session::SessionStore;
 use axum::{
+    body::Body,
     extract::{Path, Query, State, WebSocketUpgrade},
-    handler::Handler,
     response::{IntoResponse, Response},
-    routing::{get, post},
-    Json, Router,
+    Json,
 };
 use http::StatusCode;
-use serde::Deserialize;
 use squire_lib::tournament::TournamentId;
 
-use super::gathering::{self, handle_new_onlooker};
+use super::{
+    gathering::{self, handle_new_onlooker},
+    SquireRouter,
+};
 use crate::{
-    api::{
-        GET_TOURNAMENT_ENDPOINT, LIST_TOURNAMENTS_ENDPOINT, SUBSCRIBE_ENDPOINT, TOURNAMENTS_ROUTE,
-    },
+    api::*,
     server::{state::ServerState, User},
     sync::TournamentManager,
-    tournaments::*,
-    utils::Url,
 };
 
-pub fn get_routes_and_init<S: ServerState>(state: S) -> Router<S> {
+pub fn get_routes_and_init<S: ServerState>(state: S) -> SquireRouter<S, Body> {
     gathering::init_gathering_hall(state);
     get_routes()
 }
 
-pub fn get_routes<S: ServerState>() -> Router<S> {
-    Router::new()
-        .route("/", post(import_tournament::<S>))
-        .route(
-            LIST_TOURNAMENTS_ENDPOINT.as_str(),
-            get(get_tournament_list::<S>),
-        )
-        .route(GET_TOURNAMENT_ENDPOINT.as_str(), get(get_tournament::<S>))
-        .route(SUBSCRIBE_ENDPOINT.as_str(), get(join_gathering::<S>))
+pub fn get_routes<S: ServerState>() -> SquireRouter<S> {
+    SquireRouter::new()
+        //.add_route("/", post(import_tournament::<S>))
+        .add_route::<1, GET, ListTournaments, _, _>(get_tournament_list::<S>)
+        .add_route::<1, GET, GetTournament, _, _>(get_tournament::<S>)
+        .add_route::<1, GET, Subscribe, _, _>(join_gathering::<S>)
 }
 
 /// Returns a list of [TournamentSummary], which can be used to see information about a collection

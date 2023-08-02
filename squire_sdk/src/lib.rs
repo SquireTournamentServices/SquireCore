@@ -20,13 +20,8 @@
     clippy::all,
 )]
 
-use serde::{Deserialize, Serialize};
 /// The module wraps and re-exports the squire_lib crate
 pub use squire_lib as model;
-
-pub mod api;
-pub mod sync;
-pub mod utils;
 
 pub static COOKIE_NAME: &str = "SQUIRE_SESSION";
 
@@ -38,20 +33,9 @@ pub mod client;
 /// The default client used by non-squire_core services to communicate with squire_core
 pub mod server;
 
-/// The errors used by this library
-pub mod error;
+/// Contains all of the API definitions
+pub mod api;
 /// The primary generic response type
 pub mod response;
-/// Request/response structs for SquireCore tournament apis
-pub mod tournaments;
-/// Request/response structs for server version
-pub mod version;
-
-/// A general-purpose enum to encode what to do with an accompanying value
-#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Action {
-    /// Add the value to a collection
-    Add,
-    /// Remove the value from a collection
-    Delete,
-}
+/// Contains all of the components needed for client-server synchronization
+pub mod sync;

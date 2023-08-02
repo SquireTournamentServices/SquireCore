@@ -1,7 +1,6 @@
 use std::fmt::{self, Debug};
 
-use reqwest::{header::CONTENT_TYPE, Client, Response};
-use serde::Serialize;
+use reqwest::{header::CONTENT_TYPE, Client};
 use tokio::sync::broadcast::Receiver as Subscriber;
 
 use self::{
@@ -12,14 +11,12 @@ use self::{
     update::{UpdateTracker, UpdateType},
 };
 use crate::{
-    api::{LIST_TOURNAMENTS_ROUTE, TOURNAMENTS_ROUTE},
+    api::{GetRequest, ListTournaments, PostRequest, ServerMode, TournamentSummary},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
     sync::TournamentManager,
-    tournaments::TournamentSummary,
-    version::ServerMode,
 };
 
 #[cfg(not(debug_assertions))]
@@ -85,11 +82,7 @@ impl SquireClient {
         let Some(tourn) = self.sender.query(id, |tourn| tourn.clone()).await else {
             return BackendImportStatus::NotFound;
         };
-        let res = self
-            .post_request(TOURNAMENTS_ROUTE.as_str(), tourn)
-            .await
-            .unwrap();
-        if res.status().is_success() {
+        if self.post_request(tourn, []).await.unwrap() {
             BackendImportStatus::Success
         } else {
             BackendImportStatus::AlreadyImported
@@ -108,19 +101,36 @@ impl SquireClient {
         self.sender.subscribe(id).await
     }
 
-    async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {
-        self.client.get(format!("{}{path}", self.url)).send().await
-    }
-
-    async fn post_request<B>(&self, path: &str, body: B) -> Result<Response, reqwest::Error>
+    async fn get_request<const N: usize, R>(
+        &self,
+        subs: [&str; N],
+    ) -> Result<R::Response, reqwest::Error>
     where
-        B: Serialize,
+        R: GetRequest<N>,
     {
         self.client
-            .post(format!("{}{path}", self.url))
+            .get(format!("{}{}", self.url, R::ROUTE.replace(subs)))
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
+    async fn post_request<const N: usize, B>(
+        &self,
+        body: B,
+        subs: [&str; N],
+    ) -> Result<B::Response, reqwest::Error>
+    where
+        B: PostRequest<N>,
+    {
+        self.client
+            .post(format!("{}{}", self.url, B::ROUTE.replace(subs)))
             .header(CONTENT_TYPE, "application/json")
             .body(serde_json::to_string(&body).unwrap())
             .send()
+            .await?
+            .json()
             .await
     }
 
@@ -169,12 +179,7 @@ impl SquireClient {
     }
 
     pub async fn get_tourn_summaries(&self) -> Option<Vec<TournamentSummary>> {
-        let res = self
-            .get_request(&LIST_TOURNAMENTS_ROUTE.replace(["0"]))
-            .await
-            .ok()?;
-        let data = res.text().await.ok()?;
-        serde_json::from_str(&data).ok()
+        self.get_request::<1, ListTournaments>(["0"]).await.ok()
     }
 }
 
