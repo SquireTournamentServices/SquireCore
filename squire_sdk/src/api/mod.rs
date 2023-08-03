@@ -77,7 +77,10 @@ mod tests {
 
     #[test]
     fn verify_tournament_routes() {
-        assert_eq!(<GetTournament as GetRequest<1>>::ROUTE.as_str(), "/api/v1/tournaments/:t_id");
+        assert_eq!(
+            <GetTournament as GetRequest<1>>::ROUTE.as_str(),
+            "/api/v1/tournaments/:t_id"
+        );
         assert_eq!(
             <ListTournaments as GetRequest<1>>::ROUTE.as_str(),
             "/api/v1/tournaments/list/:page"
@@ -89,6 +92,9 @@ mod tests {
 
     #[test]
     fn verify_misc_routes() {
-        assert_eq!(<GetVersion as GetRequest<0>>::ROUTE.as_str(), "/api/v1/version");
+        assert_eq!(
+            <GetVersion as GetRequest<0>>::ROUTE.as_str(),
+            "/api/v1/version"
+        );
     }
 }

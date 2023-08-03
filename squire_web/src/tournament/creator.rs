@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
 use squire_sdk::{
+    api::TournamentSummary,
     model::{
         identifiers::TournamentId,
         tournament::{TournamentPreset, TournamentSeed},
     },
-    api::TournamentSummary,
 };
 use yew::prelude::*;
 use yew_router::prelude::*;

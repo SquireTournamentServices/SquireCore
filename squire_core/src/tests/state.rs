@@ -1,8 +1,6 @@
 #![cfg(feature = "db-tests")]
 
-use squire_sdk::{
-    server::state::ServerState, sync::TournamentManager, api::*,
-};
+use squire_sdk::{api::*, server::state::ServerState, sync::TournamentManager};
 
 use crate::state::{AppState, AppStateBuilder};
 
