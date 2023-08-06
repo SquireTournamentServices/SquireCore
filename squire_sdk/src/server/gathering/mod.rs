@@ -9,7 +9,7 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
-use super::{state::ServerState, User};
+use super::{state::ServerState, session::UserSession};
 use crate::sync::{
     processor::{SyncCompletion, SyncDecision},
     ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
@@ -26,7 +26,7 @@ pub use onlooker::*;
 #[derive(Debug)]
 pub enum GatheringMessage {
     GetTournament(OneshotSender<TournamentManager>),
-    NewConnection(User, WebSocket),
+    NewConnection(UserSession, WebSocket),
 }
 
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
@@ -117,13 +117,13 @@ impl Gathering {
             GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
             GatheringMessage::NewConnection(user, ws) => {
                 let (sink, stream) = ws.split();
-                let crier = Crier::new(stream, user.account.id);
+                let crier = Crier::new(stream, user.0);
                 let onlooker = Onlooker::new(sink);
                 self.ws_streams.push(crier);
-                match self.onlookers.get_mut(&user.account.id) {
+                match self.onlookers.get_mut(&user.0) {
                     Some(ol) => *ol = onlooker,
                     None => {
-                        _ = self.onlookers.insert(user.account.id, onlooker);
+                        _ = self.onlookers.insert(user.0, onlooker);
                     }
                 }
             }

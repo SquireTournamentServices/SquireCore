@@ -10,10 +10,12 @@ use mongodb::{
 use squire_sdk::{
     api::*,
     model::{identifiers::TournamentId, tournament::TournamentSeed},
-    server::{state::ServerState, User},
+    server::{session::SquireSession, state::ServerState, User},
     sync::TournamentManager,
 };
 use tracing::Level;
+
+use crate::session::SessionStoreHandle;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
@@ -88,6 +90,7 @@ impl AppStateBuilder<Uri, DbName> {
         AppState {
             db_conn,
             tourn_coll,
+            sessions: SessionStoreHandle::new(),
         }
     }
 }
@@ -108,6 +111,7 @@ impl AppStateBuilder<Database, ()> {
         AppState {
             db_conn: self.db_conn,
             tourn_coll,
+            sessions: SessionStoreHandle::new(),
         }
     }
 }
@@ -129,6 +133,7 @@ impl<T, S> AppStateBuilder<T, S> {
 pub struct AppState {
     db_conn: Database,
     tourn_coll: Arc<str>,
+    sessions: SessionStoreHandle,
 }
 
 impl AppState {
@@ -163,7 +168,7 @@ impl ServerState for AppState {
         }
     }
 
-    async fn create_tourn(&self, _user: User, _seed: TournamentSeed) -> TournamentManager {
+    async fn get_session(&self) -> SquireSession {
         todo!()
     }
 
@@ -231,30 +236,5 @@ impl ServerState for AppState {
                 }
             },
         }
-    }
-}
-
-#[async_trait]
-impl SessionStore for AppState {
-    async fn load_session(
-        &self,
-        _cookie_value: String,
-    ) -> async_session::Result<Option<async_session::Session>> {
-        todo!()
-    }
-
-    async fn store_session(
-        &self,
-        _session: async_session::Session,
-    ) -> async_session::Result<Option<String>> {
-        todo!()
-    }
-
-    async fn destroy_session(&self, _session: async_session::Session) -> async_session::Result {
-        todo!()
-    }
-
-    async fn clear_store(&self) -> async_session::Result {
-        todo!()
     }
 }

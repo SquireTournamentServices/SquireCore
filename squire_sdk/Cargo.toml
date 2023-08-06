@@ -25,7 +25,7 @@ server = [
   "axum/headers",
   "tokio",
   "tokio/full",
-  "async-session",
+  "async-trait",
   "headers",
   "http",
   "serde_json",
@@ -65,7 +65,7 @@ tokio = { version = "1.33", features = [
 # Server deps
 axum = { version = "0.6.20", features = ["ws"], optional = true }
 rand = { version = "0.8.5", optional = true }
-async-session = { version = "3.0.0", optional = true }
+async-trait = { version = "0.1", optional = true }
 headers = { version = "0.3", optional = true }
 http = { version = "0.2", optional = true }
 

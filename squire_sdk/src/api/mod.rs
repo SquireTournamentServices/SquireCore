@@ -21,8 +21,8 @@ const GET_TOURNAMENT_ENDPOINT: Url<1> = Url::new("/:t_id", [":t_id"]);
 pub struct GetTournament;
 
 impl GetRequest<1> for GetTournament {
-    type Response = TournamentManager;
     const ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, GET_TOURNAMENT_ENDPOINT);
+    type Response = TournamentManager;
 }
 
 const LIST_TOURNAMENTS_ENDPOINT: Url<1> = Url::new("/list/:page", [":page"]);
@@ -31,8 +31,8 @@ const LIST_TOURNAMENTS_ENDPOINT: Url<1> = Url::new("/list/:page", [":page"]);
 pub struct ListTournaments;
 
 impl GetRequest<1> for ListTournaments {
-    type Response = Vec<TournamentSummary>;
     const ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, LIST_TOURNAMENTS_ENDPOINT);
+    type Response = Vec<TournamentSummary>;
 }
 
 const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("/subscribe/:t_id", [":t_id"]);
@@ -41,19 +41,31 @@ const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("/subscribe/:t_id", [":t_id"]);
 pub struct Subscribe;
 
 impl GetRequest<1> for Subscribe {
-    type Response = ();
     const ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, SUBSCRIBE_ENDPOINT);
+    type Response = ();
 }
 
 const IMPORT_TOURN_ENDPOINT: Url<0> = Url::from("/");
 
 impl PostRequest<0> for TournamentManager {
-    type Response = bool;
     const ROUTE: Url<0> = extend!(TOURNAMENTS_ROUTE, IMPORT_TOURN_ENDPOINT);
+    type Response = bool;
 }
 
 /* ---------- Account Routes ---------- */
-pub const ACCOUNTS_ROUTE: Url<0> = extend!(API_BASE, "/accounts");
+const ACCOUNTS_ROUTE: Url<0> = extend!(API_BASE, "/accounts");
+
+impl PostRequest<0> for CreateAccount {
+    const ROUTE: Url<0> = ACCOUNTS_ROUTE;
+    type Response = bool;
+}
+
+const LOGIN_ENDPOINT: Url<1> = Url::new("/:a_id", [":a_id"]);
+
+impl PostRequest<1> for Login {
+    const ROUTE: Url<1> = extend!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT);
+    type Response = bool;
+}
 
 /* ---------- Misc Routes ---------- */
 pub const VERSION_ENDPOINT: Url<0> = Url::from("/version");
@@ -62,8 +74,8 @@ pub const VERSION_ENDPOINT: Url<0> = Url::from("/version");
 pub struct GetVersion;
 
 impl GetRequest<0> for GetVersion {
-    type Response = Version;
     const ROUTE: Url<0> = extend!(API_BASE, VERSION_ENDPOINT);
+    type Response = Version;
 }
 
 #[cfg(test)]

@@ -9,13 +9,9 @@ use squire_lib::tournament::TournamentId;
 
 use super::{
     gathering::{self, handle_new_onlooker},
-    SquireRouter,
+    SquireRouter, session::UserSession,
 };
-use crate::{
-    api::*,
-    server::{state::ServerState, User},
-    sync::TournamentManager,
-};
+use crate::{api::*, server::state::ServerState, sync::TournamentManager};
 
 pub fn get_routes_and_init<S: ServerState>(state: S) -> SquireRouter<S, Body> {
     gathering::init_gathering_hall(state);
@@ -70,6 +66,7 @@ where
 
 pub async fn import_tournament<S>(
     State(state): State<S>,
+    _user: UserSession,
     Json(tourn): Json<TournamentManager>,
 ) -> impl IntoResponse
 where
@@ -86,7 +83,7 @@ where
 
 /// Adds a user to the gathering via a websocket
 pub async fn join_gathering<S>(
-    user: User,
+    user: UserSession,
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {
