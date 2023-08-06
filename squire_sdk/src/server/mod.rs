@@ -2,7 +2,7 @@ use axum::{
     body::{Body, HttpBody},
     extract::State,
     handler::Handler,
-    Router
+    Router,
 };
 
 use self::state::ServerState;
