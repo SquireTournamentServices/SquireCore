@@ -27,6 +27,8 @@ pub use accounts::*;
 pub use session::*;
 pub use tournaments::*;
 
+use crate::session::SessionStoreHandle;
+
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
 
