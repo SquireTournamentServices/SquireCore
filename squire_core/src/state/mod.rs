@@ -1,7 +1,8 @@
 use std::{borrow::Cow, ops::Range, sync::Arc};
 
-use async_session::{async_trait, SessionStore};
+use async_trait::async_trait;
 use futures::StreamExt;
+use http::HeaderValue;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
     options::{ClientOptions, FindOptions, Hint, UpdateModifications, UpdateOptions},
@@ -9,13 +10,17 @@ use mongodb::{
 };
 use squire_sdk::{
     api::*,
-    model::{identifiers::TournamentId, tournament::TournamentSeed},
-    server::{session::SquireSession, state::ServerState, User},
+    model::identifiers::{TournamentId, SquireAccountId},
+    server::{session::SquireSession, state::ServerState},
     sync::TournamentManager,
 };
 use tracing::Level;
 
-use crate::session::SessionStoreHandle;
+mod session;
+mod accounts;
+
+pub use session::*;
+pub use accounts::*;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
@@ -157,6 +162,18 @@ impl AppState {
             subtype: BinarySubtype::Generic,
         }}
     }
+
+    pub fn create_session(&self) -> Tracker<Vec<u8>> {
+        self.sessions.create()
+    }
+
+    pub fn reauth_session(&self, id: SquireAccountId) -> Tracker<Vec<u8>> {
+        self.sessions.reauth(id)
+    }
+
+    pub fn terminate_session(&self, id: SquireAccountId) -> Tracker<bool> {
+        self.sessions.delete(id)
+    }
 }
 
 #[async_trait]
@@ -168,8 +185,8 @@ impl ServerState for AppState {
         }
     }
 
-    async fn get_session(&self) -> SquireSession {
-        todo!()
+    async fn get_session(&self, header: HeaderValue) -> SquireSession {
+        self.sessions.get(header).await
     }
 
     async fn get_tourn_summaries(&self, including: Range<usize>) -> Vec<TournamentSummary> {

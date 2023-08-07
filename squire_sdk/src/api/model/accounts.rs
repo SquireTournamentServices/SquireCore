@@ -5,6 +5,3 @@ use squire_lib::accounts::SquireAccount;
 pub struct CreateAccount {
     account: SquireAccount,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Login;

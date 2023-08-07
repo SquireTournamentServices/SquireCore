@@ -33,7 +33,7 @@ pub enum SquireSession {
     /// Credentials were present and corresponded to a logged-in user
     Active(SquireAccountId),
     /// Credentials were present but were past the expiry
-    Expired,
+    Expired(SquireAccountId),
     /// Credentials were present but corresponded to an unknown user
     UnknownUser,
 }
@@ -59,6 +59,14 @@ pub enum UserSessionError {
     UnknownUser,
 }
 
+impl SessionConvert for SquireSession {
+    type Error = Infallible;
+
+    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+        Ok(session)
+    }
+}
+
 impl SessionConvert for UserSession {
     type Error = UserSessionError;
 
@@ -66,7 +74,7 @@ impl SessionConvert for UserSession {
         match session {
             SquireSession::Active(id) => Ok(Self(id)),
             SquireSession::NotLoggedIn => Err(UserSessionError::NotLoggedIn),
-            SquireSession::Expired => Err(UserSessionError::Expired),
+            SquireSession::Expired(_) => Err(UserSessionError::Expired),
             SquireSession::UnknownUser => Err(UserSessionError::UnknownUser),
         }
     }
@@ -84,7 +92,6 @@ pub trait SessionConvert: Sized {
     fn convert(session: SquireSession) -> Result<Self, Self::Error>;
 }
 
-#[async_trait]
 impl<St, Se> FromRequestParts<St> for Session<Se>
 where
     St: ServerState,

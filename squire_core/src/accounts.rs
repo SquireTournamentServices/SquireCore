@@ -9,7 +9,3 @@ pub async fn create_account(
 ) -> impl IntoResponse {
     todo!()
 }
-
-pub async fn login(State(_state): State<AppState>) -> impl IntoResponse {
-    todo!()
-}

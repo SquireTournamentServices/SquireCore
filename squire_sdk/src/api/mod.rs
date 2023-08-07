@@ -60,11 +60,24 @@ impl PostRequest<0> for CreateAccount {
     type Response = bool;
 }
 
+/* ---------- Session Routes ---------- */
+const SESSION_ROUTE: Url<0> = extend!(API_BASE, "/session");
+
 const LOGIN_ENDPOINT: Url<1> = Url::new("/:a_id", [":a_id"]);
 
 impl PostRequest<1> for Login {
-    const ROUTE: Url<1> = extend!(ACCOUNTS_ROUTE, LOGIN_ENDPOINT);
+    const ROUTE: Url<1> = extend!(SESSION_ROUTE, LOGIN_ENDPOINT);
     type Response = bool;
+}
+
+impl PostRequest<0> for Reauth {
+    const ROUTE: Url<0> = SESSION_ROUTE;
+    type Response = ();
+}
+
+impl DeleteRequest<0> for Terminate {
+    const ROUTE: Url<0> = SESSION_ROUTE;
+    type Response = ();
 }
 
 /* ---------- Misc Routes ---------- */
