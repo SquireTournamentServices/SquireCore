@@ -1,3 +1,4 @@
+/*
 use std::{
     net::SocketAddr,
     sync::atomic::{AtomicBool, Ordering},
@@ -8,7 +9,6 @@ use once_cell::sync::OnceCell;
 use squire_sdk::{client::SquireClient, server::User};
 use tokio::time::interval;
 
-/*
 use crate::server::AppState;
 
 pub mod startup;

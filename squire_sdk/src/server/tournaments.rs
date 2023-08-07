@@ -9,7 +9,7 @@ use squire_lib::tournament::TournamentId;
 
 use super::{
     gathering::{self, handle_new_onlooker},
-    SquireRouter, session::UserSession,
+    SquireRouter, session::{UserSession, Session},
 };
 use crate::{api::*, server::state::ServerState, sync::TournamentManager};
 
@@ -83,7 +83,7 @@ where
 
 /// Adds a user to the gathering via a websocket
 pub async fn join_gathering<S>(
-    user: UserSession,
+    Session(user): Session<UserSession>,
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {

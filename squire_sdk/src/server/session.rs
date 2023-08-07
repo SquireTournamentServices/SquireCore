@@ -22,6 +22,9 @@ use super::state::ServerState;
  *
  */
 
+/// An extractor for a session type that can be converted from a `SquireSession`.
+pub struct Session<T>(pub T);
+
 /// The general session type that is returned by the SessionStore
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SquireSession {
@@ -45,6 +48,66 @@ pub struct UserSession(pub SquireAccountId);
 pub enum AnySession {
     Guest,
     User(SquireAccountId),
+}
+
+pub enum UserSessionError {
+    /// Credentials were no present
+    NotLoggedIn,
+    /// Credentials were present but were past the expiry
+    Expired,
+    /// Credentials were present but corresponded to an unknown user
+    UnknownUser,
+}
+
+impl SessionConvert for UserSession {
+    type Error = UserSessionError;
+
+    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+        match session {
+            SquireSession::Active(id) => Ok(Self(id)),
+            SquireSession::NotLoggedIn => Err(UserSessionError::NotLoggedIn),
+            SquireSession::Expired => Err(UserSessionError::Expired),
+            SquireSession::UnknownUser => Err(UserSessionError::UnknownUser),
+        }
+    }
+}
+
+impl IntoResponse for UserSessionError {
+    fn into_response(self) -> Response {
+        StatusCode::UNAUTHORIZED.into_response()
+    }
+}
+
+pub trait SessionConvert: Sized {
+    type Error: IntoResponse;
+
+    fn convert(session: SquireSession) -> Result<Self, Self::Error>;
+}
+
+#[async_trait]
+impl<St, Se> FromRequestParts<St> for Session<Se>
+where
+    St: ServerState,
+    Se: SessionConvert,
+{
+    type Rejection = Se::Error;
+
+    fn from_request_parts<'life0, 'life1, 'async_trait>(
+        parts: &'life0 mut Parts,
+        state: &'life1 St,
+    ) -> Pin<Box<dyn 'async_trait + Send + Future<Output = Result<Self, Self::Rejection>>>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(async move {
+            let session = SquireSession::from_request_parts(parts, state)
+                .await
+                .unwrap();
+            Se::convert(session).map(Session)
+        })
+    }
 }
 
 #[async_trait]
@@ -72,55 +135,3 @@ where
     }
 }
 
-pub enum UserSessionError {
-    /// Credentials were no present
-    NotLoggedIn,
-    /// Credentials were present but were past the expiry
-    Expired,
-    /// Credentials were present but corresponded to an unknown user
-    UnknownUser,
-}
-
-impl TryFrom<SquireSession> for UserSession {
-    type Error = UserSessionError;
-
-    fn try_from(value: SquireSession) -> Result<Self, Self::Error> {
-        match value {
-            SquireSession::Active(id) => Ok(Self(id)),
-            SquireSession::NotLoggedIn => Err(UserSessionError::NotLoggedIn),
-            SquireSession::Expired => Err(UserSessionError::Expired),
-            SquireSession::UnknownUser => Err(UserSessionError::UnknownUser),
-        }
-    }
-}
-
-impl IntoResponse for UserSessionError {
-    fn into_response(self) -> Response {
-        StatusCode::UNAUTHORIZED.into_response()
-    }
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for UserSession
-where
-    S: ServerState,
-{
-    type Rejection = UserSessionError;
-
-    fn from_request_parts<'life0, 'life1, 'async_trait>(
-        parts: &'life0 mut Parts,
-        state: &'life1 S,
-    ) -> Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
-            SquireSession::from_request_parts(parts, state)
-                .await
-                .unwrap()
-                .try_into()
-        })
-    }
-}
