@@ -5,7 +5,7 @@ use axum::{
     extract::FromRequestParts,
     response::{IntoResponse, Response},
 };
-use http::{header::AUTHORIZATION, request::Parts, StatusCode};
+use http::{header::AUTHORIZATION, request::Parts, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use squire_lib::identifiers::SquireAccountId;
 
 use super::state::ServerState;
@@ -25,11 +25,16 @@ use super::state::ServerState;
 /// An extractor for a session type that can be converted from a `SquireSession`.
 pub struct Session<T>(pub T);
 
+/// The inner type used to represent all sessions
+pub struct SessionToken([u8; 32]);
+
 /// The general session type that is returned by the SessionStore
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SquireSession {
     /// Credentials were no present
     NotLoggedIn,
+    /// The user has a guest session
+    Guest,
     /// Credentials were present and corresponded to a logged-in user
     Active(SquireAccountId),
     /// Credentials were present but were past the expiry
@@ -38,17 +43,35 @@ pub enum SquireSession {
     UnknownUser,
 }
 
+/// The general session type that is returned by the SessionStore
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AnySession {
+    /// The user has a guest session
+    Guest,
+    /// Credentials were present and corresponded to a logged-in user
+    Active(SquireAccountId),
+    /// Credentials were present but were past the expiry
+    Expired(SquireAccountId),
+}
+
+impl SessionConvert for AnySession {
+    type Error = StatusCode;
+
+    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+        match session {
+            SquireSession::Guest => Ok(AnySession::Guest),
+            SquireSession::Active(id) => Ok(AnySession::Active(id)),
+            SquireSession::Expired(id) => Ok(AnySession::Expired(id)),
+            SquireSession::NotLoggedIn | SquireSession::UnknownUser => {
+                Err(StatusCode::UNAUTHORIZED)
+            }
+        }
+    }
+}
+
 /// The session of an active user
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UserSession(pub SquireAccountId);
-
-/// A session type for APIs that accept either authenticated or unauthenticated users but that need
-/// to distinquish between them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AnySession {
-    Guest,
-    User(SquireAccountId),
-}
 
 pub enum UserSessionError {
     /// Credentials were no present
@@ -57,6 +80,8 @@ pub enum UserSessionError {
     Expired,
     /// Credentials were present but corresponded to an unknown user
     UnknownUser,
+    /// Credentials were present but corresponded to a guest
+    Guest,
 }
 
 impl SessionConvert for SquireSession {
@@ -76,6 +101,7 @@ impl SessionConvert for UserSession {
             SquireSession::NotLoggedIn => Err(UserSessionError::NotLoggedIn),
             SquireSession::Expired(_) => Err(UserSessionError::Expired),
             SquireSession::UnknownUser => Err(UserSessionError::UnknownUser),
+            SquireSession::Guest => Err(UserSessionError::Guest),
         }
     }
 }
@@ -134,11 +160,55 @@ where
         Self: 'async_trait,
     {
         Box::pin(async move {
-            let Some(header) = parts.headers.get(AUTHORIZATION) else {
+            let Ok(token) = SessionToken::try_from(parts) else {
                 return Ok(Self::NotLoggedIn);
             };
-            Ok(state.get_session(header.clone()).await)
+            Ok(state.get_session(token).await)
         })
     }
 }
 
+impl SessionToken {
+    const HEADER_NAME: HeaderName = AUTHORIZATION;
+    // We don't want to implement Default here since the new function will generate a random token,
+    // which conflicts with the general mental model of Default
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        todo!("Generate random session token")
+    }
+
+    pub fn as_header(&self) -> (HeaderName, HeaderValue) {
+        (
+            AUTHORIZATION,
+            HeaderValue::from_str(&hex::encode(self.0)).unwrap(),
+        )
+    }
+}
+
+pub enum TokenParseError {
+    NoAuthHeader,
+    InvalidToken,
+}
+
+impl TryFrom<&mut Parts> for SessionToken {
+    type Error = TokenParseError;
+
+    fn try_from(parts: &mut Parts) -> Result<Self, Self::Error> {
+        match parts.headers.get(Self::HEADER_NAME) {
+            Some(header) => match header.as_bytes().try_into() {
+                Ok(inner) => Ok(Self(inner)),
+                Err(_) => Err(TokenParseError::InvalidToken),
+            },
+            None => Err(TokenParseError::NoAuthHeader),
+        }
+    }
+}
+
+impl IntoResponse for SessionToken {
+    fn into_response(self) -> Response {
+        let mut headers = HeaderMap::with_capacity(1);
+        let (name, value) = self.as_header();
+        let _ = headers.insert(name, value);
+        headers.into_response()
+    }
+}

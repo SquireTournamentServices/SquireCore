@@ -45,8 +45,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use http::HeaderValue;
-use squire_sdk::{model::identifiers::SquireAccountId, server::session::SquireSession};
+use squire_sdk::{model::identifiers::SquireAccountId, server::session::{SquireSession, SessionToken}};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::{channel as oneshot_channel, Receiver as OneshotReceiver, Sender as OneshotSender},
@@ -82,7 +81,7 @@ pub type SessionInner = Vec<u8>;
 
 pub enum SessionCommand {
     Create(OneshotSender<SessionInner>),
-    Get(HeaderValue, OneshotSender<SquireSession>),
+    Get(SessionToken, OneshotSender<SquireSession>),
     Reauth(SquireAccountId, OneshotSender<SessionInner>),
     Delete(SquireAccountId, OneshotSender<bool>),
 }
@@ -101,9 +100,9 @@ impl SessionStoreHandle {
         Tracker::new(recv)
     }
 
-    pub fn get(&self, header: HeaderValue) -> Tracker<SquireSession> {
+    pub fn get(&self, token: SessionToken) -> Tracker<SquireSession> {
         let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Get(header, send));
+        let _ = self.handle.send(SessionCommand::Get(token, send));
         Tracker::new(recv)
     }
 

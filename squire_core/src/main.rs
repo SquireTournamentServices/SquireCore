@@ -17,7 +17,8 @@ use state::{AppState, AppStateBuilder};
 pub fn create_router(state: AppState) -> Router {
     server::create_router::<AppState>(state.clone())
         .add_route::<0, POST, CreateAccount, _, _>(create_account)
-        .add_route::<1, POST, Login, _, _>(login)
+        .add_route::<0, POST, Login, _, _>(login)
+        .add_route::<0, POST, GuestSession, _, _>(guest)
         .add_route::<0, POST, Reauth, _, _>(reauth)
         .add_route::<0, DELETE, Terminate, _, _>(terminate)
         .into_router()

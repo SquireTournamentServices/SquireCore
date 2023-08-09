@@ -1,50 +1,38 @@
-use axum::{extract::State, response::IntoResponse};
-use http::StatusCode;
+use axum::{extract::State, Json};
 use squire_sdk::{
-    model::identifiers::SquireAccountId,
-    server::session::{Session, SessionConvert, SquireSession},
+    api::Login,
+    server::{
+        session::{AnySession, Session, SessionToken},
+        state::ServerState,
+    },
 };
 
 use crate::state::AppState;
 
 /// Takes user credentials (username and password) and returns a new session token to them
 /// (provided the credentials match known credentials).
-pub async fn login(State(_state): State<AppState>) -> impl IntoResponse {
-    todo!()
+pub async fn login(State(state): State<AppState>, Json(Login(cred)): Json<Login>) -> SessionToken {
+    state.create_session(cred).await
 }
 
-pub enum ReauthSession {
-    Active(SquireAccountId),
-    Expired(SquireAccountId),
-}
-
-impl SessionConvert for ReauthSession {
-    type Error = StatusCode;
-
-    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
-        match session {
-            SquireSession::Active(id) => Ok(Self::Active(id)),
-            SquireSession::Expired(id) => Ok(Self::Expired(id)),
-            SquireSession::NotLoggedIn | SquireSession::UnknownUser => {
-                Err(StatusCode::UNAUTHORIZED)
-            }
-        }
-    }
+/// Generates a guest session
+pub async fn guest(State(state): State<AppState>) -> SessionToken {
+    state.guest_session().await
 }
 
 /// Reauthenticates a user by issuing a new session token to them. The user must either have an
 /// active session or a recently expired session. Otherwise, they need to go through `login`.
 pub async fn reauth(
-    State(_state): State<AppState>,
-    Session(_session): Session<ReauthSession>,
-) -> impl IntoResponse {
-    todo!()
+    State(state): State<AppState>,
+    Session(session): Session<AnySession>,
+) -> SessionToken {
+    state.reauth_session(session).await
 }
 
 /// Terminates a session.
 pub async fn terminate(
-    State(_state): State<AppState>,
-    Session(_session): Session<ReauthSession>,
-) -> impl IntoResponse {
-    todo!()
+    State(state): State<AppState>,
+    Session(session): Session<AnySession>,
+) -> Json<bool> {
+    Json(state.terminate_session(session).await)
 }

@@ -1,11 +1,10 @@
 use std::ops::Range;
 
 use async_trait::async_trait;
-use http::HeaderValue;
 
-use super::session::SquireSession;
+use super::session::{AnySession, SquireSession, SessionToken};
 use crate::{
-    api::{TournamentSummary, Version},
+    api::{Credentials, TournamentSummary, Version},
     model::tournament::TournamentId,
     sync::TournamentManager,
 };
@@ -14,13 +13,12 @@ use crate::{
 pub trait ServerState: 'static + Clone + Send + Sync {
     fn get_version(&self) -> Version;
 
+    /* ------ Tournament-related methods ------ */
     async fn get_tourn_summaries(&self, including: Range<usize>) -> Vec<TournamentSummary>;
 
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager>;
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool;
-
-    async fn get_session(&self, header: HeaderValue) -> SquireSession;
 
     async fn bulk_persist<I>(&self, iter: I) -> bool
     where
@@ -35,4 +33,15 @@ pub trait ServerState: 'static + Clone + Send + Sync {
         }
         digest
     }
+
+    /* ------ Session-related methods ------ */
+    async fn create_session(&self, cred: Credentials) -> SessionToken;
+
+    async fn guest_session(&self) -> SessionToken;
+
+    async fn get_session(&self, token: SessionToken) -> SquireSession;
+
+    async fn reauth_session(&self, session: AnySession) -> SessionToken;
+
+    async fn terminate_session(&self, session: AnySession) -> bool;
 }

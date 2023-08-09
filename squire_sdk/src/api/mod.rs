@@ -63,11 +63,18 @@ impl PostRequest<0> for CreateAccount {
 /* ---------- Session Routes ---------- */
 const SESSION_ROUTE: Url<0> = extend!(API_BASE, "/session");
 
-const LOGIN_ENDPOINT: Url<1> = Url::new("/:a_id", [":a_id"]);
+const LOGIN_ENDPOINT: Url<0> = Url::from("/login");
 
-impl PostRequest<1> for Login {
-    const ROUTE: Url<1> = extend!(SESSION_ROUTE, LOGIN_ENDPOINT);
+impl PostRequest<0> for Login {
+    const ROUTE: Url<0> = extend!(SESSION_ROUTE, LOGIN_ENDPOINT);
     type Response = bool;
+}
+
+const GUEST_ENDPOINT: Url<0> = Url::from("/guest");
+
+impl PostRequest<0> for GuestSession {
+    const ROUTE: Url<0> = extend!(SESSION_ROUTE, GUEST_ENDPOINT);
+    type Response = ();
 }
 
 impl PostRequest<0> for Reauth {
