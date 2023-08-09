@@ -127,6 +127,32 @@ impl SessionConvert for AnyUser {
     }
 }
 
+/// The general session type that is returned by the SessionStore
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AnySession {
+    /// The user has a guest session
+    Guest,
+    /// Credentials were present and corresponded to a logged-in user
+    Active(SquireAccountId),
+    /// Credentials were present but were past the expiry
+    Expired(SquireAccountId),
+}
+
+impl SessionConvert for AnySession {
+    type Error = StatusCode;
+
+    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+        match session {
+            SquireSession::Guest => Ok(AnySession::Guest),
+            SquireSession::Active(id) => Ok(AnySession::Active(id)),
+            SquireSession::Expired(id) => Ok(AnySession::Expired(id)),
+            SquireSession::NotLoggedIn | SquireSession::UnknownUser => {
+                Err(StatusCode::UNAUTHORIZED)
+            }
+        }
+    }
+}
+
 /// The session of an active user
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UserSession(pub SquireAccountId);

@@ -247,4 +247,24 @@ impl ServerState for AppState {
             .await
             .map(SessionWatcher::new)
     }
+
+    async fn get_session(&self, token: SessionToken) -> SquireSession {
+        self.sessions.get(token).await
+    }
+
+    async fn create_session(&self, cred: Credentials) -> SessionToken {
+        todo!()
+    }
+
+    async fn guest_session(&self) -> SessionToken {
+        todo!()
+    }
+
+    async fn reauth_session(&self, session: AnySession) -> SessionToken {
+        todo!()
+    }
+
+    async fn terminate_session(&self, session: AnySession) -> bool {
+        todo!()
+    }
 }
