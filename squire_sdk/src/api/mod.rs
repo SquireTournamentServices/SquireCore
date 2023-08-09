@@ -90,6 +90,13 @@ impl PostRequest<0> for GuestSession {
     type Response = ();
 }
 
+const GUEST_ENDPOINT: Url<0> = Url::from("/guest");
+
+impl PostRequest<0> for GuestSession {
+    const ROUTE: Url<0> = extend!(SESSION_ROUTE, GUEST_ENDPOINT);
+    type Response = ();
+}
+
 impl PostRequest<0> for Reauth {
     const ROUTE: Url<0> = SESSION_ROUTE;
     type Response = ();
