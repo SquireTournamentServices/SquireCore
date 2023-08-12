@@ -8,7 +8,10 @@ use web_sys::{window, HtmlDialogElement};
 use yew::{html, Component, Context, Html, Properties};
 
 use crate::{
-    tournament::{overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*},
+    tournament::{
+        overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*,
+        viewer_component::TournViewerComponentWrapper,
+    },
     CLIENT,
 };
 
@@ -83,7 +86,8 @@ impl TournamentViewer {
             }
             TournViewMode::Pairings => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
-                html!( <PairingsView id = {self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> )
+                let inner_props = PairingsViewProps {};
+                html!( <TournViewerComponentWrapper<PairingsView> t_id = {self.id } a_id = { self.admin_id } send_op_result = {send_op_result} props = {inner_props} /> )
             }
             TournViewMode::Standings => {
                 html! { <StandingsView id = { self.id }/> }
