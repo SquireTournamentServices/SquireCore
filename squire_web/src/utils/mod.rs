@@ -25,10 +25,10 @@ where
 */
 
 /*
-pub fn tabularize<H, I, T, M>(header: H, iter: I, map: M) -> Html 
+pub fn tabularize<H, I, T, M>(header: H, iter: I, map: M) -> Html
 where
-H: Iterator<Item=String>, 
-I: Iterator<Item=T>, 
+H: Iterator<Item=String>,
+I: Iterator<Item=T>,
 M: FnMut(T) -> IntoIterator<Item=String, IntoIter=String>
 {
     let list = iter
