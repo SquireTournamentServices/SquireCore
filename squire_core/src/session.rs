@@ -9,7 +9,7 @@ use squire_sdk::{
     },
 };
 
-use crate::state::AppState;
+use crate::state::{AppState, LoginError};
 
 /// Takes user credentials (username and password) and returns a new session token to them
 /// (provided the credentials match known credentials).
