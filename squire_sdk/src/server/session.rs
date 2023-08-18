@@ -1,6 +1,5 @@
 use std::{convert::Infallible, future::Future, pin::Pin};
 
-use async_trait::async_trait;
 use axum::{
     extract::FromRequestParts,
     response::{IntoResponse, Response},
@@ -26,46 +25,57 @@ use super::state::ServerState;
 pub struct Session<T>(pub T);
 
 /// The inner type used to represent all sessions
-pub struct SessionToken([u8; 32]);
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct SessionToken(pub [u8; 32]);
+
+impl From<[u8; 32]> for SessionToken {
+    fn from(value: [u8; 32]) -> Self {
+        Self(value)
+    }
+}
 
 /// The general session type that is returned by the SessionStore
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SquireSession {
     /// Credentials were no present
     NotLoggedIn,
+    /// Credentials were present but corresponded to an unknown user
+    UnknownUser,
     /// The user has a guest session
-    Guest,
+    Guest(SessionToken),
     /// Credentials were present and corresponded to a logged-in user
     Active(SquireAccountId),
     /// Credentials were present but were past the expiry
     Expired(SquireAccountId),
-    /// Credentials were present but corresponded to an unknown user
-    UnknownUser,
 }
 
 /// The general session type that is returned by the SessionStore
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AnySession {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AnyUser {
     /// The user has a guest session
-    Guest,
+    Guest(SessionToken),
     /// Credentials were present and corresponded to a logged-in user
-    Active(SquireAccountId),
+    Active(SessionToken),
     /// Credentials were present but were past the expiry
-    Expired(SquireAccountId),
+    Expired(SessionToken),
 }
 
-impl SessionConvert for AnySession {
+impl SessionConvert for AnyUser {
     type Error = StatusCode;
 
-    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+    fn convert(token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
         match session {
-            SquireSession::Guest => Ok(AnySession::Guest),
-            SquireSession::Active(id) => Ok(AnySession::Active(id)),
-            SquireSession::Expired(id) => Ok(AnySession::Expired(id)),
+            SquireSession::Guest(token) => Ok(AnyUser::Guest(token)),
+            SquireSession::Active(_id) => Ok(AnyUser::Active(token)),
+            SquireSession::Expired(_id) => Ok(AnyUser::Expired(token)),
             SquireSession::NotLoggedIn | SquireSession::UnknownUser => {
                 Err(StatusCode::UNAUTHORIZED)
             }
         }
+    }
+
+    fn empty_session(_err: TokenParseError) -> Result<Self, Self::Error> {
+        Err(StatusCode::UNAUTHORIZED)
     }
 }
 
@@ -87,22 +97,30 @@ pub enum UserSessionError {
 impl SessionConvert for SquireSession {
     type Error = Infallible;
 
-    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+    fn convert(_token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
         Ok(session)
+    }
+
+    fn empty_session(_err: TokenParseError) -> Result<Self, Self::Error> {
+        Ok(Self::NotLoggedIn)
     }
 }
 
 impl SessionConvert for UserSession {
     type Error = UserSessionError;
 
-    fn convert(session: SquireSession) -> Result<Self, Self::Error> {
+    fn convert(_token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
         match session {
             SquireSession::Active(id) => Ok(Self(id)),
             SquireSession::NotLoggedIn => Err(UserSessionError::NotLoggedIn),
             SquireSession::Expired(_) => Err(UserSessionError::Expired),
             SquireSession::UnknownUser => Err(UserSessionError::UnknownUser),
-            SquireSession::Guest => Err(UserSessionError::Guest),
+            SquireSession::Guest(_) => Err(UserSessionError::Guest),
         }
+    }
+
+    fn empty_session(_err: TokenParseError) -> Result<Self, Self::Error> {
+        Err(UserSessionError::NotLoggedIn)
     }
 }
 
@@ -112,10 +130,18 @@ impl IntoResponse for UserSessionError {
     }
 }
 
+/// The trait is very similar to the `TryFrom` trait. It is used in conjuction with the `Session`
+/// extractor to convert between `SquireSession`s and other session types. The `Sized` bound is
+/// required since the `convert` method is a falliable constructor. The `Default` bound is used
+/// when a session token can not be parsed from the headers.
 pub trait SessionConvert: Sized {
     type Error: IntoResponse;
 
-    fn convert(session: SquireSession) -> Result<Self, Self::Error>;
+    /// A session token is present and needs to be converted.
+    fn convert(token: SessionToken, session: SquireSession) -> Result<Self, Self::Error>;
+
+    /// A session token is not present.
+    fn empty_session(err: TokenParseError) -> Result<Self, Self::Error>;
 }
 
 impl<St, Se> FromRequestParts<St> for Session<Se>
@@ -135,35 +161,13 @@ where
         Self: 'async_trait,
     {
         Box::pin(async move {
-            let session = SquireSession::from_request_parts(parts, state)
-                .await
-                .unwrap();
-            Se::convert(session).map(Session)
-        })
-    }
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for SquireSession
-where
-    S: ServerState,
-{
-    type Rejection = Infallible;
-
-    fn from_request_parts<'life0, 'life1, 'async_trait>(
-        parts: &'life0 mut Parts,
-        state: &'life1 S,
-    ) -> Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
-            let Ok(token) = SessionToken::try_from(parts) else {
-                return Ok(Self::NotLoggedIn);
-            };
-            Ok(state.get_session(token).await)
+            match SessionToken::try_from(parts) {
+                Ok(token) => {
+                    let session = state.get_session(token.clone()).await;
+                    Se::convert(token, session).map(Session)
+                }
+                Err(err) => Se::empty_session(err).map(Session),
+            }
         })
     }
 }

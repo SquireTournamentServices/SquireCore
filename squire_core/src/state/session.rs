@@ -40,12 +40,18 @@
 //! should reset the timer in the task that manages a tournament's WS connections.
 
 use std::{
+    collections::HashSet,
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use squire_sdk::{model::identifiers::SquireAccountId, server::session::{SquireSession, SessionToken}};
+use cycle_map::GroupMap;
+use rand::{rngs::StdRng, RngCore, SeedableRng};
+use squire_sdk::{
+    model::identifiers::SquireAccountId,
+    server::session::{AnyUser, SessionToken, SquireSession},
+};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::{channel as oneshot_channel, Receiver as OneshotReceiver, Sender as OneshotSender},
@@ -76,16 +82,6 @@ pub struct SessionStoreHandle {
     handle: UnboundedSender<SessionCommand>,
 }
 
-/// The type that is used internally to represent a session token.
-pub type SessionInner = Vec<u8>;
-
-pub enum SessionCommand {
-    Create(OneshotSender<SessionInner>),
-    Get(SessionToken, OneshotSender<SquireSession>),
-    Reauth(SquireAccountId, OneshotSender<SessionInner>),
-    Delete(SquireAccountId, OneshotSender<bool>),
-}
-
 impl SessionStoreHandle {
     pub fn new() -> Self {
         let (send, recv) = unbounded_channel();
@@ -94,9 +90,15 @@ impl SessionStoreHandle {
         Self { handle: send }
     }
 
-    pub fn create(&self) -> Tracker<SessionInner> {
+    pub fn create(&self, id: SquireAccountId) -> Tracker<SessionToken> {
         let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Create(send));
+        let _ = self.handle.send(SessionCommand::Create(id, send));
+        Tracker::new(recv)
+    }
+
+    pub fn guest(&self) -> Tracker<SessionToken> {
+        let (send, recv) = oneshot_channel();
+        let _ = self.handle.send(SessionCommand::Guest(send));
         Tracker::new(recv)
     }
 
@@ -106,31 +108,132 @@ impl SessionStoreHandle {
         Tracker::new(recv)
     }
 
-    pub fn reauth(&self, id: SquireAccountId) -> Tracker<SessionInner> {
+    pub fn reauth(&self, id: AnyUser) -> Tracker<SessionToken> {
         let (send, recv) = oneshot_channel();
         let _ = self.handle.send(SessionCommand::Reauth(id, send));
         Tracker::new(recv)
     }
 
-    pub fn delete(&self, id: SquireAccountId) -> Tracker<bool> {
+    pub fn delete(&self, id: AnyUser) -> Tracker<bool> {
         let (send, recv) = oneshot_channel();
         let _ = self.handle.send(SessionCommand::Delete(id, send));
         Tracker::new(recv)
     }
 }
 
+pub enum SessionCommand {
+    Create(SquireAccountId, OneshotSender<SessionToken>),
+    Guest(OneshotSender<SessionToken>),
+    Get(SessionToken, OneshotSender<SquireSession>),
+    Reauth(AnyUser, OneshotSender<SessionToken>),
+    Delete(AnyUser, OneshotSender<bool>),
+}
+
 struct SessionStore {
     inbound: UnboundedReceiver<SessionCommand>,
+    rng: StdRng,
+    users: GroupMap<SessionToken, SquireAccountId>,
+    guests: HashSet<SessionToken>,
 }
 
 impl SessionStore {
     fn new(inbound: UnboundedReceiver<SessionCommand>) -> Self {
-        Self { inbound }
+        Self {
+            inbound,
+            rng: StdRng::from_entropy(),
+            users: GroupMap::new(),
+            guests: HashSet::new(),
+        }
     }
 
     async fn run(mut self) -> ! {
         loop {
-            let _msg = self.inbound.recv().await.unwrap();
+            match self.inbound.recv().await.unwrap() {
+                SessionCommand::Create(id, send) => {
+                    let _ = send.send(self.create_session(id));
+                }
+                SessionCommand::Get(token, send) => {
+                    let _ = send.send(self.get_session(token));
+                }
+                SessionCommand::Reauth(id, send) => {
+                    let _ = send.send(self.reauth_session(id));
+                }
+                SessionCommand::Delete(id, send) => {
+                    let _ = send.send(self.delete_session(id));
+                }
+                SessionCommand::Guest(send) => {
+                    let _ = send.send(self.guest_session());
+                }
+            }
+        }
+    }
+
+    fn generate_session(&mut self) -> SessionToken {
+        let mut digest = SessionToken::default();
+        self.rng.fill_bytes(&mut digest.0);
+        digest
+    }
+
+    fn create_session(&mut self, id: SquireAccountId) -> SessionToken {
+        let token = self.generate_session();
+        self.users.insert(token.clone(), id);
+        token
+    }
+
+    fn guest_session(&mut self) -> SessionToken {
+        let token = self.generate_session();
+        self.guests.insert(token.clone());
+        token
+    }
+
+    fn get_session(&mut self, token: SessionToken) -> SquireSession {
+        if let Some(id) = self.users.get_right(&token) {
+            SquireSession::Active(*id)
+        } else if self.guests.contains(&token) {
+            SquireSession::Guest(token)
+        } else {
+            SquireSession::UnknownUser
+        }
+    }
+
+    fn reauth_session(&mut self, user: AnyUser) -> SessionToken {
+        match user {
+            AnyUser::Guest(token) => {
+                self.guests.remove(&token);
+                self.guest_session()
+            }
+            AnyUser::Active(token) => {
+                if let Some(&id) = self.users.get_right(&token) {
+                    self.users.remove_left(&token);
+                    let token = self.generate_session();
+                    self.users.insert(token.clone(), id);
+                    token
+                } else {
+                    self.generate_session()
+                }
+            }
+            AnyUser::Expired(token) => {
+                // TODO: Replace users with expired sessions
+                if let Some(&id) = self.users.get_right(&token) {
+                    self.users.remove_left(&token);
+                    let token = self.generate_session();
+                    self.users.insert(token.clone(), id);
+                    token
+                } else {
+                    self.generate_session()
+                }
+            }
+        }
+    }
+
+    fn delete_session(&mut self, user: AnyUser) -> bool {
+        match user {
+            AnyUser::Guest(token) => self.guests.remove(&token),
+            AnyUser::Active(token) => self.users.remove_left(&token).is_some(),
+            AnyUser::Expired(token) => {
+                // TODO: This needs to reference the recently expired sessions
+                self.users.remove_left(&token).is_some()
+            }
         }
     }
 }

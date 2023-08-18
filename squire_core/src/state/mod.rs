@@ -10,9 +10,9 @@ use mongodb::{
 };
 use squire_sdk::{
     api::*,
-    model::identifiers::TournamentId,
+    model::identifiers::{SquireAccountId, TournamentId},
     server::{
-        session::{AnySession, SquireSession, SessionToken},
+        session::{AnyUser, SessionToken, SquireSession},
         state::ServerState,
     },
     sync::TournamentManager,
@@ -165,6 +165,12 @@ impl AppState {
             subtype: BinarySubtype::Generic,
         }}
     }
+
+    pub async fn login(&self, _cred: Credentials) -> Result<SessionToken, LoginError> {
+        // Change access via the accounts actor
+        // If ok, create the session in the session actor
+        todo!()
+    }
 }
 
 #[async_trait]
@@ -246,19 +252,19 @@ impl ServerState for AppState {
         self.sessions.get(token).await
     }
 
-    async fn create_session(&self, cred: Credentials) -> SessionToken {
-        todo!()
+    async fn create_session(&self, id: SquireAccountId) -> SessionToken {
+        self.sessions.create(id).await
     }
 
     async fn guest_session(&self) -> SessionToken {
-        todo!()
+        self.sessions.guest().await
     }
 
-    async fn reauth_session(&self, session: AnySession) -> SessionToken {
-        todo!()
+    async fn reauth_session(&self, user: AnyUser) -> SessionToken {
+        self.sessions.reauth(user).await
     }
 
-    async fn terminate_session(&self, session: AnySession) -> bool {
-        todo!()
+    async fn terminate_session(&self, user: AnyUser) -> bool {
+        self.sessions.delete(user).await
     }
 }

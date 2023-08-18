@@ -1,10 +1,11 @@
 use std::ops::Range;
 
 use async_trait::async_trait;
+use squire_lib::identifiers::SquireAccountId;
 
-use super::session::{AnySession, SquireSession, SessionToken};
+use super::session::{AnyUser, SessionToken, SquireSession};
 use crate::{
-    api::{Credentials, TournamentSummary, Version},
+    api::{TournamentSummary, Version},
     model::tournament::TournamentId,
     sync::TournamentManager,
 };
@@ -35,13 +36,13 @@ pub trait ServerState: 'static + Clone + Send + Sync {
     }
 
     /* ------ Session-related methods ------ */
-    async fn create_session(&self, cred: Credentials) -> SessionToken;
+    async fn create_session(&self, id: SquireAccountId) -> SessionToken;
 
     async fn guest_session(&self) -> SessionToken;
 
     async fn get_session(&self, token: SessionToken) -> SquireSession;
 
-    async fn reauth_session(&self, session: AnySession) -> SessionToken;
+    async fn reauth_session(&self, session: AnyUser) -> SessionToken;
 
-    async fn terminate_session(&self, session: AnySession) -> bool;
+    async fn terminate_session(&self, session: AnyUser) -> bool;
 }

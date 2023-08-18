@@ -9,7 +9,7 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
-use super::{state::ServerState, session::UserSession};
+use super::{session::UserSession, state::ServerState};
 use crate::sync::{
     processor::{SyncCompletion, SyncDecision},
     ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,

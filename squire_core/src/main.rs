@@ -1,14 +1,14 @@
 use axum::{routing::get, Router};
 use mongodb::Database;
-use squire_sdk::{server, api::*};
+use squire_sdk::{api::*, server};
 
 #[cfg(test)]
 mod tests;
 
-mod assets;
 mod accounts;
-mod state;
+mod assets;
 mod session;
+mod state;
 
 use accounts::*;
 use session::*;

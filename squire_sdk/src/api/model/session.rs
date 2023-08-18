@@ -2,10 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Credentials {
-    Basic {
-        username: String,
-        password: String,
-    }
+    Basic { username: String, password: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

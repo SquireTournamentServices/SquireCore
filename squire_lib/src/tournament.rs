@@ -325,7 +325,7 @@ impl Tournament {
             .round_reg
             .rounds
             .values()
-            .filter_map(|r| r.players.contains(&id).then_some(r))
+            .filter(|r| r.players.contains(&id))
             .collect())
     }
 

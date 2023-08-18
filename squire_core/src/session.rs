@@ -2,17 +2,20 @@ use axum::{extract::State, Json};
 use squire_sdk::{
     api::Login,
     server::{
-        session::{AnySession, Session, SessionToken},
+        session::{AnyUser, Session, SessionToken},
         state::ServerState,
     },
 };
 
-use crate::state::AppState;
+use crate::state::{AppState, LoginError};
 
 /// Takes user credentials (username and password) and returns a new session token to them
 /// (provided the credentials match known credentials).
-pub async fn login(State(state): State<AppState>, Json(Login(cred)): Json<Login>) -> SessionToken {
-    state.create_session(cred).await
+pub async fn login(
+    State(state): State<AppState>,
+    Json(Login(cred)): Json<Login>,
+) -> Result<SessionToken, LoginError> {
+    state.login(cred).await
 }
 
 /// Generates a guest session
@@ -24,7 +27,7 @@ pub async fn guest(State(state): State<AppState>) -> SessionToken {
 /// active session or a recently expired session. Otherwise, they need to go through `login`.
 pub async fn reauth(
     State(state): State<AppState>,
-    Session(session): Session<AnySession>,
+    Session(session): Session<AnyUser>,
 ) -> SessionToken {
     state.reauth_session(session).await
 }
@@ -32,7 +35,7 @@ pub async fn reauth(
 /// Terminates a session.
 pub async fn terminate(
     State(state): State<AppState>,
-    Session(session): Session<AnySession>,
+    Session(session): Session<AnyUser>,
 ) -> Json<bool> {
     Json(state.terminate_session(session).await)
 }
