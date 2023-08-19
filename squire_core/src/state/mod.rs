@@ -1,4 +1,8 @@
-use std::{borrow::Cow, ops::Range, sync::Arc};
+use std::{
+    borrow::Cow,
+    ops::Range,
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
