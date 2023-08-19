@@ -39,12 +39,7 @@
 //! should be termianted (or at least downgraded to be that of a guest) once it expires. Reauth
 //! should reset the timer in the task that manages a tournament's WS connections.
 
-use std::{
-    collections::HashSet,
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use std::collections::HashSet;
 
 use cycle_map::GroupMap;
 use rand::{rngs::StdRng, RngCore, SeedableRng};
@@ -54,28 +49,10 @@ use squire_sdk::{
 };
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot::{channel as oneshot_channel, Receiver as OneshotReceiver, Sender as OneshotSender},
+    oneshot::{channel as oneshot_channel, Sender as OneshotSender},
 };
 
-pub struct Tracker<T> {
-    recv: OneshotReceiver<T>,
-}
-
-impl<T> Future for Tracker<T> {
-    type Output = T;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // We unwrap here because if the task hangs up, it has panicked, which should not happen
-        // unless something very bad has happened
-        Pin::new(&mut self.recv).poll(cx).map(Result::unwrap)
-    }
-}
-
-impl<T> Tracker<T> {
-    fn new(recv: OneshotReceiver<T>) -> Self {
-        Self { recv }
-    }
-}
+use super::Tracker;
 
 #[derive(Debug, Clone)]
 pub struct SessionStoreHandle {

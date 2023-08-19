@@ -55,7 +55,17 @@ impl PostRequest<0> for TournamentManager {
 /* ---------- Account Routes ---------- */
 const ACCOUNTS_ROUTE: Url<0> = extend!(API_BASE, "/accounts");
 
-impl PostRequest<0> for CreateAccount {
+impl PostRequest<0> for RegForm {
+    const ROUTE: Url<0> = ACCOUNTS_ROUTE;
+    type Response = bool;
+}
+
+impl GetRequest<0> for AccountCrud {
+    const ROUTE: Url<0> = ACCOUNTS_ROUTE;
+    type Response = bool;
+}
+
+impl DeleteRequest<0> for AccountCrud {
     const ROUTE: Url<0> = ACCOUNTS_ROUTE;
     type Response = bool;
 }

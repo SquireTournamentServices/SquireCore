@@ -1,8 +1,14 @@
-use std::{borrow::Cow, ops::Range, sync::Arc};
+use std::{
+    borrow::Cow,
+    future::Future,
+    ops::Range,
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+};
 
 use async_trait::async_trait;
 use futures::StreamExt;
-use http::HeaderValue;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
     options::{ClientOptions, FindOptions, Hint, UpdateModifications, UpdateOptions},
@@ -10,13 +16,17 @@ use mongodb::{
 };
 use squire_sdk::{
     api::*,
-    model::identifiers::{SquireAccountId, TournamentId},
+    model::{
+        accounts::SquireAccount,
+        identifiers::{SquireAccountId, TournamentId},
+    },
     server::{
         session::{AnyUser, SessionToken, SquireSession},
         state::ServerState,
     },
     sync::TournamentManager,
 };
+use tokio::sync::oneshot::Receiver as OneshotReceiver;
 use tracing::Level;
 
 mod accounts;
@@ -27,6 +37,26 @@ pub use session::*;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
+
+pub struct Tracker<T> {
+    recv: OneshotReceiver<T>,
+}
+
+impl<T> Future for Tracker<T> {
+    type Output = T;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // We unwrap here because if the task hangs up, it has panicked, which should not happen
+        // unless something very bad has happened
+        Pin::new(&mut self.recv).poll(cx).map(Result::unwrap)
+    }
+}
+
+impl<T> Tracker<T> {
+    fn new(recv: OneshotReceiver<T>) -> Self {
+        Self { recv }
+    }
+}
 
 /// A builder for an `AppState`.
 #[derive(Debug, Clone)]
@@ -99,6 +129,7 @@ impl AppStateBuilder<Uri, DbName> {
             db_conn,
             tourn_coll,
             sessions: SessionStoreHandle::new(),
+            accounts: AccountStoreHandle::new(),
         }
     }
 }
@@ -120,6 +151,7 @@ impl AppStateBuilder<Database, ()> {
             db_conn: self.db_conn,
             tourn_coll,
             sessions: SessionStoreHandle::new(),
+            accounts: AccountStoreHandle::new(),
         }
     }
 }
@@ -142,6 +174,7 @@ pub struct AppState {
     db_conn: Database,
     tourn_coll: Arc<str>,
     sessions: SessionStoreHandle,
+    accounts: AccountStoreHandle,
 }
 
 impl AppState {
@@ -166,10 +199,23 @@ impl AppState {
         }}
     }
 
-    pub async fn login(&self, _cred: Credentials) -> Result<SessionToken, LoginError> {
-        // Change access via the accounts actor
-        // If ok, create the session in the session actor
-        todo!()
+    pub async fn login(&self, cred: Credentials) -> Result<SessionToken, LoginError> {
+        match self.accounts.authenticate(cred).await {
+            Some(id) => Ok(self.sessions.create(id).await),
+            None => Err(LoginError),
+        }
+    }
+
+    pub async fn create_account(&self, form: RegForm) -> SquireAccountId {
+        self.accounts.create(form).await
+    }
+
+    pub async fn get_account(&self, id: SquireAccountId) -> Option<SquireAccount> {
+        self.accounts.get(id).await
+    }
+
+    pub async fn delete_account(&self, id: SquireAccountId) -> bool {
+        self.accounts.delete(id).await
     }
 }
 

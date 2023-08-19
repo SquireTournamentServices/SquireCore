@@ -2,7 +2,7 @@ use std::{convert::Infallible, future::Future, pin::Pin};
 
 use axum::{
     extract::FromRequestParts,
-    response::{IntoResponse, Response},
+    response::{IntoResponse, IntoResponseParts, Response, ResponseParts},
 };
 use http::{header::AUTHORIZATION, request::Parts, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use squire_lib::identifiers::SquireAccountId;
@@ -205,6 +205,16 @@ impl TryFrom<&mut Parts> for SessionToken {
             },
             None => Err(TokenParseError::NoAuthHeader),
         }
+    }
+}
+
+impl IntoResponseParts for SessionToken {
+    type Error = Infallible;
+
+    fn into_response_parts(self, mut res: ResponseParts) -> Result<ResponseParts, Self::Error> {
+        let (name, value) = self.as_header();
+        let _ = res.headers_mut().insert(name, value);
+        Ok(res)
     }
 }
 
