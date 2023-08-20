@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+
 use axum::response::{IntoResponse, Response};
+use cycle_map::CycleMap;
+use http::StatusCode;
 use squire_sdk::{
     api::{Credentials, RegForm},
     model::{accounts::SquireAccount, identifiers::SquireAccountId},
@@ -14,7 +18,7 @@ pub struct LoginError;
 
 impl IntoResponse for LoginError {
     fn into_response(self) -> Response {
-        todo!()
+        StatusCode::UNAUTHORIZED.into_response()
     }
 }
 
@@ -66,11 +70,17 @@ pub enum AccountCommand {
 #[derive(Debug)]
 pub struct AccountStore {
     inbound: UnboundedReceiver<AccountCommand>,
+    credentials: CycleMap<Credentials, SquireAccountId>,
+    users: HashMap<SquireAccountId, SquireAccount>,
 }
 
 impl AccountStore {
     fn new(inbound: UnboundedReceiver<AccountCommand>) -> Self {
-        Self { inbound }
+        Self {
+            inbound,
+            users: HashMap::new(),
+            credentials: CycleMap::new(),
+        }
     }
 
     async fn run(mut self) -> ! {
@@ -92,19 +102,34 @@ impl AccountStore {
         }
     }
 
-    fn create_account(&mut self, _form: RegForm) -> SquireAccountId {
-        todo!()
+    fn create_account(&mut self, form: RegForm) -> SquireAccountId {
+        let cred: Credentials = form.clone().into();
+        if let Some(id) = self.credentials.get_right(&cred) {
+            return *id;
+        }
+        let RegForm {
+            username,
+            display_name,
+            ..
+        } = form;
+        let acc = SquireAccount::new(username, display_name);
+        let digest = acc.id;
+        self.credentials.insert(cred, digest);
+        self.users.insert(digest, acc);
+        digest
     }
 
-    fn authenticate(&mut self, _cred: Credentials) -> Option<SquireAccountId> {
-        todo!()
+    fn authenticate(&mut self, cred: Credentials) -> Option<SquireAccountId> {
+        self.credentials.get_right(&cred).cloned()
     }
 
-    fn get_account(&mut self, _id: SquireAccountId) -> Option<SquireAccount> {
-        todo!()
+    fn get_account(&mut self, id: SquireAccountId) -> Option<SquireAccount> {
+        self.users.get(&id).cloned()
     }
 
-    fn delete_account(&mut self, _id: SquireAccountId) -> bool {
-        todo!()
+    fn delete_account(&mut self, id: SquireAccountId) -> bool {
+        let digest = self.users.remove(&id).is_some();
+        self.credentials.remove_via_right(&id);
+        digest
     }
 }

@@ -4,6 +4,7 @@ use axum::{
     extract::FromRequestParts,
     response::{IntoResponse, IntoResponseParts, Response, ResponseParts},
 };
+use hex::decode_to_slice;
 use http::{header::AUTHORIZATION, request::Parts, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use squire_lib::identifiers::SquireAccountId;
 
@@ -174,12 +175,6 @@ where
 
 impl SessionToken {
     const HEADER_NAME: HeaderName = AUTHORIZATION;
-    // We don't want to implement Default here since the new function will generate a random token,
-    // which conflicts with the general mental model of Default
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        todo!("Generate random session token")
-    }
 
     pub fn as_header(&self) -> (HeaderName, HeaderValue) {
         (
@@ -199,9 +194,11 @@ impl TryFrom<&mut Parts> for SessionToken {
 
     fn try_from(parts: &mut Parts) -> Result<Self, Self::Error> {
         match parts.headers.get(Self::HEADER_NAME) {
-            Some(header) => match header.as_bytes().try_into() {
-                Ok(inner) => Ok(Self(inner)),
-                Err(_) => Err(TokenParseError::InvalidToken),
+            Some(header) => {
+                let mut inner = [0; 32];
+                let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
+                decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
+                Ok(Self(inner))
             },
             None => Err(TokenParseError::NoAuthHeader),
         }

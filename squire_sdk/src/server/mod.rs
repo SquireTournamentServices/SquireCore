@@ -44,6 +44,7 @@ where
         T: 'static,
         H: Handler<T, S, B>,
     {
+        println!("Adding route: {} {}", R::METHOD, R::ROUTE);
         Self {
             router: self.router.route(R::ROUTE.as_str(), R::as_route(handler)),
         }

@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::convert::Infallible;
+use std::fmt::Display;
 
 #[cfg(feature = "server")]
 use axum::{body::HttpBody, handler::Handler, routing::MethodRouter};
@@ -15,6 +16,18 @@ pub enum Method {
     Post,
     Patch,
     Delete,
+}
+
+impl Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Method::Get => "GET",
+            Method::Post => "POST",
+            Method::Patch => "PATCH",
+            Method::Delete => "DELETE",
+        };
+        write!(f, "{s}")
+    }
 }
 
 // Only integers, chars, and bools can be used as const generics, so we define consts for each
