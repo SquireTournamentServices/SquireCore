@@ -33,7 +33,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hyper = { version = "0.14" }
 shuttle-runtime = { version = "0.24", features = [] }
 shuttle-shared-db = { version = "0.24", features = ["mongodb"] }
-shuttle-axum = { version = "0.23", features = [] }
+shuttle-axum = { version = "0.24", features = [] }
 
 [dev-dependencies]
 # In-house
