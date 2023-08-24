@@ -1,22 +1,16 @@
 use std::fmt::{self, Debug};
 
 use reqwest::{header::CONTENT_TYPE, Client};
+use squire_lib::operations::OpResult;
 use tokio::sync::broadcast::Receiver as Subscriber;
 
-use self::{
-    builder::ClientBuilder,
-    import::ImportTracker,
-    management_task::ManagementTaskSender,
-    query::QueryTracker,
-    update::{UpdateTracker, UpdateType},
-};
+use self::{builder::ClientBuilder, management_task::{ManagementTaskSender, Tracker, UpdateType}};
 use crate::{
-    api::{GetRequest, ListTournaments, PostRequest, ServerMode, TournamentSummary},
+    api::{GetRequest, ListTournaments, PostRequest, ServerMode, TournamentSummary, SessionToken},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
-    server::session::SessionToken,
     sync::TournamentManager,
 };
 
@@ -34,11 +28,7 @@ impl<T> OnUpdate for T where T: 'static + Send + FnMut(TournamentId) {}
 pub mod builder;
 pub mod compat;
 pub mod error;
-pub mod import;
 pub mod management_task;
-pub mod query;
-pub mod subscription;
-pub mod update;
 
 /// Encapsulates the known account and session information of the user
 #[derive(Debug, Clone)]
@@ -101,10 +91,11 @@ impl SquireClient {
     /// returned
     pub async fn create_tournament(&self, seed: TournamentSeed) -> Option<TournamentId> {
         let user = self.user.get_user()?;
-        Some(self.sender
-            .import(TournamentManager::new(user.clone(), seed))
-            .await
-            .unwrap())
+        Some(
+            self.sender
+                .import(TournamentManager::new(user.clone(), seed))
+                .await,
+        )
     }
 
     pub async fn persist_tourn_to_backend(&self, id: TournamentId) -> BackendImportStatus {
@@ -162,19 +153,19 @@ impl SquireClient {
             .await
     }
 
-    pub fn import_tourn(&self, tourn: TournamentManager) -> ImportTracker {
+    pub fn import_tourn(&self, tourn: TournamentManager) -> Tracker<TournamentId> {
         self.sender.import(tourn)
     }
 
-    pub fn remove_tourn(&self, id: TournamentId) -> UpdateTracker {
+    pub fn remove_tourn(&self, id: TournamentId) -> Tracker<Option<OpResult>> {
         self.sender.update(id, UpdateType::Removal)
     }
 
-    pub fn update_tourn(&self, id: TournamentId, op: TournOp) -> UpdateTracker {
+    pub fn update_tourn(&self, id: TournamentId, op: TournOp) -> Tracker<Option<OpResult>> {
         self.sender.update(id, UpdateType::Single(Box::new(op)))
     }
 
-    pub fn bulk_update<I>(&self, id: TournamentId, iter: I) -> UpdateTracker
+    pub fn bulk_update<I>(&self, id: TournamentId, iter: I) -> Tracker<Option<OpResult>>
     where
         I: IntoIterator<Item = TournOp>,
     {
@@ -182,7 +173,7 @@ impl SquireClient {
             .update(id, UpdateType::Bulk(iter.into_iter().collect()))
     }
 
-    pub fn query_tourn<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+    pub fn query_tourn<F, T>(&self, id: TournamentId, query: F) -> Tracker<Option<T>>
     where
         F: 'static + Send + FnOnce(&TournamentManager) -> T,
         T: 'static + Send,
@@ -190,7 +181,7 @@ impl SquireClient {
         self.sender.query(id, query)
     }
 
-    pub fn query_players<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+    pub fn query_players<F, T>(&self, id: TournamentId, query: F) -> Tracker<Option<T>>
     where
         F: 'static + Send + FnOnce(&PlayerRegistry) -> T,
         T: 'static + Send,
@@ -198,7 +189,7 @@ impl SquireClient {
         self.sender.query(id, move |tourn| query(&tourn.player_reg))
     }
 
-    pub fn query_rounds<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+    pub fn query_rounds<F, T>(&self, id: TournamentId, query: F) -> Tracker<Option<T>>
     where
         F: 'static + Send + FnOnce(&RoundRegistry) -> T,
         T: 'static + Send,

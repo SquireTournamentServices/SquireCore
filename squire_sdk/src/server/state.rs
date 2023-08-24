@@ -3,9 +3,9 @@ use std::ops::Range;
 use async_trait::async_trait;
 use squire_lib::identifiers::SquireAccountId;
 
-use super::session::{AnyUser, SessionToken, SquireSession};
+use super::session::{AnyUser, SquireSession};
 use crate::{
-    api::{TournamentSummary, Version},
+    api::{TournamentSummary, Version, SessionToken},
     model::tournament::TournamentId,
     sync::TournamentManager,
 };

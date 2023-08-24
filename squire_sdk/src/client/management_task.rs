@@ -1,25 +1,28 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::Debug,
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
 };
 
 use futures::{
     stream::{SelectAll, SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
-use squire_lib::{operations::OpData, tournament::TournamentId};
+use squire_lib::{
+    operations::{OpData, OpResult, TournOp},
+    tournament::TournamentId,
+};
 use tokio::sync::{
-    broadcast::{channel as broadcast_channel, Sender as Broadcaster},
+    broadcast::{channel as broadcast_channel, Receiver as Subscriber, Sender as Broadcaster},
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot::{channel as oneshot, Receiver as OneshotReceiver, Sender as OneshotSender},
 };
 use uuid::Uuid;
 
 use super::{
     compat::{spawn_task, Websocket, WebsocketError, WebsocketMessage},
-    import::{import_channel, ImportTracker, TournamentImport},
-    query::{query_channel, QueryTracker, TournamentQuery},
-    subscription::{sub_channel, SubTracker, TournamentSub},
-    update::{update_channel, TournamentUpdate, UpdateTracker, UpdateType},
     OnUpdate, HOST_ADDRESS,
 };
 use crate::{
@@ -33,12 +36,21 @@ use crate::{
 
 pub const MANAGEMENT_PANICKED_MSG: &str = "tournament management task panicked";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum UpdateType {
+    Removal,
+    Single(Box<TournOp>),
+    Bulk(Vec<TournOp>),
+}
+
+type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
+
+#[allow(missing_debug_implementations)]
 pub(crate) enum ManagementCommand {
-    Query(TournamentQuery),
-    Update(TournamentUpdate),
-    Import(TournamentImport),
-    Subscribe(TournamentSub),
+    Query(TournamentId, Query),
+    Update(TournamentId, UpdateType, OneshotSender<Option<OpResult>>),
+    Import(Box<TournamentManager>, OneshotSender<TournamentId>),
+    Subscribe(TournamentId, OneshotSender<Option<Subscriber<bool>>>),
 }
 
 /// A container for the channels used to communicate with the tournament management task.
@@ -47,45 +59,66 @@ pub struct ManagementTaskSender {
     sender: UnboundedSender<ManagementCommand>,
 }
 
-impl ManagementTaskSender {
-    pub fn import(&self, tourn: TournamentManager) -> ImportTracker {
-        let (msg, digest) = import_channel(tourn);
-        // FIXME: This "bubbles up" a panic from the management task. In theory, a new task can be
-        // spawned; however, a panic should never happen
-        self.sender
-            .send(ManagementCommand::Import(msg))
-            .expect(MANAGEMENT_PANICKED_MSG);
-        digest
-    }
+pub struct Tracker<T> {
+    recv: OneshotReceiver<T>,
+}
 
-    pub fn subscribe(&self, id: TournamentId) -> SubTracker {
-        let (msg, tracker) = sub_channel(id);
-        self.sender.send(ManagementCommand::Subscribe(msg)).unwrap();
+impl<T> Tracker<T> {
+    pub fn process(self) -> T {
+        futures::executor::block_on(self)
+    }
+}
+
+impl<T> Future for Tracker<T> {
+    type Output = T;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut self.recv).poll(cx).map(Result::unwrap)
+    }
+}
+
+impl ManagementTaskSender {
+    pub fn import(&self, tourn: TournamentManager) -> Tracker<TournamentId> {
+        let (send, recv) = oneshot();
+        let tracker = Tracker { recv };
+        self.sender
+            .send(ManagementCommand::Import(Box::new(tourn), send))
+            .expect(MANAGEMENT_PANICKED_MSG);
         tracker
     }
 
-    pub fn query<F, T>(&self, id: TournamentId, query: F) -> QueryTracker<T>
+    pub fn subscribe(&self, id: TournamentId) -> Tracker<Option<Subscriber<bool>>> {
+        let (send, recv) = oneshot();
+        let tracker = Tracker { recv };
+        self.sender
+            .send(ManagementCommand::Subscribe(id, send))
+            .expect(MANAGEMENT_PANICKED_MSG);
+        tracker
+    }
+
+    pub fn query<F, T>(&self, id: TournamentId, query: F) -> Tracker<Option<T>>
     where
         F: 'static + Send + FnOnce(&TournamentManager) -> T,
         T: 'static + Send,
     {
-        let (msg, digest) = query_channel(id, query);
-        // FIXME: This "bubbles up" a panic from the management task. In theory, a new task can be
-        // spawned; however, a panic should never happen
+        let (send, recv) = oneshot();
+        let tracker = Tracker { recv };
+        let query = Box::new(move |tourn: Option<&TournamentManager>| {
+            let _ = send.send(tourn.map(query));
+        });
         self.sender
-            .send(ManagementCommand::Query(msg))
+            .send(ManagementCommand::Query(id, query))
             .expect(MANAGEMENT_PANICKED_MSG);
-        digest
+        tracker
     }
 
-    pub fn update(&self, id: TournamentId, update: UpdateType) -> UpdateTracker {
-        let (msg, digest) = update_channel(id, update);
-        // FIXME: This "bubbles up" a panic from the management task. In theory, a new task can be
-        // spawned; however, a panic should never happen
+    pub fn update(&self, id: TournamentId, update: UpdateType) -> Tracker<Option<OpResult>> {
+        let (send, recv) = oneshot();
+        let tracker = Tracker { recv };
         self.sender
-            .send(ManagementCommand::Update(msg))
+            .send(ManagementCommand::Update(id, update, send))
             .expect(MANAGEMENT_PANICKED_MSG);
-        digest
+        tracker
     }
 }
 
@@ -132,30 +165,28 @@ async fn tournament_management_task<F>(
 {
     let mut state = ManagerState::default();
     loop {
-        let opt_sub: Option<_> = tokio::select! {
+        tokio::select! {
             msg = state.listener.next(), if !state.listener.is_empty() => {
                 match msg {
                     Some(Ok(msg)) => handle_ws_msg(&mut state, &mut on_update, msg).await,
                     Some(Err(err)) => handle_ws_err(&mut state, err),
                     None => {}
                 }
-                None
             }
             msg = recv.recv() => {
                 match msg.expect(HANG_UP_MESSAGE) {
-                    ManagementCommand::Query(query) => {
-                        handle_query(&state, query);
-                        None
+                    ManagementCommand::Query(id, query) => {
+                        handle_query(&state, id, query);
                     },
-                    ManagementCommand::Import(import) => {
-                        handle_import(&mut state, import);
-                        None
+                    ManagementCommand::Import(tourn, send) => {
+                        let _ = send.send(handle_import(&mut state, *tourn));
                     },
-                    ManagementCommand::Update(update) => {
-                        handle_update(&mut state, update, &mut on_update).await;
-                        None
+                    ManagementCommand::Update(id, update, send) => {
+                        let _ = send.send(handle_update(&mut state, id, update, &mut on_update).await);
                     }
-                    ManagementCommand::Subscribe(sub) => Some(sub),
+                    ManagementCommand::Subscribe(id, send) => {
+                        let _ = send.send(handle_sub(&mut state, id).await);
+                    }
                 }
             }
             (id, msg) = state.syncs.retry() => {
@@ -169,79 +200,64 @@ async fn tournament_management_task<F>(
                         state.syncs.finalize_chain(&msg.id);
                     }
                 };
-                None
             }
         };
-        if let Some(sub) = opt_sub {
-            handle_sub(&mut state, sub).await
-        }
     }
 }
 
-fn handle_import(state: &mut ManagerState, import: TournamentImport) {
-    let TournamentImport { tourn, tracker } = import;
+fn handle_import(state: &mut ManagerState, tourn: TournamentManager) -> TournamentId {
     let id = tourn.id;
     let tc = TournComm { tourn, comm: None };
     _ = state.cache.insert(id, tc);
-    let _ = tracker.send(id);
+    id
 }
 
-async fn handle_update<F>(state: &mut ManagerState, update: TournamentUpdate, on_update: &mut F)
+async fn handle_update<F>(
+    state: &mut ManagerState,
+    id: TournamentId,
+    update: UpdateType,
+    on_update: &mut F,
+) -> Option<OpResult>
 where
     F: OnUpdate,
 {
-    let TournamentUpdate { local, id, update } = update;
-    let mut to_remove = false;
-    if let Some(tourn) = state.cache.get_mut(&id) {
-        let res = match update {
-            UpdateType::Single(op) => tourn.tourn.apply_op(*op),
-            UpdateType::Bulk(ops) => tourn.tourn.bulk_apply_ops(ops),
-            UpdateType::Removal => {
-                to_remove = true;
-                Ok(OpData::Nothing)
-            }
+    let tourn = state.cache.get_mut(&id)?;
+    let res = match update {
+        UpdateType::Single(op) => tourn.tourn.apply_op(*op),
+        UpdateType::Bulk(ops) => tourn.tourn.bulk_apply_ops(ops),
+        UpdateType::Removal => {
+            let _ = state.cache.remove(&id);
+            return Some(Ok(OpData::Nothing));
+        }
+    };
+    if res.is_ok() {
+        on_update(id);
+        let id = Uuid::new_v4();
+        let sync: ClientOpLink = tourn.tourn.sync_request().into();
+        state
+            .syncs
+            .initialize_chain(id, tourn.tourn.id, sync.clone())
+            .unwrap(); // TODO: Remove unwrap
+        let msg = ServerBoundMessage {
+            id,
+            body: sync.into(),
         };
-        let is_ok = res.is_ok();
-        let _ = local.send(Some(res));
-        if is_ok {
-            on_update(id);
-        }
-        if is_ok && !to_remove {
-            let id = Uuid::new_v4();
-            let sync: ClientOpLink = tourn.tourn.sync_request().into();
-            state
-                .syncs
-                .initialize_chain(id, tourn.tourn.id, sync.clone())
-                .unwrap(); // TODO: Remove unwrap
-            let msg = ServerBoundMessage {
-                id,
-                body: sync.into(),
-            };
-            tourn.send(msg).await;
-        }
-    } else {
-        let _ = local.send(None);
+        tourn.send(msg).await;
     }
-    if to_remove {
-        // This has to exist, but we don't need to use it
-        let _ = state.cache.remove(&id);
-    }
+    Some(res)
 }
 
-fn handle_query(state: &ManagerState, query: TournamentQuery) {
-    let TournamentQuery { query, id } = query;
+fn handle_query(state: &ManagerState, id: TournamentId, query: Query) {
     query(state.cache.get(&id).map(|tc| &tc.tourn));
 }
 
 // Needs to take a &mut to the SelectAll WS listener so it can be updated if need be
 #[allow(clippy::needless_pass_by_ref_mut)]
-async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: TournamentSub) {
+async fn handle_sub(state: &mut ManagerState, id: TournamentId) -> Option<Subscriber<bool>> {
     match state.cache.entry(id) {
         Entry::Occupied(mut entry) => match &mut entry.get_mut().comm {
             // Tournament is cached and communication is set up for it
-            Some((_, broad)) => {
-                let _ = send.send(Some(broad.subscribe()));
-            }
+            Some((_, broad)) => Some(broad.subscribe()),
             // Tournament is cached but there is no communication for it
             None => {
                 let url = format!(
@@ -251,14 +267,12 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
                 match create_ws_connection(&url).await {
                     Ok(ws) => {
                         let (sink, stream) = ws.split();
-                        let (broad, _) = broadcast_channel(10);
+                        let (broad, sub) = broadcast_channel(10);
                         entry.get_mut().comm = Some((sink, broad));
                         state.listener.push(stream);
+                        Some(sub)
                     }
-                    Err(_) => {
-                        let _ = send.send(None);
-                        panic!()
-                    }
+                    Err(_) => panic!(),
                 }
             }
         },
@@ -275,18 +289,16 @@ async fn handle_sub(state: &mut ManagerState, TournamentSub { send, id }: Tourna
                         .unwrap();
                     sink.send(WebsocketMessage::Bytes(msg)).await.unwrap();
                     let tourn = wait_for_tourn(&mut stream).await;
-                    let (broad, _) = broadcast_channel(10);
+                    let (broad, sub) = broadcast_channel(10);
                     let tc = TournComm {
                         tourn,
                         comm: Some((sink, broad)),
                     };
                     let _ = entry.insert(tc);
                     state.listener.push(stream);
+                    Some(sub)
                 }
-                Err(_) => {
-                    let _ = send.send(None);
-                    panic!()
-                }
+                Err(_) => panic!(),
             }
         }
     }

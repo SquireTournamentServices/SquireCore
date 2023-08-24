@@ -4,11 +4,9 @@ use squire_lib::accounts::SquireAccount;
 use super::{
     error::ClientError, management_task::spawn_management_task, OnUpdate, SquireClient, UserInfo,
 };
-use crate::{
-    api::{
-        Credentials, GetRequest, GetVersion, GuestSession, Login, PostRequest, ServerMode, Version,
-    },
-    server::session::SessionToken,
+use crate::api::{
+    Credentials, GetRequest, GetVersion, GuestSession, Login, PostRequest, ServerMode,
+    SessionToken, Version,
 };
 
 /// A builder for the SquireClient. This builder is generic over most of its fields. This is used

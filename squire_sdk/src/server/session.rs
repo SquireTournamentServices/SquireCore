@@ -5,10 +5,11 @@ use axum::{
     response::{IntoResponse, IntoResponseParts, Response, ResponseParts},
 };
 use hex::decode_to_slice;
-use http::{header::AUTHORIZATION, request::Parts, HeaderMap, HeaderName, HeaderValue, StatusCode};
+use http::{request::Parts, HeaderMap, StatusCode};
 use squire_lib::identifiers::SquireAccountId;
 
 use super::state::ServerState;
+use crate::api::{SessionToken, TokenParseError};
 
 /* We will have two layers of session types.
  * The bottom layer is the session type that is returned by the session store. This is used to
@@ -24,16 +25,6 @@ use super::state::ServerState;
 
 /// An extractor for a session type that can be converted from a `SquireSession`.
 pub struct Session<T>(pub T);
-
-/// The inner type used to represent all sessions
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct SessionToken(pub [u8; 32]);
-
-impl From<[u8; 32]> for SessionToken {
-    fn from(value: [u8; 32]) -> Self {
-        Self(value)
-    }
-}
 
 /// The general session type that is returned by the SessionStore
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -173,44 +164,11 @@ where
     }
 }
 
-impl SessionToken {
-    const HEADER_NAME: HeaderName = AUTHORIZATION;
-
-    pub fn as_header(&self) -> (HeaderName, HeaderValue) {
-        (
-            AUTHORIZATION,
-            HeaderValue::from_str(&hex::encode(self.0)).unwrap(),
-        )
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenParseError {
-    NoAuthHeader,
-    InvalidToken,
-}
-
 impl TryFrom<&mut Parts> for SessionToken {
     type Error = TokenParseError;
 
     fn try_from(parts: &mut Parts) -> Result<Self, Self::Error> {
         match parts.headers.get(Self::HEADER_NAME) {
-            Some(header) => {
-                let mut inner = [0; 32];
-                let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
-                decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
-                Ok(Self(inner))
-            }
-            None => Err(TokenParseError::NoAuthHeader),
-        }
-    }
-}
-
-impl TryFrom<&HeaderMap<HeaderValue>> for SessionToken {
-    type Error = TokenParseError;
-
-    fn try_from(headers: &HeaderMap) -> Result<Self, Self::Error> {
-        match headers.get(Self::HEADER_NAME) {
             Some(header) => {
                 let mut inner = [0; 32];
                 let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
