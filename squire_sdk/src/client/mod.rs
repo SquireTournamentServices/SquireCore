@@ -16,6 +16,7 @@ use crate::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
+    server::session::SessionToken,
     sync::TournamentManager,
 };
 
@@ -39,10 +40,41 @@ pub mod query;
 pub mod subscription;
 pub mod update;
 
+/// Encapsulates the known account and session information of the user
+#[derive(Debug, Clone)]
+pub enum UserInfo {
+    /// No information is known about the user
+    Unknown,
+    /// The user has provided account information, but a session is not known
+    User(SquireAccount),
+    /// The user has started a guest session with the server
+    Guest(SessionToken),
+    /// The user has provided account information and has authenticated with the server
+    AuthUser {
+        account: SquireAccount,
+        session: SessionToken,
+    },
+}
+
+impl UserInfo {
+    pub fn get_token(&self) -> Option<&SessionToken> {
+        match self {
+            UserInfo::Unknown | UserInfo::User(_) => None,
+            UserInfo::Guest(session) | UserInfo::AuthUser { session, .. } => Some(session),
+        }
+    }
+    pub fn get_user(&self) -> Option<&SquireAccount> {
+        match self {
+            UserInfo::Unknown | UserInfo::Guest(_) => None,
+            UserInfo::User(account) | UserInfo::AuthUser { account, .. } => Some(account),
+        }
+    }
+}
+
 pub struct SquireClient {
     client: Client,
+    user: UserInfo,
     url: String,
-    user: SquireAccount,
     server_mode: ServerMode,
     sender: ManagementTaskSender,
 }
@@ -62,20 +94,17 @@ impl SquireClient {
         ClientBuilder::new()
     }
 
-    pub fn get_user(&self) -> &SquireAccount {
-        &self.user
-    }
-
-    // There needs to be a method + message that fetches a listenerr from the management task
+    // There needs to be a method + message that fetches a listener from the management task
 
     /// Creates a local tournament, imports it, and returns the id. This tournament will be pushed
     /// to the backend server but the remote import might not be completed by the time the value is
     /// returned
-    pub async fn create_tournament(&self, seed: TournamentSeed) -> TournamentId {
-        self.sender
-            .import(TournamentManager::new(self.user.clone(), seed))
+    pub async fn create_tournament(&self, seed: TournamentSeed) -> Option<TournamentId> {
+        let user = self.user.get_user()?;
+        Some(self.sender
+            .import(TournamentManager::new(user.clone(), seed))
             .await
-            .unwrap()
+            .unwrap())
     }
 
     pub async fn persist_tourn_to_backend(&self, id: TournamentId) -> BackendImportStatus {
@@ -87,12 +116,6 @@ impl SquireClient {
         } else {
             BackendImportStatus::AlreadyImported
         }
-    }
-
-    /// Retrieves a tournament with the given id from the backend. This tournament will not update
-    /// as the backend updates its version of the tournament.
-    pub async fn fetch_tournament(&self, _id: TournamentId) -> bool {
-        todo!()
     }
 
     /// Retrieves a tournament with the given id from the backend and creates a websocket
@@ -124,9 +147,14 @@ impl SquireClient {
     where
         B: PostRequest<N>,
     {
-        self.client
+        let mut builder = self
+            .client
             .post(format!("{}{}", self.url, B::ROUTE.replace(subs)))
-            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_TYPE, "application/json");
+        if let Some((name, header)) = self.user.get_token().map(SessionToken::as_header) {
+            builder = builder.header(name, header);
+        }
+        builder
             .body(serde_json::to_string(&body).unwrap())
             .send()
             .await?

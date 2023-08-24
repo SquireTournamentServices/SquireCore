@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use squire_lib::accounts::SquireAccount;
 
 use crate::{extend, sync::TournamentManager};
 
@@ -77,7 +78,7 @@ const LOGIN_ENDPOINT: Url<0> = Url::from("/login");
 
 impl PostRequest<0> for Login {
     const ROUTE: Url<0> = extend!(SESSION_ROUTE, LOGIN_ENDPOINT);
-    type Response = bool;
+    type Response = SquireAccount;
 }
 
 const GUEST_ENDPOINT: Url<0> = Url::from("/guest");

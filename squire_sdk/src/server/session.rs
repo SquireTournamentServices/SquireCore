@@ -184,6 +184,7 @@ impl SessionToken {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenParseError {
     NoAuthHeader,
     InvalidToken,
@@ -199,7 +200,23 @@ impl TryFrom<&mut Parts> for SessionToken {
                 let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
                 decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
                 Ok(Self(inner))
-            },
+            }
+            None => Err(TokenParseError::NoAuthHeader),
+        }
+    }
+}
+
+impl TryFrom<&HeaderMap<HeaderValue>> for SessionToken {
+    type Error = TokenParseError;
+
+    fn try_from(headers: &HeaderMap) -> Result<Self, Self::Error> {
+        match headers.get(Self::HEADER_NAME) {
+            Some(header) => {
+                let mut inner = [0; 32];
+                let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
+                decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
+                Ok(Self(inner))
+            }
             None => Err(TokenParseError::NoAuthHeader),
         }
     }
