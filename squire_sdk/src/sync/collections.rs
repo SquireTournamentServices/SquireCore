@@ -119,26 +119,21 @@ impl OpLog {
         if self.is_empty() {
             return None;
         }
-        println!("Getting slice. Looking for {id}");
         let mut not_found = true;
         let mut ops = self
             .ops
             .iter()
             .rev()
             .take_while(|op| {
-                println!("Looking at {}. Doesn't match? {}", op.id, op.id != id);
                 let digest = std::mem::replace(&mut not_found, op.id != id);
-                println!("Continue? {digest}");
                 digest
             })
             .cloned()
             .collect::<Vec<_>>();
         if ops.len() < self.len() || ops.last().map(|op| op.id == id).unwrap_or_default() {
-            println!("Operation found. Including {} ops", ops.len());
             ops.reverse();
             Some(OpSlice { ops: ops.into() })
         } else {
-            println!("Operation not found.");
             None
         }
     }
