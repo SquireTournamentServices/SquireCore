@@ -9,7 +9,7 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
-use super::{session::UserSession, state::ServerState};
+use super::{session::AuthUser, state::ServerState};
 use crate::sync::{
     processor::{SyncCompletion, SyncDecision},
     ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
@@ -26,7 +26,7 @@ pub use onlooker::*;
 #[derive(Debug)]
 pub enum GatheringMessage {
     GetTournament(OneshotSender<TournamentManager>),
-    NewConnection(UserSession, WebSocket),
+    NewConnection(AuthUser, WebSocket),
 }
 
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
@@ -49,7 +49,7 @@ pub struct Gathering {
     tourn: TournamentManager,
     messages: Receiver<GatheringMessage>,
     ws_streams: SelectAll<Crier>,
-    onlookers: HashMap<SquireAccountId, Onlooker>,
+    onlookers: HashMap<AuthUser, Onlooker>,
     persist: Sender<PersistMessage>,
     syncs: ServerSyncManager,
     forwarding: ServerForwardingManager,
@@ -100,7 +100,7 @@ impl Gathering {
         }
     }
 
-    async fn process_websocket_message(&mut self, msg: Option<(SquireAccountId, Option<Vec<u8>>)>) {
+    async fn process_websocket_message(&mut self, msg: Option<(AuthUser, Option<Vec<u8>>)>) {
         match msg {
             Some((user, Some(bytes))) => {
                 self.process_incoming_message(user, bytes).await;
@@ -117,21 +117,21 @@ impl Gathering {
             GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
             GatheringMessage::NewConnection(user, ws) => {
                 let (sink, stream) = ws.split();
-                let crier = Crier::new(stream, user.0);
                 let onlooker = Onlooker::new(sink);
-                self.ws_streams.push(crier);
-                match self.onlookers.get_mut(&user.0) {
+                match self.onlookers.get_mut(&user) {
                     Some(ol) => *ol = onlooker,
                     None => {
-                        _ = self.onlookers.insert(user.0, onlooker);
+                        _ = self.onlookers.insert(user.clone(), onlooker);
                     }
                 }
+                let crier = Crier::new(stream, user);
+                self.ws_streams.push(crier);
             }
         }
     }
 
     // TODO: Return a "real" value
-    async fn process_incoming_message(&mut self, user: SquireAccountId, bytes: Vec<u8>) {
+    async fn process_incoming_message(&mut self, user: AuthUser, bytes: Vec<u8>) {
         let ServerBoundMessage { id, body } =
             match postcard::from_bytes::<ServerBoundMessage>(&bytes) {
                 Ok(val) => val,
@@ -145,13 +145,21 @@ impl Gathering {
                 self.send_message(user, self.tourn.clone()).await;
             }
             ServerBound::SyncChain(sync) => {
-                let link = self.handle_sync_request(id, sync);
-                // If completed, send forwarding requests
-                if let ServerOpLink::Completed(comp) = &link {
-                    self.send_persist_message();
-                    self.send_forwarding(&user, comp).await;
+                match &user {
+                    // If the user is a guest, we reject the message since guests do not have the
+                    // credentials to update tournaments.
+                    AuthUser::Guest(_) => self.send_reply(user, id, SyncError::Unauthorized).await,
+                    AuthUser::User(u_id) => {
+                        // TODO: Check that the user is allowed to send the given update
+                        let link = self.handle_sync_request(id, *u_id, sync);
+                        // If completed, send forwarding requests
+                        if let ServerOpLink::Completed(comp) = &link {
+                            self.send_persist_message();
+                            self.send_forwarding(&user, comp).await;
+                        }
+                        self.send_reply(user, id, link).await;
+                    }
                 }
-                self.send_reply(user, id, link).await;
             }
             ServerBound::ForwardResp(resp) => self.handle_forwarding_resp(&id, resp),
         }
@@ -159,13 +167,18 @@ impl Gathering {
 
     /// Checks that validitity of the sync msg (both in the sync manager and against the user's
     /// account info), processes the sync, updates the manager, and returns a response.
-    fn handle_sync_request(&mut self, id: Uuid, link: ClientOpLink) -> ServerOpLink {
+    fn handle_sync_request(
+        &mut self,
+        id: Uuid,
+        u_id: SquireAccountId,
+        link: ClientOpLink,
+    ) -> ServerOpLink {
         if let Err(link) = self.syncs.validate_sync_message(&id, &link) {
             return link;
         }
         match link.clone() {
             ClientOpLink::Init(sync) => {
-                if let Err(err) = self.validate_sync_request(&sync) {
+                if let Err(err) = self.validate_sync_request(u_id, &sync) {
                     return err.into();
                 }
                 // Process the init
@@ -202,12 +215,12 @@ impl Gathering {
         }
     }
 
-    async fn send_message<C: Into<ClientBound>>(&mut self, id: SquireAccountId, msg: C) {
+    async fn send_message<C: Into<ClientBound>>(&mut self, user: AuthUser, msg: C) {
         let msg = ClientBoundMessage::new(msg.into());
-        self.send_message_inner(id, msg).await;
+        self.send_message_inner(user, msg).await;
     }
 
-    async fn send_reply<C: Into<ClientBound>>(&mut self, user: SquireAccountId, id: Uuid, msg: C) {
+    async fn send_reply<C: Into<ClientBound>>(&mut self, user: AuthUser, id: Uuid, msg: C) {
         let msg = ClientBoundMessage {
             id,
             body: msg.into(),
@@ -215,13 +228,13 @@ impl Gathering {
         self.send_message_inner(user, msg).await;
     }
 
-    async fn send_message_inner(&mut self, id: SquireAccountId, msg: ClientBoundMessage) {
+    async fn send_message_inner(&mut self, id: AuthUser, msg: ClientBoundMessage) {
         if let Some(user) = self.onlookers.get_mut(&id) {
             let _ = user.send_msg(&msg).await;
         }
     }
 
-    async fn send_forwarding(&mut self, id: &SquireAccountId, comp: &SyncCompletion) {
+    async fn send_forwarding(&mut self, id: &AuthUser, comp: &SyncCompletion) {
         let (seed, owner) = self.tourn.seed_and_creator();
         let sync = OpSync {
             owner,
@@ -231,16 +244,22 @@ impl Gathering {
         let msg = ClientBoundMessage::new((self.tourn.id, sync.clone()).into());
         for (id, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != id) {
             self.forwarding
-                .add_msg(msg.id, *id, self.tourn.id, sync.clone());
+                .add_msg(msg.id, id.clone(), self.tourn.id, sync.clone());
             let _ = onlooker.send_msg(&msg).await;
         }
     }
 
-    // TODO: This method does not actually check to see if the person that sent the request is
-    // allowed to send such a return. This will need to eventually change
-    #[allow(unused_variables)]
-    fn validate_sync_request(&mut self, _sync: &OpSync) -> Result<(), SyncError> {
-        Ok(())
+    fn validate_sync_request(
+        &mut self,
+        id: SquireAccountId,
+        sync: &OpSync,
+    ) -> Result<(), SyncError> {
+        let role = self.tourn.tourn().user_role(*id);
+        if sync.iter().all(|op| op.op.valid_op(role)) {
+            Ok(())
+        } else {
+            Err(SyncError::Unauthorized)
+        }
     }
 
     fn handle_forwarding_resp(&mut self, id: &Uuid, _: SyncForwardResp) {

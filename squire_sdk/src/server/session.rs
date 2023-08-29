@@ -71,6 +71,35 @@ impl SessionConvert for AnyUser {
     }
 }
 
+/// A user session for users that have an active session. Its primary usecase is for filtering
+/// inbound websocket messages.
+///
+/// TODO: This type should also receive updates about the session so that such updates can be
+/// communicated throughout the system.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum AuthUser {
+    Guest(SessionToken),
+    User(SquireAccountId),
+}
+
+impl SessionConvert for AuthUser {
+    type Error = StatusCode;
+
+    fn convert(_token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
+        match session {
+            SquireSession::NotLoggedIn | SquireSession::UnknownUser | SquireSession::Expired(_) => {
+                Err(StatusCode::UNAUTHORIZED)
+            }
+            SquireSession::Guest(token) => Ok(Self::Guest(token)),
+            SquireSession::Active(id) => Ok(Self::User(id)),
+        }
+    }
+
+    fn empty_session(_err: TokenParseError) -> Result<Self, Self::Error> {
+        Err(StatusCode::UNAUTHORIZED)
+    }
+}
+
 /// The session of an active user
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UserSession(pub SquireAccountId);

@@ -11,9 +11,8 @@ use futures::{
     stream::{SplitSink, SplitStream},
     Sink, SinkExt, Stream,
 };
-use squire_lib::identifiers::SquireAccountId;
 
-use crate::sync::ClientBoundMessage;
+use crate::{server::session::AuthUser, sync::ClientBoundMessage};
 
 /// This structure captures messages being sent to a person that is in some way participating in
 /// the tournament. This person could be a spectator, player, judge, or admin. Messages they pass
@@ -21,12 +20,12 @@ use crate::sync::ClientBoundMessage;
 #[derive(Debug)]
 pub struct Crier {
     stream: SplitStream<WebSocket>,
-    user: SquireAccountId,
+    user: AuthUser,
     is_done: bool,
 }
 
 impl Crier {
-    pub fn new(stream: SplitStream<WebSocket>, user: SquireAccountId) -> Self {
+    pub fn new(stream: SplitStream<WebSocket>, user: AuthUser) -> Self {
         Self {
             stream,
             user,
@@ -60,16 +59,16 @@ impl Onlooker {
 /// Websocket when the connection is closed. After that, this stream will return `Poll::Pending`
 /// forever.
 impl Stream for Crier {
-    type Item = (SquireAccountId, Option<Vec<u8>>);
+    type Item = (AuthUser, Option<Vec<u8>>);
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match Pin::new(&mut self.stream).poll_next(cx) {
             Poll::Ready(Some(Ok(Message::Binary(val)))) => {
-                Poll::Ready(Some((self.user, Some(val))))
+                Poll::Ready(Some((self.user.clone(), Some(val))))
             }
             Poll::Ready(None) | Poll::Ready(Some(Err(_))) if !self.is_done => {
                 self.is_done = true;
-                Poll::Ready(Some((self.user, None)))
+                Poll::Ready(Some((self.user.clone(), None)))
             }
             _ => Poll::Pending,
         }

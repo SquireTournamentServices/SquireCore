@@ -65,6 +65,12 @@ impl From<TournamentManager> for ClientBound {
     }
 }
 
+impl From<SyncError> for ClientBound {
+    fn from(value: SyncError) -> Self {
+        Self::SyncChain(ServerOpLink::Error(value))
+    }
+}
+
 /* ---- SyncError Helper Traits ---- */
 impl From<RequestError> for SyncError {
     fn from(value: RequestError) -> Self {

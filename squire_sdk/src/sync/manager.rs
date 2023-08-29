@@ -65,7 +65,7 @@ impl TournamentManager {
         let mut buffer = self.tourn().clone();
         let mut f_ops = Vec::with_capacity(ops.len());
         for f_op in ops.by_ref() {
-            let FullOp { op, salt, id } = f_op.clone();
+            let FullOp { op, salt, .. } = f_op.clone();
             _ = buffer.apply_op(salt, op)?;
             f_ops.push(f_op);
         }
@@ -222,14 +222,13 @@ impl TournamentManager {
                     SyncError::NotInitialized => todo!(),
                     SyncError::AlreadyInitialized => todo!(),
                     SyncError::AlreadyCompleted => todo!(),
+                    SyncError::Unauthorized => todo!(),
                 };
             }
         };
 
         match self.bulk_apply_ops_inner(proc.to_process.into_iter()) {
-            Err(err) => {
-                err.into()
-            }
+            Err(err) => err.into(),
             Ok(_) => {
                 self.last_sync = self.log.last_id();
                 SyncForwardResp::Success

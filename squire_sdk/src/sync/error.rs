@@ -23,6 +23,8 @@ pub enum SyncError {
     UnknownOperation(OpId),
     /// The `OpSync` was a mismatch for the tournament manager (e.g. wrong account or seed)
     InvalidRequest(Box<RequestError>),
+    /// The user was not authorized to send the message that was sent.
+    Unauthorized,
 }
 
 /// An error used in the server-initialized sync process that the client uses to signal that an

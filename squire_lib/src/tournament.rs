@@ -981,6 +981,23 @@ impl Tournament {
 
         ret
     }
+
+    /// Determines the role of a user in the tournament.
+    pub fn user_role(&self, id: Uuid) -> TournRole {
+        if self.admins.contains_key(&AdminId::new(id)) {
+            TournRole::Admin(id.into())
+        } else if self.judges.contains_key(&JudgeId::new(id)) {
+            TournRole::Judge(id.into())
+        } else if let Ok(plyr) = self.get_player_by_id(&PlayerId::new(id)) {
+            if plyr.can_play() {
+                TournRole::Player(id.into())
+            } else {
+                TournRole::Spectator
+            }
+        } else {
+            TournRole::Spectator
+        }
+    }
 }
 
 impl TournamentSeed {
@@ -1117,6 +1134,23 @@ impl TournamentSeed {
     pub fn validate_name(name: &str) -> bool {
         !name.trim().is_empty()
     }
+}
+
+/// Communicates the role that a user has in a tournament. If a user is multiple things (e.g. a
+/// judge that is also a player), the highest role will be given.
+///
+/// NOTE:  Only active participants are considered here. If a player has dropped (and has no other
+/// roles), they will be considered a spectator
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TournRole {
+    /// The user is unknown in the tournament
+    Spectator,
+    /// The user is a player
+    Player(PlayerId),
+    /// The user is a judge
+    Judge(JudgeId),
+    /// The user is a admin
+    Admin(AdminId),
 }
 
 impl From<TournamentSeed> for Tournament {

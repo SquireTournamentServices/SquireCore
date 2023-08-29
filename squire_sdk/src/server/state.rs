@@ -5,7 +5,7 @@ use squire_lib::identifiers::SquireAccountId;
 
 use super::session::{AnyUser, SquireSession};
 use crate::{
-    api::{TournamentSummary, Version, SessionToken},
+    api::{SessionToken, TournamentSummary, Version},
     model::tournament::TournamentId,
     sync::TournamentManager,
 };

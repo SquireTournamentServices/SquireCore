@@ -15,7 +15,7 @@ use tokio::{
 };
 
 use super::{Gathering, GatheringMessage, PersistMessage, ServerState};
-use crate::{server::session::UserSession, sync::TournamentManager};
+use crate::{server::session::AuthUser, sync::TournamentManager};
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
 
@@ -32,7 +32,7 @@ pub fn init_gathering_hall<S: ServerState>(state: S) {
 
 /// This function communicates with the gathering hall task to add a new onlooker into a
 /// tournament.
-pub async fn handle_new_onlooker(id: TournamentId, user: UserSession, ws: WebSocket) {
+pub async fn handle_new_onlooker(id: TournamentId, user: AuthUser, ws: WebSocket) {
     GATHERING_HALL_MESSAGER
         .get()
         .unwrap()
@@ -69,7 +69,7 @@ pub enum GatheringHallMessage {
     /// Create a new gathering
     NewGathering(TournamentId),
     /// Adds an onlooker to a gathering
-    NewConnection(TournamentId, UserSession, WebSocket),
+    NewConnection(TournamentId, AuthUser, WebSocket),
 }
 
 /// This structure manages all of the `Gathering`s around tournaments. This includes adding new
@@ -146,7 +146,7 @@ impl<S: ServerState> GatheringHall<S> {
         _ = self.gatherings.insert(id, send);
     }
 
-    async fn process_new_onlooker(&mut self, id: TournamentId, user: UserSession, ws: WebSocket) {
+    async fn process_new_onlooker(&mut self, id: TournamentId, user: AuthUser, ws: WebSocket) {
         let msg = GatheringMessage::NewConnection(user, ws);
         let send = self.get_or_init_gathering(id).await;
         send.send(msg).await.unwrap()

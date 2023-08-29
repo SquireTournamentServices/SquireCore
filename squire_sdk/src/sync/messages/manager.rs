@@ -44,14 +44,17 @@ use std::{
 };
 
 use instant::Instant;
-use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
+use squire_lib::tournament::TournamentId;
 use uuid::Uuid;
 
 use super::{
     ClientBound, ClientBoundMessage, ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain,
     SyncForwardResp,
 };
-use crate::sync::{OpSync, SyncError};
+use crate::{
+    server::session::AuthUser,
+    sync::{OpSync, SyncError},
+};
 
 const TO_CLEAR_TIME_LIMIT: Duration = Duration::from_secs(10);
 const RETRY_LIMIT: Duration = Duration::from_millis(250);
@@ -262,7 +265,7 @@ impl TimerStack {
 
 #[derive(Debug, Default)]
 pub struct ServerForwardingManager {
-    outbound: HashMap<Uuid, (SquireAccountId, TournamentId, OpSync)>,
+    outbound: HashMap<Uuid, (AuthUser, TournamentId, OpSync)>,
     timers: TimerStack,
 }
 
@@ -271,7 +274,7 @@ impl ServerForwardingManager {
         Self::default()
     }
 
-    pub fn add_msg(&mut self, id: Uuid, user: SquireAccountId, t_id: TournamentId, msg: OpSync) {
+    pub fn add_msg(&mut self, id: Uuid, user: AuthUser, t_id: TournamentId, msg: OpSync) {
         _ = self.outbound.insert(id, (user, t_id, msg));
         self.timers.add_timer(id);
     }
@@ -301,21 +304,21 @@ pub struct ForwardingRetry<'a> {
     inner: Option<(
         Uuid,
         &'a Instant,
-        &'a SquireAccountId,
+        &'a AuthUser,
         &'a TournamentId,
         &'a OpSync,
     )>,
 }
 
 impl Future for ForwardingRetry<'_> {
-    type Output = (SquireAccountId, ClientBoundMessage);
+    type Output = (AuthUser, ClientBoundMessage);
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.inner.as_ref() {
             Some(inner) if inner.1.elapsed() >= RETRY_LIMIT => {
                 let body: ClientBound = (*inner.3, inner.4.clone()).into();
                 let msg = ClientBoundMessage { id: inner.0, body };
-                Poll::Ready((*inner.2, msg))
+                Poll::Ready((inner.2.clone(), msg))
             }
             _ => Poll::Pending,
         }

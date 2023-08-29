@@ -124,10 +124,7 @@ impl OpLog {
             .ops
             .iter()
             .rev()
-            .take_while(|op| {
-                let digest = std::mem::replace(&mut not_found, op.id != id);
-                digest
-            })
+            .take_while(|op| std::mem::replace(&mut not_found, op.id != id))
             .cloned()
             .collect::<Vec<_>>();
         if ops.len() < self.len() || ops.last().map(|op| op.id == id).unwrap_or_default() {

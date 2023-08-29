@@ -7,6 +7,7 @@ use crate::{
     error::TournamentError,
     identifiers::{AdminId, PlayerId},
     rounds::{RoundId, RoundStatus},
+    tournament::TournRole,
 };
 
 mod admin_ops;
@@ -174,6 +175,27 @@ impl OpUpdate {
 }
 
 impl TournOp {
+    /// Calculates if a given role is allowed to submit the given operation.
+    pub fn valid_op(&self, role: TournRole) -> bool {
+        match (role, self) {
+            // The only thing that an admin can't do is submit an operation for of another admin
+            (TournRole::Admin(a_id), TournOp::AdminOp(id, _)) => a_id == *id,
+            (TournRole::Admin(_), _) => true,
+            // Judges can submit judge and player ops, but not for other judges or admin ops
+            (TournRole::Judge(_), TournOp::AdminOp(_, _)) => false,
+            (TournRole::Judge(j_id), TournOp::JudgeOp(TournOfficialId::Judge(id), _)) => {
+                j_id == *id
+            }
+            (TournRole::Judge(_), _) => false,
+            // Players can only submit player operations for themselves
+            (TournRole::Player(p_id), TournOp::PlayerOp(id, _)) => p_id == *id,
+            (TournRole::Player(_), _) => false,
+            // Specators can only register for tournaments
+            (TournRole::Spectator, TournOp::RegisterPlayer(_, _)) => true,
+            (TournRole::Spectator, _) => false,
+        }
+    }
+
     /// Returns the update that the operation can have
     pub fn get_update(&self, salt: DateTime<Utc>) -> OpUpdate {
         match self {

@@ -4,9 +4,12 @@ use reqwest::{header::CONTENT_TYPE, Client};
 use squire_lib::operations::OpResult;
 use tokio::sync::broadcast::Receiver as Subscriber;
 
-use self::{builder::ClientBuilder, management_task::{ManagementTaskSender, Tracker, UpdateType}};
+use self::{
+    builder::ClientBuilder,
+    management_task::{ManagementTaskSender, Tracker, UpdateType},
+};
 use crate::{
-    api::{GetRequest, ListTournaments, PostRequest, ServerMode, TournamentSummary, SessionToken},
+    api::{GetRequest, ListTournaments, PostRequest, ServerMode, SessionToken, TournamentSummary},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,

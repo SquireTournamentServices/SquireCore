@@ -54,6 +54,12 @@ impl OpSync {
         self.ops.pop_front().ok_or(SyncError::EmptySync)
     }
 
+    /// Returns an iterator over the operations contained within the slice.
+    #[cfg(feature = "server")]
+    pub fn iter(&self) -> impl Iterator<Item = &FullOp> {
+        self.ops.iter()
+    }
+
     /// Validates the sync against a log. Check id, seed, creator, and len.
     #[cfg(any(feature = "client", feature = "server"))]
     pub(crate) fn validate(&self, log: &OpLog) -> Result<(), SyncError> {
