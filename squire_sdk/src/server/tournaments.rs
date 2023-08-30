@@ -9,7 +9,7 @@ use squire_lib::tournament::TournamentId;
 
 use super::{
     gathering::{self, handle_new_onlooker},
-    session::{AuthUser, Session, UserSession},
+    session::{Session, UserSession},
     SquireRouter,
 };
 use crate::{api::*, server::state::ServerState, sync::TournamentManager};

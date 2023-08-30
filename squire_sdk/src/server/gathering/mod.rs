@@ -9,12 +9,15 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
-use super::{session::AuthUser, state::ServerState};
-use crate::sync::{
-    processor::{SyncCompletion, SyncDecision},
-    ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
-    ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
-    TournamentManager,
+use super::state::ServerState;
+use crate::{
+    api::AuthUser,
+    sync::{
+        processor::{SyncCompletion, SyncDecision},
+        ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
+        ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
+        TournamentManager,
+    },
 };
 
 mod hall;
@@ -178,6 +181,7 @@ impl Gathering {
         }
         match link.clone() {
             ClientOpLink::Init(sync) => {
+                // Check to make sure that the user is allowed to send these operations
                 if let Err(err) = self.validate_sync_request(u_id, &sync) {
                     return err.into();
                 }

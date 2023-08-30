@@ -52,7 +52,7 @@ use super::{
     SyncForwardResp,
 };
 use crate::{
-    server::session::AuthUser,
+    api::AuthUser,
     sync::{OpSync, SyncError},
 };
 

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::OpSlice;
 #[cfg(feature = "server")]
-use super::{FullOp, OpId};
+use super::OpId;
+use super::{FullOp, OpSlice};
 #[cfg(any(feature = "client", feature = "server"))]
 use super::{OpLog, OpSync, SyncError};
 
@@ -41,6 +41,13 @@ impl SyncCompletion {
     pub fn as_slice(self) -> OpSlice {
         match self {
             SyncCompletion::ForeignOnly(ops) | SyncCompletion::Mixed(ops) => ops,
+        }
+    }
+
+    /// Returns an iterator over the operations
+    pub fn iter(&self) -> impl Iterator<Item = &FullOp> {
+        match self {
+            SyncCompletion::ForeignOnly(ops) | SyncCompletion::Mixed(ops) => ops.iter(),
         }
     }
 }
@@ -136,6 +143,36 @@ impl SyncProcessor {
     #[cfg(feature = "server")]
     pub(crate) fn processing(&mut self) -> Processing<'_> {
         Processing::new(&mut *self)
+    }
+
+    /// Checks to see if a sync decision is a valid response to the server's conflict message.
+    pub fn valid_decision(&self, dec: &SyncDecision) -> bool {
+        match dec {
+            // A decision to pluck means that the user remains just one operation. Sans the first
+            // operation in `self.to_process`, both list of operations should be identical
+            SyncDecision::Plucked(proc) => {
+                self.known == proc.known
+                    && self.processed == proc.processed
+                    && self.to_process == proc.to_process
+                    && self
+                        .to_process
+                        .iter()
+                        .skip(1)
+                        .zip(proc.to_process.iter())
+                        .all(|(k, f)| k == f)
+            }
+            // A decision to purge means that the user ignores all remaining operations and the
+            // kept operations are the same.
+            SyncDecision::Purged(ops) => {
+                ops.len() == self.known.len() + self.processed.len()
+                    && self
+                        .known
+                        .iter()
+                        .chain(self.processed.iter())
+                        .zip(ops.iter())
+                        .all(|(k, f)| k == f)
+            }
+        }
     }
 }
 

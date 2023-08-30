@@ -15,7 +15,7 @@ use tokio::{
 };
 
 use super::{Gathering, GatheringMessage, PersistMessage, ServerState};
-use crate::{server::session::AuthUser, sync::TournamentManager};
+use crate::{api::AuthUser, sync::TournamentManager};
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
 

@@ -12,7 +12,7 @@ use futures::{
     Sink, SinkExt, Stream,
 };
 
-use crate::{server::session::AuthUser, sync::ClientBoundMessage};
+use crate::{api::AuthUser, sync::ClientBoundMessage};
 
 /// This structure captures messages being sent to a person that is in some way participating in
 /// the tournament. This person could be a spectator, player, judge, or admin. Messages they pass

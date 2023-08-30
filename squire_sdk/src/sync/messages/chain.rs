@@ -1,14 +1,11 @@
 use super::{ClientOpLink, ServerOpLink, SyncForwardResp};
-use crate::sync::{processor::SyncDecision, OpSync, RequestError, SyncError};
+use crate::sync::{OpSync, SyncError};
 
 /// A struct that tracks the messages passed between a client and server during the sync process.
 #[derive(Debug)]
 pub struct SyncChain {
     /// All of the messages used during the syncing process.
     links: Vec<(ClientOpLink, ServerOpLink)>,
-    /// The number of operations in the last chain. This number must be strictly decreasing.
-    /// Only used by the server when receiving new messages.
-    op_count: usize,
 }
 
 impl SyncChain {
@@ -16,13 +13,7 @@ impl SyncChain {
     /// error is returned.
     pub fn new(op: &ClientOpLink) -> Result<Self, SyncError> {
         match op {
-            ClientOpLink::Init(sync) => {
-                let op_count = sync.len();
-                Ok(Self {
-                    links: vec![],
-                    op_count,
-                })
-            }
+            ClientOpLink::Init(_) => Ok(Self { links: vec![] }),
             _ => Err(SyncError::NotInitialized),
         }
     }
@@ -69,12 +60,15 @@ impl SyncChain {
         if msg == &last.0 {
             return Err(last.1.clone());
         }
+        // TODO: Can we do better? We do checks for this elsewhere. Can we move them here?
+        let ServerOpLink::Conflict(ref proc) = last.1 else {
+            return Ok(());
+        };
         match msg {
             ClientOpLink::Init(_) => Err(SyncError::AlreadyInitialized.into()),
             ClientOpLink::Terminated => Ok(()),
-            ClientOpLink::Decision(SyncDecision::Purged(c)) if c.len() < self.op_count => Ok(()),
-            ClientOpLink::Decision(SyncDecision::Plucked(p)) if p.len() < self.op_count => Ok(()),
-            ClientOpLink::Decision(_) => Err(RequestError::OpCountIncreased.into()),
+            ClientOpLink::Decision(dec) if proc.valid_decision(dec) => Ok(()),
+            ClientOpLink::Decision(_) => Err(SyncError::EmptySync.into()),
         }
     }
 }

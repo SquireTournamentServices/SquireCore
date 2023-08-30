@@ -9,7 +9,7 @@ use http::{request::Parts, HeaderMap, StatusCode};
 use squire_lib::identifiers::SquireAccountId;
 
 use super::state::ServerState;
-use crate::api::{SessionToken, TokenParseError};
+use crate::api::{AuthUser, SessionToken, TokenParseError};
 
 /* We will have two layers of session types.
  * The bottom layer is the session type that is returned by the session store. This is used to
@@ -63,35 +63,6 @@ impl SessionConvert for AnyUser {
             SquireSession::NotLoggedIn | SquireSession::UnknownUser => {
                 Err(StatusCode::UNAUTHORIZED)
             }
-        }
-    }
-
-    fn empty_session(_err: TokenParseError) -> Result<Self, Self::Error> {
-        Err(StatusCode::UNAUTHORIZED)
-    }
-}
-
-/// A user session for users that have an active session. Its primary usecase is for filtering
-/// inbound websocket messages.
-///
-/// TODO: This type should also receive updates about the session so that such updates can be
-/// communicated throughout the system.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum AuthUser {
-    Guest(SessionToken),
-    User(SquireAccountId),
-}
-
-impl SessionConvert for AuthUser {
-    type Error = StatusCode;
-
-    fn convert(_token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
-        match session {
-            SquireSession::NotLoggedIn | SquireSession::UnknownUser | SquireSession::Expired(_) => {
-                Err(StatusCode::UNAUTHORIZED)
-            }
-            SquireSession::Guest(token) => Ok(Self::Guest(token)),
-            SquireSession::Active(id) => Ok(Self::User(id)),
         }
     }
 
@@ -225,5 +196,23 @@ impl IntoResponse for SessionToken {
         let (name, value) = self.as_header();
         let _ = headers.insert(name, value);
         headers.into_response()
+    }
+}
+
+impl SessionConvert for AuthUser {
+    type Error = StatusCode;
+
+    fn convert(_token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
+        match session {
+            SquireSession::NotLoggedIn | SquireSession::UnknownUser | SquireSession::Expired(_) => {
+                Err(StatusCode::UNAUTHORIZED)
+            }
+            SquireSession::Guest(token) => Ok(Self::Guest(token)),
+            SquireSession::Active(id) => Ok(Self::User(id)),
+        }
+    }
+
+    fn empty_session(_err: TokenParseError) -> Result<Self, Self::Error> {
+        Err(StatusCode::UNAUTHORIZED)
     }
 }

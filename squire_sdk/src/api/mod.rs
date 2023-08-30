@@ -7,9 +7,11 @@ use crate::{extend, sync::TournamentManager};
 
 mod model;
 mod request;
+mod session;
 mod url;
 pub use model::*;
 pub use request::*;
+pub use session::*;
 pub use url::Url;
 
 /// The inner type used to represent all sessions

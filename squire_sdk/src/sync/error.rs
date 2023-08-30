@@ -25,6 +25,11 @@ pub enum SyncError {
     InvalidRequest(Box<RequestError>),
     /// The user was not authorized to send the message that was sent.
     Unauthorized,
+    /// This error is returned when the server recieves an reply message that doesn't follow from
+    /// the prior message. This mostly protects against a user starting a chain that passes
+    /// initialization checks (like the "are you allowed to perform these operations check") then
+    /// replying with a completely different set of operations.
+    InvalidReply,
 }
 
 /// An error used in the server-initialized sync process that the client uses to signal that an

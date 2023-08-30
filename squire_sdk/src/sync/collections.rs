@@ -1,7 +1,5 @@
 #[cfg(feature = "server")]
 use std::collections::vec_deque::Drain;
-#[cfg(any(feature = "server", feature = "client"))]
-use std::collections::vec_deque::Iter;
 use std::collections::vec_deque::{IntoIter, VecDeque};
 
 use serde::{Deserialize, Serialize};
@@ -198,8 +196,7 @@ impl OpSlice {
         self.ops.back().map(|o| o.id)
     }
 
-    #[cfg(any(feature = "server", feature = "client"))]
-    pub(crate) fn iter(&self) -> Iter<'_, FullOp> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &FullOp> {
         self.ops.iter()
     }
 

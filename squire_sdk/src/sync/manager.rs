@@ -223,6 +223,7 @@ impl TournamentManager {
                     SyncError::AlreadyInitialized => todo!(),
                     SyncError::AlreadyCompleted => todo!(),
                     SyncError::Unauthorized => todo!(),
+                    SyncError::InvalidReply => todo!(),
                 };
             }
         };
