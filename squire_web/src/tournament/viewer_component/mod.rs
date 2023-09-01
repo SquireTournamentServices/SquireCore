@@ -1,13 +1,18 @@
 use squire_sdk::{
     client::SquireClient,
-    model::{identifiers::AdminId, operations::OpResult, tournament::TournamentId},
+    model::{
+        identifiers::AdminId,
+        operations::{OpResult, TournOp},
+        tournament::TournamentId,
+    },
     sync::TournamentManager,
 };
+use wasm_bindgen_futures::spawn_local;
 // use squire_sdk::tournaments::TournamentManager;
 // use wasm_bindgen_futures::spawn_local;
 use yew::{Callback, Component, Context, Properties};
 
-use crate::CLIENT;
+use crate::{utils::console_log, CLIENT, ON_UPDATE};
 
 pub struct TournViewerComponentWrapper<T> {
     state: WrapperState,
@@ -24,20 +29,21 @@ where
     T: TournViewerComponent,
 {
     Redraw(bool),
-    Update,
+    Update(Vec<TournOp>), // <- We probably want to pass in a client Update type instead
     FetchData(Box<dyn 'static + Send + FnOnce(&TournamentManager) -> T::QueryMessage>),
 }
 pub enum WrapperMessage<T>
 where
     T: TournViewerComponent,
 {
-    // User interaction with the component when doing something like clicking
+    /// User interaction with the component when doing something like clicking
     Interaction(T::InteractionMessage),
-    // Message to query all of the information for the component
+    /// Message to query all of the information for the component
+    #[allow(dead_code)]
     ReQuery,
-    // Message to query individual bits of information
+    /// Message to query individual bits of information
     QueryData(T::QueryMessage),
-    // Message from the server telling the component there has been an update
+    /// Message from the server telling the component there has been an update
     RemoteUpdate(TournamentId),
 }
 #[derive(PartialEq, Properties)]
@@ -61,12 +67,13 @@ where
         let state = WrapperState {
             a_id: ctx.props().a_id,
             t_id: ctx.props().t_id,
-            send_op_result: ctx.props().send_op_result,
+            send_op_result: ctx.props().send_op_result.clone(),
             client: CLIENT.get().unwrap(),
         };
         let mut comp = T::v_create(ctx, &state);
         let q_func = comp.query(ctx, &state);
         let to_return = TournViewerComponentWrapper { state, comp };
+        to_return.spawn_update_listener(ctx);
         to_return.query_tourn(ctx, q_func);
         to_return
     }
@@ -76,18 +83,37 @@ where
             WrapperMessage::Interaction(msg) => {
                 match self.comp.interaction(ctx, msg, &self.state) {
                     InteractionResponse::Redraw(value) => value,
-                    InteractionResponse::Update => todo!(), // <-- where tourn ops happen
-                    InteractionResponse::FetchData(q_func) => self.query_tourn(ctx, q_func),
+                    InteractionResponse::Update(ops) => {
+                        let handle = CLIENT
+                            .get()
+                            .unwrap()
+                            .bulk_update(self.state.t_id, ops.into_iter());
+                        let send_op_result = self.state.send_op_result.clone();
+                        let is_success = ctx.link().callback(move |_| WrapperMessage::ReQuery);
+                        spawn_local(async move {
+                            let op_result = handle.process().await.unwrap();
+                            if op_result.is_ok() {
+                                is_success.emit(())
+                            };
+                            send_op_result.emit(op_result)
+                        });
+                        false
+                    }
+                    InteractionResponse::FetchData(q_func) => {
+                        self.query_tourn(ctx, q_func);
+                        true
+                    }
                 }
             }
             WrapperMessage::ReQuery => {
-                self.comp.query(ctx, &self.state);
+                let q_func = self.comp.query(ctx, &self.state);
+                self.query_tourn(ctx, q_func);
                 false
             }
             WrapperMessage::QueryData(data) => self.comp.load_queried_data(data, &self.state),
             WrapperMessage::RemoteUpdate(t_id) => {
                 if self.state.t_id == t_id {
-                    self.comp.query(ctx, &self.state);
+                    let _ = self.comp.query(ctx, &self.state);
                 }
                 false
             }
@@ -110,6 +136,14 @@ where
         ctx.link()
             .send_future(async move { WrapperMessage::QueryData(handle.await.unwrap()) });
     }
+
+    fn spawn_update_listener(&self, ctx: &Context<Self>) {
+        console_log("Spawning update listener");
+        let recv = ON_UPDATE.get().unwrap().clone();
+        ctx.link().send_future(async move {
+            recv.recv().await.map(WrapperMessage::RemoteUpdate).unwrap()
+        })
+    }
 }
 
 pub trait TournViewerComponent: Sized + 'static {
@@ -119,15 +153,15 @@ pub trait TournViewerComponent: Sized + 'static {
 
     fn v_create(ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self;
 
-    fn load_queried_data(&mut self, _msg: Self::QueryMessage, state: &WrapperState) -> bool {
+    fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
         false
     }
 
     fn interaction(
         &mut self,
         _ctx: &Context<TournViewerComponentWrapper<Self>>,
-        msg: Self::InteractionMessage,
-        state: &WrapperState,
+        _msg: Self::InteractionMessage,
+        _state: &WrapperState,
     ) -> InteractionResponse<Self> {
         false.into()
     }

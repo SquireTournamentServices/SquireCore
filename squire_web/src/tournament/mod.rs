@@ -4,6 +4,8 @@ use yew::{Component, Context};
 
 use crate::ON_UPDATE;
 
+// use self::viewer_component::{TournViewerComponentWrapper, TournViewerComponent};
+
 pub mod creator;
 pub mod model;
 pub mod overview;

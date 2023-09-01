@@ -24,7 +24,7 @@ use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
 /// The SquireClient used to manage tournaments and communicate with the backend
 static CLIENT: OnceCell<SquireClient> = OnceCell::new();
 /// The Receiver half of the channel used to communicate that the client has updated a tournament.
-pub static ON_UPDATE: OnceCell<Receiver<usize>> = OnceCell::new();
+pub static ON_UPDATE: OnceCell<Receiver<TournamentId>> = OnceCell::new();
 
 #[derive(Clone, Routable, PartialEq)]
 enum Route {
@@ -62,8 +62,8 @@ fn App() -> Html {
 
 fn main() {
     let (send, recv) = unbounded();
-    let on_update = move |_| {
-        let _ = send.try_send(0);
+    let on_update = move |t_id| {
+        let _ = send.try_send(t_id);
     };
 
     let client = SquireClient::builder()
