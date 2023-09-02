@@ -8,6 +8,7 @@ mod client;
 mod client_server;
 
 mod utils;
+mod sessions;
 
 #[cfg(test)]
 mod tests {}

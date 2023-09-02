@@ -1,5 +1,3 @@
-use hex::decode_to_slice;
-use http::{header::AUTHORIZATION, HeaderMap, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use squire_lib::accounts::SquireAccount;
 
@@ -13,49 +11,6 @@ pub use model::*;
 pub use request::*;
 pub use session::*;
 pub use url::Url;
-
-/// The inner type used to represent all sessions
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct SessionToken(pub [u8; 32]);
-
-impl From<[u8; 32]> for SessionToken {
-    fn from(value: [u8; 32]) -> Self {
-        Self(value)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenParseError {
-    NoAuthHeader,
-    InvalidToken,
-}
-
-impl SessionToken {
-    pub const HEADER_NAME: HeaderName = AUTHORIZATION;
-
-    pub fn as_header(&self) -> (HeaderName, HeaderValue) {
-        (
-            Self::HEADER_NAME,
-            HeaderValue::from_str(&hex::encode(self.0)).unwrap(),
-        )
-    }
-}
-
-impl TryFrom<&HeaderMap<HeaderValue>> for SessionToken {
-    type Error = TokenParseError;
-
-    fn try_from(headers: &HeaderMap) -> Result<Self, Self::Error> {
-        match headers.get(Self::HEADER_NAME) {
-            Some(header) => {
-                let mut inner = [0; 32];
-                let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
-                decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
-                Ok(Self(inner))
-            }
-            None => Err(TokenParseError::NoAuthHeader),
-        }
-    }
-}
 
 /* ---------- Base Routes ---------- */
 const API_BASE: Url<0> = Url::from("/api/v1");
