@@ -13,6 +13,7 @@ client = [
   "serde_json",
   "tokio-tungstenite",
   "tokio",
+  "tokio-stream",
   "futures",
   "postcard",
   "gloo-net",
@@ -25,10 +26,10 @@ server = [
   "axum/headers",
   "tokio",
   "tokio/full",
+  "tokio-stream",
   "async-trait",
   "headers",
   "serde_json",
-  "rand",
   "cookie",
   "futures",
   "postcard",
@@ -56,10 +57,15 @@ postcard = { version = "1.0", features = ["alloc"], optional = true }
 # Client deps
 reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
 cookie_store = { version = "0.20", optional = true }
+tokio-stream = { version = "0.1.14", optional = true }
 tokio = { version = "1.33", features = [
   "macros",
   "sync",
 ], optional = true }
+
+# Client deps
+reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
+cookie_store = { version = "0.20", optional = true }
 
 # Server deps
 axum = { version = "0.6.20", features = ["ws"], optional = true }

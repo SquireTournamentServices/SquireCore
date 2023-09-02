@@ -39,3 +39,6 @@ pub mod api;
 pub mod response;
 /// Contains all of the components needed for client-server synchronization
 pub mod sync;
+/// Contains the definition of the actor model used by both the client and server
+#[cfg(any(feature = "server", feature = "client"))]
+pub mod actor;
