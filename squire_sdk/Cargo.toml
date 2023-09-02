@@ -21,6 +21,7 @@ server = [
   "axum/json",
   "axum/macros",
   "axum/headers",
+  "tokio/full",
   "headers",
   "serde_json",
   "cookie",
