@@ -1,20 +1,24 @@
-#![allow(dead_code)]
 use std::{
     pin::Pin,
     task::{Context, Poll},
 };
 
+use async_trait::async_trait;
 use futures::{
     stream::{select_all, FuturesUnordered, SelectAll},
-    Future, Stream, StreamExt, FutureExt,
+    Future, FutureExt, Stream, StreamExt,
 };
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot::Receiver as OneshotReceiver,
+};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
+#[async_trait]
 pub trait ActorState: 'static + Send + Sized {
     type Message: Send;
 
-    fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message);
+    async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message);
 }
 
 pub struct ActorBuilder<A: ActorState> {
@@ -23,8 +27,15 @@ pub struct ActorBuilder<A: ActorState> {
     state: A,
 }
 
+#[derive(Debug)]
 pub struct ActorClient<A: ActorState> {
     send: UnboundedSender<A::Message>,
+}
+
+impl<A: ActorState> Clone for ActorClient<A> {
+    fn clone(&self) -> Self {
+        Self::new(self.send.clone())
+    }
 }
 
 enum ActorStream<A: ActorState> {
@@ -56,9 +67,7 @@ impl<A: ActorState> ActorBuilder<A> {
     }
 
     pub fn client(&self) -> ActorClient<A> {
-        ActorClient {
-            send: self.send.clone(),
-        }
+        ActorClient::new(self.send.clone())
     }
 
     pub fn add_input<S, I>(&mut self, stream: S)
@@ -74,13 +83,13 @@ impl<A: ActorState> ActorBuilder<A> {
         let Self { send, recv, state } = self;
         let runner = ActorRunner::new(state, recv);
         runner.launch();
-        ActorClient { send }
+        ActorClient::new(send)
     }
 }
 
 pub struct Scheduler<A: ActorState> {
     recv: SelectAll<ActorStream<A>>,
-    queue: FuturesUnordered<Box<dyn 'static + Send + Unpin + Future<Output = A::Message>>>,
+    queue: FuturesUnordered<Pin<Box<dyn 'static + Send + Future<Output = A::Message>>>>,
 }
 
 impl<A: ActorState> ActorRunner<A> {
@@ -97,7 +106,7 @@ impl<A: ActorState> ActorRunner<A> {
     async fn run(mut self) -> ! {
         loop {
             let msg = self.scheduler.next().await.unwrap();
-            self.state.process(&mut self.scheduler, msg);
+            self.state.process(&mut self.scheduler, msg).await;
         }
     }
 }
@@ -111,10 +120,10 @@ impl<A: ActorState> Scheduler<A> {
 
     pub fn schedule<F, I>(&mut self, fut: F)
     where
-        F: 'static + Unpin + Send + Future<Output = I>,
+        F: 'static + Send + Future<Output = I>,
         I: 'static + Into<A::Message>,
     {
-        self.queue.push(Box::new(fut.map(Into::into)));
+        self.queue.push(Box::pin(fut.map(Into::into)));
     }
 
     pub fn add_stream<S, I>(&mut self, stream: S)
@@ -143,5 +152,48 @@ impl<A: ActorState> Stream for Scheduler<A> {
 impl<A: ActorState> From<UnboundedReceiver<A::Message>> for ActorStream<A> {
     fn from(value: UnboundedReceiver<A::Message>) -> Self {
         Self::Main(UnboundedReceiverStream::new(value))
+    }
+}
+
+impl<A: ActorState> ActorClient<A> {
+    fn new(send: UnboundedSender<A::Message>) -> Self {
+        Self { send }
+    }
+
+    pub fn send(&self, msg: impl Into<A::Message>) {
+        // This returns a result. It only errors when the connected actor panics. Should we "bubble
+        // up" that panic?
+        let _ = self.send.send(msg.into());
+    }
+
+    pub fn track<M, T>(&self, msg: M) -> Tracker<T>
+    where
+        A::Message: Trackable<M, T>,
+    {
+        let (msg, recv) = A::Message::track(msg);
+        self.send(msg);
+        Tracker::new(recv)
+    }
+}
+
+pub trait Trackable<M, T>: Sized {
+    fn track(msg: M) -> (Self, OneshotReceiver<T>);
+}
+
+pub struct Tracker<T> {
+    recv: OneshotReceiver<T>,
+}
+
+impl<T> Tracker<T> {
+    fn new(recv: OneshotReceiver<T>) -> Self {
+        Self { recv }
+    }
+}
+
+impl<T> Future for Tracker<T> {
+    type Output = T;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut self.recv).poll(cx).map(Result::unwrap)
     }
 }

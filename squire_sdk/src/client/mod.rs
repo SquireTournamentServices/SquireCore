@@ -1,12 +1,10 @@
-use std::fmt::{self, Debug};
-
 use reqwest::{header::CONTENT_TYPE, Client};
 use squire_lib::operations::OpResult;
-use tokio::sync::broadcast::Receiver as Subscriber;
+use tokio::sync::watch::Receiver as Subscriber;
 
 use self::{
     builder::ClientBuilder,
-    management_task::{ManagementTaskSender, Tracker, UpdateType},
+    management_task::{ManagementTaskSender, UpdateType},
 };
 use crate::{
     api::{GetRequest, ListTournaments, PostRequest, ServerMode, SessionToken, TournamentSummary},
@@ -14,7 +12,7 @@ use crate::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
-    sync::TournamentManager,
+    sync::TournamentManager, actor::Tracker,
 };
 
 #[cfg(not(debug_assertions))]
@@ -68,6 +66,7 @@ pub struct SquireClient {
     client: Client,
     user: UserInfo,
     url: String,
+    #[allow(dead_code)]
     server_mode: ServerMode,
     sender: ManagementTaskSender,
 }
@@ -114,7 +113,7 @@ impl SquireClient {
 
     /// Retrieves a tournament with the given id from the backend and creates a websocket
     /// connection to receive updates from the backend.
-    pub async fn sub_to_tournament(&self, id: TournamentId) -> Option<Subscriber<bool>> {
+    pub async fn sub_to_tournament(&self, id: TournamentId) -> Option<Subscriber<()>> {
         self.sender.subscribe(id).await
     }
 
@@ -202,22 +201,5 @@ impl SquireClient {
 
     pub async fn get_tourn_summaries(&self) -> Option<Vec<TournamentSummary>> {
         self.get_request::<1, ListTournaments>(["0"]).await.ok()
-    }
-}
-
-impl Debug for SquireClient {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self {
-            client,
-            url,
-            user,
-            server_mode,
-            sender,
-            ..
-        } = self;
-        write!(
-            f,
-            r#"SquireClient {{ client: {client:?}, url: {url:?}, user: {user:?}, server_mode: {server_mode:?}, sender: {sender:?} }}"#
-        )
     }
 }

@@ -2,7 +2,7 @@ use reqwest::{Client, StatusCode};
 use squire_lib::accounts::SquireAccount;
 
 use super::{
-    error::ClientError, management_task::spawn_management_task, OnUpdate, SquireClient, UserInfo,
+    error::ClientError, OnUpdate, SquireClient, UserInfo, management_task::ManagementTaskSender,
 };
 use crate::api::{
     Credentials, GetRequest, GetVersion, GuestSession, Login, PostRequest, ServerMode,
@@ -93,7 +93,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
         let server_mode = get_server_mode(&client, &url).await?;
         let (session, _) = get_session(&client, &url, &GuestSession).await?;
         let user = UserInfo::Guest(session);
-        let sender = spawn_management_task(on_update);
+        let sender = ManagementTaskSender::new(on_update);
         Ok(SquireClient {
             client,
             url,
@@ -107,7 +107,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
     pub fn guest_build_unchecked(self) -> SquireClient {
         let ClientBuilder { url, on_update, .. } = self;
         let user = UserInfo::Unknown;
-        let sender = spawn_management_task(on_update);
+        let sender = ManagementTaskSender::new(on_update);
         SquireClient {
             client: Client::new(),
             server_mode: ServerMode::Extended,
@@ -131,7 +131,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, Credentials> {
         let server_mode = get_server_mode(&client, &url).await?;
         let (session, account) = get_session(&client, &url, &Login(user)).await?;
         let user = UserInfo::AuthUser { account, session };
-        let sender = spawn_management_task(on_update);
+        let sender = ManagementTaskSender::new(on_update);
         Ok(SquireClient {
             client,
             url,
@@ -154,7 +154,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
         let user = UserInfo::User(user);
         let client = Client::builder().build()?;
         let server_mode = get_server_mode(&client, &url).await?;
-        let sender = spawn_management_task(on_update);
+        let sender = ManagementTaskSender::new(on_update);
         Ok(SquireClient {
             client,
             url,
@@ -172,7 +172,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
             on_update,
         } = self;
         let user = UserInfo::User(user);
-        let sender = spawn_management_task(on_update);
+        let sender = ManagementTaskSender::new(on_update);
         SquireClient {
             client: Client::new(),
             server_mode: ServerMode::Extended,
