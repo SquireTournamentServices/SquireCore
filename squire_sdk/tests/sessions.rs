@@ -1,6 +1,6 @@
 // Tests that pertain to the different session types
 
-use http::{HeaderValue, HeaderMap};
+use http::{HeaderMap, HeaderValue};
 use squire_sdk::api::SessionToken;
 
 #[test]
@@ -13,4 +13,3 @@ fn token_parsing() {
     headers.insert(name, header);
     assert_eq!(token, SessionToken::try_from(&headers).unwrap());
 }
-

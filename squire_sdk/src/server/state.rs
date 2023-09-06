@@ -3,9 +3,10 @@ use std::ops::Range;
 use async_trait::async_trait;
 use squire_lib::identifiers::SquireAccountId;
 
+use axum::extract::ws::WebSocket;
 use super::session::{AnyUser, SquireSession};
 use crate::{
-    api::{SessionToken, TournamentSummary, Version},
+    api::{SessionToken, TournamentSummary, Version, AuthUser},
     model::tournament::TournamentId,
     sync::TournamentManager,
 };
@@ -34,6 +35,8 @@ pub trait ServerState: 'static + Clone + Send + Sync {
         }
         digest
     }
+
+    async fn handle_new_onlooker(&self, id: TournamentId, user: AuthUser, ws: WebSocket);
 
     /* ------ Session-related methods ------ */
     async fn create_session(&self, id: SquireAccountId) -> SessionToken;

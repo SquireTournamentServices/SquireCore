@@ -87,7 +87,7 @@ impl ActorState for ManagerState {
                 SubCreation::Connected(watcher) => {
                     let _ = send.send(Some(watcher));
                 }
-                SubCreation::Connect(id) => scheduler.schedule(create_ws_connection(id, send)),
+                SubCreation::Connect(id) => scheduler.add_task(create_ws_connection(id, send)),
             },
             ManagementCommand::Connection(res, send) => match res {
                 Ok((ws, tourn)) => {

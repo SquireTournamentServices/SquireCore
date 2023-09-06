@@ -1,45 +1,20 @@
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
 
+use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
+use instant::{Duration, Instant};
 use squire_lib::tournament::TournamentId;
-use tokio::{
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        oneshot::channel as oneshot_channel,
-        OnceCell,
-    },
-    time::Instant,
+use tokio::sync::{
+    mpsc::{channel, Receiver, Sender},
+    oneshot::channel as oneshot_channel,
 };
 
 use super::{Gathering, GatheringMessage, PersistMessage, ServerState};
-use crate::{api::AuthUser, sync::TournamentManager, actor::{ActorBuilder, ActorClient}};
-
-const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
-
-pub static GATHERING_HALL_MESSAGER: OnceCell<Sender<GatheringHallMessage>> = OnceCell::const_new();
-
-/// This function spawns a tokio task to manage a gathering hall. It also sets up the necessary
-/// channels for communicating with that task
-pub fn init_gathering_hall<S: ServerState>(state: S) {
-    let (send, recv) = channel(GATHERING_HALL_CHANNEL_SIZE);
-    let hall = GatheringHall::new(state, recv);
-    GATHERING_HALL_MESSAGER.set(send).unwrap();
-    drop(tokio::spawn(hall.run()));
-}
-
-/// This function communicates with the gathering hall task to add a new onlooker into a
-/// tournament.
-pub async fn handle_new_onlooker(id: TournamentId, user: AuthUser, ws: WebSocket) {
-    GATHERING_HALL_MESSAGER
-        .get()
-        .unwrap()
-        .send(GatheringHallMessage::NewConnection(id, user, ws))
-        .await
-        .unwrap()
-}
+use crate::{
+    actor::{ActorBuilder, ActorClient, ActorState, Scheduler},
+    api::AuthUser,
+    sync::TournamentManager,
+};
 
 /* TODO:
  *  - Clients might close their websocket communicates. Because of this, we need to ensure that the
@@ -70,6 +45,8 @@ pub enum GatheringHallMessage {
     NewGathering(TournamentId),
     /// Adds an onlooker to a gathering
     NewConnection(TournamentId, AuthUser, WebSocket),
+    /// Perist all the tournaments that need to be persisted
+    Persist,
 }
 
 /// This structure manages all of the `Gathering`s around tournaments. This includes adding new
@@ -79,53 +56,57 @@ pub enum GatheringHallMessage {
 pub struct GatheringHall<S> {
     state: S,
     gatherings: HashMap<TournamentId, ActorClient<Gathering>>,
-    inbound: Receiver<GatheringHallMessage>,
     persists: Receiver<PersistMessage>,
     persist_sender: Sender<PersistMessage>,
+}
+
+#[async_trait]
+impl<S: ServerState> ActorState for GatheringHall<S> {
+    type Message = GatheringHallMessage;
+
+    async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        match msg {
+            GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
+            GatheringHallMessage::NewConnection(id, user, ws) => {
+                self.process_new_onlooker(id, user, ws).await
+            }
+            GatheringHallMessage::Persist => {
+                let mut to_persist = HashSet::new();
+                let mut persist_reqs = HashMap::new();
+                while let Ok(PersistMessage(id)) = self.persists.try_recv() {
+                    let _ = to_persist.insert(id);
+                }
+                for id in to_persist.drain() {
+                    let sender = self.gatherings.get_mut(&id).unwrap();
+                    let (send, recv) = oneshot_channel();
+                    let msg = GatheringMessage::GetTournament(send);
+                    sender.send(msg);
+                    let tourn = recv.await.unwrap();
+                    let _ = persist_reqs.insert(id, tourn);
+                }
+                let _ = self
+                    .state
+                    .bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn))
+                    .await;
+                scheduler.schedule(
+                    Instant::now() + Duration::from_secs(5),
+                    GatheringHallMessage::Persist,
+                );
+            }
+        }
+    }
 }
 
 impl<S: ServerState> GatheringHall<S> {
     /// Creates a new `GatheringHall` from receiver halves of channels that communicate new
     /// gatherings and subscriptions
-    pub fn new(state: S, inbound: Receiver<GatheringHallMessage>) -> Self {
+    pub fn new(state: S) -> Self {
         let (persist_sender, persists) = channel(1000);
         Self {
             gatherings: HashMap::new(),
             persists,
             persist_sender,
-            inbound,
             state,
-        }
-    }
-
-    pub async fn run(mut self) -> ! {
-        let wait_time = Duration::from_secs(5);
-        let now_then = || Instant::now().checked_add(wait_time).unwrap();
-        let mut then = now_then();
-        let mut to_persist = HashSet::new();
-        let mut persist_reqs = HashMap::new();
-        loop {
-            tokio::select! {
-                _ = tokio::time::sleep_until(then) => {
-                    then = now_then();
-                    while let Ok(PersistMessage(id)) = self.persists.try_recv() {
-                        _ = to_persist.insert(id);
-                    }
-                    for id in to_persist.drain() {
-                        let sender = self.gatherings.get_mut(&id).unwrap();
-                        let (send, recv) = oneshot_channel();
-                        let msg = GatheringMessage::GetTournament(send);
-                        sender.send(msg);
-                        let tourn = recv.await.unwrap();
-                        _ = persist_reqs.insert(id, tourn);
-                    }
-                    _ = self.state.bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn)).await;
-                }
-                msg = self.inbound.recv() => match msg.unwrap() {
-                    GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
-                    GatheringHallMessage::NewConnection(id, user, ws) => self.process_new_onlooker(id, user, ws).await,
-                }
-            }
         }
     }
 

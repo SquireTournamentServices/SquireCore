@@ -92,7 +92,7 @@ impl ActorState for Gathering {
                     if !self.forwarding.is_terminated(&msg.id) {
                         let _ = onlooker.send_msg(&msg).await;
                         let fut = ForwardingRetry::new(user, msg);
-                        scheduler.schedule(fut);
+                        scheduler.add_task(fut);
                     }
                 }
                 None => {
@@ -261,7 +261,7 @@ impl Gathering {
                 .add_msg(msg.id, id.clone(), self.tourn.id, sync.clone());
             let _ = onlooker.send_msg(&msg).await;
             let fut = ForwardingRetry::new(user.clone(), msg.clone());
-            scheduler.schedule(fut);
+            scheduler.add_task(fut);
         }
     }
 

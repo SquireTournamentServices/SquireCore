@@ -1,6 +1,5 @@
 use axum::{
-    body::Body,
-    extract::{Path, Query, State, WebSocketUpgrade},
+    extract::{ws::WebSocket, Path, Query, State, WebSocketUpgrade},
     response::{IntoResponse, Response},
     Json,
 };
@@ -8,20 +7,14 @@ use http::StatusCode;
 use squire_lib::tournament::TournamentId;
 
 use super::{
-    gathering::{self, handle_new_onlooker},
     session::{Session, UserSession},
     SquireRouter,
 };
 use crate::{api::*, server::state::ServerState, sync::TournamentManager};
 
-pub fn get_routes_and_init<S: ServerState>(state: S) -> SquireRouter<S, Body> {
-    gathering::init_gathering_hall(state);
-    get_routes()
-}
-
 pub fn get_routes<S: ServerState>() -> SquireRouter<S> {
     SquireRouter::new()
-        //.add_route("/", post(import_tournament::<S>))
+        .add_route::<0, POST, TournamentManager, _, _>(import_tournament::<S>)
         .add_route::<1, GET, ListTournaments, _, _>(get_tournament_list::<S>)
         .add_route::<1, GET, GetTournament, _, _>(get_tournament::<S>)
         .add_route::<1, GET, Subscribe, _, _>(join_gathering::<S>)
@@ -83,10 +76,20 @@ where
 }
 
 /// Adds a user to the gathering via a websocket
-pub async fn join_gathering<S>(
+pub async fn join_gathering<S: ServerState>(
+    State(state): State<S>,
     Session(user): Session<AuthUser>,
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {
-    ws.on_upgrade(move |ws| handle_new_onlooker(id, user, ws))
+    ws.on_upgrade(move |ws| handle_new_onlooker(state, id, user, ws))
+}
+
+async fn handle_new_onlooker<S: ServerState>(
+    state: S,
+    id: TournamentId,
+    user: AuthUser,
+    ws: WebSocket,
+) {
+    state.handle_new_onlooker(id, user, ws).await
 }

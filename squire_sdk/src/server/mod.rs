@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 
-use self::{gathering::init_gathering_hall, state::ServerState};
+use self::state::ServerState;
 use crate::api::*;
 
 pub mod gathering;
@@ -13,8 +13,7 @@ pub mod session;
 pub mod state;
 pub mod tournaments;
 
-pub fn create_router<S: ServerState>(state: S) -> SquireRouter<S, Body> {
-    init_gathering_hall(state);
+pub fn create_router<S: ServerState>() -> SquireRouter<S, Body> {
     get_routes::<S>().merge(tournaments::get_routes::<S>())
 }
 

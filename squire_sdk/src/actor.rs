@@ -8,15 +8,19 @@ use futures::{
     stream::{select_all, FuturesUnordered, SelectAll},
     Future, FutureExt, Stream, StreamExt,
 };
-use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot::Receiver as OneshotReceiver,
+use instant::Instant;
+use tokio::{
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot::Receiver as OneshotReceiver,
+    },
+    time::{sleep_until, Sleep},
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 #[async_trait]
 pub trait ActorState: 'static + Send + Sized {
-    type Message: Send;
+    type Message: Send + Unpin;
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message);
 }
@@ -92,6 +96,30 @@ pub struct Scheduler<A: ActorState> {
     queue: FuturesUnordered<Pin<Box<dyn 'static + Send + Future<Output = A::Message>>>>,
 }
 
+pub struct Timer<T> {
+    deadline: Pin<Box<Sleep>>,
+    msg: Option<T>,
+}
+
+impl<T> Timer<T> {
+    pub fn new(deadline: Instant, msg: T) -> Self {
+        Self {
+            deadline: Box::pin(sleep_until(deadline.into())),
+            msg: Some(msg),
+        }
+    }
+}
+
+impl<T: Unpin> Future for Timer<T> {
+    type Output = T;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.deadline
+            .poll_unpin(cx)
+            .map(|_| self.msg.take().unwrap())
+    }
+}
+
 impl<A: ActorState> ActorRunner<A> {
     fn new(state: A, recvs: impl IntoIterator<Item = ActorStream<A>>) -> Self {
         let scheduler = Scheduler::new(recvs);
@@ -118,7 +146,7 @@ impl<A: ActorState> Scheduler<A> {
         Self { recv, queue }
     }
 
-    pub fn schedule<F, I>(&mut self, fut: F)
+    pub fn add_task<F, I>(&mut self, fut: F)
     where
         F: 'static + Send + Future<Output = I>,
         I: 'static + Into<A::Message>,
@@ -133,6 +161,13 @@ impl<A: ActorState> Scheduler<A> {
     {
         self.recv
             .push(ActorStream::Secondary(Box::new(stream.map(|m| m.into()))));
+    }
+
+    pub fn schedule<M>(&mut self, deadline: Instant, msg: M)
+    where
+        M: 'static + Into<A::Message>,
+    {
+        self.queue.push(Box::pin(Timer::new(deadline, msg.into())));
     }
 }
 
