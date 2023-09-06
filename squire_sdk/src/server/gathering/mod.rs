@@ -1,22 +1,21 @@
 use std::collections::HashMap;
 
+use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
-use futures::{stream::SelectAll, StreamExt};
+use futures::StreamExt;
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
-use tokio::sync::{
-    mpsc::{Receiver, Sender},
-    oneshot::Sender as OneshotSender,
-};
+use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
 use uuid::Uuid;
 
 use super::state::ServerState;
 use crate::{
+    actor::{ActorState, Scheduler},
     api::AuthUser,
     sync::{
         processor::{SyncCompletion, SyncDecision},
-        ClientBound, ClientBoundMessage, ClientOpLink, OpSync, ServerBound, ServerBoundMessage,
-        ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError, SyncForwardResp,
-        TournamentManager,
+        ClientBound, ClientBoundMessage, ClientOpLink, ForwardingRetry, OpSync, ServerBound,
+        ServerBoundMessage, ServerForwardingManager, ServerOpLink, ServerSyncManager, SyncError,
+        SyncForwardResp, TournamentManager,
     },
 };
 
@@ -30,6 +29,8 @@ pub use onlooker::*;
 pub enum GatheringMessage {
     GetTournament(OneshotSender<TournamentManager>),
     NewConnection(AuthUser, WebSocket),
+    WebsocketMessage(AuthUser, Option<Vec<u8>>),
+    ResendMessage(Box<(AuthUser, ClientBoundMessage)>),
 }
 
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
@@ -50,25 +51,63 @@ struct PersistMessage(TournamentId);
 #[derive(Debug)]
 pub struct Gathering {
     tourn: TournamentManager,
-    messages: Receiver<GatheringMessage>,
-    ws_streams: SelectAll<Crier>,
     onlookers: HashMap<AuthUser, Onlooker>,
     persist: Sender<PersistMessage>,
     syncs: ServerSyncManager,
     forwarding: ServerForwardingManager,
 }
 
+// Send forwarding message
+// Queue resend
+// Either:
+//  - Recv resp from client
+//  - Send queued resend
+//
+// Need to track which chains have terminated
+
+#[async_trait]
+impl ActorState for Gathering {
+    type Message = GatheringMessage;
+
+    async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        match msg {
+            GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
+            GatheringMessage::NewConnection(user, ws) => {
+                let (sink, stream) = ws.split();
+                let onlooker = Onlooker::new(sink);
+                match self.onlookers.get_mut(&user) {
+                    Some(ol) => *ol = onlooker,
+                    None => {
+                        _ = self.onlookers.insert(user.clone(), onlooker);
+                    }
+                }
+                scheduler.add_stream(Crier::new(stream, user));
+            }
+            GatheringMessage::WebsocketMessage(user, msg) => {
+                self.process_websocket_message(scheduler, user, msg).await
+            }
+            GatheringMessage::ResendMessage(retry) => match self.onlookers.get_mut(&retry.0) {
+                Some(onlooker) => {
+                    let (user, msg) = *retry;
+                    if !self.forwarding.is_terminated(&msg.id) {
+                        let _ = onlooker.send_msg(&msg).await;
+                        let fut = ForwardingRetry::new(user, msg);
+                        scheduler.schedule(fut);
+                    }
+                }
+                None => {
+                    self.forwarding.terminate_chain(&retry.1.id);
+                }
+            },
+        }
+    }
+}
+
 impl Gathering {
-    fn new(
-        tourn: TournamentManager,
-        new_onlookers: Receiver<GatheringMessage>,
-        persist: Sender<PersistMessage>,
-    ) -> Self {
+    fn new(tourn: TournamentManager, persist: Sender<PersistMessage>) -> Self {
         let count = tourn.tourn().get_player_count();
         Self {
             tourn,
-            messages: new_onlookers,
-            ws_streams: SelectAll::new(),
             onlookers: HashMap::with_capacity(count),
             persist,
             syncs: ServerSyncManager::default(),
@@ -81,60 +120,26 @@ impl Gathering {
         let _persist_fut = self.persist.send(PersistMessage(self.tourn.id));
     }
 
-    async fn run(mut self) -> ! {
-        loop {
-            tokio::select! {
-                msg = self.messages.recv() =>
-                    self.process_channel_message(msg.unwrap()),
-                msg = self.ws_streams.next(), if !self.ws_streams.is_empty() =>
-                    self.process_websocket_message(msg).await,
-                (user, msg) = self.forwarding.forward_retry() => {
-                    match self.onlookers.get_mut(&user) {
-                        Some(onlooker) => {
-                            let _ = onlooker.send_msg(&msg).await;
-                            self.forwarding.update_timer(&msg.id);
-                        },
-                        None => {
-                            self.forwarding.terminate_chain(&msg.id);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    async fn process_websocket_message(&mut self, msg: Option<(AuthUser, Option<Vec<u8>>)>) {
-        match msg {
-            Some((user, Some(bytes))) => {
-                self.process_incoming_message(user, bytes).await;
-            }
-            Some((user, None)) => {
-                _ = self.onlookers.remove(&user);
-            }
-            None => {}
-        }
-    }
-
-    fn process_channel_message(&mut self, msg: GatheringMessage) {
-        match msg {
-            GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
-            GatheringMessage::NewConnection(user, ws) => {
-                let (sink, stream) = ws.split();
-                let onlooker = Onlooker::new(sink);
-                match self.onlookers.get_mut(&user) {
-                    Some(ol) => *ol = onlooker,
-                    None => {
-                        _ = self.onlookers.insert(user.clone(), onlooker);
-                    }
-                }
-                let crier = Crier::new(stream, user);
-                self.ws_streams.push(crier);
-            }
+    async fn process_websocket_message(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        user: AuthUser,
+        msg: Option<Vec<u8>>,
+    ) {
+        if let Some(bytes) = msg {
+            self.process_incoming_message(scheduler, user, bytes).await;
+        } else {
+            let _ = self.onlookers.remove(&user);
         }
     }
 
     // TODO: Return a "real" value
-    async fn process_incoming_message(&mut self, user: AuthUser, bytes: Vec<u8>) {
+    async fn process_incoming_message(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        user: AuthUser,
+        bytes: Vec<u8>,
+    ) {
         let ServerBoundMessage { id, body } =
             match postcard::from_bytes::<ServerBoundMessage>(&bytes) {
                 Ok(val) => val,
@@ -158,7 +163,7 @@ impl Gathering {
                         // If completed, send forwarding requests
                         if let ServerOpLink::Completed(comp) = &link {
                             self.send_persist_message();
-                            self.send_forwarding(&user, comp).await;
+                            self.send_forwarding(scheduler, &user, comp).await;
                         }
                         self.send_reply(user, id, link).await;
                     }
@@ -238,7 +243,12 @@ impl Gathering {
         }
     }
 
-    async fn send_forwarding(&mut self, id: &AuthUser, comp: &SyncCompletion) {
+    async fn send_forwarding(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        user: &AuthUser,
+        comp: &SyncCompletion,
+    ) {
         let (seed, owner) = self.tourn.seed_and_creator();
         let sync = OpSync {
             owner,
@@ -246,10 +256,12 @@ impl Gathering {
             ops: comp.clone().as_slice(),
         };
         let msg = ClientBoundMessage::new((self.tourn.id, sync.clone()).into());
-        for (id, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != id) {
+        for (id, onlooker) in self.onlookers.iter_mut().filter(|on| on.0 != user) {
             self.forwarding
                 .add_msg(msg.id, id.clone(), self.tourn.id, sync.clone());
             let _ = onlooker.send_msg(&msg).await;
+            let fut = ForwardingRetry::new(user.clone(), msg.clone());
+            scheduler.schedule(fut);
         }
     }
 
@@ -268,5 +280,17 @@ impl Gathering {
 
     fn handle_forwarding_resp(&mut self, id: &Uuid, _: SyncForwardResp) {
         self.forwarding.terminate_chain(id);
+    }
+}
+
+impl From<(AuthUser, Option<Vec<u8>>)> for GatheringMessage {
+    fn from((user, msg): (AuthUser, Option<Vec<u8>>)) -> Self {
+        Self::WebsocketMessage(user, msg)
+    }
+}
+
+impl From<(AuthUser, ClientBoundMessage)> for GatheringMessage {
+    fn from((user, msg): (AuthUser, ClientBoundMessage)) -> Self {
+        Self::ResendMessage(Box::new((user, msg)))
     }
 }

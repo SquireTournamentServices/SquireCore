@@ -15,7 +15,7 @@ use tokio::{
 };
 
 use super::{Gathering, GatheringMessage, PersistMessage, ServerState};
-use crate::{api::AuthUser, sync::TournamentManager};
+use crate::{api::AuthUser, sync::TournamentManager, actor::{ActorBuilder, ActorClient}};
 
 const GATHERING_HALL_CHANNEL_SIZE: usize = 100;
 
@@ -78,7 +78,7 @@ pub enum GatheringHallMessage {
 #[derive(Debug)]
 pub struct GatheringHall<S> {
     state: S,
-    gatherings: HashMap<TournamentId, Sender<GatheringMessage>>,
+    gatherings: HashMap<TournamentId, ActorClient<Gathering>>,
     inbound: Receiver<GatheringHallMessage>,
     persists: Receiver<PersistMessage>,
     persist_sender: Sender<PersistMessage>,
@@ -115,8 +115,7 @@ impl<S: ServerState> GatheringHall<S> {
                         let sender = self.gatherings.get_mut(&id).unwrap();
                         let (send, recv) = oneshot_channel();
                         let msg = GatheringMessage::GetTournament(send);
-                        // If the listener is full, we continue on
-                        let _send_fut = sender.send(msg);
+                        sender.send(msg);
                         let tourn = recv.await.unwrap();
                         _ = persist_reqs.insert(id, tourn);
                     }
@@ -130,12 +129,11 @@ impl<S: ServerState> GatheringHall<S> {
         }
     }
 
-    async fn spawn_gathering(&self, id: TournamentId) -> Option<Sender<GatheringMessage>> {
+    async fn spawn_gathering(&self, id: TournamentId) -> Option<ActorClient<Gathering>> {
         let tourn = self.get_tourn(&id).await?;
-        let (send, recv) = channel(100);
-        let gathering = Gathering::new(tourn, recv, self.persist_sender.clone());
-        drop(tokio::spawn(gathering.run()));
-        Some(send)
+        let gathering = Gathering::new(tourn, self.persist_sender.clone());
+        let client = ActorBuilder::new(gathering).launch();
+        Some(client)
     }
 
     async fn process_new_gathering(&mut self, id: TournamentId) {
@@ -149,10 +147,10 @@ impl<S: ServerState> GatheringHall<S> {
     async fn process_new_onlooker(&mut self, id: TournamentId, user: AuthUser, ws: WebSocket) {
         let msg = GatheringMessage::NewConnection(user, ws);
         let send = self.get_or_init_gathering(id).await;
-        send.send(msg).await.unwrap()
+        send.send(msg)
     }
 
-    async fn get_or_init_gathering(&mut self, id: TournamentId) -> Sender<GatheringMessage> {
+    async fn get_or_init_gathering(&mut self, id: TournamentId) -> ActorClient<Gathering> {
         if let Some(send) = self.gatherings.get(&id).cloned() {
             return send;
         }
@@ -167,7 +165,7 @@ impl<S: ServerState> GatheringHall<S> {
             Some(handle) => {
                 //  Ask the gathering for a copy of the tournament
                 let (send, recv) = oneshot_channel();
-                let _ = handle.send(GatheringMessage::GetTournament(send)).await;
+                handle.send(GatheringMessage::GetTournament(send));
                 recv.await.ok()
             }
             None => self.state.get_tourn(*id).await,

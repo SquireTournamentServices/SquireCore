@@ -45,11 +45,11 @@ use std::{
 
 use instant::Instant;
 use squire_lib::tournament::TournamentId;
+use tokio::time::{sleep_until, Sleep};
 use uuid::Uuid;
 
 use super::{
-    ClientBound, ClientBoundMessage, ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain,
-    SyncForwardResp,
+    ClientBoundMessage, ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain, SyncForwardResp,
 };
 use crate::{
     api::AuthUser,
@@ -266,7 +266,6 @@ impl TimerStack {
 #[derive(Debug, Default)]
 pub struct ServerForwardingManager {
     outbound: HashMap<Uuid, (AuthUser, TournamentId, OpSync)>,
-    timers: TimerStack,
 }
 
 impl ServerForwardingManager {
@@ -276,52 +275,44 @@ impl ServerForwardingManager {
 
     pub fn add_msg(&mut self, id: Uuid, user: AuthUser, t_id: TournamentId, msg: OpSync) {
         _ = self.outbound.insert(id, (user, t_id, msg));
-        self.timers.add_timer(id);
     }
 
     pub fn terminate_chain(&mut self, id: &Uuid) {
         _ = self.outbound.remove(id);
-        _ = self.timers.remove_timer(id);
     }
 
-    pub fn update_timer(&mut self, id: &Uuid) {
-        self.timers.update_timer(id);
-    }
-
-    pub fn forward_retry(&self) -> ForwardingRetry<'_> {
-        let inner = self.timers.iter().find_map(|(id, timer)| {
-            self.outbound
-                .get(id)
-                .map(|(user, t_id, msg)| (*id, timer, user, t_id, msg))
-        });
-        ForwardingRetry { inner }
+    pub fn is_terminated(&self, id: &Uuid) -> bool {
+        self.outbound.contains_key(id)
     }
 }
 
 /// Tracks the next forwarded sync that needs to be retried.
 #[derive(Debug)]
-pub struct ForwardingRetry<'a> {
-    inner: Option<(
-        Uuid,
-        &'a Instant,
-        &'a AuthUser,
-        &'a TournamentId,
-        &'a OpSync,
-    )>,
+pub struct ForwardingRetry {
+    deadline: Pin<Box<Sleep>>,
+    user: AuthUser,
+    msg: ClientBoundMessage,
 }
 
-impl Future for ForwardingRetry<'_> {
+impl ForwardingRetry {
+    pub fn new(user: AuthUser, msg: ClientBoundMessage) -> Self {
+        Self {
+            deadline: Box::pin(sleep_until((Instant::now() + RETRY_LIMIT).into())),
+            user,
+            msg,
+        }
+    }
+}
+
+impl Future for ForwardingRetry {
     type Output = (AuthUser, ClientBoundMessage);
 
-    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.inner.as_ref() {
-            Some(inner) if inner.1.elapsed() >= RETRY_LIMIT => {
-                let body: ClientBound = (*inner.3, inner.4.clone()).into();
-                let msg = ClientBoundMessage { id: inner.0, body };
-                Poll::Ready((inner.2.clone(), msg))
-            }
-            _ => Poll::Pending,
-        }
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.as_mut()
+            .deadline
+            .as_mut()
+            .poll(cx)
+            .map(|_| (self.user.clone(), self.msg.clone()))
     }
 }
 
