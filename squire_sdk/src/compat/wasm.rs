@@ -113,7 +113,10 @@ mod client {
         type Item = WebsocketResult;
 
         fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+<<<<<<< HEAD
             super::log("Polling websocket...");
+=======
+>>>>>>> 3c00961 (Corrected issues in SDK WASM build caused by recent refactor. Moved compat layer from client diectory to root)
             Pin::new(&mut *self.0)
                 .poll_next(cx)
                 .map_err(Into::into)
