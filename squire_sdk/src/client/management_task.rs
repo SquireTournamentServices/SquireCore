@@ -16,10 +16,10 @@ use tokio::sync::{
 use uuid::Uuid;
 
 use super::{
-    compat::{Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     OnUpdate, HOST_ADDRESS,
 };
 use crate::{
+    compat::{Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     actor::{ActorBuilder, ActorClient, ActorState, Scheduler, Trackable, Tracker},
     api::{GetRequest, Subscribe},
     sync::{
@@ -54,7 +54,7 @@ impl Debug for ManagementCommand {
             ManagementCommand::Update(id, update, _) => write!(f, "Update({id:?}, {update:?})"),
             ManagementCommand::Import(tourn, _) => write!(f, "Import({tourn:?})"),
             ManagementCommand::Subscribe(id, _) => write!(f, "Subscribe({id:?})"),
-            ManagementCommand::Connection(res, _) => write!(f, "Connection({res:?})"),
+            ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res.is_ok()),
             ManagementCommand::Remote(res) => write!(f, "Remote({res:?}"),
         }
     }

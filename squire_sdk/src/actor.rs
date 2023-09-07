@@ -9,14 +9,13 @@ use futures::{
     Future, FutureExt, Stream, StreamExt,
 };
 use instant::Instant;
-use tokio::{
-    sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-        oneshot::Receiver as OneshotReceiver,
-    },
-    time::{sleep_until, Sleep},
+use tokio::sync::{
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot::Receiver as OneshotReceiver,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
+
+use crate::compat::{sleep_until, spawn_task, Sleep};
 
 #[async_trait]
 pub trait ActorState: 'static + Send + Sized {
@@ -97,14 +96,14 @@ pub struct Scheduler<A: ActorState> {
 }
 
 pub struct Timer<T> {
-    deadline: Pin<Box<Sleep>>,
+    deadline: Sleep,
     msg: Option<T>,
 }
 
 impl<T> Timer<T> {
     pub fn new(deadline: Instant, msg: T) -> Self {
         Self {
-            deadline: Box::pin(sleep_until(deadline.into())),
+            deadline: sleep_until(deadline),
             msg: Some(msg),
         }
     }
@@ -127,8 +126,7 @@ impl<A: ActorState> ActorRunner<A> {
     }
 
     fn launch(self) {
-        // Dropping join handle because `run` will never return
-        drop(tokio::spawn(self.run()));
+        spawn_task(self.run())
     }
 
     async fn run(mut self) -> ! {

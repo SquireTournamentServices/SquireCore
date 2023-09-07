@@ -12,26 +12,17 @@ client = [
   "reqwest",
   "serde_json",
   "tokio-tungstenite",
-  "tokio",
-  "tokio-stream",
-  "futures",
   "postcard",
   "gloo-net",
-  "gloo-timers",
 ]
 server = [
   "axum",
   "axum/json",
   "axum/macros",
   "axum/headers",
-  "tokio",
-  "tokio/full",
-  "tokio-stream",
-  "async-trait",
   "headers",
   "serde_json",
   "cookie",
-  "futures",
   "postcard",
 ]
 
@@ -47,21 +38,18 @@ const_format = { version = "0.2.32" }
 array-concat = { version = "0.5.2" }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.5", features = ["v4", "serde"] }
-
-# Client || Server deps
-cookie = { version = "0.17", optional = true }
-serde_json = { version = "1.0.107", optional = true }
-futures = { version = "0.3", optional = true }
-postcard = { version = "1.0", features = ["alloc"], optional = true }
-
-# Client deps
-reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
-cookie_store = { version = "0.20", optional = true }
-tokio-stream = { version = "0.1.14", optional = true }
+async-trait = { version = "0.1" }
+futures = { version = "0.3" }
 tokio = { version = "1.33", features = [
   "macros",
   "sync",
 ], optional = true }
+tokio-stream = { version = "0.1" }
+
+# Client || Server deps
+cookie = { version = "0.17", optional = true }
+serde_json = { version = "1.0.107", optional = true }
+postcard = { version = "1.0", features = ["alloc"], optional = true }
 
 # Client deps
 reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
@@ -70,7 +58,6 @@ cookie_store = { version = "0.20", optional = true }
 # Server deps
 axum = { version = "0.6.20", features = ["ws"], optional = true }
 rand = { version = "0.8.5", optional = true }
-async-trait = { version = "0.1", optional = true }
 headers = { version = "0.3", optional = true }
 http = { version = "0.2" }
 hex = { version = "0.4" }
@@ -80,11 +67,12 @@ hashbag = { version = "0.1.11", features = ["serde"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = { version = "0.4.37" }
-gloo-net = { version = "0.4", optional = true }
-gloo-timers = { version = "0.3", features = ["futures"], optional = true }
 instant = { version = "0.1", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
 web-sys = { version = "0.3.64", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
+gloo-net = { version = "0.4", optional = true }
+gloo-timers = { version = "0.3", features = ["futures"], optional = true }
+send_wrapper = { version = "0.6", features = ["futures"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio-tungstenite = { version = "0.20.1", optional = true }

@@ -3,7 +3,6 @@
 //! From the server's perspective, the flow of sync messages is as follows:
 //!  - Received and decoded
 //!  - Validated
-//!   - Potentially sent responded to if validation short-curcuits
 //!  - Processed in the tournament manager
 //!  - Copied and stored here
 //!  - Returned to the client
@@ -43,9 +42,9 @@ use std::{
     time::Duration,
 };
 
+use futures::FutureExt;
 use instant::Instant;
 use squire_lib::tournament::TournamentId;
-use tokio::time::{sleep_until, Sleep};
 use uuid::Uuid;
 
 use super::{
@@ -53,6 +52,7 @@ use super::{
 };
 use crate::{
     api::AuthUser,
+    compat::{sleep_until, Sleep},
     sync::{OpSync, SyncError},
 };
 
@@ -289,7 +289,7 @@ impl ServerForwardingManager {
 /// Tracks the next forwarded sync that needs to be retried.
 #[derive(Debug)]
 pub struct ForwardingRetry {
-    deadline: Pin<Box<Sleep>>,
+    deadline: Sleep,
     user: AuthUser,
     msg: ClientBoundMessage,
 }
@@ -297,7 +297,7 @@ pub struct ForwardingRetry {
 impl ForwardingRetry {
     pub fn new(user: AuthUser, msg: ClientBoundMessage) -> Self {
         Self {
-            deadline: Box::pin(sleep_until((Instant::now() + RETRY_LIMIT).into())),
+            deadline: sleep_until(Instant::now() + RETRY_LIMIT),
             user,
             msg,
         }
@@ -310,8 +310,7 @@ impl Future for ForwardingRetry {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.as_mut()
             .deadline
-            .as_mut()
-            .poll(cx)
+            .poll_unpin(cx)
             .map(|_| (self.user.clone(), self.msg.clone()))
     }
 }

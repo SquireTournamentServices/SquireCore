@@ -6,6 +6,9 @@
 //!
 //! By no means is this an exhuastive or future-proof module. Rather, the module just implements
 //! wrappers for functionalities that are presently needed.
+use std::{pin::Pin, fmt::Debug, task::{Context, Poll}};
+
+use futures::{Future, FutureExt};
 
 #[cfg(not(target_family = "wasm"))]
 mod native;
@@ -16,6 +19,24 @@ pub use native::*;
 mod wasm;
 #[cfg(target_family = "wasm")]
 pub use wasm::*;
+
+/// A struct that will sleep for a set amount of time. Construct by the `sleep` and `sleep_until`
+/// functions.
+pub struct Sleep(Pin<Box<dyn 'static + Send + Future<Output = ()>>>);
+
+impl Debug for Sleep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Sleep(..)")
+    }
+}
+
+impl Future for Sleep {
+    type Output = ();
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.0.poll_unpin(cx)
+    }
+}
 
 /// A shorthand for the results of fallible Websocket operations
 pub type WebsocketResult = Result<WebsocketMessage, WebsocketError>;

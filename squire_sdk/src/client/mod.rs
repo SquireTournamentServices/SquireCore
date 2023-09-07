@@ -27,7 +27,6 @@ pub trait OnUpdate: 'static + Send + FnMut(TournamentId) {}
 impl<T> OnUpdate for T where T: 'static + Send + FnMut(TournamentId) {}
 
 pub mod builder;
-pub mod compat;
 pub mod error;
 pub mod management_task;
 
