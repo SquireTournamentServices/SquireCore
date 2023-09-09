@@ -4,7 +4,8 @@ use std::{
 };
 
 use async_trait::async_trait;
-use futures::{SinkExt, StreamExt, stream::SplitSink};
+use futures::{stream::SplitSink, SinkExt, StreamExt};
+use instant::Instant;
 use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
@@ -15,23 +16,21 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
-use super::{
-    OnUpdate, HOST_ADDRESS,
-};
+use super::{OnUpdate, HOST_ADDRESS};
 use crate::{
-    compat::{Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     actor::{ActorBuilder, ActorClient, ActorState, Scheduler, Trackable, Tracker},
     api::{GetRequest, Subscribe},
+    compat::{Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     sync::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
         OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, TournamentManager,
-        WebSocketMessage,
+        WebSocketMessage, RETRY_LIMIT,
     },
 };
 
 /// A container for the channels used to communicate with the tournament management task.
 #[derive(Clone)]
-pub struct ManagementTaskSender {
+pub struct TournsClient {
     client: ActorClient<ManagerState>,
 }
 
@@ -45,6 +44,7 @@ pub(crate) enum ManagementCommand {
         OneshotSender<Option<Watcher<()>>>,
     ),
     Remote(WebsocketResult),
+    Retry(MessageRetry),
 }
 
 impl Debug for ManagementCommand {
@@ -56,6 +56,7 @@ impl Debug for ManagementCommand {
             ManagementCommand::Subscribe(id, _) => write!(f, "Subscribe({id:?})"),
             ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res.is_ok()),
             ManagementCommand::Remote(res) => write!(f, "Remote({res:?}"),
+            ManagementCommand::Retry(rt) => write!(f, "Retry({rt:?}"),
         }
     }
 }
@@ -81,7 +82,7 @@ impl ActorState for ManagerState {
                 let _ = send.send(self.handle_import(*tourn));
             }
             ManagementCommand::Update(id, update, send) => {
-                let _ = send.send(self.handle_update(id, update).await);
+                let _ = send.send(self.handle_update(scheduler, id, update).await);
             }
             ManagementCommand::Subscribe(id, send) => match self.handle_sub(id) {
                 SubCreation::Connected(watcher) => {
@@ -98,28 +99,17 @@ impl ActorState for ManagerState {
                 }
             },
             ManagementCommand::Remote(ws_res) => match ws_res {
-                Ok(msg) => drop(self.handle_ws_msg(msg)),
+                Ok(msg) => drop(self.handle_ws_msg(scheduler, msg)),
                 Err(err) => self.handle_ws_err(err),
             },
-        }
-        /*
-        loop {
-            tokio::select! {
-                (id, msg) = state.syncs.retry() => {
-                    match state.cache.get_mut(&id).and_then(|tourn| tourn.comm.as_mut()) {
-                        Some(comm) => {
-                            state.syncs.update_timer(&msg.id);
-                            let bytes = WebsocketMessage::Bytes(postcard::to_allocvec(&msg).unwrap());
-                            let _ = comm.0.send(bytes).await;
-                        },
-                        None => {
-                            state.syncs.finalize_chain(&msg.id);
-                        }
-                    };
+            ManagementCommand::Retry(MessageRetry { msg, id }) => {
+                if self.syncs.is_latest_msg(&msg) {
+                    if let Some(comm) = self.cache.get_mut(&id) {
+                        comm.send(scheduler, msg).await
+                    }
                 }
-            };
+            }
         }
-        */
     }
 }
 
@@ -134,7 +124,7 @@ pub enum UpdateType {
 
 type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
 
-impl ManagementTaskSender {
+impl TournsClient {
     pub fn new<O: OnUpdate>(on_update: O) -> Self {
         let client = ActorBuilder::new(ManagerState::new(on_update)).launch();
         Self { client }
@@ -154,6 +144,14 @@ impl ManagementTaskSender {
         T: 'static + Send,
     {
         self.client.track((id, query))
+    }
+
+    pub async fn query_or_default<F, T>(&self, id: TournamentId, query: F) -> T
+    where
+        F: 'static + Send + FnOnce(&TournamentManager) -> T,
+        T: 'static + Send + Default,
+    {
+        self.client.track((id, query)).await.unwrap_or_default()
     }
 
     pub fn update(&self, id: TournamentId, update: UpdateType) -> Tracker<Option<OpResult>> {
@@ -194,7 +192,12 @@ impl ManagerState {
         id
     }
 
-    async fn handle_update(&mut self, id: TournamentId, update: UpdateType) -> Option<OpResult> {
+    async fn handle_update(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        id: TournamentId,
+        update: UpdateType,
+    ) -> Option<OpResult> {
         let tourn = self.cache.get_mut(&id)?;
         let res = match update {
             UpdateType::Single(op) => tourn.tourn.apply_op(*op),
@@ -215,7 +218,7 @@ impl ManagerState {
                 id,
                 body: sync.into(),
             };
-            tourn.send(msg).await;
+            tourn.send(scheduler, msg).await;
         }
         Some(res)
     }
@@ -269,7 +272,7 @@ impl ManagerState {
         }
     }
 
-    async fn handle_ws_msg(&mut self, msg: WebsocketMessage) {
+    async fn handle_ws_msg(&mut self, scheduler: &mut Scheduler<Self>, msg: WebsocketMessage) {
         let WebsocketMessage::Bytes(data) = msg else {
             panic!("Server did not send bytes of Websocket")
         };
@@ -278,10 +281,10 @@ impl ManagerState {
         match body {
             ClientBound::FetchResp(_) => { /* Do nothing, handled elsewhere */ }
             ClientBound::SyncChain(link) => {
-                self.handle_server_op_link(&id, link).await;
+                self.handle_server_op_link(scheduler, &id, link).await;
             }
             ClientBound::SyncForward((t_id, sync)) => {
-                self.handle_forwarded_sync(&t_id, id, sync).await
+                self.handle_forwarded_sync(scheduler, &t_id, id, sync).await
             }
         }
     }
@@ -290,7 +293,12 @@ impl ManagerState {
         panic!("Got error from Websocket: {err:?}")
     }
 
-    async fn handle_server_op_link(&mut self, msg_id: &Uuid, link: ServerOpLink) {
+    async fn handle_server_op_link(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        msg_id: &Uuid,
+        link: ServerOpLink,
+    ) {
         // Get tourn
         let Some(t_id) = self.syncs.get_tourn_id(msg_id) else {
             return;
@@ -309,7 +317,7 @@ impl ManagerState {
                     id: *msg_id,
                     body: dec.into(),
                 };
-                tourn.send(msg).await;
+                tourn.send(scheduler, msg).await;
             }
             ServerOpLink::Completed(comp) => {
                 tourn.tourn.handle_completion(comp).unwrap();
@@ -322,7 +330,13 @@ impl ManagerState {
         }
     }
 
-    async fn handle_forwarded_sync(&mut self, t_id: &TournamentId, msg_id: Uuid, sync: OpSync) {
+    async fn handle_forwarded_sync(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        t_id: &TournamentId,
+        msg_id: Uuid,
+        sync: OpSync,
+    ) {
         let Some(comm) = self.cache.get_mut(t_id) else {
             return;
         };
@@ -341,7 +355,7 @@ impl ManagerState {
             id: msg_id,
             body: resp.into(),
         };
-        comm.send(msg).await;
+        comm.send(scheduler, msg).await;
     }
 }
 
@@ -381,10 +395,15 @@ async fn wait_for_tourn(stream: &mut Websocket) -> Box<TournamentManager> {
 }
 
 impl TournComm {
-    async fn send(&mut self, msg: ServerBoundMessage) {
+    async fn send(&mut self, scheduler: &mut Scheduler<ManagerState>, msg: ServerBoundMessage) {
         if let Some(comm) = self.comm.as_mut() {
             let bytes = WebsocketMessage::Bytes(postcard::to_allocvec(&msg).unwrap());
             let _ = comm.0.send(bytes).await;
+            let retry = MessageRetry {
+                msg,
+                id: self.tourn.id,
+            };
+            scheduler.schedule(Instant::now() + RETRY_LIMIT, retry);
         }
     }
 }
@@ -446,4 +465,15 @@ impl From<WebsocketResult> for ManagementCommand {
     fn from(value: WebsocketResult) -> Self {
         ManagementCommand::Remote(value)
     }
+}
+impl From<MessageRetry> for ManagementCommand {
+    fn from(value: MessageRetry) -> Self {
+        Self::Retry(value)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct MessageRetry {
+    id: TournamentId,
+    msg: ServerBoundMessage,
 }

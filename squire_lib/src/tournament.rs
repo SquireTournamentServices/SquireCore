@@ -1141,9 +1141,10 @@ impl TournamentSeed {
 ///
 /// NOTE:  Only active participants are considered here. If a player has dropped (and has no other
 /// roles), they will be considered a spectator
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Copy, PartialEq, Eq)]
 pub enum TournRole {
     /// The user is unknown in the tournament
+    #[default]
     Spectator,
     /// The user is a player
     Player(PlayerId),

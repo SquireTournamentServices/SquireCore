@@ -48,7 +48,8 @@ use squire_lib::tournament::TournamentId;
 use uuid::Uuid;
 
 use super::{
-    ClientBoundMessage, ClientOpLink, ServerBoundMessage, ServerOpLink, SyncChain, SyncForwardResp,
+    ClientBoundMessage, ClientOpLink, ServerBound, ServerBoundMessage, ServerOpLink, SyncChain,
+    SyncForwardResp,
 };
 use crate::{
     api::AuthUser,
@@ -57,7 +58,7 @@ use crate::{
 };
 
 const TO_CLEAR_TIME_LIMIT: Duration = Duration::from_secs(10);
-const RETRY_LIMIT: Duration = Duration::from_millis(250);
+pub const RETRY_LIMIT: Duration = Duration::from_millis(250);
 
 /// Tracks messages chains on the server side used during the syncing process.
 #[derive(Debug, Default)]
@@ -76,7 +77,6 @@ pub struct ServerSyncManager {
 #[derive(Debug, Default)]
 pub struct ClientSyncManager {
     syncs: HashMap<Uuid, ClientSyncTracker>,
-    to_retry: TimerStack,
 }
 
 #[derive(Debug)]
@@ -143,6 +143,17 @@ impl ClientSyncManager {
         self.syncs.get(id).map(|inner| inner.id)
     }
 
+    pub fn is_latest_msg(&self, msg: &ServerBoundMessage) -> bool {
+        match &msg.body {
+            ServerBound::Fetch | ServerBound::ForwardResp(_) => false,
+            ServerBound::SyncChain(link) => self
+                .syncs
+                .get(&msg.id)
+                .map(|sy| &sy.current == link)
+                .unwrap_or_default(),
+        }
+    }
+
     pub fn validate_server_msg(&self, id: &Uuid) -> bool {
         self.syncs.contains_key(id)
     }
@@ -155,7 +166,6 @@ impl ClientSyncManager {
     ) -> Result<(), SyncError> {
         let inner = ClientSyncTracker::new(t_id, msg)?;
         _ = self.syncs.insert(id, inner);
-        self.to_retry.add_timer(id);
         Ok(())
     }
 
@@ -165,24 +175,10 @@ impl ClientSyncManager {
                 self.finalize_chain(id);
             }
         }
-        self.to_retry.update_timer(id);
     }
 
     pub fn finalize_chain(&mut self, id: &Uuid) {
         _ = self.syncs.remove(id);
-        _ = self.to_retry.remove_timer(id);
-    }
-
-    pub fn update_timer(&mut self, id: &Uuid) {
-        self.to_retry.update_timer(id);
-    }
-
-    pub fn retry(&self) -> MessageRetry<'_> {
-        let inner = self
-            .to_retry
-            .iter()
-            .find_map(|(id, timer)| self.syncs.get(id).map(|tracker| (*id, timer, tracker)));
-        MessageRetry { inner }
     }
 }
 
@@ -258,6 +254,7 @@ impl TimerStack {
         }
     }
 
+    #[allow(dead_code)]
     fn iter(&self) -> impl Iterator<Item = &(Uuid, Instant)> {
         self.queue.iter()
     }

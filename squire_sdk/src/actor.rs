@@ -21,6 +21,9 @@ use crate::compat::{sleep_until, spawn_task, Sleep};
 pub trait ActorState: 'static + Send + Sized {
     type Message: Send + Unpin;
 
+    #[allow(unused_variables)]
+    async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {}
+
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message);
 }
 
@@ -130,6 +133,7 @@ impl<A: ActorState> ActorRunner<A> {
     }
 
     async fn run(mut self) -> ! {
+        self.state.start_up(&mut self.scheduler).await;
         loop {
             let msg = self.scheduler.next().await.unwrap();
             self.state.process(&mut self.scheduler, msg).await;
@@ -218,7 +222,7 @@ pub struct Tracker<T> {
 }
 
 impl<T> Tracker<T> {
-    fn new(recv: OneshotReceiver<T>) -> Self {
+    pub fn new(recv: OneshotReceiver<T>) -> Self {
         Self { recv }
     }
 }

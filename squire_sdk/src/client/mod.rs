@@ -1,18 +1,24 @@
-use reqwest::{header::CONTENT_TYPE, Client};
-use squire_lib::operations::OpResult;
-use tokio::sync::watch::Receiver as Subscriber;
+use std::borrow::Cow;
+
+use futures::FutureExt;
+use squire_lib::{operations::OpResult, tournament::TournRole};
+use tokio::sync::{oneshot::channel as oneshot_channel, watch::Receiver as Subscriber};
 
 use self::{
     builder::ClientBuilder,
-    management_task::{ManagementTaskSender, UpdateType},
+    network::{NetworkClient, NetworkState},
+    session::SessionWatcher,
+    tournaments::{TournsClient, UpdateType},
 };
 use crate::{
-    api::{GetRequest, ListTournaments, PostRequest, ServerMode, SessionToken, TournamentSummary},
+    actor::Tracker,
+    api::{GetRequest, ListTournaments, PostRequest, SessionToken, TournamentSummary},
+    client::network::NetworkCommand,
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
     },
-    sync::TournamentManager, actor::Tracker,
+    sync::TournamentManager,
 };
 
 #[cfg(not(debug_assertions))]
@@ -28,7 +34,9 @@ impl<T> OnUpdate for T where T: 'static + Send + FnMut(TournamentId) {}
 
 pub mod builder;
 pub mod error;
-pub mod management_task;
+pub mod network;
+pub mod session;
+pub mod tournaments;
 
 /// Encapsulates the known account and session information of the user
 #[derive(Debug, Clone)]
@@ -62,12 +70,9 @@ impl UserInfo {
 }
 
 pub struct SquireClient {
-    client: Client,
-    user: UserInfo,
-    url: String,
-    #[allow(dead_code)]
-    server_mode: ServerMode,
-    sender: ManagementTaskSender,
+    user: SessionWatcher,
+    client: NetworkClient,
+    tourns: TournsClient,
 }
 
 pub enum BackendImportStatus {
@@ -91,16 +96,16 @@ impl SquireClient {
     /// to the backend server but the remote import might not be completed by the time the value is
     /// returned
     pub async fn create_tournament(&self, seed: TournamentSeed) -> Option<TournamentId> {
-        let user = self.user.get_user()?;
+        let user = self.user.session_info().get_user()?;
         Some(
-            self.sender
+            self.tourns
                 .import(TournamentManager::new(user.clone(), seed))
                 .await,
         )
     }
 
     pub async fn persist_tourn_to_backend(&self, id: TournamentId) -> BackendImportStatus {
-        let Some(tourn) = self.sender.query(id, |tourn| tourn.clone()).await else {
+        let Some(tourn) = self.tourns.query(id, |tourn| tourn.clone()).await else {
             return BackendImportStatus::NotFound;
         };
         if self.post_request(tourn, []).await.unwrap() {
@@ -113,64 +118,77 @@ impl SquireClient {
     /// Retrieves a tournament with the given id from the backend and creates a websocket
     /// connection to receive updates from the backend.
     pub async fn sub_to_tournament(&self, id: TournamentId) -> Option<Subscriber<()>> {
-        self.sender.subscribe(id).await
+        self.tourns.subscribe(id).await
     }
 
-    async fn get_request<const N: usize, R>(
+    fn get_request<const N: usize, R>(
         &self,
-        subs: [&str; N],
-    ) -> Result<R::Response, reqwest::Error>
+        subs: [Cow<'static, str>; N],
+    ) -> Tracker<Result<R::Response, reqwest::Error>>
     where
-        R: GetRequest<N>,
+        R: 'static + GetRequest<N>,
+        R::Response: Send,
     {
-        self.client
-            .get(format!("{}{}", self.url, R::ROUTE.replace(subs)))
-            .send()
-            .await?
-            .json()
-            .await
+        let (send, recv) = oneshot_channel();
+        let query = Box::new(move |state: &NetworkState| {
+            let subs = subs
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<&str>>()
+                .try_into()
+                .unwrap();
+            drop(tokio::spawn(
+                state.get_request::<N, R>(subs).map(|resp| send.send(resp)),
+            ))
+        });
+        self.client.send(NetworkCommand::Query(query));
+        Tracker::new(recv)
     }
 
-    async fn post_request<const N: usize, B>(
+    fn post_request<const N: usize, B>(
         &self,
         body: B,
-        subs: [&str; N],
-    ) -> Result<B::Response, reqwest::Error>
+        subs: [Cow<'static, str>; N],
+    ) -> Tracker<Result<B::Response, reqwest::Error>>
     where
-        B: PostRequest<N>,
+        B: 'static + Send + Sync + PostRequest<N>,
+        B::Response: Send,
     {
-        let mut builder = self
-            .client
-            .post(format!("{}{}", self.url, B::ROUTE.replace(subs)))
-            .header(CONTENT_TYPE, "application/json");
-        if let Some((name, header)) = self.user.get_token().map(SessionToken::as_header) {
-            builder = builder.header(name, header);
-        }
-        builder
-            .body(serde_json::to_string(&body).unwrap())
-            .send()
-            .await?
-            .json()
-            .await
+        let (send, recv) = oneshot_channel();
+        let query = Box::new(move |state: &NetworkState| {
+            let subs = subs
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<&str>>()
+                .try_into()
+                .unwrap();
+            drop(tokio::spawn(
+                state
+                    .json_post_request::<N, B>(body, subs)
+                    .map(|resp| send.send(resp)),
+            ))
+        });
+        self.client.send(NetworkCommand::Query(query));
+        Tracker::new(recv)
     }
 
     pub fn import_tourn(&self, tourn: TournamentManager) -> Tracker<TournamentId> {
-        self.sender.import(tourn)
+        self.tourns.import(tourn)
     }
 
     pub fn remove_tourn(&self, id: TournamentId) -> Tracker<Option<OpResult>> {
-        self.sender.update(id, UpdateType::Removal)
+        self.tourns.update(id, UpdateType::Removal)
     }
 
     pub fn update_tourn(&self, id: TournamentId, op: TournOp) -> Tracker<Option<OpResult>> {
-        self.sender.update(id, UpdateType::Single(Box::new(op)))
+        self.tourns.update(id, UpdateType::Single(Box::new(op)))
     }
 
     pub fn bulk_update<I>(&self, id: TournamentId, iter: I) -> Tracker<Option<OpResult>>
     where
         I: IntoIterator<Item = TournOp>,
     {
-        self.sender
+        self.tourns
             .update(id, UpdateType::Bulk(iter.into_iter().collect()))
     }
 
@@ -179,7 +197,7 @@ impl SquireClient {
         F: 'static + Send + FnOnce(&TournamentManager) -> T,
         T: 'static + Send,
     {
-        self.sender.query(id, query)
+        self.tourns.query(id, query)
     }
 
     pub fn query_players<F, T>(&self, id: TournamentId, query: F) -> Tracker<Option<T>>
@@ -187,7 +205,7 @@ impl SquireClient {
         F: 'static + Send + FnOnce(&PlayerRegistry) -> T,
         T: 'static + Send,
     {
-        self.sender.query(id, move |tourn| query(&tourn.player_reg))
+        self.tourns.query(id, move |tourn| query(&tourn.player_reg))
     }
 
     pub fn query_rounds<F, T>(&self, id: TournamentId, query: F) -> Tracker<Option<T>>
@@ -195,10 +213,25 @@ impl SquireClient {
         F: 'static + Send + FnOnce(&RoundRegistry) -> T,
         T: 'static + Send,
     {
-        self.sender.query(id, move |tourn| query(&tourn.round_reg))
+        self.tourns.query(id, move |tourn| query(&tourn.round_reg))
     }
 
     pub async fn get_tourn_summaries(&self) -> Option<Vec<TournamentSummary>> {
-        self.get_request::<1, ListTournaments>(["0"]).await.ok()
+        self.get_request::<1, ListTournaments>(["0".into()])
+            .await
+            .ok()
+    }
+
+    pub async fn get_tourn_role(&self, id: TournamentId) -> TournRole {
+        match self.user.session_info() {
+            session::SessionInfo::Unknown | session::SessionInfo::Guest => {
+                TournRole::default()
+            }
+            session::SessionInfo::User(user) |
+            session::SessionInfo::AuthUser(user) => {
+                let u_id = *user.id;
+                self.tourns.query_or_default(id, move |tourn| tourn.user_role(u_id)).await
+            }
+        }
     }
 }
