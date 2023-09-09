@@ -1,6 +1,5 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
-    fmt::{Debug, Formatter},
 };
 
 use async_trait::async_trait;
@@ -55,7 +54,6 @@ impl ActorState for ManagerState {
     type Message = ManagementCommand;
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
-        log(&format!("Got tournament management message: {msg:?}"));
         match msg {
             ManagementCommand::Query(id, query) => {
                 self.handle_query(id, query);
@@ -429,33 +427,4 @@ impl From<MessageRetry> for ManagementCommand {
 pub(crate) struct MessageRetry {
     id: TournamentId,
     msg: ServerBoundMessage,
-}
-
-impl Debug for ManagerState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let Self {
-            cache,
-            syncs,
-            forwarded,
-            ..
-        } = self;
-        write!(
-            f,
-            r#"ManagerState {{ "cache": {cache:?}, "syncs": {syncs:?}, "forwarded": {forwarded:?}, "on_update": ".." }}"#
-        )
-    }
-}
-
-impl Debug for ManagementCommand {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ManagementCommand::Query(id, _) => write!(f, "Query({id:?})"),
-            ManagementCommand::Update(id, update, _) => write!(f, "Update({id:?}, {update:?})"),
-            ManagementCommand::Import(tourn, _) => write!(f, "Import({tourn:?})"),
-            ManagementCommand::Subscribe(id, _) => write!(f, "Subscribe({id:?})"),
-            ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res),
-            ManagementCommand::Remote(res) => write!(f, "Remote({res:?}"),
-            ManagementCommand::Retry(rt) => write!(f, "Retry({rt:?}"),
-        }
-    }
 }
