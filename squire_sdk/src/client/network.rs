@@ -10,6 +10,16 @@ use crate::{
     api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken},
 };
 
+#[cfg(target_family = "wasm")]
+fn do_wrap<T>(value: T) -> send_wrapper::SendWrapper<T> {
+    send_wrapper::SendWrapper::new(value)
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn do_wrap<T>(value: T) -> T {
+    value
+}
+
 pub type NetworkClient = ActorClient<NetworkState>;
 
 pub struct NetworkState {
@@ -89,7 +99,7 @@ impl NetworkState {
     {
         let url = format!("{}{}", self.url, R::ROUTE.replace(subs));
         let req = self.client.get(url);
-        async move { req.send().await?.json().await }
+        do_wrap(async move { req.send().await?.json().await })
     }
 
     pub fn post_request<const N: usize, B>(
@@ -108,7 +118,7 @@ impl NetworkState {
             builder = builder.header(name, header);
         }
         let body = serde_json::to_string(&body).unwrap();
-        async move { builder.body(body).send().await }
+        do_wrap(async move { builder.body(body).send().await })
     }
 
     pub fn json_post_request<const N: usize, B>(
@@ -121,18 +131,23 @@ impl NetworkState {
         B::Response: 'static + Send,
     {
         let resp = self.post_request(body, subs);
-        async move { resp.await?.json().await }
+        do_wrap(async move { resp.await?.json().await })
     }
 }
 
-async fn process_login(res: Result<Response, ReqwestError>) -> NetworkCommand {
-    match res {
-        Ok(resp) => {
-            let token = SessionToken::try_from(resp.headers()).ok();
-            NetworkCommand::LoginComplete(resp.json().await.map(move |acc| (acc, token)))
+fn process_login(
+    res: Result<Response, ReqwestError>,
+) -> impl 'static + Send + Future<Output = NetworkCommand> {
+    let digest = async move {
+        match res {
+            Ok(resp) => {
+                let token = SessionToken::try_from(resp.headers()).ok();
+                NetworkCommand::LoginComplete(resp.json().await.map(move |acc| (acc, token)))
+            }
+            Err(err) => NetworkCommand::LoginComplete(Err(err)),
         }
-        Err(err) => NetworkCommand::LoginComplete(Err(err)),
-    }
+    };
+    do_wrap(digest)
 }
 
 fn process_guest_login(res: Result<Response, ReqwestError>) -> NetworkCommand {

@@ -14,6 +14,7 @@ use crate::{
     actor::Tracker,
     api::{GetRequest, ListTournaments, PostRequest, SessionToken, TournamentSummary},
     client::network::NetworkCommand,
+    compat::spawn_task,
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
@@ -137,9 +138,7 @@ impl SquireClient {
                 .collect::<Vec<&str>>()
                 .try_into()
                 .unwrap();
-            drop(tokio::spawn(
-                state.get_request::<N, R>(subs).map(|resp| send.send(resp)),
-            ))
+            spawn_task(state.get_request::<N, R>(subs).map(|resp| send.send(resp)))
         });
         self.client.send(NetworkCommand::Query(query));
         Tracker::new(recv)
@@ -162,11 +161,11 @@ impl SquireClient {
                 .collect::<Vec<&str>>()
                 .try_into()
                 .unwrap();
-            drop(tokio::spawn(
+            spawn_task(
                 state
                     .json_post_request::<N, B>(body, subs)
                     .map(|resp| send.send(resp)),
-            ))
+            )
         });
         self.client.send(NetworkCommand::Query(query));
         Tracker::new(recv)
@@ -224,13 +223,12 @@ impl SquireClient {
 
     pub async fn get_tourn_role(&self, id: TournamentId) -> TournRole {
         match self.user.session_info() {
-            session::SessionInfo::Unknown | session::SessionInfo::Guest => {
-                TournRole::default()
-            }
-            session::SessionInfo::User(user) |
-            session::SessionInfo::AuthUser(user) => {
+            session::SessionInfo::Unknown | session::SessionInfo::Guest => TournRole::default(),
+            session::SessionInfo::User(user) | session::SessionInfo::AuthUser(user) => {
                 let u_id = *user.id;
-                self.tourns.query_or_default(id, move |tourn| tourn.user_role(u_id)).await
+                self.tourns
+                    .query_or_default(id, move |tourn| tourn.user_role(u_id))
+                    .await
             }
         }
     }
