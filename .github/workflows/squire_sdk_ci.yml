@@ -23,7 +23,7 @@ jobs:
           rust-version: ${{ matrix.rust }}
           components: rustfmt
       - uses: taiki-e/install-action@cargo-hack
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: cargo fmt --check --package squire_sdk
       - run: cargo hack build --feature-powerset --exclude-features deck_sites --no-dev-deps --package squire_sdk --verbose
       - run: cargo hack test --package squire_sdk --feature-powerset --exclude-features deck_sites --verbose
@@ -39,7 +39,7 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           targets: wasm32-unknown-unknown
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: cargo build --package squire_sdk --features=client --target=wasm32-unknown-unknown --verbose
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: wasm-pack test --headless --chrome --firefox ./squire_sdk/ --features=client --verbose
