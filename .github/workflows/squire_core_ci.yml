@@ -23,7 +23,7 @@ jobs:
           rust-version: ${{ matrix.rust }}
           components: rustfmt
           targets: wasm32-unknown-unknown
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch Trunk
         uses: jetli/trunk-action@v0.4.0
         with:

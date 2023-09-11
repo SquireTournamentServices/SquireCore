@@ -22,7 +22,7 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           components: rustfmt
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: cargo fmt --check --package squire_lib
       - run: cargo build --package squire_lib --verbose
       - run: cargo test --package squire_lib --verbose
@@ -38,7 +38,7 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           targets: wasm32-unknown-unknown
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: cargo build --package squire_lib --target=wasm32-unknown-unknown --verbose
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: wasm-pack test --headless --chrome --firefox ./squire_lib/ --verbose
