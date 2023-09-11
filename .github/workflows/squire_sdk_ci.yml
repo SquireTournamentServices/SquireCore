@@ -18,7 +18,7 @@ jobs:
         rust: [nightly]
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-      - uses: hecrj/setup-rust-action@v1
+      - uses: hecrj/setup-rust-action@v2
         with:
           rust-version: ${{ matrix.rust }}
           components: rustfmt
@@ -35,7 +35,7 @@ jobs:
       matrix:
         rust: [nightly]
     steps:
-      - uses: hecrj/setup-rust-action@v1
+      - uses: hecrj/setup-rust-action@v2
         with:
           rust-version: ${{ matrix.rust }}
           targets: wasm32-unknown-unknown
