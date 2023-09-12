@@ -41,7 +41,7 @@ pub struct TournProps {
 
 pub struct TournamentViewer {
     pub id: TournamentId,
-    pub mode: TournViewMode,
+    pub mode: Option<TournViewMode>,
     listener: Option<Receiver<()>>,
     tourn_name: String,
     admin_id: AdminId,
@@ -73,26 +73,32 @@ impl TournamentViewer {
 
     fn get_control_plane(&self, ctx: &Context<Self>) -> Html {
         match self.mode {
-            TournViewMode::Overview => {
-                html! { <TournOverview id = { self.id }/> }
+            None => {
+                html! (
+                    <h2>{"Loading Tourn Data..."}</h2>
+                )
             }
-            TournViewMode::Players => {
+            Some(TournViewMode::Overview) => {
+                let inner_props = OverviewProps {};
+                html!( <TournViewerComponentWrapper<TournOverview> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
+            }
+            Some(TournViewMode::Players) => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
                 html! { <PlayerView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
-            TournViewMode::Rounds => {
+            Some(TournViewMode::Rounds) => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
                 html! { <RoundsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
-            TournViewMode::Pairings => {
-                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
+            Some(TournViewMode::Pairings) => {
                 let inner_props = PairingsViewProps {};
-                html!( <TournViewerComponentWrapper<PairingsView> t_id = {self.id } a_id = { self.admin_id } send_op_result = {send_op_result} props = {inner_props} /> )
+                html!( <TournViewerComponentWrapper<PairingsView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
             }
-            TournViewMode::Standings => {
-                html! { <StandingsView id = { self.id }/> }
+            Some(TournViewMode::Standings) => {
+                let inner_props = StandingsProps {};
+                html!( <TournViewerComponentWrapper<StandingsView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
             }
-            TournViewMode::Settings => {
+            Some(TournViewMode::Settings) => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
                 html! { <SettingsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
             }
@@ -113,7 +119,7 @@ impl Component for TournamentViewer {
         });
         Self {
             id,
-            mode: TournViewMode::default(),
+            mode: None,
             tourn_name: String::new(),
             admin_id: AdminId::default(),
             error_message: "no message".to_owned(),
@@ -124,8 +130,8 @@ impl Component for TournamentViewer {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TournViewMessage::SwitchModes(mode) => {
-                let digest = mode != self.mode;
-                self.mode = mode;
+                let digest = Some(mode) != self.mode;
+                self.mode = Some(mode);
                 digest
             }
             TournViewMessage::TournamentImported(listener) => {
@@ -151,6 +157,7 @@ impl Component for TournamentViewer {
                 let digest = self.tourn_name != name;
                 self.tourn_name = name;
                 self.admin_id = admin_id;
+                self.mode = Some(TournViewMode::Overview);
                 digest
             }
             TournViewMessage::QueryReady(None) => {
@@ -184,7 +191,6 @@ impl Component for TournamentViewer {
                 <button>{"OK"}</button>
                 </form>
             </dialog>
-
             <div class="my-4 container-fluid">
                 <div class="row tviewer">
                     <aside class="col-md-2 tveiwer_sidebar px-md-3">

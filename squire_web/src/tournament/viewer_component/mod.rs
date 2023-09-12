@@ -7,15 +7,18 @@ use squire_sdk::{
     },
     sync::TournamentManager,
 };
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::{HtmlDialogElement, window};
 // use squire_sdk::tournaments::TournamentManager;
 // use wasm_bindgen_futures::spawn_local;
-use yew::{Callback, Component, Context, Properties};
+use yew::{Callback, Component, Context, Properties, html};
 
 use crate::{utils::console_log, CLIENT, ON_UPDATE};
 
 pub struct TournViewerComponentWrapper<T> {
     state: WrapperState,
+    error_message: String,
     comp: T,
 }
 pub struct WrapperState {
@@ -45,6 +48,8 @@ where
     QueryData(T::QueryMessage),
     /// Message from the server telling the component there has been an update
     RemoteUpdate(TournamentId),
+    /// Will display an error message if the operation result is an error
+    ReceiveOpResult(OpResult),
 }
 #[derive(PartialEq, Properties)]
 pub struct WrapperProps<P>
@@ -53,7 +58,6 @@ where
 {
     pub t_id: TournamentId,
     pub a_id: AdminId,
-    pub send_op_result: Callback<OpResult>,
     pub props: P,
 }
 impl<T> Component for TournViewerComponentWrapper<T>
@@ -67,12 +71,12 @@ where
         let state = WrapperState {
             a_id: ctx.props().a_id,
             t_id: ctx.props().t_id,
-            send_op_result: ctx.props().send_op_result.clone(),
+            send_op_result: ctx.link().callback(WrapperMessage::ReceiveOpResult),
             client: CLIENT.get().unwrap(),
         };
         let mut comp = T::v_create(ctx, &state);
         let q_func = comp.query(ctx, &state);
-        let to_return = TournViewerComponentWrapper { state, comp };
+        let to_return = TournViewerComponentWrapper { state, error_message: "".to_owned(), comp };
         to_return.spawn_update_listener(ctx);
         to_return.query_tourn(ctx, q_func);
         to_return
@@ -117,11 +121,34 @@ where
                 }
                 false
             }
+            WrapperMessage::ReceiveOpResult(opr) => {
+                let Err(err) = opr else { return false };
+                let element: HtmlDialogElement = window()
+                    .and_then(|w| w.document())
+                    .and_then(|d| d.get_element_by_id("errormessage"))
+                    .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
+                    .unwrap();
+                self.error_message = err.to_string();
+                let _ = element.show_modal();
+                true
+            }
         }
     }
 
     fn view(&self, _ctx: &yew::Context<Self>) -> yew::Html {
-        T::v_view(&self.comp, _ctx.into(), &self.state)
+        html!(
+            <>
+                <>{ T::v_view(&self.comp, _ctx.into(), &self.state)} </>
+                <>            
+                    <dialog id="errormessage">
+                    <p>{self.error_message.clone()}</p>
+                    <form method="dialog">
+                    <button>{"OK"}</button>
+                    </form>
+                    </dialog>
+                </>
+            </>
+        )
     }
 }
 impl<T> TournViewerComponentWrapper<T>

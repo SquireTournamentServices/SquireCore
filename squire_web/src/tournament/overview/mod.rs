@@ -9,23 +9,23 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-use crate::CLIENT;
+use super::viewer_component::{TournViewerComponent, TournViewerComponentWrapper, WrapperState};
 
-pub enum TournOverviewMessage {
+pub enum TournOverviewMessage {}
+pub enum TournOverviewQueryMessage {
     OverviewQueryReady(Option<TournamentProfile>), // Optional because the lookup "may" fail
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
-pub struct OverviewProps {
-    pub id: TournamentId,
-}
+pub struct OverviewProps {}
 
 pub struct TournOverview {
     pub id: TournamentId,
     profile: Option<TournamentProfile>,
 }
 
-pub fn fetch_overview_data(ctx: &Context<TournOverview>, id: TournamentId) {
+/*
+pub fn fetch_overview_data(ctx: &Context<TournViewerComponentWrapper<TournOverview>>, id: TournamentId) {
     ctx.link().send_future(async move {
         let data = CLIENT
             .get()
@@ -38,20 +38,22 @@ pub fn fetch_overview_data(ctx: &Context<TournOverview>, id: TournamentId) {
         TournOverviewMessage::OverviewQueryReady(data)
     })
 }
+*/
 
-impl Component for TournOverview {
-    type Message = TournOverviewMessage;
+impl TournViewerComponent for TournOverview {
     type Properties = OverviewProps;
+    type InteractionMessage = TournOverviewMessage;
+    type QueryMessage = TournOverviewQueryMessage;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let id = ctx.props().id;
-        fetch_overview_data(ctx, id);
+    fn v_create(_ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
+        let id = state.t_id.clone();
+        // fetch_overview_data(ctx, id);
         TournOverview { id, profile: None }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            TournOverviewMessage::OverviewQueryReady(data) => {
+    fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
+        match _msg {
+            TournOverviewQueryMessage::OverviewQueryReady(data) => {
                 let digest = self.profile != data || data.is_none();
                 self.profile = data;
                 digest
@@ -59,14 +61,30 @@ impl Component for TournOverview {
         }
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
+    fn v_view(
+        &self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _state: &WrapperState,
+    ) -> yew::Html {
         match self.profile.as_ref() {
             Some(p) => p.view(),
             None => {
-                fetch_overview_data(ctx, self.id);
+                // fetch_overview_data(_ctx, self.id);
                 Html::default()
             }
         }
+    }
+
+    fn query(
+        &mut self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _state: &WrapperState,
+    ) -> Box<dyn 'static + Send + FnOnce(&TournamentManager) -> Self::QueryMessage> {
+        let q_func = |tourn: &TournamentManager| {
+            let data = TournamentProfile::new(tourn);
+            Self::QueryMessage::OverviewQueryReady(Some(data))
+        };
+        Box::new(q_func)
     }
 }
 

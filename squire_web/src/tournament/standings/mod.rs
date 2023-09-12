@@ -1,12 +1,16 @@
-use squire_sdk::model::{identifiers::TournamentId, tournament::Tournament};
+use squire_sdk::{
+    model::{identifiers::TournamentId, tournament::Tournament},
+    sync::TournamentManager,
+};
 use yew::{prelude::*, virtual_dom::VNode};
 
-use crate::{
-    utils::{generic_popout_window, generic_scroll_vnode},
-    CLIENT,
+use super::viewer_component::{
+    InteractionResponse, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
+    WrapperState,
 };
+use crate::utils::{generic_popout_window, generic_scroll_vnode};
 
-#[derive(Properties, PartialEq)]
+#[derive(Debug, PartialEq, Properties, Clone)]
 struct StandingsPopoutProps {
     pub display_vnode: VNode,
 }
@@ -16,13 +20,13 @@ fn StandingsPopout(props: &StandingsPopoutProps) -> Html {
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
-pub struct StandingsProps {
-    pub id: TournamentId,
-}
+pub struct StandingsProps {}
 #[derive(Debug, PartialEq, Clone)]
 pub enum StandingsMessage {
-    StandingsQueryReady(Option<StandingsProfile>), // Optional for the same reasons
     SpawnPopout(i32),
+}
+pub enum StandingsQueryMessage {
+    StandingsQueryReady(Option<StandingsProfile>),
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -33,38 +37,44 @@ pub struct StandingsProfile {
 pub struct StandingsView {
     pub id: TournamentId,
     pub scroll_vnode: Option<VNode>,
-    pub process: Callback<i32>,
     standings: StandingsProfile,
 }
 
-pub fn fetch_standings_profile(ctx: &Context<StandingsView>, id: TournamentId) {
+/*
+pub fn fetch_standings_profile(ctx: &Context<TournViewerComponentWrapper<StandingsView>>, id: TournamentId) {
     ctx.link().send_future(async move {
         let data = CLIENT
             .get()
             .unwrap()
             .query_tourn(id, |t| StandingsProfile::new(t.tourn()))
             .await;
-        StandingsMessage::StandingsQueryReady(data)
+        WrapperMessage::Interaction(StandingsQueryMessage::StandingsQueryReady(data))
     })
 }
+*/
 
-impl Component for StandingsView {
-    type Message = StandingsMessage;
+impl TournViewerComponent for StandingsView {
+    type InteractionMessage = StandingsMessage;
+    type QueryMessage = StandingsQueryMessage;
     type Properties = StandingsProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
+    fn v_create(_ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
         let to_return = StandingsView {
-            id: ctx.props().id,
+            id: state.t_id.clone(),
             scroll_vnode: None,
-            process: ctx.link().callback(StandingsMessage::SpawnPopout),
             standings: Default::default(),
         };
-        fetch_standings_profile(ctx, to_return.id);
+        //fetch_standings_profile(ctx, to_return.id);
         to_return
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
+    fn interaction(
+        &mut self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _msg: Self::InteractionMessage,
+        _state: &WrapperState,
+    ) -> InteractionResponse<Self> {
+        match _msg {
             StandingsMessage::SpawnPopout(_num) => {
                 let scroll_strings = self
                     .standings
@@ -74,15 +84,40 @@ impl Component for StandingsView {
                 self.scroll_vnode = Some(generic_scroll_vnode(120, scroll_strings));
                 generic_popout_window(self.scroll_vnode.clone().unwrap());
             }
-            StandingsMessage::StandingsQueryReady(data) => {
-                self.standings = data.unwrap_or_default();
-            }
         }
-        true
+        true.into()
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        let cb = self.process.clone();
+    fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
+        match _msg {
+            StandingsQueryMessage::StandingsQueryReady(data) => {
+                self.standings = data.unwrap_or_default();
+                true.into()
+            }
+        }
+    }
+
+    fn query(
+        &mut self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _state: &WrapperState,
+    ) -> Box<dyn 'static + Send + FnOnce(&squire_sdk::sync::TournamentManager) -> Self::QueryMessage>
+    {
+        let q_func = |tourn: &TournamentManager| {
+            let data = StandingsProfile::new(tourn.tourn());
+            Self::QueryMessage::StandingsQueryReady(Some(data))
+        };
+        Box::new(q_func)
+    }
+
+    fn v_view(
+        &self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _state: &WrapperState,
+    ) -> yew::Html {
+        let cb = _ctx
+            .link()
+            .callback(move |_| WrapperMessage::Interaction(StandingsMessage::SpawnPopout(20)));
         html! {
             <div>
                 <div class="overflow-auto py-3 pairings-scroll-box">
@@ -95,7 +130,7 @@ impl Component for StandingsView {
                         .collect::<Html>()
                     }</ul>
                 </div>
-                <button onclick={ move |_| cb.emit(0) }>{ "Standings Scroll" }</button>
+                <button onclick={ cb }>{ "Standings Scroll" }</button>
             </div>
         }
     }
