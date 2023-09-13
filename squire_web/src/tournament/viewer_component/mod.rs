@@ -9,10 +9,10 @@ use squire_sdk::{
 };
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlDialogElement, window};
+use web_sys::{window, HtmlDialogElement};
 // use squire_sdk::tournaments::TournamentManager;
 // use wasm_bindgen_futures::spawn_local;
-use yew::{Callback, Component, Context, Properties, html};
+use yew::{html, Callback, Component, Context, Properties};
 
 use crate::{utils::console_log, CLIENT, ON_UPDATE};
 
@@ -33,7 +33,7 @@ where
 {
     Redraw(bool),
     Update(Vec<TournOp>), // <- We probably want to pass in a client Update type instead
-    FetchData(Box<dyn 'static + Send + FnOnce(&TournamentManager) -> T::QueryMessage>),
+    FetchData(TournQuery<T::QueryMessage>),
 }
 pub enum WrapperMessage<T>
 where
@@ -51,6 +51,7 @@ where
     /// Will display an error message if the operation result is an error
     ReceiveOpResult(OpResult),
 }
+
 #[derive(PartialEq, Properties)]
 pub struct WrapperProps<P>
 where
@@ -76,7 +77,11 @@ where
         };
         let mut comp = T::v_create(ctx, &state);
         let q_func = comp.query(ctx, &state);
-        let to_return = TournViewerComponentWrapper { state, error_message: "".to_owned(), comp };
+        let to_return = TournViewerComponentWrapper {
+            state,
+            error_message: "".to_owned(),
+            comp,
+        };
         to_return.spawn_update_listener(ctx);
         to_return.query_tourn(ctx, q_func);
         to_return
@@ -88,14 +93,11 @@ where
                 match self.comp.interaction(ctx, msg, &self.state) {
                     InteractionResponse::Redraw(value) => value,
                     InteractionResponse::Update(ops) => {
-                        let handle = CLIENT
-                            .get()
-                            .unwrap()
-                            .bulk_update(self.state.t_id, ops.into_iter());
+                        let handle = CLIENT.get().unwrap().bulk_update(self.state.t_id, ops);
                         let send_op_result = self.state.send_op_result.clone();
                         let is_success = ctx.link().callback(move |_| WrapperMessage::ReQuery);
                         spawn_local(async move {
-                            let op_result = handle.process().await.unwrap();
+                            let op_result = handle.await.unwrap();
                             if op_result.is_ok() {
                                 is_success.emit(())
                             };
@@ -139,7 +141,7 @@ where
         html!(
             <>
                 <>{ T::v_view(&self.comp, _ctx.into(), &self.state)} </>
-                <>            
+                <>
                     <dialog id="errormessage">
                     <p>{self.error_message.clone()}</p>
                     <form method="dialog">
@@ -173,6 +175,8 @@ where
     }
 }
 
+pub type TournQuery<T> = Box<dyn 'static + Send + FnOnce(&TournamentManager) -> T>;
+
 pub trait TournViewerComponent: Sized + 'static {
     type InteractionMessage;
     type QueryMessage: 'static + Send;
@@ -197,7 +201,7 @@ pub trait TournViewerComponent: Sized + 'static {
         &mut self,
         ctx: &Context<TournViewerComponentWrapper<Self>>,
         state: &WrapperState,
-    ) -> Box<dyn 'static + Send + FnOnce(&TournamentManager) -> Self::QueryMessage>;
+    ) -> TournQuery<Self::QueryMessage>;
 
     fn v_view(
         &self,
