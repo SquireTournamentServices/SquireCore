@@ -8,7 +8,7 @@ use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
 use uuid::Uuid;
 
 use crate::{
-    actor::{ActorState, Scheduler},
+    actor::{ActorState, Scheduler, Trackable},
     api::AuthUser,
     sync::{
         processor::{SyncCompletion, SyncDecision},
@@ -26,7 +26,7 @@ pub use onlooker::*;
 /// A message sent to a `Gathering` that subscribes a new `Onlooker`.
 #[derive(Debug)]
 pub enum GatheringMessage {
-    GetTournament(OneshotSender<TournamentManager>),
+    GetTournament(OneshotSender<Box<TournamentManager>>),
     NewConnection(AuthUser, WebSocket),
     WebsocketMessage(AuthUser, Option<Vec<u8>>),
     ResendMessage(Box<(AuthUser, ClientBoundMessage)>),
@@ -35,7 +35,25 @@ pub enum GatheringMessage {
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
 /// How this data is backed up depends on the server implementation.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct PersistMessage(TournamentId);
+struct PersistReadyMessage(TournamentId);
+
+#[derive(Debug)]
+pub enum PersistMessage {
+    Get(TournamentId, OneshotSender<Option<Box<TournamentManager>>>),
+    Persist(Box<TournamentManager>),
+}
+
+impl Trackable<TournamentId, Option<Box<TournamentManager>>> for PersistMessage {
+    fn track(id: TournamentId, send: OneshotSender<Option<Box<TournamentManager>>>) -> Self {
+        Self::Get(id, send)
+    }
+}
+
+impl From<Box<TournamentManager>> for PersistMessage {
+    fn from(tourn: Box<TournamentManager>) -> Self {
+        Self::Persist(tourn)
+    }
+}
 
 /// This structure contains all users currently subscribed to a tournament and can be thought of as
 /// the crowd of people that gathers for a tournament. New subscribers, called `Onlooker`s, are
@@ -51,7 +69,7 @@ struct PersistMessage(TournamentId);
 pub struct Gathering {
     tourn: TournamentManager,
     onlookers: HashMap<AuthUser, Onlooker>,
-    persist: Sender<PersistMessage>,
+    persist: Sender<PersistReadyMessage>,
     syncs: ServerSyncManager,
     forwarding: ServerForwardingManager,
 }
@@ -70,7 +88,9 @@ impl ActorState for Gathering {
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
-            GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
+            GatheringMessage::GetTournament(send) => {
+                send.send(Box::new(self.tourn.clone())).unwrap()
+            }
             GatheringMessage::NewConnection(user, ws) => {
                 let (sink, stream) = ws.split();
                 let onlooker = Onlooker::new(sink);
@@ -103,7 +123,7 @@ impl ActorState for Gathering {
 }
 
 impl Gathering {
-    fn new(tourn: TournamentManager, persist: Sender<PersistMessage>) -> Self {
+    fn new(tourn: TournamentManager, persist: Sender<PersistReadyMessage>) -> Self {
         let count = tourn.tourn().get_player_count();
         Self {
             tourn,
@@ -116,7 +136,7 @@ impl Gathering {
 
     fn send_persist_message(&mut self) {
         // If the persistance queue is full, we continue on
-        let _persist_fut = self.persist.send(PersistMessage(self.tourn.id));
+        let _persist_fut = self.persist.send(PersistReadyMessage(self.tourn.id));
     }
 
     async fn process_websocket_message(
@@ -291,5 +311,11 @@ impl From<(AuthUser, Option<Vec<u8>>)> for GatheringMessage {
 impl From<(AuthUser, ClientBoundMessage)> for GatheringMessage {
     fn from((user, msg): (AuthUser, ClientBoundMessage)) -> Self {
         Self::ResendMessage(Box::new((user, msg)))
+    }
+}
+
+impl Trackable<(), Box<TournamentManager>> for GatheringMessage {
+    fn track((): (), send: OneshotSender<Box<TournamentManager>>) -> Self {
+        Self::GetTournament(send)
     }
 }

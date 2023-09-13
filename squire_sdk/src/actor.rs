@@ -245,3 +245,11 @@ impl<A: ActorState> Debug for ActorClient<A> {
         write!(f, r#"ActorClient {{ "send": {:?} }}"#, self.send)
     }
 }
+
+impl<A> Default for ActorClient<A>
+where A: ActorState + Default
+{
+    fn default() -> Self {
+        Self::builder(A::default()).launch()
+    }
+}

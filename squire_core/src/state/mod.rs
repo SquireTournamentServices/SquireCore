@@ -2,12 +2,7 @@ use std::{borrow::Cow, ops::Range, sync::Arc};
 
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
-use futures::StreamExt;
-use mongodb::{
-    bson::{doc, spec::BinarySubtype, Binary, Document},
-    options::{ClientOptions, FindOptions, Hint, UpdateModifications, UpdateOptions},
-    Client as DbClient, Collection, Database,
-};
+use mongodb::{options::ClientOptions, Client as DbClient, Database};
 use squire_sdk::{
     actor::{ActorBuilder, ActorClient},
     api::*,
@@ -22,13 +17,14 @@ use squire_sdk::{
     },
     sync::TournamentManager,
 };
-use tracing::Level;
 
 mod accounts;
 mod session;
+mod tournaments;
 
 pub use accounts::*;
 pub use session::*;
+pub use tournaments::*;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
@@ -95,17 +91,19 @@ impl AppStateBuilder<Uri, DbName> {
     /// # Panics
     /// Panics if a connection can not be established
     pub async fn build(self) -> AppState {
-        let tourn_coll = Arc::from(self.get_tournament_collection_name());
         let client_options = ClientOptions::parse(&self.db_conn).await.unwrap();
         let db_conn = DbClient::with_options(client_options)
             .unwrap()
             .database(self.get_db_name());
+        let tourn_coll = Arc::from(self.get_tournament_collection_name());
+        let tourn_db = TournDb::new(db_conn, tourn_coll);
+        let tournaments = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
+        let gatherings = ActorBuilder::new(GatheringHall::new(tournaments.clone())).launch();
         AppState {
-            db_conn,
-            tourn_coll,
             sessions: SessionStoreHandle::new(),
             accounts: AccountStoreHandle::new(),
-            gatherings: ActorBuilder::new(GatheringHall::new()).launch(),
+            gatherings,
+            tourn_db,
         }
     }
 }
@@ -122,13 +120,15 @@ impl AppStateBuilder<Database, ()> {
 
     /// Constructs an `AppState` using the held DB client.
     pub fn build(self) -> AppState {
-        let tourn_coll = Arc::from(self.get_tournament_collection_name());
+        let tourn_coll: Arc<str> = Arc::from(self.get_tournament_collection_name());
+        let tourn_db = TournDb::new(self.db_conn, tourn_coll);
+        let tourns = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
+        let gatherings = ActorBuilder::new(GatheringHall::new(tourns.clone())).launch();
         AppState {
-            db_conn: self.db_conn,
-            tourn_coll,
             sessions: SessionStoreHandle::new(),
             accounts: AccountStoreHandle::new(),
-            gatherings: ActorBuilder::new(GatheringHall::new()).launch(),
+            gatherings,
+            tourn_db,
         }
     }
 }
@@ -148,33 +148,19 @@ impl<T, S> AppStateBuilder<T, S> {
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    db_conn: Database,
-    tourn_coll: Arc<str>,
+    tourn_db: TournDb,
     sessions: SessionStoreHandle,
     accounts: AccountStoreHandle,
-    gatherings: ActorClient<GatheringHall>,
+    gatherings: ActorClient<GatheringHall<TournPersister>>,
 }
 
 impl AppState {
-    const TOURN_INDEX_NAME: &str = "tourn_id";
-
     pub async fn new() -> Self {
         AppStateBuilder::new().build().await
     }
 
     pub fn get_db(&self) -> Database {
-        self.db_conn.clone()
-    }
-
-    pub fn get_tourns(&self) -> Collection<TournamentManager> {
-        self.get_db().collection(&self.tourn_coll)
-    }
-
-    fn make_query(id: TournamentId) -> Document {
-        doc! { "tourn.id": Binary {
-            bytes: id.as_bytes().to_vec(),
-            subtype: BinarySubtype::Generic,
-        }}
+        self.tourn_db.get_db()
     }
 
     pub async fn login(&self, cred: Credentials) -> Result<SessionToken, LoginError> {
@@ -215,69 +201,15 @@ impl ServerState for AppState {
     }
 
     async fn get_tourn_summaries(&self, including: Range<usize>) -> Vec<TournamentSummary> {
-        let Ok(cursor) = self
-            .get_tourns()
-            .find(
-                None,
-                FindOptions::builder().sort(doc! {"$natural":-1}).build(),
-            )
-            .await
-        else {
-            return vec![];
-        };
-
-        cursor
-            .skip(including.start)
-            .take(including.count())
-            .filter_map(|u| async { u.ok().as_ref().map(TournamentSummary::from) })
-            .collect()
-            .await
+        self.tourn_db.get_tourn_summaries(including).await
     }
 
     async fn get_tourn(&self, id: TournamentId) -> Option<TournamentManager> {
-        self.get_tourns()
-            .find_one(Some(Self::make_query(id)), None)
-            .await
-            .ok()
-            .flatten()
+        self.tourn_db.get_tourn(id).await.map(|tourn| *tourn)
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
-        // There appears to be a problem in bson right now where `Collection::replace_one` uses the
-        // normal document serializer, but `Collection::find_one` (and `Collection::insert_one` as
-        // well) use the raw document serializer, which unfortunately behave differently. Therefore
-        // `Collection::update_one` is used as a workaround so that we can call the raw document
-        // serializer here
-        let doc: Document = mongodb::bson::to_raw_document_buf(tourn)
-            .unwrap()
-            .try_into()
-            .unwrap();
-        match self
-            .get_tourns()
-            .update_one(
-                Self::make_query(tourn.id),
-                UpdateModifications::Document(doc! {"$set": doc}),
-                UpdateOptions::builder()
-                    .upsert(true)
-                    .hint(Hint::Name(Self::TOURN_INDEX_NAME.to_string()))
-                    .build(),
-            )
-            .await
-        {
-            Ok(result) => result.matched_count != 0,
-            Err(_) => match self.get_tourns().insert_one(tourn, None).await {
-                Ok(_) => true,
-                Err(err) => {
-                    tracing::event!(
-                        Level::WARN,
-                        r#"Could not persist tournament with name "{}" and id "{}" due to error: {err}"#,
-                        tourn.tourn().name,
-                        tourn.tourn().id,
-                    );
-                    false
-                }
-            },
-        }
+        self.tourn_db.persist_tourn(tourn).await
     }
 
     async fn handle_new_onlooker(&self, id: TournamentId, user: AuthUser, ws: WebSocket) {

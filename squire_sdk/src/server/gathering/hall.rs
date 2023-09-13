@@ -9,7 +9,7 @@ use tokio::sync::{
     oneshot::channel as oneshot_channel,
 };
 
-use super::{Gathering, GatheringMessage, PersistMessage};
+use super::{Gathering, GatheringMessage, PersistMessage, PersistReadyMessage};
 use crate::{
     actor::{ActorBuilder, ActorClient, ActorState, Scheduler},
     api::AuthUser,
@@ -38,6 +38,16 @@ use crate::{
  *
  */
 
+fn schedule_persist<P>(scheduler: &mut Scheduler<GatheringHall<P>>)
+where
+    P: ActorState<Message = PersistMessage>,
+{
+    scheduler.schedule(
+        Instant::now() + Duration::from_secs(5),
+        GatheringHallMessage::Persist,
+    );
+}
+
 /// A message sent to a `GatheringHall` that communicates some command that it needs to process.
 #[derive(Debug)]
 pub enum GatheringHallMessage {
@@ -53,16 +63,23 @@ pub enum GatheringHallMessage {
 /// users to different gatherings and persisting data to the database. All of this is handled
 /// through message passing and tokio tasks.
 #[derive(Debug)]
-pub struct GatheringHall {
-    //state: S,
+pub struct GatheringHall<P: ActorState<Message = PersistMessage>> {
     gatherings: HashMap<TournamentId, ActorClient<Gathering>>,
-    persists: Receiver<PersistMessage>,
-    persist_sender: Sender<PersistMessage>,
+    persists: Receiver<PersistReadyMessage>,
+    persist_sender: Sender<PersistReadyMessage>,
+    persister: ActorClient<P>,
 }
 
 #[async_trait]
-impl ActorState for GatheringHall {
+impl<P> ActorState for GatheringHall<P>
+where
+    P: ActorState<Message = PersistMessage>,
+{
     type Message = GatheringHallMessage;
+
+    async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
+        schedule_persist(scheduler);
+    }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
@@ -73,7 +90,7 @@ impl ActorState for GatheringHall {
             GatheringHallMessage::Persist => {
                 let mut to_persist = HashSet::new();
                 let mut persist_reqs = HashMap::new();
-                while let Ok(PersistMessage(id)) = self.persists.try_recv() {
+                while let Ok(PersistReadyMessage(id)) = self.persists.try_recv() {
                     let _ = to_persist.insert(id);
                 }
                 for id in to_persist.drain() {
@@ -84,38 +101,35 @@ impl ActorState for GatheringHall {
                     let tourn = recv.await.unwrap();
                     let _ = persist_reqs.insert(id, tourn);
                 }
-                /*
-                let _ = self
-                    .state
-                    .bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn))
-                    .await;
-                */
-                scheduler.schedule(
-                    Instant::now() + Duration::from_secs(5),
-                    GatheringHallMessage::Persist,
-                );
-                todo!()
+
+                persist_reqs
+                    .drain()
+                    .for_each(|(_, tourn)| self.persister.send(tourn));
+                schedule_persist(scheduler);
             }
         }
     }
 }
 
-impl GatheringHall {
+impl<P> GatheringHall<P>
+where
+    P: ActorState<Message = PersistMessage>,
+{
     /// Creates a new `GatheringHall` from receiver halves of channels that communicate new
     /// gatherings and subscriptions
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new(persister: ActorClient<P>) -> Self {
         let (persist_sender, persists) = channel(1000);
         Self {
             gatherings: HashMap::new(),
             persists,
             persist_sender,
+            persister,
         }
     }
 
     async fn spawn_gathering(&self, id: TournamentId) -> Option<ActorClient<Gathering>> {
         let tourn = self.get_tourn(&id).await?;
-        let gathering = Gathering::new(tourn, self.persist_sender.clone());
+        let gathering = Gathering::new(*tourn, self.persist_sender.clone());
         let client = ActorBuilder::new(gathering).launch();
         Some(client)
     }
@@ -144,15 +158,11 @@ impl GatheringHall {
         send
     }
 
-    async fn get_tourn(&self, id: &TournamentId) -> Option<TournamentManager> {
+    async fn get_tourn(&self, id: &TournamentId) -> Option<Box<TournamentManager>> {
         match self.gatherings.get(id) {
-            Some(handle) => {
-                //  Ask the gathering for a copy of the tournament
-                let (send, recv) = oneshot_channel();
-                handle.send(GatheringMessage::GetTournament(send));
-                recv.await.ok()
-            }
-            None => todo!(), //self.state.get_tourn(*id).await,
+            //  Ask the gathering for a copy of the tournament
+            Some(handle) => Some(handle.track(()).await),
+            None => self.persister.track(*id).await,
         }
     }
 }

@@ -101,39 +101,24 @@ struct SessionStore {
 impl ActorState for SessionStore {
     type Message = SessionCommand;
 
-    #[must_use]
-    #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
-    fn process<'life0, 'life1, 'async_trait>(
-        &'life0 mut self,
-        _scheduler: &'life1 mut Scheduler<Self>,
-        msg: Self::Message,
-    ) -> ::core::pin::Pin<
-        Box<dyn ::core::future::Future<Output = ()> + ::core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
-            match msg {
-                SessionCommand::Create(id, send) => {
-                    let _ = send.send(self.create_session(id));
-                }
-                SessionCommand::Get(token, send) => {
-                    let _ = send.send(self.get_session(token));
-                }
-                SessionCommand::Reauth(id, send) => {
-                    let _ = send.send(self.reauth_session(id));
-                }
-                SessionCommand::Delete(id, send) => {
-                    let _ = send.send(self.delete_session(id));
-                }
-                SessionCommand::Guest(send) => {
-                    let _ = send.send(self.guest_session());
-                }
+    async fn process(&mut self, _scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        match msg {
+            SessionCommand::Create(id, send) => {
+                let _ = send.send(self.create_session(id));
             }
-        })
+            SessionCommand::Get(token, send) => {
+                let _ = send.send(self.get_session(token));
+            }
+            SessionCommand::Reauth(id, send) => {
+                let _ = send.send(self.reauth_session(id));
+            }
+            SessionCommand::Delete(id, send) => {
+                let _ = send.send(self.delete_session(id));
+            }
+            SessionCommand::Guest(send) => {
+                let _ = send.send(self.guest_session());
+            }
+        }
     }
 }
 
