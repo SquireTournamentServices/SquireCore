@@ -29,7 +29,6 @@ pub fn fetch_overview_data(ctx: &Context<TournOverview>, id: TournamentId) {
             .get()
             .unwrap()
             .query_tourn(id, TournamentProfile::new)
-            .process()
             .await;
         TournOverviewMessage::OverviewQueryReady(data)
     })

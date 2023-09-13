@@ -29,7 +29,6 @@ pub fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
                     .map(PlayerSummary::new)
                     .collect::<Vec<_>>()
             })
-            .process()
             .await
             .unwrap_or_default();
         data.sort_by_cached_key(|p| p.name.clone());

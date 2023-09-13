@@ -140,7 +140,7 @@ impl Component for PairingsView {
                     PairingsWrapper { pairings }
                 });
                 let send_pairings = self.send_pairings.clone();
-                spawn_local(async move { send_pairings.emit(tracker.process().await.unwrap()) });
+                spawn_local(async move { send_pairings.emit(tracker.await.unwrap()) });
                 false
             }
             PairingsViewMessage::PairingsToRounds => {
@@ -155,7 +155,7 @@ impl Component for PairingsView {
                     ),
                 );
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 true
             }
             PairingsViewMessage::PairingsReady(p) => {
@@ -218,7 +218,7 @@ impl Component for PairingsView {
                     ),
                 );
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 true
             }
             PairingsViewMessage::CreateSingleBye() => {
@@ -237,7 +237,7 @@ impl Component for PairingsView {
                     TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::GiveBye(player_id)),
                 );
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 true
             }
             PairingsViewMessage::SingleRoundInput(vec_index, text) => {
@@ -299,7 +299,7 @@ impl PairingsView {
             digest
         });
         let send_names = self.send_names.clone();
-        spawn_local(async move { send_names.emit(tracker.process().await.unwrap()) });
+        spawn_local(async move { send_names.emit(tracker.await.unwrap()) });
     }
 
     fn query_active_rounds(&mut self, _ctx: &Context<Self>) {
@@ -311,7 +311,7 @@ impl PairingsView {
                 .collect()
         });
         let send_active = self.send_active.clone();
-        spawn_local(async move { send_active.emit(tracker.process().await.unwrap()) });
+        spawn_local(async move { send_active.emit(tracker.await.unwrap()) });
     }
 
     fn query_match_size(&mut self, _ctx: &Context<Self>) {
@@ -320,7 +320,7 @@ impl PairingsView {
             .unwrap()
             .query_tourn(self.id, |tourn| tourn.pairing_sys.common.match_size);
         let send_match_size = self.send_max_player_count.clone();
-        spawn_local(async move { send_match_size.emit(tracker.process().await.unwrap()) });
+        spawn_local(async move { send_match_size.emit(tracker.await.unwrap()) });
     }
 
     fn view_creation_menu(&self, ctx: &Context<Self>) -> Html {

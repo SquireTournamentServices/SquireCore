@@ -53,7 +53,6 @@ impl Component for TournamentCreator {
             TournamentCreatorMessage::CreateTourn => {
                 let new_tourn_name = self.new_tourn_name.clone();
                 ctx.link().send_future(async {
-                    let _account = CLIENT.get().unwrap().get_user().clone();
                     let t_seed = TournamentSeed::new(
                         new_tourn_name,
                         TournamentPreset::Swiss,
@@ -61,7 +60,9 @@ impl Component for TournamentCreator {
                     )
                     .unwrap();
                     let client = CLIENT.get().unwrap();
-                    let id = client.create_tournament(t_seed).await;
+                    // TODO: This can fail because the seed might be bad or because the user is not
+                    // logged in. We should properly handle the error case.
+                    let id = client.create_tournament(t_seed).await.unwrap();
                     let _ = client.persist_tourn_to_backend(id).await;
                     TournamentCreatorMessage::TournCreated(id)
                 });

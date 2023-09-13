@@ -29,7 +29,6 @@ fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
                     .map(RoundSummary::new)
                     .collect::<Vec<_>>()
             })
-            .process()
             .await
             .unwrap_or_default();
         data.sort_by_cached_key(|r| r.match_number);

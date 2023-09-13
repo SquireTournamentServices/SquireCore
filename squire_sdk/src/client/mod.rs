@@ -70,6 +70,7 @@ impl UserInfo {
     }
 }
 
+#[derive(Debug)]
 pub struct SquireClient {
     user: SessionWatcher,
     client: NetworkClient,
@@ -231,5 +232,9 @@ impl SquireClient {
                     .await
             }
         }
+    }
+
+    pub fn get_user(&self) -> Option<SquireAccount> {
+        self.user.session_query(|s| s.get_user())
     }
 }

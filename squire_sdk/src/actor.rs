@@ -1,6 +1,6 @@
 use std::{
     pin::Pin,
-    task::{Context, Poll},
+    task::{Context, Poll}, fmt::Debug,
 };
 
 use async_trait::async_trait;
@@ -33,7 +33,6 @@ pub struct ActorBuilder<A: ActorState> {
     state: A,
 }
 
-#[derive(Debug)]
 pub struct ActorClient<A: ActorState> {
     send: UnboundedSender<A::Message>,
 }
@@ -232,5 +231,11 @@ impl<T> Future for Tracker<T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(&mut self.recv).poll(cx).map(Result::unwrap)
+    }
+}
+
+impl<A: ActorState> Debug for ActorClient<A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, r#"ActorClient {{ "send": {:?} }}"#, self.send)
     }
 }

@@ -1,6 +1,6 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
-    fmt::Debug,
+    fmt::{Debug, Formatter},
 };
 
 use async_trait::async_trait;
@@ -29,7 +29,7 @@ use crate::{
 };
 
 /// A container for the channels used to communicate with the tournament management task.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TournsClient {
     client: ActorClient<ManagerState>,
 }
@@ -45,20 +45,6 @@ pub(crate) enum ManagementCommand {
     ),
     Remote(WebsocketResult),
     Retry(MessageRetry),
-}
-
-impl Debug for ManagementCommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ManagementCommand::Query(id, _) => write!(f, "Query({id:?})"),
-            ManagementCommand::Update(id, update, _) => write!(f, "Update({id:?}, {update:?})"),
-            ManagementCommand::Import(tourn, _) => write!(f, "Import({tourn:?})"),
-            ManagementCommand::Subscribe(id, _) => write!(f, "Subscribe({id:?})"),
-            ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res.is_ok()),
-            ManagementCommand::Remote(res) => write!(f, "Remote({res:?}"),
-            ManagementCommand::Retry(rt) => write!(f, "Retry({rt:?}"),
-        }
-    }
 }
 
 /// A struct that contains all of the state that the management task maintains
@@ -476,4 +462,25 @@ impl From<MessageRetry> for ManagementCommand {
 pub(crate) struct MessageRetry {
     id: TournamentId,
     msg: ServerBoundMessage,
+}
+
+impl Debug for ManagerState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let Self { cache, syncs, forwarded, .. } = self;
+        write!(f, r#"ManagerState {{ "cache": {cache:?}, "syncs": {syncs:?}, "forwarded": {forwarded:?}, "on_update": ".." }}"#)
+    }
+}
+
+impl Debug for ManagementCommand {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ManagementCommand::Query(id, _) => write!(f, "Query({id:?})"),
+            ManagementCommand::Update(id, update, _) => write!(f, "Update({id:?}, {update:?})"),
+            ManagementCommand::Import(tourn, _) => write!(f, "Import({tourn:?})"),
+            ManagementCommand::Subscribe(id, _) => write!(f, "Subscribe({id:?})"),
+            ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res.is_ok()),
+            ManagementCommand::Remote(res) => write!(f, "Remote({res:?}"),
+            ManagementCommand::Retry(rt) => write!(f, "Retry({rt:?}"),
+        }
+    }
 }

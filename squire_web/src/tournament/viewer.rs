@@ -2,7 +2,7 @@ use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
     operations::OpResult,
 };
-use tokio::sync::broadcast::Receiver as Subscriber;
+use tokio::sync::watch::Receiver;
 use wasm_bindgen::JsCast;
 use web_sys::{window, HtmlDialogElement};
 use yew::{html, Component, Context, Html, Properties};
@@ -25,7 +25,7 @@ pub enum TournViewMode {
 
 #[derive(Debug)]
 pub enum TournViewMessage {
-    TournamentImported(Option<Subscriber<bool>>),
+    TournamentImported(Option<Receiver<()>>),
     QueryReady(Option<(String, AdminId)>),
     SwitchModes(TournViewMode),
     TournamentUpdated(OpResult),
@@ -39,7 +39,7 @@ pub struct TournProps {
 pub struct TournamentViewer {
     pub id: TournamentId,
     pub mode: TournViewMode,
-    listener: Option<Subscriber<bool>>,
+    listener: Option<Receiver<()>>,
     tourn_name: String,
     admin_id: AdminId,
     error_message: String,
@@ -138,7 +138,6 @@ impl Component for TournamentViewer {
                                 tourn.admins.keys().next().cloned().unwrap_or_default(),
                             )
                         })
-                        .process()
                         .await;
                     TournViewMessage::QueryReady(data)
                 });

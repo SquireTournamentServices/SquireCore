@@ -101,6 +101,7 @@ impl Future for Expiry {
     }
 }
 
+#[derive(Debug)]
 pub struct SessionWatcher {
     recv: Watcher<SessionInfo>,
 }
@@ -108,6 +109,13 @@ pub struct SessionWatcher {
 impl SessionWatcher {
     pub fn new(recv: Watcher<SessionInfo>) -> Self {
         Self { recv }
+    }
+
+    pub fn session_query<F, O>(&self, f: F) -> O
+    where
+        F: FnOnce(&SessionInfo) -> O,
+    {
+        f(&self.recv.borrow())
     }
 
     pub fn session_info(&self) -> SessionInfo {

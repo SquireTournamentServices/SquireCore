@@ -94,7 +94,6 @@ impl SelectedPlayer {
                                     .get_player(&p_id)
                                     .map(|p| PlayerProfile::new(p, t))
                             })
-                            .process()
                             .await
                             .transpose()
                             .ok()
@@ -119,7 +118,6 @@ impl SelectedPlayer {
                             .get()
                             .unwrap()
                             .query_tourn(id, |t| info.to_profile(t.tourn()))
-                            .process()
                             .await
                             .flatten();
                         PlayerViewMessage::SelectedPlayer(SelectedPlayerMessage::SubviewQueryReady(

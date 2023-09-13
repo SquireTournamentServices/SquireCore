@@ -54,7 +54,7 @@ impl SettingsView {
                 .get()
                 .unwrap()
                 .query_tourn(id, |tourn| tourn.settings())
-                .process()
+
                 .await
                 .unwrap_or_else(TournamentSettingsTree::new);
             SettingsMessage::QueryReady(Box::new(settings))
@@ -97,7 +97,7 @@ impl Component for SettingsView {
                 let op = TournOp::AdminOp(self.admin_id, AdminOp::Start);
                 let tracker = CLIENT.get().unwrap().update_tourn(self.id, op);
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 false
             }
             SettingsMessage::Submitted => {
@@ -111,7 +111,7 @@ impl Component for SettingsView {
                     .collect::<Vec<_>>();
                 let tracker = client.bulk_update(self.id, iter);
                 let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 false
             }
             SettingsMessage::ReQuery => {

@@ -22,6 +22,7 @@ fn do_wrap<T>(value: T) -> T {
 
 pub type NetworkClient = ActorClient<NetworkState>;
 
+#[derive(Debug)]
 pub struct NetworkState {
     url: String,
     session: SessionBroadcaster,

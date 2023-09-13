@@ -43,7 +43,6 @@ pub fn fetch_standings_profile(ctx: &Context<StandingsView>, id: TournamentId) {
             .get()
             .unwrap()
             .query_tourn(id, |t| StandingsProfile::new(t.tourn()))
-            .process()
             .await;
         StandingsMessage::StandingsQueryReady(data)
     })
