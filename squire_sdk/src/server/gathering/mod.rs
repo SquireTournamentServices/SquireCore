@@ -7,7 +7,6 @@ use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
 use uuid::Uuid;
 
-use super::state::ServerState;
 use crate::{
     actor::{ActorState, Scheduler},
     api::AuthUser,

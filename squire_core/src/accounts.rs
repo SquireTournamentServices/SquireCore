@@ -4,7 +4,7 @@ use squire_sdk::{
     api::*,
     model::{accounts::SquireAccount, identifiers::SquireAccountId},
     server::{
-        session::{Session, SessionConvert, SessionToken, SquireSession, TokenParseError},
+        session::{Session, SessionConvert, SquireSession},
         state::ServerState,
     },
 };

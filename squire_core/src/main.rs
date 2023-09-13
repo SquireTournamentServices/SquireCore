@@ -15,7 +15,7 @@ use session::*;
 use state::{AppState, AppStateBuilder};
 
 pub fn create_router(state: AppState) -> Router {
-    server::create_router::<AppState>(state.clone())
+    server::create_router::<AppState>()
         .add_route::<0, POST, RegForm, _, _>(create_account)
         .add_route::<0, GET, AccountCrud, _, _>(get_account)
         .add_route::<0, DELETE, AccountCrud, _, _>(delete_account)

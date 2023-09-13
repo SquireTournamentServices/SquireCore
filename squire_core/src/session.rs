@@ -1,21 +1,31 @@
 use axum::{extract::State, Json};
+use http::StatusCode;
 use squire_sdk::{
-    api::Login,
+    api::{Login, SessionToken},
+    model::accounts::SquireAccount,
     server::{
-        session::{AnyUser, Session, SessionToken},
+        session::{AnyUser, Session},
         state::ServerState,
     },
 };
 
-use crate::state::{AppState, LoginError};
+use crate::state::AppState;
 
 /// Takes user credentials (username and password) and returns a new session token to them
 /// (provided the credentials match known credentials).
 pub async fn login(
     State(state): State<AppState>,
     Json(Login(cred)): Json<Login>,
-) -> Result<SessionToken, LoginError> {
-    state.login(cred).await
+) -> Result<(SessionToken, Json<SquireAccount>), StatusCode> {
+    let token = state
+        .login(cred)
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    state
+        .get_account_by_session(token.clone())
+        .await
+        .map(|acc| (token, Json(acc)))
+        .ok_or(StatusCode::BAD_REQUEST)
 }
 
 /// Generates a guest session

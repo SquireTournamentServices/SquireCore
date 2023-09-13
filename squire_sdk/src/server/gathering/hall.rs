@@ -9,7 +9,7 @@ use tokio::sync::{
     oneshot::channel as oneshot_channel,
 };
 
-use super::{Gathering, GatheringMessage, PersistMessage, ServerState};
+use super::{Gathering, GatheringMessage, PersistMessage};
 use crate::{
     actor::{ActorBuilder, ActorClient, ActorState, Scheduler},
     api::AuthUser,
@@ -53,15 +53,15 @@ pub enum GatheringHallMessage {
 /// users to different gatherings and persisting data to the database. All of this is handled
 /// through message passing and tokio tasks.
 #[derive(Debug)]
-pub struct GatheringHall<S> {
-    state: S,
+pub struct GatheringHall {
+    //state: S,
     gatherings: HashMap<TournamentId, ActorClient<Gathering>>,
     persists: Receiver<PersistMessage>,
     persist_sender: Sender<PersistMessage>,
 }
 
 #[async_trait]
-impl<S: ServerState> ActorState for GatheringHall<S> {
+impl ActorState for GatheringHall {
     type Message = GatheringHallMessage;
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
@@ -84,29 +84,32 @@ impl<S: ServerState> ActorState for GatheringHall<S> {
                     let tourn = recv.await.unwrap();
                     let _ = persist_reqs.insert(id, tourn);
                 }
+                /*
                 let _ = self
                     .state
                     .bulk_persist(persist_reqs.drain().map(|(_, tourn)| tourn))
                     .await;
+                */
                 scheduler.schedule(
                     Instant::now() + Duration::from_secs(5),
                     GatheringHallMessage::Persist,
                 );
+                todo!()
             }
         }
     }
 }
 
-impl<S: ServerState> GatheringHall<S> {
+impl GatheringHall {
     /// Creates a new `GatheringHall` from receiver halves of channels that communicate new
     /// gatherings and subscriptions
-    pub fn new(state: S) -> Self {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
         let (persist_sender, persists) = channel(1000);
         Self {
             gatherings: HashMap::new(),
             persists,
             persist_sender,
-            state,
         }
     }
 
@@ -149,7 +152,7 @@ impl<S: ServerState> GatheringHall<S> {
                 handle.send(GatheringMessage::GetTournament(send));
                 recv.await.ok()
             }
-            None => self.state.get_tourn(*id).await,
+            None => todo!(), //self.state.get_tourn(*id).await,
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::{
+    fmt::Debug,
     pin::Pin,
-    task::{Context, Poll}, fmt::Debug,
+    task::{Context, Poll},
 };
 
 use async_trait::async_trait;

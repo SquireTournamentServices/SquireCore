@@ -38,13 +38,22 @@ fn main() -> Result<(), i32> {
     let mut cmd = Command::new("trunk");
     cmd.args(["build", "-d", "../assets", "--filehash", "false"]);
 
-    if Ok("release".to_owned()) == env::var("PROFILE") {
+    let is_release = env::var("PROFILE")
+        .map(|v| v == "release")
+        .unwrap_or_default();
+
+    if is_release {
         cmd.arg("--release");
     }
     cmd.arg(format!("{fe_path}/index.html"));
-    match cmd.status().map(|s| s.success()) {
-        Ok(false) | Err(_) => return Err(1),
-        _ => {}
+
+    // If in debug mode, all for failed compilation of frontend.
+    // In release mode, require that the frontend to be functional.
+    if is_release {
+        match cmd.status().map(|s| s.success()) {
+            Ok(false) | Err(_) => return Err(1),
+            _ => {}
+        }
     }
     println!("cargo:rerun-if-changed={fe_path}");
     println!("cargo:rerun-if-changed=build.rs");

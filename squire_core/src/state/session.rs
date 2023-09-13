@@ -44,8 +44,9 @@ use std::collections::HashSet;
 use cycle_map::GroupMap;
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 use squire_sdk::{
+    api::SessionToken,
     model::identifiers::SquireAccountId,
-    server::session::{AnyUser, SessionToken, SquireSession},
+    server::session::{AnyUser, SquireSession},
 };
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
