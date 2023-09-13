@@ -10,15 +10,12 @@ use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
 };
-use tokio::sync::{
-    oneshot::{self, channel as oneshot_channel, Sender as OneshotSender},
-    watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster},
-};
+use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
 use uuid::Uuid;
 
 use super::{OnUpdate, HOST_ADDRESS};
 use crate::{
-    actor::{ActorBuilder, ActorClient, ActorState, Scheduler, Trackable, Tracker},
+    actor::*,
     api::{GetRequest, Subscribe},
     compat::{Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     sync::{
@@ -395,16 +392,14 @@ impl TournComm {
 }
 
 impl Trackable<TournamentManager, TournamentId> for ManagementCommand {
-    fn track(tourn: TournamentManager) -> (Self, oneshot::Receiver<TournamentId>) {
-        let (send, recv) = oneshot_channel();
-        (Self::Import(Box::new(tourn), send), recv)
+    fn track(tourn: TournamentManager, send: OneshotSender<TournamentId>) -> Self {
+        Self::Import(Box::new(tourn), send)
     }
 }
 
 impl Trackable<TournamentId, Option<Watcher<()>>> for ManagementCommand {
-    fn track(id: TournamentId) -> (Self, oneshot::Receiver<Option<Watcher<()>>>) {
-        let (send, recv) = oneshot_channel();
-        (Self::Subscribe(id, send), recv)
+    fn track(id: TournamentId, send: OneshotSender<Option<Watcher<()>>>) -> Self {
+        Self::Subscribe(id, send)
     }
 }
 
@@ -413,21 +408,20 @@ where
     F: 'static + Send + FnOnce(&TournamentManager) -> T,
     T: 'static + Send,
 {
-    fn track((id, query): (TournamentId, F)) -> (Self, oneshot::Receiver<Option<T>>) {
-        let (send, recv) = oneshot_channel();
+    fn track((id, query): (TournamentId, F), send: OneshotSender<Option<T>>) -> Self {
         let query = Box::new(move |tourn: Option<&TournamentManager>| {
             let _ = send.send(tourn.map(query));
         });
-        (Self::Query(id, query), recv)
+        Self::Query(id, query)
     }
 }
 
 impl Trackable<(TournamentId, UpdateType), Option<OpResult>> for ManagementCommand {
     fn track(
         (id, update): (TournamentId, UpdateType),
-    ) -> (Self, oneshot::Receiver<Option<OpResult>>) {
-        let (send, recv) = oneshot_channel();
-        (Self::Update(id, update, send), recv)
+        send: OneshotSender<Option<OpResult>>,
+    ) -> Self {
+        Self::Update(id, update, send)
     }
 }
 
@@ -466,8 +460,16 @@ pub(crate) struct MessageRetry {
 
 impl Debug for ManagerState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let Self { cache, syncs, forwarded, .. } = self;
-        write!(f, r#"ManagerState {{ "cache": {cache:?}, "syncs": {syncs:?}, "forwarded": {forwarded:?}, "on_update": ".." }}"#)
+        let Self {
+            cache,
+            syncs,
+            forwarded,
+            ..
+        } = self;
+        write!(
+            f,
+            r#"ManagerState {{ "cache": {cache:?}, "syncs": {syncs:?}, "forwarded": {forwarded:?}, "on_update": ".." }}"#
+        )
     }
 }
 

@@ -4,15 +4,15 @@ use std::{
     task::{Context, Poll},
 };
 
-use async_trait::async_trait;
+pub use async_trait::async_trait;
 use futures::{
     stream::{select_all, FuturesUnordered, SelectAll},
     Future, FutureExt, Stream, StreamExt,
 };
 use instant::Instant;
-use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot::Receiver as OneshotReceiver,
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+pub use tokio::sync::oneshot::{
+    channel as oneshot_channel, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
@@ -197,6 +197,10 @@ impl<A: ActorState> ActorClient<A> {
         Self { send }
     }
 
+    pub fn builder(state: A) -> ActorBuilder<A> {
+        ActorBuilder::new(state)
+    }
+
     pub fn send(&self, msg: impl Into<A::Message>) {
         // This returns a result. It only errors when the connected actor panics. Should we "bubble
         // up" that panic?
@@ -207,14 +211,15 @@ impl<A: ActorState> ActorClient<A> {
     where
         A::Message: Trackable<M, T>,
     {
-        let (msg, recv) = A::Message::track(msg);
+        let (send, recv) = oneshot_channel();
+        let msg = A::Message::track(msg, send);
         self.send(msg);
         Tracker::new(recv)
     }
 }
 
 pub trait Trackable<M, T>: Sized {
-    fn track(msg: M) -> (Self, OneshotReceiver<T>);
+    fn track(msg: M, send: OneshotSender<T>) -> Self;
 }
 
 pub struct Tracker<T> {

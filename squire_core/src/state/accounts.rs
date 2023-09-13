@@ -4,15 +4,10 @@ use axum::response::{IntoResponse, Response};
 use cycle_map::CycleMap;
 use http::StatusCode;
 use squire_sdk::{
+    actor::*,
     api::{Credentials, RegForm},
     model::{accounts::SquireAccount, identifiers::SquireAccountId},
 };
-use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot::{channel as oneshot_channel, Sender as OneshotSender},
-};
-
-use super::Tracker;
 
 pub struct LoginError;
 
@@ -24,39 +19,29 @@ impl IntoResponse for LoginError {
 
 #[derive(Debug, Clone)]
 pub struct AccountStoreHandle {
-    handle: UnboundedSender<AccountCommand>,
+    client: ActorClient<AccountStore>,
 }
 
 impl AccountStoreHandle {
     pub fn new() -> Self {
-        let (send, recv) = unbounded_channel();
-        let store = AccountStore::new(recv);
-        tokio::spawn(store.run());
-        Self { handle: send }
+        let client = ActorClient::builder(AccountStore::new()).launch();
+        Self { client }
     }
 
     pub fn create(&self, item: RegForm) -> Tracker<SquireAccountId> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(AccountCommand::Create(item, send));
-        Tracker::new(recv)
+        self.client.track(item)
     }
 
     pub fn authenticate(&self, item: Credentials) -> Tracker<Option<SquireAccountId>> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(AccountCommand::Authenticate(item, send));
-        Tracker::new(recv)
+        self.client.track(item)
     }
 
     pub fn get(&self, item: SquireAccountId) -> Tracker<Option<SquireAccount>> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(AccountCommand::Get(item, send));
-        Tracker::new(recv)
+        self.client.track(item)
     }
 
     pub fn delete(&self, item: SquireAccountId) -> Tracker<bool> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(AccountCommand::Delete(item, send));
-        Tracker::new(recv)
+        self.client.track(item)
     }
 }
 
@@ -67,38 +52,39 @@ pub enum AccountCommand {
     Delete(SquireAccountId, OneshotSender<bool>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AccountStore {
-    inbound: UnboundedReceiver<AccountCommand>,
     credentials: CycleMap<Credentials, SquireAccountId>,
     users: HashMap<SquireAccountId, SquireAccount>,
 }
 
-impl AccountStore {
-    fn new(inbound: UnboundedReceiver<AccountCommand>) -> Self {
-        Self {
-            inbound,
-            users: HashMap::new(),
-            credentials: CycleMap::new(),
+#[async_trait]
+impl ActorState for AccountStore {
+    type Message = AccountCommand;
+
+    async fn process(&mut self, _scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        match msg {
+            AccountCommand::Create(form, send) => {
+                let _ = send.send(self.create_account(form));
+            }
+            AccountCommand::Authenticate(cred, send) => {
+                let _ = send.send(self.authenticate(cred));
+            }
+            AccountCommand::Get(id, send) => {
+                let _ = send.send(self.get_account(id));
+            }
+            AccountCommand::Delete(id, send) => {
+                let _ = send.send(self.delete_account(id));
+            }
         }
     }
+}
 
-    async fn run(mut self) -> ! {
-        loop {
-            match self.inbound.recv().await.unwrap() {
-                AccountCommand::Create(form, send) => {
-                    let _ = send.send(self.create_account(form));
-                }
-                AccountCommand::Authenticate(cred, send) => {
-                    let _ = send.send(self.authenticate(cred));
-                }
-                AccountCommand::Get(id, send) => {
-                    let _ = send.send(self.get_account(id));
-                }
-                AccountCommand::Delete(id, send) => {
-                    let _ = send.send(self.delete_account(id));
-                }
-            }
+impl AccountStore {
+    fn new() -> Self {
+        Self {
+            users: HashMap::new(),
+            credentials: CycleMap::new(),
         }
     }
 
@@ -131,5 +117,29 @@ impl AccountStore {
         let digest = self.users.remove(&id).is_some();
         self.credentials.remove_via_right(&id);
         digest
+    }
+}
+
+impl Trackable<SquireAccountId, Option<SquireAccount>> for AccountCommand {
+    fn track(id: SquireAccountId, send: OneshotSender<Option<SquireAccount>>) -> Self {
+        Self::Get(id, send)
+    }
+}
+
+impl Trackable<SquireAccountId, bool> for AccountCommand {
+    fn track(msg: SquireAccountId, send: OneshotSender<bool>) -> Self {
+        Self::Delete(msg, send)
+    }
+}
+
+impl Trackable<Credentials, Option<SquireAccountId>> for AccountCommand {
+    fn track(msg: Credentials, send: OneshotSender<Option<SquireAccountId>>) -> Self {
+        Self::Authenticate(msg, send)
+    }
+}
+
+impl Trackable<RegForm, SquireAccountId> for AccountCommand {
+    fn track(msg: RegForm, send: OneshotSender<SquireAccountId>) -> Self {
+        Self::Create(msg, send)
     }
 }

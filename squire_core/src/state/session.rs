@@ -44,58 +44,42 @@ use std::collections::HashSet;
 use cycle_map::GroupMap;
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 use squire_sdk::{
+    actor::*,
     api::SessionToken,
     model::identifiers::SquireAccountId,
     server::session::{AnyUser, SquireSession},
 };
-use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot::{channel as oneshot_channel, Sender as OneshotSender},
-};
-
-use super::Tracker;
+use tokio::sync::oneshot::Sender as OneshotSender;
 
 #[derive(Debug, Clone)]
 pub struct SessionStoreHandle {
-    handle: UnboundedSender<SessionCommand>,
+    client: ActorClient<SessionStore>,
 }
 
 impl SessionStoreHandle {
     pub fn new() -> Self {
-        let (send, recv) = unbounded_channel();
-        let store = SessionStore::new(recv);
-        tokio::spawn(store.run());
-        Self { handle: send }
+        let client = ActorClient::builder(SessionStore::new()).launch();
+        Self { client }
     }
 
     pub fn create(&self, id: SquireAccountId) -> Tracker<SessionToken> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Create(id, send));
-        Tracker::new(recv)
+        self.client.track(id)
     }
 
     pub fn guest(&self) -> Tracker<SessionToken> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Guest(send));
-        Tracker::new(recv)
+        self.client.track(())
     }
 
     pub fn get(&self, token: SessionToken) -> Tracker<SquireSession> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Get(token, send));
-        Tracker::new(recv)
+        self.client.track(token)
     }
 
     pub fn reauth(&self, id: AnyUser) -> Tracker<SessionToken> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Reauth(id, send));
-        Tracker::new(recv)
+        self.client.track(id)
     }
 
     pub fn delete(&self, id: AnyUser) -> Tracker<bool> {
-        let (send, recv) = oneshot_channel();
-        let _ = self.handle.send(SessionCommand::Delete(id, send));
-        Tracker::new(recv)
+        self.client.track(id)
     }
 }
 
@@ -108,25 +92,31 @@ pub enum SessionCommand {
 }
 
 struct SessionStore {
-    inbound: UnboundedReceiver<SessionCommand>,
     rng: StdRng,
     users: GroupMap<SessionToken, SquireAccountId>,
     guests: HashSet<SessionToken>,
 }
 
-impl SessionStore {
-    fn new(inbound: UnboundedReceiver<SessionCommand>) -> Self {
-        Self {
-            inbound,
-            rng: StdRng::from_entropy(),
-            users: GroupMap::new(),
-            guests: HashSet::new(),
-        }
-    }
+#[async_trait]
+impl ActorState for SessionStore {
+    type Message = SessionCommand;
 
-    async fn run(mut self) -> ! {
-        loop {
-            match self.inbound.recv().await.unwrap() {
+    #[must_use]
+    #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
+    fn process<'life0, 'life1, 'async_trait>(
+        &'life0 mut self,
+        _scheduler: &'life1 mut Scheduler<Self>,
+        msg: Self::Message,
+    ) -> ::core::pin::Pin<
+        Box<dyn ::core::future::Future<Output = ()> + ::core::marker::Send + 'async_trait>,
+    >
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(async move {
+            match msg {
                 SessionCommand::Create(id, send) => {
                     let _ = send.send(self.create_session(id));
                 }
@@ -143,6 +133,16 @@ impl SessionStore {
                     let _ = send.send(self.guest_session());
                 }
             }
+        })
+    }
+}
+
+impl SessionStore {
+    fn new() -> Self {
+        Self {
+            rng: StdRng::from_entropy(),
+            users: GroupMap::new(),
+            guests: HashSet::new(),
         }
     }
 
@@ -213,5 +213,41 @@ impl SessionStore {
                 self.users.remove_left(&token).is_some()
             }
         }
+    }
+}
+
+impl Trackable<SquireAccountId, SessionToken> for SessionCommand {
+    fn track(msg: SquireAccountId, send: OneshotSender<SessionToken>) -> Self {
+        Self::Create(msg, send)
+    }
+}
+
+impl Trackable<(), SessionToken> for SessionCommand {
+    fn track((): (), send: OneshotSender<SessionToken>) -> Self {
+        Self::Guest(send)
+    }
+}
+
+impl Trackable<SessionToken, SquireSession> for SessionCommand {
+    fn track(msg: SessionToken, send: OneshotSender<SquireSession>) -> Self {
+        Self::Get(msg, send)
+    }
+}
+
+impl Trackable<AnyUser, SessionToken> for SessionCommand {
+    fn track(msg: AnyUser, send: OneshotSender<SessionToken>) -> Self {
+        Self::Reauth(msg, send)
+    }
+}
+
+impl Trackable<AnyUser, bool> for SessionCommand {
+    fn track(msg: AnyUser, send: OneshotSender<bool>) -> Self {
+        Self::Delete(msg, send)
+    }
+}
+
+impl Default for SessionStore {
+    fn default() -> Self {
+        Self::new()
     }
 }

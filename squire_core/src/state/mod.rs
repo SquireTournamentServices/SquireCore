@@ -1,11 +1,4 @@
-use std::{
-    borrow::Cow,
-    future::Future,
-    ops::Range,
-    pin::Pin,
-    sync::Arc,
-    task::{Context, Poll},
-};
+use std::{borrow::Cow, ops::Range, sync::Arc};
 
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
@@ -16,18 +9,19 @@ use mongodb::{
     Client as DbClient, Collection, Database,
 };
 use squire_sdk::{
+    actor::{ActorBuilder, ActorClient},
     api::*,
     model::{
         accounts::SquireAccount,
         identifiers::{SquireAccountId, TournamentId},
     },
     server::{
+        gathering::{GatheringHall, GatheringHallMessage},
         session::{AnyUser, SquireSession},
-        state::ServerState, gathering::{GatheringHall, GatheringHallMessage},
+        state::ServerState,
     },
-    sync::TournamentManager, actor::{ActorClient, ActorBuilder},
+    sync::TournamentManager,
 };
-use tokio::sync::oneshot::Receiver as OneshotReceiver;
 use tracing::Level;
 
 mod accounts;
@@ -38,26 +32,6 @@ pub use session::*;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
-
-pub struct Tracker<T> {
-    recv: OneshotReceiver<T>,
-}
-
-impl<T> Future for Tracker<T> {
-    type Output = T;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // We unwrap here because if the task hangs up, it has panicked, which should not happen
-        // unless something very bad has happened
-        Pin::new(&mut self.recv).poll(cx).map(Result::unwrap)
-    }
-}
-
-impl<T> Tracker<T> {
-    fn new(recv: OneshotReceiver<T>) -> Self {
-        Self { recv }
-    }
-}
 
 /// A builder for an `AppState`.
 #[derive(Debug, Clone)]
@@ -220,7 +194,7 @@ impl AppState {
 
     pub async fn get_account_by_session(&self, token: SessionToken) -> Option<SquireAccount> {
         if let SquireSession::Active(id) = self.sessions.get(token).await {
-        self.get_account(id).await
+            self.get_account(id).await
         } else {
             None
         }
@@ -307,7 +281,8 @@ impl ServerState for AppState {
     }
 
     async fn handle_new_onlooker(&self, id: TournamentId, user: AuthUser, ws: WebSocket) {
-        self.gatherings.send(GatheringHallMessage::NewConnection(id, user, ws))
+        self.gatherings
+            .send(GatheringHallMessage::NewConnection(id, user, ws))
     }
 
     async fn get_session(&self, token: SessionToken) -> SquireSession {
