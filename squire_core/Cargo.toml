@@ -26,6 +26,7 @@ rand = { version = "0.8" }
 # Server-specifics
 mongodb = { version = "2.7.0", features = ["tokio-runtime"] }
 axum = { version = "0.6.20", features = ["json", "macros", "headers"]}
+chrono = { version = "0.4", features = ["serde"] }
 async-trait = { version = "0.1" }
 headers = { version = "0.3" }
 http = { version = "0.2" }

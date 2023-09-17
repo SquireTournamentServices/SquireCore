@@ -21,6 +21,7 @@ use squire_sdk::{
 mod accounts;
 mod session;
 mod tournaments;
+mod boilerplate;
 
 pub use accounts::*;
 pub use session::*;
@@ -96,11 +97,11 @@ impl AppStateBuilder<Uri, DbName> {
             .unwrap()
             .database(self.get_db_name());
         let tourn_coll = Arc::from(self.get_tournament_collection_name());
-        let tourn_db = TournDb::new(db_conn, tourn_coll);
+        let tourn_db = TournDb::new(db_conn.clone(), tourn_coll);
         let tournaments = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
         let gatherings = ActorBuilder::new(GatheringHall::new(tournaments.clone())).launch();
         AppState {
-            sessions: SessionStoreHandle::new(),
+            sessions: SessionStoreHandle::new(db_conn),
             accounts: AccountStoreHandle::new(),
             gatherings,
             tourn_db,
@@ -121,11 +122,11 @@ impl AppStateBuilder<Database, ()> {
     /// Constructs an `AppState` using the held DB client.
     pub fn build(self) -> AppState {
         let tourn_coll: Arc<str> = Arc::from(self.get_tournament_collection_name());
-        let tourn_db = TournDb::new(self.db_conn, tourn_coll);
+        let tourn_db = TournDb::new(self.db_conn.clone(), tourn_coll);
         let tourns = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
         let gatherings = ActorBuilder::new(GatheringHall::new(tourns.clone())).launch();
         AppState {
-            sessions: SessionStoreHandle::new(),
+            sessions: SessionStoreHandle::new(self.db_conn),
             accounts: AccountStoreHandle::new(),
             gatherings,
             tourn_db,

@@ -1,9 +1,11 @@
+use serde::{Serialize, Deserialize};
 use hex::decode_to_slice;
 use http::{HeaderName, header::AUTHORIZATION, HeaderValue, HeaderMap};
 use squire_lib::identifiers::SquireAccountId;
 
 /// The inner type used to represent all sessions
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct SessionToken(pub [u8; 32]);
 
 impl From<[u8; 32]> for SessionToken {

@@ -96,6 +96,11 @@ impl<A: ActorState> ActorBuilder<A> {
 pub struct Scheduler<A: ActorState> {
     recv: SelectAll<ActorStream<A>>,
     queue: FuturesUnordered<Pin<Box<dyn 'static + Send + Future<Output = A::Message>>>>,
+    tasks: FuturesUnordered<Pin<Box<dyn 'static + Send + Future<Output = ()>>>>,
+    // TODO:
+    //  - Add a `FuturesUnordered` for futures that are 'static  + Send and yield nothing
+    //  - Add a queue for timers so that they are not lumped in the `queue`.
+    //    - Make those timers cancelable by assoicating each on with an id (usize)
 }
 
 pub struct Timer<T> {
@@ -145,7 +150,8 @@ impl<A: ActorState> Scheduler<A> {
     fn new(recv: impl IntoIterator<Item = ActorStream<A>>) -> Self {
         let recv = select_all(recv);
         let queue = FuturesUnordered::new();
-        Self { recv, queue }
+        let tasks = FuturesUnordered::new();
+        Self { recv, queue, tasks }
     }
 
     pub fn add_task<F, I>(&mut self, fut: F)
@@ -154,6 +160,12 @@ impl<A: ActorState> Scheduler<A> {
         I: 'static + Into<A::Message>,
     {
         self.queue.push(Box::pin(fut.map(Into::into)));
+    }
+
+    pub fn process<F>(&mut self, fut: F)
+        where F: 'static + Send + Future<Output = ()>,
+    {
+        self.tasks.push(Box::pin(fut));
     }
 
     pub fn add_stream<S, I>(&mut self, stream: S)
@@ -247,7 +259,8 @@ impl<A: ActorState> Debug for ActorClient<A> {
 }
 
 impl<A> Default for ActorClient<A>
-where A: ActorState + Default
+where
+    A: ActorState + Default,
 {
     fn default() -> Self {
         Self::builder(A::default()).launch()

@@ -39,10 +39,20 @@
 //! should be termianted (or at least downgraded to be that of a guest) once it expires. Reauth
 //! should reset the timer in the task that manages a tournament's WS connections.
 
-use std::collections::HashSet;
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
-use cycle_map::GroupMap;
+use chrono::{DateTime, Utc};
+use futures::StreamExt;
+use mongodb::{
+    bson::{doc, Document},
+    options::{UpdateModifications, UpdateOptions},
+    Collection, Database,
+};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
+use serde::{Deserialize, Serialize};
 use squire_sdk::{
     actor::*,
     api::SessionToken,
@@ -50,6 +60,281 @@ use squire_sdk::{
     server::session::{AnyUser, SquireSession},
 };
 use tokio::sync::oneshot::Sender as OneshotSender;
+use tracing::Level;
+
+pub enum SessionCommand {
+    Create(SquireAccountId, OneshotSender<SessionToken>),
+    Guest(OneshotSender<SessionToken>),
+    Get(SessionToken, OneshotSender<SquireSession>),
+    Reauth(AnyUser, OneshotSender<SessionToken>),
+    Delete(AnyUser, OneshotSender<bool>),
+    Expiry(SessionToken),
+    Revoke(SessionToken),
+}
+
+pub struct SessionStore {
+    rng: StdRng,
+    db: SessionDb,
+    active: HashMap<SessionToken, Session>,
+    expired: HashMap<SessionToken, Session>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SessionDb {
+    db: Database,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+struct Session {
+    /// The time that the session was created
+    epoch: DateTime<Utc>,
+    /// The bytes that make up the identifier of the token
+    token: SessionToken,
+    /// If the session belongs to user, this is their account id.
+    id: Option<SquireAccountId>,
+}
+
+#[async_trait]
+impl ActorState for SessionStore {
+    type Message = SessionCommand;
+
+    async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
+        self.db.clone().load_all_sessions(self).await;
+        // Schedule the expiry times in the scheduler
+        self.active.values().for_each(|s| {
+            scheduler.schedule(
+                Instant::now() + s.dur_to_expiry(),
+                SessionCommand::Expiry(s.token.clone()),
+            )
+        });
+        // Schedule the revocation times in the scheduler
+        self.active.values().for_each(|s| {
+            scheduler.schedule(
+                Instant::now() + s.dur_to_revoke(),
+                SessionCommand::Revoke(s.token.clone()),
+            )
+        });
+    }
+
+    async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        match msg {
+            SessionCommand::Create(id, send) => drop(send.send(self.create_session(scheduler, id))),
+            SessionCommand::Get(token, send) => drop(send.send(self.get_session(token))),
+            SessionCommand::Reauth(id, send) => drop(send.send(self.reauth_session(scheduler, id))),
+            SessionCommand::Delete(id, send) => drop(send.send(self.delete_session(scheduler, id))),
+            SessionCommand::Guest(send) => drop(send.send(self.guest_session(scheduler))),
+            SessionCommand::Expiry(token) => self.expire_session(scheduler, token),
+            SessionCommand::Revoke(token) => self.revoke_session(scheduler, &token),
+        }
+    }
+}
+
+impl SessionStore {
+    pub fn new(db: Database) -> Self {
+        let db = SessionDb::new(db);
+        Self {
+            db,
+            rng: StdRng::from_entropy(),
+            active: HashMap::new(),
+            expired: HashMap::new(),
+        }
+    }
+
+    fn generate_session(&mut self, scheduler: &mut Scheduler<Self>) -> SessionToken {
+        let mut digest = SessionToken::default();
+        self.rng.fill_bytes(&mut digest.0);
+        let deadline = Instant::now() + Session::session_dur();
+        scheduler.schedule(deadline, SessionCommand::Expiry(digest.clone()));
+        digest
+    }
+
+    fn create_session(
+        &mut self,
+        scheduler: &mut Scheduler<Self>,
+        id: SquireAccountId,
+    ) -> SessionToken {
+        let token = self.generate_session(scheduler);
+        let session = Session::new_with_id(token.clone(), id);
+        self.active.insert(token.clone(), session.clone());
+        let db = self.db.clone();
+        scheduler.process(async move { db.persist_session(session).await });
+        token
+    }
+
+    fn guest_session(&mut self, scheduler: &mut Scheduler<Self>) -> SessionToken {
+        let token = self.generate_session(scheduler);
+        let session = Session::new(token.clone());
+        self.active.insert(token.clone(), session.clone());
+        let db = self.db.clone();
+        scheduler.process(async move { db.persist_session(session).await });
+        token
+    }
+
+    fn get_session(&mut self, token: SessionToken) -> SquireSession {
+        match self.active.get(&token) {
+            Some(session) => match session.id {
+                Some(id) => SquireSession::Active(id),
+                None => SquireSession::Guest(session.token.clone()),
+            },
+            None => SquireSession::UnknownUser,
+        }
+    }
+
+    fn reauth_session(&mut self, scheduler: &mut Scheduler<Self>, user: AnyUser) -> SessionToken {
+        match user {
+            AnyUser::Guest(token) => {
+                self.active.remove(&token);
+                self.guest_session(scheduler)
+            }
+            AnyUser::Active(token) => {
+                self.active.remove(&token);
+                match self.active.get(&token).and_then(|s| s.id) {
+                    Some(id) => self.create_session(scheduler, id),
+                    None => self.generate_session(scheduler),
+                }
+            }
+            AnyUser::Expired(token) => {
+                self.expired.remove(&token);
+                match self.expired.get(&token).and_then(|s| s.id) {
+                    Some(id) => self.create_session(scheduler, id),
+                    None => self.generate_session(scheduler),
+                }
+            }
+        }
+    }
+
+    fn delete_session(&mut self, scheduler: &mut Scheduler<Self>, user: AnyUser) -> bool {
+        match user {
+            AnyUser::Guest(token) | AnyUser::Active(token) => {
+                if let Some(session) = self.active.remove(&token) {
+                    let db = self.db.clone();
+                    scheduler.process(async move { db.remove_session(session).await });
+                    true
+                } else {
+                    false
+                }
+            }
+            AnyUser::Expired(token) => {
+                if let Some(session) = self.expired.remove(&token) {
+                    let db = self.db.clone();
+                    scheduler.process(async move { db.remove_expired_session(session).await });
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn expire_session(&mut self, scheduler: &mut Scheduler<Self>, token: SessionToken) {
+        if let Some(session) = self.active.remove(&token) {
+            scheduler.schedule(
+                Instant::now() + session.dur_to_revoke(),
+                SessionCommand::Revoke(token.clone()),
+            );
+            let db = self.db.clone();
+            self.expired.insert(token, session.clone());
+            scheduler.process(async move { db.expire_session(session).await });
+        }
+    }
+
+    fn revoke_session(&mut self, scheduler: &mut Scheduler<Self>, token: &SessionToken) {
+        if let Some(session) = self.expired.remove(token) {
+            let db = self.db.clone();
+            scheduler.process(async move { db.remove_expired_session(session).await });
+        }
+    }
+}
+
+impl SessionDb {
+    const ACTIVE_SESSION_TABLE: &str = "ActiveSessions";
+    const EXPIRED_SESSION_TABLE: &str = "ExpiredSessions";
+
+    pub fn new(db: Database) -> Self {
+        Self { db }
+    }
+
+    fn get_active_table(&self) -> Collection<Session> {
+        self.db.collection(Self::ACTIVE_SESSION_TABLE)
+    }
+
+    fn get_expired_table(&self) -> Collection<Session> {
+        self.db.collection(Self::EXPIRED_SESSION_TABLE)
+    }
+
+    /// Takes mutable reference to a session store and fills its cache with all the sessions in the
+    /// database. This is used on startup.
+    pub async fn load_all_sessions(&self, cache: &mut SessionStore) {
+        let mut cursor = self.get_active_table().find(None, None).await.unwrap();
+        while let Some(session) = cursor.next().await {
+            if let Ok(session) = session {
+                let token = session.token.clone();
+                cache.active.insert(token, session);
+            }
+        }
+        // TODO: Fetch all expired sessions
+    }
+
+    /// Inserts or updates a session in the database.
+    async fn persist_session(&self, session: Session) {
+        let table = self.get_active_table();
+        persist_session(table, session).await;
+    }
+
+    /// Updates a session in the database by marking it as expired.
+    async fn expire_session(&self, session: Session) {
+        let table = self.get_active_table();
+        if delete_session(table, session.clone()).await {
+            let table = self.get_expired_table();
+            persist_session(table, session).await;
+        }
+    }
+
+    /// Removes an active session from the database.
+    async fn remove_session(&self, session: Session) {
+        let table = self.get_active_table();
+        delete_session(table, session).await;
+    }
+
+    /// Removes an expired session from the database.
+    async fn remove_expired_session(&self, session: Session) {
+        let table = self.get_expired_table();
+        delete_session(table, session).await;
+    }
+}
+
+async fn persist_session(table: Collection<Session>, session: Session) -> bool {
+    let doc: Document = mongodb::bson::to_raw_document_buf(&session)
+        .unwrap()
+        .try_into()
+        .unwrap();
+    if table
+        .update_one(
+            doc.clone(),
+            UpdateModifications::Document(doc! {"$set": doc}),
+            UpdateOptions::builder().upsert(true).build(),
+        )
+        .await
+        .is_err()
+    {
+        if let Err(err) = table.insert_one(session.clone(), None).await {
+            tracing::event!(
+                Level::WARN,
+                "Could not persist session `{session:?}` got error: {err}",
+            );
+            return false;
+        }
+    }
+    true
+}
+
+async fn delete_session(table: Collection<Session>, session: Session) -> bool {
+    let doc: Document = mongodb::bson::to_raw_document_buf(&session)
+        .unwrap()
+        .try_into()
+        .unwrap();
+    table.delete_one(doc, None).await.is_ok()
+}
 
 #[derive(Debug, Clone)]
 pub struct SessionStoreHandle {
@@ -57,8 +342,8 @@ pub struct SessionStoreHandle {
 }
 
 impl SessionStoreHandle {
-    pub fn new() -> Self {
-        let client = ActorClient::builder(SessionStore::new()).launch();
+    pub fn new(db: Database) -> Self {
+        let client = ActorClient::builder(SessionStore::new(db)).launch();
         Self { client }
     }
 
@@ -83,156 +368,59 @@ impl SessionStoreHandle {
     }
 }
 
-pub enum SessionCommand {
-    Create(SquireAccountId, OneshotSender<SessionToken>),
-    Guest(OneshotSender<SessionToken>),
-    Get(SessionToken, OneshotSender<SquireSession>),
-    Reauth(AnyUser, OneshotSender<SessionToken>),
-    Delete(AnyUser, OneshotSender<bool>),
-}
-
-struct SessionStore {
-    rng: StdRng,
-    users: GroupMap<SessionToken, SquireAccountId>,
-    guests: HashSet<SessionToken>,
-}
-
-#[async_trait]
-impl ActorState for SessionStore {
-    type Message = SessionCommand;
-
-    async fn process(&mut self, _scheduler: &mut Scheduler<Self>, msg: Self::Message) {
-        match msg {
-            SessionCommand::Create(id, send) => {
-                let _ = send.send(self.create_session(id));
-            }
-            SessionCommand::Get(token, send) => {
-                let _ = send.send(self.get_session(token));
-            }
-            SessionCommand::Reauth(id, send) => {
-                let _ = send.send(self.reauth_session(id));
-            }
-            SessionCommand::Delete(id, send) => {
-                let _ = send.send(self.delete_session(id));
-            }
-            SessionCommand::Guest(send) => {
-                let _ = send.send(self.guest_session());
-            }
-        }
+impl Session {
+    /// The amount of time a session can live for before being marked as expired.
+    #[inline]
+    fn session_dur() -> Duration {
+        // 6 days
+        Duration::from_secs(518400)
     }
-}
 
-impl SessionStore {
-    fn new() -> Self {
+    /// The amount of time an expired session can live for before being forgotten entirely.
+    #[inline]
+    fn expiry_dur() -> Duration {
+        // 1 day
+        Duration::from_secs(86400)
+    }
+
+    fn new(token: SessionToken) -> Self {
         Self {
-            rng: StdRng::from_entropy(),
-            users: GroupMap::new(),
-            guests: HashSet::new(),
+            epoch: Utc::now(),
+            token,
+            id: None,
         }
     }
 
-    fn generate_session(&mut self) -> SessionToken {
-        let mut digest = SessionToken::default();
-        self.rng.fill_bytes(&mut digest.0);
-        digest
-    }
-
-    fn create_session(&mut self, id: SquireAccountId) -> SessionToken {
-        let token = self.generate_session();
-        self.users.insert(token.clone(), id);
-        token
-    }
-
-    fn guest_session(&mut self) -> SessionToken {
-        let token = self.generate_session();
-        self.guests.insert(token.clone());
-        token
-    }
-
-    fn get_session(&mut self, token: SessionToken) -> SquireSession {
-        if let Some(id) = self.users.get_right(&token) {
-            SquireSession::Active(*id)
-        } else if self.guests.contains(&token) {
-            SquireSession::Guest(token)
-        } else {
-            SquireSession::UnknownUser
+    fn new_with_id(token: SessionToken, id: SquireAccountId) -> Self {
+        Self {
+            epoch: Utc::now(),
+            token,
+            id: Some(id),
         }
     }
 
-    fn reauth_session(&mut self, user: AnyUser) -> SessionToken {
-        match user {
-            AnyUser::Guest(token) => {
-                self.guests.remove(&token);
-                self.guest_session()
-            }
-            AnyUser::Active(token) => {
-                if let Some(&id) = self.users.get_right(&token) {
-                    self.users.remove_left(&token);
-                    let token = self.generate_session();
-                    self.users.insert(token.clone(), id);
-                    token
-                } else {
-                    self.generate_session()
-                }
-            }
-            AnyUser::Expired(token) => {
-                // TODO: Replace users with expired sessions
-                if let Some(&id) = self.users.get_right(&token) {
-                    self.users.remove_left(&token);
-                    let token = self.generate_session();
-                    self.users.insert(token.clone(), id);
-                    token
-                } else {
-                    self.generate_session()
-                }
-            }
-        }
+    /*
+    /// Calculates if the session has been around longer than is allowed
+    fn is_active(&self) -> bool {
+        self.dur_to_expiry() >= Self::session_dur()
+    }
+    */
+
+    /// Returns the point in time that the session should be marked as expired.
+    fn dur_to_expiry(&self) -> Duration {
+        let elapsed = (Utc::now() - self.epoch).to_std().unwrap_or_default();
+        Self::expiry_dur().checked_sub(elapsed).unwrap_or_default()
     }
 
-    fn delete_session(&mut self, user: AnyUser) -> bool {
-        match user {
-            AnyUser::Guest(token) => self.guests.remove(&token),
-            AnyUser::Active(token) => self.users.remove_left(&token).is_some(),
-            AnyUser::Expired(token) => {
-                // TODO: This needs to reference the recently expired sessions
-                self.users.remove_left(&token).is_some()
-            }
-        }
+    /*
+    /// Calculates if the session should be discarded entirely due to age.
+    fn is_dead(&self) -> bool {
+        self.dur_to_revoke() >= Self::expiry_dur()
     }
-}
+    */
 
-impl Trackable<SquireAccountId, SessionToken> for SessionCommand {
-    fn track(msg: SquireAccountId, send: OneshotSender<SessionToken>) -> Self {
-        Self::Create(msg, send)
-    }
-}
-
-impl Trackable<(), SessionToken> for SessionCommand {
-    fn track((): (), send: OneshotSender<SessionToken>) -> Self {
-        Self::Guest(send)
-    }
-}
-
-impl Trackable<SessionToken, SquireSession> for SessionCommand {
-    fn track(msg: SessionToken, send: OneshotSender<SquireSession>) -> Self {
-        Self::Get(msg, send)
-    }
-}
-
-impl Trackable<AnyUser, SessionToken> for SessionCommand {
-    fn track(msg: AnyUser, send: OneshotSender<SessionToken>) -> Self {
-        Self::Reauth(msg, send)
-    }
-}
-
-impl Trackable<AnyUser, bool> for SessionCommand {
-    fn track(msg: AnyUser, send: OneshotSender<bool>) -> Self {
-        Self::Delete(msg, send)
-    }
-}
-
-impl Default for SessionStore {
-    fn default() -> Self {
-        Self::new()
+    /// Returns the point in time that the session should be discarded.
+    fn dur_to_revoke(&self) -> Duration {
+        self.dur_to_expiry() + Self::session_dur()
     }
 }
