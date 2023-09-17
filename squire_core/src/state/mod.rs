@@ -26,6 +26,7 @@ mod accounts;
 mod boilerplate;
 mod session;
 mod tournaments;
+mod boilerplate;
 
 pub use accounts::*;
 pub use session::*;

@@ -460,5 +460,3 @@ impl Session {
         }
     }
 }
-
-
