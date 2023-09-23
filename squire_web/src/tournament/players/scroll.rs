@@ -5,7 +5,7 @@ use squire_sdk::model::{
 use yew::prelude::*;
 
 use super::{input::PlayerFilterReport, PlayerView, PlayerViewMessage, SelectedPlayerMessage};
-use crate::CLIENT;
+use crate::{CLIENT, tournament::viewer_component::TournViewerComponentWrapper};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerScrollMessage {
@@ -17,7 +17,7 @@ pub struct PlayerScroll {
     players: Vec<PlayerSummary>,
 }
 
-pub fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
+pub fn fetch_player_summaries(ctx: &Context<TournViewerComponentWrapper<PlayerView>>, id: TournamentId) {
     ctx.link().send_future(async move {
         let mut data = CLIENT
             .get()
@@ -38,7 +38,7 @@ pub fn fetch_player_summaries(ctx: &Context<PlayerView>, id: TournamentId) {
 }
 
 impl PlayerScroll {
-    pub fn new(ctx: &Context<PlayerView>, id: TournamentId) -> Self {
+    pub fn new(ctx: &Context<TournViewerComponentWrapper<PlayerView>>, id: TournamentId) -> Self {
         fetch_player_summaries(ctx, id);
         Self {
             process: ctx.link().callback(SelectedPlayerMessage::PlayerSelected),

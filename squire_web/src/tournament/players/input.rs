@@ -2,22 +2,16 @@ use std::borrow::Cow;
 
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::{JudgeOp, OpResult, TournOp},
+    operations::{JudgeOp, TournOp},
     players::PlayerStatus,
 };
-use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use super::PlayerSummary;
-use crate::{utils::TextInput, CLIENT};
+use super::{PlayerSummary};
+use crate::{utils::TextInput, CLIENT, tournament::viewer_component::{WrapperState}};
 
 #[derive(PartialEq, Properties)]
-pub struct PlayerFilterInputProps {
-    pub id: TournamentId,
-    pub admin_id: AdminId,
-    pub send_op_result: Callback<OpResult>,
-    pub process: Callback<PlayerFilterReport>,
-}
+pub struct PlayerFilterInputProps {}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerFilterInputMessage {
@@ -34,9 +28,6 @@ pub struct PlayerFilterReport {
 }
 
 pub struct PlayerFilterInput {
-    pub id: TournamentId,
-    pub admin_id: AdminId,
-    pub send_op_result: Callback<OpResult>,
     name: Option<String>,
     status: Option<PlayerStatus>,
     guest_name: Option<String>,
@@ -57,12 +48,8 @@ impl PlayerFilterInput {
         process: Callback<PlayerFilterInputMessage>,
         id: TournamentId,
         admin_id: AdminId,
-        send_op_result: Callback<OpResult>,
     ) -> Self {
         Self {
-            id,
-            admin_id,
-            send_op_result,
             name: None,
             status: None,
             guest_name: None,
@@ -70,7 +57,7 @@ impl PlayerFilterInput {
         }
     }
 
-    pub fn update(&mut self, msg: PlayerFilterInputMessage) -> bool {
+    pub fn update(&mut self, msg: PlayerFilterInputMessage, state: &WrapperState) -> bool {
         match msg {
             PlayerFilterInputMessage::PlayerName(name) => {
                 self.name = Some(name);
@@ -91,14 +78,12 @@ impl PlayerFilterInput {
                     return false;
                 };
                 let tracker = CLIENT.get().unwrap().update_tourn(
-                    self.id,
+                    state.t_id,
                     TournOp::JudgeOp(
-                        self.admin_id.into(),
+                        state.a_id.into(),
                         JudgeOp::RegisterGuest(self.guest_name.as_ref().unwrap().clone()),
                     ),
                 );
-                let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 false
             }
         }
@@ -106,17 +91,22 @@ impl PlayerFilterInput {
 
     pub fn view(&self) -> Html {
         let number = self.process.clone();
-        let number = Callback::from(move |s| number.emit(PlayerFilterInputMessage::PlayerName(s)));
+        let number = Callback::from(move |s| number.emit(
+            PlayerFilterInputMessage::PlayerName(s)
+        ));
         let status = self.process.clone();
-        let status =
-            Callback::from(move |s| status.emit(PlayerFilterInputMessage::PlayerStatus(s)));
+        let status = Callback::from(move |s| status.emit(
+            PlayerFilterInputMessage::PlayerStatus(s)
+        ));
         let guest_name = self.process.clone();
         let guest_name =
-            Callback::from(move |s| guest_name.emit(PlayerFilterInputMessage::GuestName(s)));
+            Callback::from(move |s| guest_name.emit(
+            PlayerFilterInputMessage::GuestName(s)
+        ));
         let cb = self.process.clone();
-        let submit_guest = move |_| {
-            cb.emit(PlayerFilterInputMessage::SubmitGuest);
-        };
+        let submit_guest = move |_| { cb.emit(
+            PlayerFilterInputMessage::SubmitGuest
+        )};
         html! {
             <div class="row">
                 <div class="col">

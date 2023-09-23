@@ -1,6 +1,5 @@
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::OpResult,
 };
 use yew::prelude::*;
 
@@ -13,13 +12,13 @@ pub use input::*;
 pub use scroll::*;
 pub use selected::*;
 
-use super::spawn_update_listener;
+use super::{viewer_component::{TournViewerComponent, WrapperState, TournViewerComponentWrapper, TournQuery, InteractionResponse, WrapperMessage}};
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerViewProps {
-    pub id: TournamentId,
-    pub admin_id: AdminId,
-    pub send_op_result: Callback<OpResult>,
+//    pub id: TournamentId,
+//    pub admin_id: AdminId,
+//    pub send_op_result: Callback<OpResult>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -27,7 +26,8 @@ pub enum PlayerViewMessage {
     FilterInput(PlayerFilterInputMessage),
     PlayerScroll(PlayerScrollMessage),
     SelectedPlayer(SelectedPlayerMessage),
-    ReQuery,
+}
+pub enum PlayerViewQueryMessage {
 }
 
 pub struct PlayerView {
@@ -38,50 +38,65 @@ pub struct PlayerView {
     selected: SelectedPlayer,
 }
 
-impl Component for PlayerView {
-    type Message = PlayerViewMessage;
+impl TournViewerComponent for PlayerView {
     type Properties = PlayerViewProps;
+    type InteractionMessage = PlayerViewMessage;
+    type QueryMessage = PlayerViewQueryMessage;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        spawn_update_listener(ctx, PlayerViewMessage::ReQuery);
-        let id = ctx.props().id;
-        let admin_id = ctx.props().admin_id;
-        let send_op_result = ctx.props().send_op_result.clone();
+    fn v_create(ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
+        // spawn_update_listener(ctx, PlayerViewMessage::ReQuery);
+        let id = state.t_id.clone();
+        let admin_id = state.a_id.clone();
         Self {
             id,
             admin_id,
             input: PlayerFilterInput::new(
-                ctx.link().callback(PlayerViewMessage::FilterInput),
+                ctx.link().callback(|input| WrapperMessage::Interaction(PlayerViewMessage::FilterInput(input))),
                 id,
                 admin_id,
-                send_op_result,
             ),
             scroll: PlayerScroll::new(ctx, id),
             selected: SelectedPlayer::new(
-                ctx.link().callback(PlayerViewMessage::SelectedPlayer),
+                ctx.link().callback(|input| WrapperMessage::Interaction(PlayerViewMessage::SelectedPlayer(input))),
                 id,
                 admin_id,
             ),
         }
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            PlayerViewMessage::FilterInput(msg) => self.input.update(msg),
+    fn query(
+        &mut self,
+        ctx: &Context<TournViewerComponentWrapper<Self>>,
+        state: &WrapperState,
+    ) -> TournQuery<Self::QueryMessage> {
+        todo!()
+    }
+
+    fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
+        false
+    }
+
+    fn interaction(
+        &mut self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _msg: Self::InteractionMessage,
+        _state: &WrapperState,
+    ) -> InteractionResponse<Self> {
+        match _msg {
+            PlayerViewMessage::FilterInput(msg) => self.input.update(msg, _state).into(),
             PlayerViewMessage::SelectedPlayer(msg) => {
-                ctx.link().send_message(PlayerViewMessage::ReQuery);
-                self.selected.update(ctx, msg)
+                //_ctx.link().send_message(PlayerViewMessage::ReQuery);
+                self.selected.update(_ctx, msg).into()
             }
-            PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg),
-            PlayerViewMessage::ReQuery => {
-                spawn_update_listener(ctx, PlayerViewMessage::ReQuery);
-                fetch_player_summaries(ctx, self.id);
-                false
-            }
+            PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg).into(),
         }
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn v_view(
+        &self,
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        state: &WrapperState,
+    ) -> yew::Html {
         let report = self.input.get_report();
         html! {
             <div>

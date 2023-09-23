@@ -216,4 +216,12 @@ impl<T: TournViewerComponent> From<bool> for InteractionResponse<T> {
     }
 }
 
+/*
+impl<T: TournViewerComponent> From<T::InteractionMessage> for WrapperMessage<T> {
+    fn from(value: T::InteractionMessage) -> Self {
+        WrapperMessage::Interaction(value)
+    }
+}
+*/
+
 // yew::Context<TournViewerComponentWrapper<T>> -> yew::Context<T>
