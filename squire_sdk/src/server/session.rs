@@ -27,9 +27,10 @@ use crate::api::{AuthUser, SessionToken, TokenParseError};
 pub struct Session<T>(pub T);
 
 /// The general session type that is returned by the SessionStore
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum SquireSession {
     /// Credentials were no present
+    #[default]
     NotLoggedIn,
     /// Credentials were present but corresponded to an unknown user
     UnknownUser,
@@ -37,8 +38,10 @@ pub enum SquireSession {
     Guest(SessionToken),
     /// Credentials were present and corresponded to a logged-in user
     Active(SquireAccountId),
-    /// Credentials were present but were past the expiry
+    /// Credentials for a user were present but were past the expiry
     Expired(SquireAccountId),
+    /// Credentials for a guest were present but were past the expiry
+    ExpiredGuest(SessionToken),
 }
 
 /// The general session type that is returned by the SessionStore
@@ -48,8 +51,10 @@ pub enum AnyUser {
     Guest(SessionToken),
     /// Credentials were present and corresponded to a logged-in user
     Active(SessionToken),
-    /// Credentials were present but were past the expiry
+    /// Credentials for a user were present but were past the expiry
     Expired(SessionToken),
+    /// Credentials for a guest were present but were past the expiry
+    ExpiredGuest(SessionToken),
 }
 
 impl SessionConvert for AnyUser {
@@ -60,6 +65,7 @@ impl SessionConvert for AnyUser {
             SquireSession::Guest(token) => Ok(AnyUser::Guest(token)),
             SquireSession::Active(_id) => Ok(AnyUser::Active(token)),
             SquireSession::Expired(_id) => Ok(AnyUser::Expired(token)),
+            SquireSession::ExpiredGuest(token) => Ok(AnyUser::ExpiredGuest(token)),
             SquireSession::NotLoggedIn | SquireSession::UnknownUser => {
                 Err(StatusCode::UNAUTHORIZED)
             }
@@ -107,7 +113,9 @@ impl SessionConvert for UserSession {
             SquireSession::NotLoggedIn => Err(UserSessionError::NotLoggedIn),
             SquireSession::Expired(_) => Err(UserSessionError::Expired),
             SquireSession::UnknownUser => Err(UserSessionError::UnknownUser),
-            SquireSession::Guest(_) => Err(UserSessionError::Guest),
+            SquireSession::ExpiredGuest(_) | SquireSession::Guest(_) => {
+                Err(UserSessionError::Guest)
+            }
         }
     }
 
@@ -204,9 +212,10 @@ impl SessionConvert for AuthUser {
 
     fn convert(_token: SessionToken, session: SquireSession) -> Result<Self, Self::Error> {
         match session {
-            SquireSession::NotLoggedIn | SquireSession::UnknownUser | SquireSession::Expired(_) => {
-                Err(StatusCode::UNAUTHORIZED)
-            }
+            SquireSession::NotLoggedIn
+            | SquireSession::UnknownUser
+            | SquireSession::Expired(_)
+            | SquireSession::ExpiredGuest(_) => Err(StatusCode::UNAUTHORIZED),
             SquireSession::Guest(token) => Ok(Self::Guest(token)),
             SquireSession::Active(id) => Ok(Self::User(id)),
         }

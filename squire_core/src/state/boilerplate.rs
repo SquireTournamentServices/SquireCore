@@ -4,6 +4,7 @@ use squire_sdk::{
     model::identifiers::SquireAccountId,
     server::session::{AnyUser, SquireSession},
 };
+use tokio::sync::watch;
 
 use super::SessionCommand;
 
@@ -28,6 +29,12 @@ impl Trackable<SessionToken, SquireSession> for SessionCommand {
 impl Trackable<AnyUser, SessionToken> for SessionCommand {
     fn track(msg: AnyUser, send: OneshotSender<SessionToken>) -> Self {
         Self::Reauth(msg, send)
+    }
+}
+
+impl Trackable<SessionToken, Option<watch::Receiver<SquireSession>>> for SessionCommand {
+    fn track(msg: SessionToken, send: OneshotSender<Option<watch::Receiver<SquireSession>>>) -> Self {
+        Self::Subscribe(msg, send)
     }
 }
 
