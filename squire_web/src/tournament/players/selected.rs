@@ -9,7 +9,7 @@ use yew::prelude::*;
 
 use super::{PlayerView, PlayerViewMessage};
 use crate::{
-    tournament::model::{PlayerProfile, RoundProfile},
+    tournament::{model::{PlayerProfile, RoundProfile}, viewer_component::TournViewerComponentWrapper},
     CLIENT,
 };
 
@@ -79,7 +79,7 @@ impl SelectedPlayer {
 
     // TODO: This should probably be generic over the context's type. Roughly, where T:
     // Component<Message = M>, M: From<... something>
-    pub fn update(&mut self, ctx: &Context<PlayerView>, msg: SelectedPlayerMessage) -> bool {
+    pub fn update(&mut self, ctx: &Context<TournViewerComponentWrapper<PlayerView>>, msg: SelectedPlayerMessage) -> bool {
         match msg {
             SelectedPlayerMessage::PlayerSelected(p_id) => {
                 if self.player.as_ref().map(|p| p.id != p_id).unwrap_or(true) {

@@ -83,8 +83,8 @@ impl TournamentViewer {
                 html!( <TournViewerComponentWrapper<TournOverview> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
             }
             Some(TournViewMode::Players) => {
-                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
-                html! { <PlayerView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
+                let inner_props = PlayerViewProps {};
+                html!( <TournViewerComponentWrapper<PlayerView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
             }
             Some(TournViewMode::Rounds) => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
