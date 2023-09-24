@@ -7,6 +7,7 @@ use axum::{
 use hex::decode_to_slice;
 use http::{request::Parts, HeaderMap, StatusCode};
 use squire_lib::identifiers::SquireAccountId;
+use tokio::sync::watch::Receiver;
 
 use super::state::ServerState;
 use crate::api::{AuthUser, SessionToken, TokenParseError};
@@ -25,6 +26,36 @@ use crate::api::{AuthUser, SessionToken, TokenParseError};
 
 /// An extractor for a session type that can be converted from a `SquireSession`.
 pub struct Session<T>(pub T);
+
+/// A wrapper around a tokio watch channel Receiver.
+#[derive(Debug)]
+pub struct SessionWatcher {
+    pub watcher: Receiver<SquireSession>,
+}
+
+impl SessionWatcher {
+    pub fn new(watcher: Receiver<SquireSession>) -> Self {
+        Self { watcher }
+    }
+}
+
+impl SessionWatcher {
+    pub fn is_dead(&self) -> bool {
+        matches!(
+            *self.watcher.borrow(),
+            SquireSession::NotLoggedIn | SquireSession::UnknownUser
+        )
+    }
+
+    pub fn auth_user(&self) -> Option<AuthUser> {
+        let session = self.watcher.borrow();
+        match *session {
+            SquireSession::Guest(ref token) => Some(AuthUser::Guest(token.clone())),
+            SquireSession::Active(id) => Some(AuthUser::User(id)),
+            _ => None,
+        }
+    }
+}
 
 /// The general session type that is returned by the SessionStore
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -55,6 +86,18 @@ pub enum AnyUser {
     Expired(SessionToken),
     /// Credentials for a guest were present but were past the expiry
     ExpiredGuest(SessionToken),
+}
+
+impl AnyUser {
+    /// Strips the meta data from the user and return just the session token.
+    pub fn into_token(self) -> SessionToken {
+        match self {
+            AnyUser::Guest(token)
+            | AnyUser::Active(token)
+            | AnyUser::Expired(token)
+            | AnyUser::ExpiredGuest(token) => token,
+        }
+    }
 }
 
 impl SessionConvert for AnyUser {

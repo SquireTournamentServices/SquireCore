@@ -163,7 +163,8 @@ impl<A: ActorState> Scheduler<A> {
     }
 
     pub fn process<F>(&mut self, fut: F)
-        where F: 'static + Send + Future<Output = ()>,
+    where
+        F: 'static + Send + Future<Output = ()>,
     {
         self.tasks.push(Box::pin(fut));
     }
@@ -191,9 +192,12 @@ impl<A: ActorState> Stream for Scheduler<A> {
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let digest = self.recv.poll_next_unpin(cx);
         if digest.is_ready() {
-            digest
-        } else {
-            self.queue.poll_next_unpin(cx)
+            return digest;
+        }
+        let digest = self.queue.poll_next_unpin(cx);
+        match &digest {
+            Poll::Pending | Poll::Ready(None) => Poll::Pending,
+            Poll::Ready(_) => digest,
         }
     }
 }

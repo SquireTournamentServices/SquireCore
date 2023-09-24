@@ -113,11 +113,11 @@ impl ActorState for SessionStore {
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
-            SessionCommand::Create(id, send) => drop(send.send(self.create_session(scheduler, id))),
+            SessionCommand::Create(id, send) => drop(send.send(self.create_session(scheduler, id).token)),
             SessionCommand::Get(token, send) => drop(send.send(self.get_session(token))),
             SessionCommand::Reauth(id, send) => drop(send.send(self.reauth_session(scheduler, id))),
             SessionCommand::Delete(id, send) => drop(send.send(self.delete_session(scheduler, id))),
-            SessionCommand::Guest(send) => drop(send.send(self.guest_session(scheduler))),
+            SessionCommand::Guest(send) => drop(send.send(self.guest_session(scheduler).token)),
             SessionCommand::Subscribe(token, send) => drop(send.send(self.sub_to_session(&token))),
             SessionCommand::Expiry(token) => self.expire_session(scheduler, token),
             SessionCommand::Revoke(token) => self.revoke_session(scheduler, &token),
@@ -148,22 +148,24 @@ impl SessionStore {
         &mut self,
         scheduler: &mut Scheduler<Self>,
         id: SquireAccountId,
-    ) -> SessionToken {
+    ) -> Session {
         let token = self.generate_session(scheduler);
         let session = Session::new_with_id(token.clone(), id);
         self.sessions.insert(token.clone(), session.clone());
         let db = self.db.clone();
-        scheduler.process(async move { db.persist_session(session).await });
-        token
+        let db_session = session.clone();
+        scheduler.process(async move { db.persist_session(db_session).await });
+        session
     }
 
-    fn guest_session(&mut self, scheduler: &mut Scheduler<Self>) -> SessionToken {
+    fn guest_session(&mut self, scheduler: &mut Scheduler<Self>) -> Session {
         let token = self.generate_session(scheduler);
         let session = Session::new(token.clone());
         self.sessions.insert(token.clone(), session.clone());
         let db = self.db.clone();
-        scheduler.process(async move { db.persist_session(session).await });
-        token
+        let db_session = session.clone();
+        scheduler.process(async move { db.persist_session(db_session).await });
+        session
     }
 
     fn get_session(&mut self, token: SessionToken) -> SquireSession {
@@ -176,12 +178,22 @@ impl SessionStore {
     fn reauth_session(&mut self, scheduler: &mut Scheduler<Self>, user: AnyUser) -> SessionToken {
         match user {
             AnyUser::Guest(token) => {
-                self.remove_session(&token);
-                self.guest_session(scheduler)
+                self.sessions.remove(&token);
+                let session = self.guest_session(scheduler);
+                if let Some(sq_sess) = self.comms.get(&token) {
+                    sq_sess.send_replace(session.as_squire_session());
+                }
+                session.token
             }
             AnyUser::Active(token) | AnyUser::Expired(token) | AnyUser::ExpiredGuest(token) => {
-                match self.remove_session(&token).and_then(|s| s.id) {
-                    Some(id) => self.create_session(scheduler, id),
+                match self.sessions.remove(&token).and_then(|s| s.id) {
+                    Some(id) => {
+                        let session = self.create_session(scheduler, id);
+                        if let Some(sq_sess) = self.comms.get(&token) {
+                            sq_sess.send_replace(session.as_squire_session());
+                        }
+                        session.token
+                    }
                     None => self.generate_session(scheduler),
                 }
             }
@@ -387,6 +399,10 @@ impl SessionStoreHandle {
 
     pub fn delete(&self, id: AnyUser) -> Tracker<bool> {
         self.client.track(id)
+    }
+
+    pub fn watch(&self, token: SessionToken) -> Tracker<Option<Watcher<SquireSession>>> {
+        self.client.track(token)
     }
 }
 

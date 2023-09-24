@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use squire_lib::identifiers::SquireAccountId;
 
 use axum::extract::ws::WebSocket;
-use super::session::{AnyUser, SquireSession};
+use super::session::{AnyUser, SquireSession, SessionWatcher};
 use crate::{
-    api::{SessionToken, TournamentSummary, Version, AuthUser},
+    api::{SessionToken, TournamentSummary, Version},
     model::tournament::TournamentId,
     sync::TournamentManager,
 };
@@ -36,7 +36,7 @@ pub trait ServerState: 'static + Clone + Send + Sync {
         digest
     }
 
-    async fn handle_new_onlooker(&self, id: TournamentId, user: AuthUser, ws: WebSocket);
+    async fn handle_new_onlooker(&self, id: TournamentId, user: SessionWatcher, ws: WebSocket);
 
     /* ------ Session-related methods ------ */
     async fn create_session(&self, id: SquireAccountId) -> SessionToken;
@@ -48,4 +48,6 @@ pub trait ServerState: 'static + Clone + Send + Sync {
     async fn reauth_session(&self, session: AnyUser) -> SessionToken;
 
     async fn terminate_session(&self, session: AnyUser) -> bool;
+
+    async fn watch_session(&self, session: AnyUser) -> Option<SessionWatcher>;
 }

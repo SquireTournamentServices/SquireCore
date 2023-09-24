@@ -7,7 +7,7 @@ use http::StatusCode;
 use squire_lib::tournament::TournamentId;
 
 use super::{
-    session::{Session, UserSession},
+    session::{AnyUser, Session, SessionWatcher, UserSession},
     SquireRouter,
 };
 use crate::{api::*, server::state::ServerState, sync::TournamentManager};
@@ -62,7 +62,7 @@ pub async fn import_tournament<S>(
     State(state): State<S>,
     _user: Session<UserSession>,
     Json(tourn): Json<TournamentManager>,
-) -> impl IntoResponse
+) -> StatusCode
 where
     S: ServerState,
 {
@@ -78,17 +78,22 @@ where
 /// Adds a user to the gathering via a websocket
 pub async fn join_gathering<S: ServerState>(
     State(state): State<S>,
-    Session(user): Session<AuthUser>,
+    Session(user): Session<AnyUser>,
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {
-    ws.on_upgrade(move |ws| handle_new_onlooker(state, id, user, ws))
+    match state.watch_session(user).await {
+        Some(watcher) if watcher.auth_user().is_some() => {
+            ws.on_upgrade(move |ws| handle_new_onlooker(state, id, watcher, ws))
+        }
+        _ => StatusCode::UNAUTHORIZED.into_response(),
+    }
 }
 
 async fn handle_new_onlooker<S: ServerState>(
     state: S,
     id: TournamentId,
-    user: AuthUser,
+    user: SessionWatcher,
     ws: WebSocket,
 ) {
     state.handle_new_onlooker(id, user, ws).await

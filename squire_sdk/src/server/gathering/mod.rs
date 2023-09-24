@@ -23,11 +23,13 @@ mod onlooker;
 pub use hall::*;
 pub use onlooker::*;
 
+use super::session::SessionWatcher;
+
 /// A message sent to a `Gathering` that subscribes a new `Onlooker`.
 #[derive(Debug)]
 pub enum GatheringMessage {
     GetTournament(OneshotSender<Box<TournamentManager>>),
-    NewConnection(AuthUser, WebSocket),
+    NewConnection(SessionWatcher, WebSocket),
     WebsocketMessage(AuthUser, Option<Vec<u8>>),
     ResendMessage(Box<(AuthUser, ClientBoundMessage)>),
 }
@@ -91,16 +93,19 @@ impl ActorState for Gathering {
             GatheringMessage::GetTournament(send) => {
                 send.send(Box::new(self.tourn.clone())).unwrap()
             }
-            GatheringMessage::NewConnection(user, ws) => {
+            GatheringMessage::NewConnection(session, ws) => {
                 let (sink, stream) = ws.split();
                 let onlooker = Onlooker::new(sink);
-                match self.onlookers.get_mut(&user) {
-                    Some(ol) => *ol = onlooker,
-                    None => {
-                        _ = self.onlookers.insert(user.clone(), onlooker);
+                // If we get a session watcher that is not valid, we ignore it.
+                if let Some(user) = session.auth_user() {
+                    match self.onlookers.get_mut(&user) {
+                        Some(ol) => *ol = onlooker,
+                        None => {
+                            _ = self.onlookers.insert(user.clone(), onlooker);
+                        }
                     }
+                    scheduler.add_stream(Crier::new(stream, session));
                 }
-                scheduler.add_stream(Crier::new(stream, user));
             }
             GatheringMessage::WebsocketMessage(user, msg) => {
                 self.process_websocket_message(scheduler, user, msg).await

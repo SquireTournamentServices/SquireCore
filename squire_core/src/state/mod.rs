@@ -12,16 +12,16 @@ use squire_sdk::{
     },
     server::{
         gathering::{GatheringHall, GatheringHallMessage},
-        session::{AnyUser, SquireSession},
+        session::{AnyUser, SessionWatcher, SquireSession},
         state::ServerState,
     },
     sync::TournamentManager,
 };
 
 mod accounts;
+mod boilerplate;
 mod session;
 mod tournaments;
-mod boilerplate;
 
 pub use accounts::*;
 pub use session::*;
@@ -213,7 +213,8 @@ impl ServerState for AppState {
         self.tourn_db.persist_tourn(tourn).await
     }
 
-    async fn handle_new_onlooker(&self, id: TournamentId, user: AuthUser, ws: WebSocket) {
+    async fn handle_new_onlooker(&self, id: TournamentId, user: SessionWatcher, ws: WebSocket) {
+        println!("Passing connection request off to gathering hall...");
         self.gatherings
             .send(GatheringHallMessage::NewConnection(id, user, ws))
     }
@@ -236,5 +237,12 @@ impl ServerState for AppState {
 
     async fn terminate_session(&self, user: AnyUser) -> bool {
         self.sessions.delete(user).await
+    }
+
+    async fn watch_session(&self, user: AnyUser) -> Option<SessionWatcher> {
+        self.sessions
+            .watch(user.into_token())
+            .await
+            .map(SessionWatcher::new)
     }
 }

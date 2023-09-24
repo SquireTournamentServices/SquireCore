@@ -12,7 +12,7 @@ use tokio::sync::{
 use super::{Gathering, GatheringMessage, PersistMessage, PersistReadyMessage};
 use crate::{
     actor::{ActorBuilder, ActorClient, ActorState, Scheduler},
-    api::AuthUser,
+    server::session::SessionWatcher,
     sync::TournamentManager,
 };
 
@@ -54,7 +54,7 @@ pub enum GatheringHallMessage {
     /// Create a new gathering
     NewGathering(TournamentId),
     /// Adds an onlooker to a gathering
-    NewConnection(TournamentId, AuthUser, WebSocket),
+    NewConnection(TournamentId, SessionWatcher, WebSocket),
     /// Perist all the tournaments that need to be persisted
     Persist,
 }
@@ -142,7 +142,12 @@ where
         _ = self.gatherings.insert(id, send);
     }
 
-    async fn process_new_onlooker(&mut self, id: TournamentId, user: AuthUser, ws: WebSocket) {
+    async fn process_new_onlooker(
+        &mut self,
+        id: TournamentId,
+        user: SessionWatcher,
+        ws: WebSocket,
+    ) {
         let msg = GatheringMessage::NewConnection(user, ws);
         let send = self.get_or_init_gathering(id).await;
         send.send(msg)
