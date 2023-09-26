@@ -71,6 +71,7 @@ fn main() {
         .account(SquireAccount::new("Tester".into(), "Tester".into()))
         .on_update(on_update)
         .build_unchecked();
+
     CLIENT.set(client).unwrap();
     ON_UPDATE.set(recv).unwrap();
     yew::Renderer::<App>::new().render();

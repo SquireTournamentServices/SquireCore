@@ -112,6 +112,7 @@ impl ActorState for SessionStore {
     }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        println!("Got session message: {msg:?}");
         match msg {
             SessionCommand::Create(id, send) => drop(send.send(self.create_session(scheduler, id).token)),
             SessionCommand::Get(token, send) => drop(send.send(self.get_session(token))),
@@ -459,3 +460,5 @@ impl Session {
         }
     }
 }
+
+

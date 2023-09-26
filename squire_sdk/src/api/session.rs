@@ -1,6 +1,8 @@
-use serde::{Serialize, Deserialize};
+use std::{fmt::Display, str::FromStr};
+
 use hex::decode_to_slice;
-use http::{HeaderName, header::AUTHORIZATION, HeaderValue, HeaderMap};
+use http::{header::AUTHORIZATION, HeaderMap, HeaderName, HeaderValue};
+use serde::{Deserialize, Serialize};
 use squire_lib::identifiers::SquireAccountId;
 
 /// The inner type used to represent all sessions
@@ -31,19 +33,31 @@ impl SessionToken {
     }
 }
 
+impl FromStr for SessionToken {
+    type Err = TokenParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut inner = [0; 32];
+        decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
+        Ok(Self(inner))
+    }
+}
+
 impl TryFrom<&HeaderMap<HeaderValue>> for SessionToken {
     type Error = TokenParseError;
 
     fn try_from(headers: &HeaderMap) -> Result<Self, Self::Error> {
-        match headers.get(Self::HEADER_NAME) {
-            Some(header) => {
-                let mut inner = [0; 32];
-                let s = header.to_str().map_err(|_| TokenParseError::InvalidToken)?;
-                decode_to_slice(s, &mut inner).map_err(|_| TokenParseError::InvalidToken)?;
-                Ok(Self(inner))
-            }
+        match headers.get(Self::HEADER_NAME).and_then(|h| h.to_str().ok()) {
+            Some(header) => header.parse(),
             None => Err(TokenParseError::NoAuthHeader),
         }
+    }
+}
+
+impl Display for SessionToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let data = hex::encode(self.0);
+        write!(f, "{data}")
     }
 }
 

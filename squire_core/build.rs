@@ -47,15 +47,14 @@ fn main() -> Result<(), i32> {
     }
     cmd.arg(format!("{fe_path}/index.html"));
 
-    // If in debug mode, all for failed compilation of frontend.
-    // In release mode, require that the frontend to be functional.
-    if is_release {
-        match cmd.status().map(|s| s.success()) {
-            Ok(false) | Err(_) => return Err(1),
-            _ => {}
-        }
-    }
     println!("cargo:rerun-if-changed={fe_path}");
     println!("cargo:rerun-if-changed=build.rs");
-    Ok(())
+
+    // If in debug mode, all for failed compilation of frontend.
+    // In release mode, require that the frontend to be functional.
+    if matches!(cmd.status().map(|s| s.success()), Ok(false) | Err(_)) && is_release {
+        Err(1)
+    } else {
+        Ok(())
+    }
 }

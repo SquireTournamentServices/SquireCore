@@ -140,8 +140,15 @@ impl<A: ActorState> ActorRunner<A> {
     async fn run(mut self) -> ! {
         self.state.start_up(&mut self.scheduler).await;
         loop {
-            let msg = self.scheduler.next().await.unwrap();
-            self.state.process(&mut self.scheduler, msg).await;
+            tokio::select! {
+                msg = self.scheduler.recv.next() => {
+                    self.state.process(&mut self.scheduler, msg.unwrap()).await;
+                },
+                msg = self.scheduler.queue.next(), if !self.scheduler.queue.is_empty() => {
+                    self.state.process(&mut self.scheduler, msg.unwrap()).await;
+                },
+                _ = self.scheduler.tasks.next(), if !self.scheduler.tasks.is_empty() => {},
+            }
         }
     }
 }

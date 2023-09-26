@@ -4,7 +4,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use futures::{stream::SplitSink, SinkExt, StreamExt};
+use futures::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use instant::Instant;
 use squire_lib::{
     operations::{OpData, OpResult, TournOp},
@@ -13,11 +13,10 @@ use squire_lib::{
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
 use uuid::Uuid;
 
-use super::{OnUpdate, HOST_ADDRESS};
+use super::{network::NetworkState, OnUpdate};
 use crate::{
     actor::*,
-    api::{GetRequest, Subscribe},
-    compat::{Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
+    compat::{log, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     sync::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
         OpSync, ServerBound, ServerBoundMessage, ServerOpLink, SyncForwardResp, TournamentManager,
@@ -36,18 +35,17 @@ pub(crate) enum ManagementCommand {
     Update(TournamentId, UpdateType, OneshotSender<Option<OpResult>>),
     Import(Box<TournamentManager>, OneshotSender<TournamentId>),
     Subscribe(TournamentId, OneshotSender<Option<Watcher<()>>>),
-    Connection(
-        Result<(Websocket, Box<TournamentManager>), ()>,
-        OneshotSender<Option<Watcher<()>>>,
-    ),
+    Connection(Option<Websocket>, OneshotSender<Option<Watcher<()>>>),
     Remote(WebsocketResult),
     Retry(MessageRetry),
 }
 
 /// A struct that contains all of the state that the management task maintains
+#[allow(unused)]
 struct ManagerState {
     cache: TournamentCache,
     syncs: ClientSyncManager,
+    network: ActorClient<NetworkState>,
     forwarded: ClientForwardingManager,
     on_update: Box<dyn OnUpdate>,
 }
@@ -57,6 +55,7 @@ impl ActorState for ManagerState {
     type Message = ManagementCommand;
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        log(&format!("Got tournament management message: {msg:?}"));
         match msg {
             ManagementCommand::Query(id, query) => {
                 self.handle_query(id, query);
@@ -71,15 +70,21 @@ impl ActorState for ManagerState {
                 SubCreation::Connected(watcher) => {
                     let _ = send.send(Some(watcher));
                 }
-                SubCreation::Connect(id) => scheduler.add_task(create_ws_connection(id, send)),
+                SubCreation::Connect(id) => {
+                    log("Cache miss! Establishing connection...");
+                    let tracker = self.network.track(id);
+                    scheduler.add_task(tracker.map(|ws| {
+                        log("Got response from network actor!");
+                        ManagementCommand::Connection(ws, send)
+                    }));
+                }
             },
             ManagementCommand::Connection(res, send) => match res {
-                Ok((ws, tourn)) => {
-                    let _ = send.send(Some(self.handle_connection(scheduler, ws, tourn)));
+                Some(mut ws) => {
+                    let tourn = wait_for_tourn(&mut ws).await;
+                    drop(send.send(Some(self.handle_connection(scheduler, ws, tourn))));
                 }
-                Err(()) => {
-                    let _ = send.send(None);
-                }
+                None => drop(send.send(None)),
             },
             ManagementCommand::Remote(ws_res) => match ws_res {
                 Ok(msg) => drop(self.handle_ws_msg(scheduler, msg)),
@@ -108,8 +113,8 @@ pub enum UpdateType {
 type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
 
 impl TournsClient {
-    pub fn new<O: OnUpdate>(on_update: O) -> Self {
-        let client = ActorBuilder::new(ManagerState::new(on_update)).launch();
+    pub fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+        let client = ActorBuilder::new(ManagerState::new(network, on_update)).launch();
         Self { client }
     }
 
@@ -159,12 +164,13 @@ enum SubCreation {
 }
 
 impl ManagerState {
-    fn new<O: OnUpdate>(on_update: O) -> Self {
+    fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
         Self {
             on_update: Box::new(on_update),
             cache: Default::default(),
             syncs: Default::default(),
             forwarded: Default::default(),
+            network,
         }
     }
 
@@ -342,29 +348,9 @@ impl ManagerState {
     }
 }
 
-async fn create_ws_connection(
-    id: TournamentId,
-    send: OneshotSender<Option<Watcher<()>>>,
-) -> (
-    Result<(Websocket, Box<TournamentManager>), ()>,
-    OneshotSender<Option<Watcher<()>>>,
-) {
-    let url = format!(
-        "ws{HOST_ADDRESS}{}",
-        <Subscribe as GetRequest<1>>::ROUTE.replace([id.to_string().as_str()])
-    );
-    match Websocket::new(&url).await {
-        Ok(mut ws) => {
-            let msg = postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch)).unwrap();
-            ws.send(WebsocketMessage::Bytes(msg)).await.unwrap();
-            let tourn = wait_for_tourn(&mut ws).await;
-            (Ok((ws, tourn)), send)
-        }
-        Err(()) => (Err(()), send),
-    }
-}
-
 async fn wait_for_tourn(stream: &mut Websocket) -> Box<TournamentManager> {
+    let msg = postcard::to_allocvec(&ServerBoundMessage::new(ServerBound::Fetch)).unwrap();
+    stream.send(WebsocketMessage::Bytes(msg)).await.unwrap();
     loop {
         let Some(Ok(WebsocketMessage::Bytes(msg))) = stream.next().await else {
             continue;
@@ -425,22 +411,6 @@ impl Trackable<(TournamentId, UpdateType), Option<OpResult>> for ManagementComma
     }
 }
 
-impl
-    From<(
-        Result<(Websocket, Box<TournamentManager>), ()>,
-        OneshotSender<Option<Watcher<()>>>,
-    )> for ManagementCommand
-{
-    fn from(
-        (res, send): (
-            Result<(Websocket, Box<TournamentManager>), ()>,
-            OneshotSender<Option<Watcher<()>>>,
-        ),
-    ) -> Self {
-        Self::Connection(res, send)
-    }
-}
-
 impl From<WebsocketResult> for ManagementCommand {
     fn from(value: WebsocketResult) -> Self {
         ManagementCommand::Remote(value)
@@ -480,7 +450,7 @@ impl Debug for ManagementCommand {
             ManagementCommand::Update(id, update, _) => write!(f, "Update({id:?}, {update:?})"),
             ManagementCommand::Import(tourn, _) => write!(f, "Import({tourn:?})"),
             ManagementCommand::Subscribe(id, _) => write!(f, "Subscribe({id:?})"),
-            ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res.is_ok()),
+            ManagementCommand::Connection(res, _) => write!(f, "Connection({:?})", res),
             ManagementCommand::Remote(res) => write!(f, "Remote({res:?}"),
             ManagementCommand::Retry(rt) => write!(f, "Retry({rt:?}"),
         }

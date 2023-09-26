@@ -30,8 +30,8 @@ pub fn sleep_until(deadline: Instant) -> Sleep {
     ))))
 }
 
-pub fn log(_msg: &str) {
-    //web_sys::console::log_1(&msg.into());
+pub fn log(msg: &str) {
+    web_sys::console::log_1(&msg.into());
 }
 
 #[cfg(feature = "client")]
@@ -113,6 +113,7 @@ mod client {
         type Item = WebsocketResult;
 
         fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+            super::log("Polling websocket...");
             Pin::new(&mut *self.0)
                 .poll_next(cx)
                 .map_err(Into::into)

@@ -88,7 +88,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
         let state = NetworkState::new(url);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
-        let tourns = TournsClient::new(on_update);
+        let tourns = TournsClient::new(client.clone(), on_update);
         Ok(SquireClient { client, tourns, user })
     }
 
@@ -98,7 +98,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
         let state = NetworkState::new(url);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
-        let tourns = TournsClient::new(on_update);
+        let tourns = TournsClient::new(client.clone(), on_update);
         SquireClient { client, tourns, user }
     }
 }
@@ -111,7 +111,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, Credentials> {
         let state = NetworkState::new(url);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
-        let tourns = TournsClient::new(on_update);
+        let tourns = TournsClient::new(client.clone(), on_update);
         Ok(SquireClient { client, tourns, user })
     }
 }
@@ -128,7 +128,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
         let state = NetworkState::new_with_user(url, user);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
-        let tourns = TournsClient::new(on_update);
+        let tourns = TournsClient::new(client.clone(), on_update);
         Ok(SquireClient { client, tourns, user })
     }
 
@@ -142,7 +142,7 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
         let state = NetworkState::new_with_user(url, user);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
-        let tourns = TournsClient::new(on_update);
+        let tourns = TournsClient::new(client.clone(), on_update);
         SquireClient { client, tourns, user }
     }
 }

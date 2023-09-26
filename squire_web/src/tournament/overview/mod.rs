@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use squire_sdk::{
     model::{
         identifiers::TournamentId, players::PlayerStatus, rounds::RoundStatus,
         tournament::TournamentStatus,
     },
-    sync::TournamentManager,
+    sync::TournamentManager, compat::sleep,
 };
 use yew::prelude::*;
 
@@ -30,6 +32,9 @@ pub fn fetch_overview_data(ctx: &Context<TournOverview>, id: TournamentId) {
             .unwrap()
             .query_tourn(id, TournamentProfile::new)
             .await;
+        if data.is_none() {
+            sleep(Duration::from_millis(10)).await;
+        }
         TournOverviewMessage::OverviewQueryReady(data)
     })
 }
