@@ -4,12 +4,12 @@ use squire_sdk::model::{
 };
 use yew::prelude::*;
 
-use super::{input::PlayerFilterReport, PlayerView, PlayerViewMessage, SelectedPlayerMessage};
-use crate::{CLIENT, tournament::viewer_component::TournViewerComponentWrapper};
+use super::{input::PlayerFilterReport};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerScrollMessage {
     ScrollQueryReady(Vec<PlayerSummary>),
+
 }
 
 pub struct PlayerScroll {
@@ -17,6 +17,7 @@ pub struct PlayerScroll {
     players: Vec<PlayerSummary>,
 }
 
+/*
 pub fn fetch_player_summaries(ctx: &Context<TournViewerComponentWrapper<PlayerView>>, id: TournamentId) {
     ctx.link().send_future(async move {
         let mut data = CLIENT
@@ -36,12 +37,13 @@ pub fn fetch_player_summaries(ctx: &Context<TournViewerComponentWrapper<PlayerVi
         PlayerViewMessage::PlayerScroll(PlayerScrollMessage::ScrollQueryReady(data))
     })
 }
+*/
 
 impl PlayerScroll {
-    pub fn new(ctx: &Context<TournViewerComponentWrapper<PlayerView>>, id: TournamentId) -> Self {
-        fetch_player_summaries(ctx, id);
+    pub fn new(process: Callback<PlayerId>, _id: TournamentId) -> Self {
+        //fetch_player_summaries(ctx, id);
         Self {
-            process: ctx.link().callback(SelectedPlayerMessage::PlayerSelected),
+            process,
             players: Vec::default(),
         }
     }
@@ -57,37 +59,6 @@ impl PlayerScroll {
     }
 
     pub fn view(&self, report: PlayerFilterReport) -> Html {
-        /*
-        let list = self
-            .rounds
-            .iter()
-            .cloned()
-            .filter_map(|r| {
-                report.matches(&r).then(|| {
-                    let cb = self.process.clone();
-                    html! {
-                        <tr onclick = { move |_| cb.emit(r.id) }>
-                            <td>{ r.match_number }</td>
-                            <td>{ r.table_number }</td>
-                            <td>{ r.status }</td>
-                        </tr>
-                    }
-                })
-            })
-            .collect::<Html>();
-        html! {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>{ "Round" }</th>
-                        <th>{ "Table" }</th>
-                        <th>{ "Status" }</th>
-                    </tr>
-                </thead>
-                <tbody> { list } </tbody>
-            </table>
-        }
-        */
         let mapper = |plyr: &PlayerSummary| {
             let cb = self.process.clone();
             let name = plyr.name.clone();

@@ -1,15 +1,15 @@
-use squire_sdk::model::{
+use squire_sdk::{model::{
     identifiers::{AdminId, TournamentId},
     operations::{AdminOp, TournOp},
     players::PlayerId,
     rounds::RoundId,
     tournament::Tournament,
-};
+}, sync::TournamentManager};
 use yew::prelude::*;
 
-use super::{PlayerView, PlayerViewMessage};
+use super::{PlayerView, PlayerViewQueryMessage};
 use crate::{
-    tournament::{model::{PlayerProfile, RoundProfile}, viewer_component::TournViewerComponentWrapper},
+    tournament::{model::{PlayerProfile, RoundProfile}, viewer_component::{InteractionResponse}},
     CLIENT,
 };
 
@@ -79,31 +79,17 @@ impl SelectedPlayer {
 
     // TODO: This should probably be generic over the context's type. Roughly, where T:
     // Component<Message = M>, M: From<... something>
-    pub fn update(&mut self, ctx: &Context<TournViewerComponentWrapper<PlayerView>>, msg: SelectedPlayerMessage) -> bool {
+    pub fn update(&mut self, msg: SelectedPlayerMessage) -> InteractionResponse<PlayerView> {
         match msg {
             SelectedPlayerMessage::PlayerSelected(p_id) => {
-                if self.player.as_ref().map(|p| p.id != p_id).unwrap_or(true) {
-                    let id = self.id;
-                    ctx.link().send_future(async move {
-                        let data = CLIENT
-                            .get()
-                            .unwrap()
-                            .query_tourn(id, move |t| {
-                                t.tourn()
-                                    .player_reg
-                                    .get_player(&p_id)
-                                    .map(|p| PlayerProfile::new(p, t))
-                            })
-                            .await
-                            .transpose()
-                            .ok()
-                            .flatten();
-                        PlayerViewMessage::SelectedPlayer(SelectedPlayerMessage::PlayerQueryReady(
-                            data,
-                        ))
-                    });
-                }
-                false
+                let q_func = move |tourn: &TournamentManager| {
+                    let player = tourn
+                        .player_reg
+                        .get_player(&p_id)
+                        .map(|p| PlayerProfile::new(p, tourn));
+                    PlayerViewQueryMessage::SelectedPlayerReady(player)
+                };
+                InteractionResponse::FetchData(Box::new(q_func))
             }
             SelectedPlayerMessage::SubviewSelected(info) => {
                 if self
@@ -111,6 +97,8 @@ impl SelectedPlayer {
                     .as_ref()
                     .map(|sv| !sv.matches(&info))
                     .unwrap_or(true)
+                {
+                /*
                 {
                     let id = self.id;
                     ctx.link().send_future(async move {
@@ -125,18 +113,26 @@ impl SelectedPlayer {
                         ))
                     })
                 }
-                false
+                false.into()
+                */
+                let q_func = |tourn: &TournamentManager| {
+                    let data = info.to_profile(tourn);
+                    PlayerViewQueryMessage::SelectedSubviewReady(data)
+                };
+                InteractionResponse::FetchData(Box::new(q_func))
+                }
+                else { false.into() }
             }
-            SelectedPlayerMessage::PlayerQueryReady(Some(data)) => self.load_player_data(data),
-            SelectedPlayerMessage::SubviewQueryReady(Some(data)) => self.load_subview_data(data),
+            SelectedPlayerMessage::PlayerQueryReady(Some(data)) => self.load_player_data(data).into(),
+            SelectedPlayerMessage::SubviewQueryReady(Some(data)) => self.load_subview_data(data).into(),
             SelectedPlayerMessage::PlayerQueryReady(None)
-            | SelectedPlayerMessage::SubviewQueryReady(None) => false,
+            | SelectedPlayerMessage::SubviewQueryReady(None) => false.into(),
             SelectedPlayerMessage::DropPlayer(pid) => {
                 CLIENT.get().unwrap().update_tourn(
                     self.id,
                     TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::AdminDropPlayer(pid)),
                 );
-                false
+                false.into()
             }
         }
     }
