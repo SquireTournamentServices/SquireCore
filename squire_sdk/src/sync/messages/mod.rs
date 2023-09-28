@@ -87,6 +87,8 @@ pub enum ClientBound {
     /// The server wishes to sync with a client. This encodes the messages the backend can send in
     /// that process.
     SyncForward((TournamentId, OpSync)),
+    /// The user's session has been expired/deleted, so their message is auto-rejected.
+    Unauthorized,
 }
 
 /// The process of syncing two instances of a tournament (between client and server) requires a

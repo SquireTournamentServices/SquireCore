@@ -30,7 +30,7 @@ use super::session::SessionWatcher;
 pub enum GatheringMessage {
     GetTournament(OneshotSender<Box<TournamentManager>>),
     NewConnection(SessionWatcher, WebSocket),
-    WebsocketMessage(AuthUser, Option<Vec<u8>>),
+    WebsocketMessage(CrierMessage),
     ResendMessage(Box<(AuthUser, ClientBoundMessage)>),
 }
 
@@ -104,11 +104,11 @@ impl ActorState for Gathering {
                             _ = self.onlookers.insert(user.clone(), onlooker);
                         }
                     }
-                    scheduler.add_stream(Crier::new(stream, session));
+                    scheduler.add_stream(Crier::new(stream, user.clone(), session));
                 }
             }
-            GatheringMessage::WebsocketMessage(user, msg) => {
-                self.process_websocket_message(scheduler, user, msg).await
+            GatheringMessage::WebsocketMessage(msg) => {
+                self.process_websocket_message(scheduler, msg).await
             }
             GatheringMessage::ResendMessage(retry) => match self.onlookers.get_mut(&retry.0) {
                 Some(onlooker) => {
@@ -147,14 +147,25 @@ impl Gathering {
     async fn process_websocket_message(
         &mut self,
         scheduler: &mut Scheduler<Self>,
-        user: AuthUser,
-        msg: Option<Vec<u8>>,
+        msg: CrierMessage,
     ) {
-        if let Some(bytes) = msg {
-            self.process_incoming_message(scheduler, user, bytes).await;
-        } else {
-            let _ = self.onlookers.remove(&user);
+        match msg {
+            CrierMessage::NoAuthMessage(user, bytes) => {
+                self.process_unauth_message(user, bytes).await
+            }
+            CrierMessage::AuthMessage(user, bytes) => {
+                self.process_incoming_message(scheduler, user, bytes).await
+            }
+            CrierMessage::ClosingFrame(user) => drop(self.onlookers.remove(&user)),
         }
+    }
+
+    async fn process_unauth_message(&mut self, user: AuthUser, bytes: Vec<u8>) {
+        let Ok(ServerBoundMessage { id, .. }) = postcard::from_bytes(&bytes) else {
+            // TODO: Send a 'failed to deserialize message' to sender?
+            return;
+        };
+        self.send_reply(user, id, SyncError::Unauthorized).await;
     }
 
     // TODO: Return a "real" value
@@ -164,14 +175,10 @@ impl Gathering {
         user: AuthUser,
         bytes: Vec<u8>,
     ) {
-        let ServerBoundMessage { id, body } =
-            match postcard::from_bytes::<ServerBoundMessage>(&bytes) {
-                Ok(val) => val,
-                Err(_) => {
-                    // TODO: Send a 'failed to deserialize message' to sender
-                    return;
-                }
-            };
+        let Ok(ServerBoundMessage { id, body }) = postcard::from_bytes(&bytes) else {
+            // TODO: Send a 'failed to deserialize message' to sender?
+            return;
+        };
         match body {
             ServerBound::Fetch => {
                 self.send_message(user, self.tourn.clone()).await;
@@ -307,9 +314,9 @@ impl Gathering {
     }
 }
 
-impl From<(AuthUser, Option<Vec<u8>>)> for GatheringMessage {
-    fn from((user, msg): (AuthUser, Option<Vec<u8>>)) -> Self {
-        Self::WebsocketMessage(user, msg)
+impl From<CrierMessage> for GatheringMessage {
+    fn from(value: CrierMessage) -> Self {
+        Self::WebsocketMessage(value)
     }
 }
 

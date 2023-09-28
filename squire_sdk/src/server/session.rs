@@ -40,6 +40,13 @@ impl SessionWatcher {
 }
 
 impl SessionWatcher {
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            *self.watcher.borrow(),
+            SquireSession::Guest(_) | SquireSession::Active(_)
+        )
+    }
+
     pub fn is_dead(&self) -> bool {
         matches!(
             *self.watcher.borrow(),

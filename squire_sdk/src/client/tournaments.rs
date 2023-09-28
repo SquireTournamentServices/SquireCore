@@ -275,6 +275,9 @@ impl ManagerState {
             ClientBound::SyncForward((t_id, sync)) => {
                 self.handle_forwarded_sync(scheduler, &t_id, id, sync).await
             }
+            ClientBound::Unauthorized => {
+                // TODO: Properly handle this. We should try to reauth or something...
+            }
         }
     }
 

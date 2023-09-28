@@ -1,5 +1,5 @@
 use std::{
-    pin::{pin, Pin},
+    pin::Pin,
     task::{Context, Poll},
 };
 
@@ -8,11 +8,11 @@ use axum::{
     Error as AxumError,
 };
 use futures::{
-    stream::{SplitSink, SplitStream, FusedStream},
-    Sink, SinkExt, Stream, StreamExt, Future,
+    stream::{FusedStream, SplitSink, SplitStream},
+    Sink, SinkExt, Stream, StreamExt,
 };
 
-use crate::{api::AuthUser, sync::ClientBoundMessage, server::session::SessionWatcher};
+use crate::{api::AuthUser, server::session::SessionWatcher, sync::ClientBoundMessage};
 
 /// This structure captures messages being sent to a person that is in some way participating in
 /// the tournament. This person could be a spectator, player, judge, or admin. Messages they pass
@@ -20,14 +20,16 @@ use crate::{api::AuthUser, sync::ClientBoundMessage, server::session::SessionWat
 #[derive(Debug)]
 pub struct Crier {
     stream: SplitStream<WebSocket>,
-    user: SessionWatcher,
+    user: AuthUser,
+    session: SessionWatcher,
     is_done: bool,
 }
 
 impl Crier {
-    pub fn new(stream: SplitStream<WebSocket>, user: SessionWatcher) -> Self {
+    pub fn new(stream: SplitStream<WebSocket>, user: AuthUser, session: SessionWatcher) -> Self {
         Self {
             stream,
+            session,
             user,
             is_done: false,
         }
@@ -51,38 +53,41 @@ impl Onlooker {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum CrierMessage {
+    NoAuthMessage(AuthUser, Vec<u8>),
+    AuthMessage(AuthUser, Vec<u8>),
+    ClosingFrame(AuthUser),
+}
+
 /// A `Crier` is a simple wrapper around an account and a websocket connection. We only support
 /// binary-encoded messages (using `postcard`). All other messages types are ignored. Moreover,
 /// this stream will send exactly one `None` value. This corresponds to the closing frame set by the
 /// Websocket when the connection is closed. After that, this stream will return `Poll::Pending`
 /// forever.
 impl Stream for Crier {
-    type Item = (AuthUser, Option<Vec<u8>>);
+    type Item = CrierMessage;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        // If the session is closed, no more messages will be processed.
-        if self.user.is_dead() {
-            self.is_done = true;
-        }
-        // If the channel is marked as done, return `Pending`.
+        // If the channel is marked as done, return `Poll::Ready(None)`, i.e. this is a fused
+        // stream.
         if self.is_done {
-            return Poll::Pending
+            return Poll::Ready(None);
         }
-        if let Some(user) = self.user.auth_user() {
-            match self.stream.poll_next_unpin(cx) {
-                Poll::Ready(Some(Ok(Message::Binary(val)))) => {
-                    Poll::Ready(Some((user, Some(val))))
-                }
-                // TODO: How should we handle errors?
-                Poll::Ready(None) | Poll::Ready(Some(Err(_))) if !self.is_done => {
-                    self.is_done = true;
-                    Poll::Ready(Some((user, None)))
-                }
-                _ => Poll::Pending,
+        match self.stream.poll_next_unpin(cx) {
+            Poll::Ready(Some(Err(_))) => Poll::Pending,
+            Poll::Ready(None) => {
+                self.is_done = true;
+                Poll::Ready(Some(CrierMessage::ClosingFrame(self.user.clone())))
             }
-        } else {
-            drop(pin!(self.user.watcher.changed()).poll(cx));
-            Poll::Pending
+            Poll::Ready(Some(Ok(Message::Binary(val)))) => {
+                if self.session.is_valid() {
+                    Poll::Ready(Some(CrierMessage::AuthMessage(self.user.clone(), val)))
+                } else {
+                    Poll::Ready(Some(CrierMessage::NoAuthMessage(self.user.clone(), val)))
+                }
+            }
+            _ => Poll::Pending,
         }
     }
 }
