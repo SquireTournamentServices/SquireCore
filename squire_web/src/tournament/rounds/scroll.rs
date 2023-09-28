@@ -4,8 +4,8 @@ use squire_sdk::model::{
 };
 use yew::prelude::*;
 
-use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
-use crate::CLIENT;
+use super::{input::RoundFilterReport, RoundsView, SelectedRoundMessage, RoundsViewMessage};
+use crate::{tournament::viewer_component::{TournViewerComponentWrapper, WrapperMessage}};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RoundScrollMessage {
@@ -18,6 +18,7 @@ pub struct RoundScroll {
     rounds: Vec<RoundSummary>,
 }
 
+/*
 fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
     ctx.link().send_future(async move {
         let mut data = CLIENT
@@ -36,20 +37,23 @@ fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
         RoundsViewMessage::RoundScroll(RoundScrollMessage::ScrollQueryReady(data))
     })
 }
+*/
 
 impl RoundScroll {
-    pub fn new(ctx: &Context<RoundsView>, id: TournamentId) -> Self {
-        fetch_round_summaries(ctx, id);
+    pub fn new(ctx: &Context<TournViewerComponentWrapper<RoundsView>>, id: TournamentId) -> Self {
+        // fetch_round_summaries(ctx, id);
         Self {
             id,
-            process: ctx.link().callback(SelectedRoundMessage::RoundSelected),
+            process: ctx.link().callback(|input| WrapperMessage::Interaction(RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundSelected(input))) ),
             rounds: Default::default(),
         }
     }
 
+    /*
     pub fn requery(&self, ctx: &Context<RoundsView>) {
-        fetch_round_summaries(ctx, self.id);
+        // fetch_round_summaries(ctx, self.id);
     }
+    */
 
     pub fn update(&mut self, msg: RoundScrollMessage) -> bool {
         match msg {
