@@ -6,8 +6,14 @@
 use std::{env, process::Command};
 
 fn main() -> Result<(), i32> {
+    if env::var("CARGO_FEATURE_IGNORE_FRONTEND").is_ok() {
+        return Ok(())
+    }
+
     let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
     let fe_path = format!("{wd}/../squire_web");
+
+    println!("cargo:rerun-if-changed={fe_path}");
 
     // Install external dependency (in the shuttle container only)
     if std::env::var("HOSTNAME")
@@ -46,9 +52,6 @@ fn main() -> Result<(), i32> {
         cmd.arg("--release");
     }
     cmd.arg(format!("{fe_path}/index.html"));
-
-    println!("cargo:rerun-if-changed={fe_path}");
-    println!("cargo:rerun-if-changed=build.rs");
 
     // If in debug mode, all for failed compilation of frontend.
     // In release mode, require that the frontend to be functional.

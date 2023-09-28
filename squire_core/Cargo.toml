@@ -7,6 +7,7 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 
 [features]
 db-tests = []
+ignore-frontend = []
 
 [dependencies]
 # In-House deps
