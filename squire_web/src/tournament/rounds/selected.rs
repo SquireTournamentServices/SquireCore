@@ -1,18 +1,17 @@
 use std::time::Duration;
 
-use squire_sdk::model::{
+use squire_sdk::{model::{
     identifiers::{AdminId, TournamentId},
-    operations::{AdminOp, JudgeOp, OpResult, TournOp},
+    operations::{AdminOp, JudgeOp, TournOp},
     rounds::{RoundId, RoundResult, RoundStatus},
-};
-use wasm_bindgen_futures::spawn_local;
+}, sync::TournamentManager};
 use yew::prelude::*;
 
 use super::{
     roundchangesbuffer::*, RoundConfirmationTicker, RoundResultTicker, RoundsView,
-    RoundsViewMessage,
+    RoundsViewMessage, RoundsViewQueryMessage,
 };
-use crate::{tournament::model::RoundProfile, CLIENT};
+use crate::{tournament::{model::RoundProfile, viewer_component::{TournViewerComponentWrapper, WrapperMessage, InteractionResponse}}, CLIENT};
 
 /// Message to be passed to the selected round
 #[derive(Debug, PartialEq, Clone)]
@@ -20,7 +19,7 @@ pub enum SelectedRoundMessage {
     RoundSelected(RoundId),
     TimerTicked(RoundId),
     /// Optional because the lookup "may" fail
-    RoundQueryReady(Option<RoundProfile>),
+    // RoundQueryReady(Option<RoundProfile>),
     BufferMessage(RoundChangesBufferMessage),
     PushChanges(RoundId),
     BulkConfirm(RoundId),
@@ -39,22 +38,22 @@ pub struct SelectedRound {
 }
 
 impl SelectedRound {
-    pub fn new(ctx: &Context<RoundsView>, t_id: TournamentId, admin_id: AdminId) -> Self {
+    pub fn new(ctx: &Context<TournViewerComponentWrapper<RoundsView>>, t_id: TournamentId, admin_id: AdminId) -> Self {
         send_ticker_future(Default::default(), ctx);
         Self {
             t_id,
             admin_id,
             round: None,
-            process: ctx.link().callback(RoundsViewMessage::SelectedRound),
+            process: ctx.link().callback(|input| WrapperMessage::Interaction(RoundsViewMessage::SelectedRound(input)) ),
         }
     }
 
     pub fn update(
         &mut self,
-        ctx: &Context<RoundsView>,
-        msg: SelectedRoundMessage,
-        send_op_result: &Callback<OpResult>,
-    ) -> bool {
+        ctx: &Context<TournViewerComponentWrapper<RoundsView>>,
+        msg: SelectedRoundMessage
+        // send_op_result: &Callback<OpResult>,
+    ) -> InteractionResponse<RoundsView> {
         match msg {
             SelectedRoundMessage::TimerTicked(r_id) => match self.round.as_ref() {
                 Some((rnd, _)) => {
@@ -62,13 +61,14 @@ impl SelectedRound {
                     if digest {
                         send_ticker_future(r_id, ctx);
                     }
-                    digest
+                    digest.into()
                 }
                 None => {
                     send_ticker_future(Default::default(), ctx);
-                    false
+                    false.into()
                 }
             },
+            /*
             SelectedRoundMessage::RoundQueryReady(rnd) => {
                 let data = rnd.map(|rnd| {
                     send_ticker_future(rnd.id, ctx);
@@ -78,6 +78,7 @@ impl SelectedRound {
                 self.round = data;
                 true
             }
+            */
             SelectedRoundMessage::RoundSelected(r_id) => {
                 if self
                     .round
@@ -85,19 +86,25 @@ impl SelectedRound {
                     .map(|(r, _)| r.id != r_id)
                     .unwrap_or(true)
                 {
-                    let id = self.t_id;
-                    self.requery(ctx, id, r_id)
+                    let q_func = move |tourn: &TournamentManager| {
+                        let data = tourn
+                            .round_reg
+                            .get_round(&r_id)
+                            .map(|r| RoundProfile::new(tourn, r));
+                        RoundsViewQueryMessage::SelectedRoundReady(data.ok())
+                    };
+                    InteractionResponse::FetchData(Box::new(q_func))
                 }
-                false
+                else { false.into() }
             }
             SelectedRoundMessage::BufferMessage(msg) => {
                 let Some((_rnd, updater)) = self.round.as_mut() else {
-                    return false;
+                    return false.into();
                 };
                 if updater.round_changes_buffer.is_some() {
-                    updater.round_changes_buffer.as_mut().unwrap().update(msg)
+                    updater.round_changes_buffer.as_mut().unwrap().update(msg).into()
                 } else {
-                    false
+                    false.into()
                 }
             }
             SelectedRoundMessage::PushChanges(rid) => {
@@ -110,7 +117,6 @@ impl SelectedRound {
                     .as_ref()
                     .unwrap();
                 let mut ops = Vec::with_capacity(rcb.win_tickers.len() + 1);
-
                 if rcb.draw_ticker.was_changed {
                     ops.push(TournOp::JudgeOp(
                         self.admin_id.clone().into(),
@@ -136,31 +142,44 @@ impl SelectedRound {
                         ),
                     ));
                 }
-
                 // Update methods return a tracker that is a future and needs to be awaited
+                /*
                 let tracker = CLIENT.get().unwrap().bulk_update(self.t_id, ops);
                 let send_op_result = send_op_result.clone();
                 spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
                 false
+                */
+                InteractionResponse::Update(ops)
             }
             SelectedRoundMessage::BulkConfirm(rid) => {
                 CLIENT.get().unwrap().update_tourn(
                     self.t_id,
                     TournOp::JudgeOp(self.admin_id.clone().into(), JudgeOp::ConfirmRound(rid)),
                 );
-                false
+                false.into()
             }
             SelectedRoundMessage::KillRound(rid) => {
                 CLIENT.get().unwrap().update_tourn(
                     self.t_id,
                     TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::RemoveRound(rid)),
                 );
-                false
+                false.into()
             }
         }
     }
 
-    fn requery(&self, ctx: &Context<RoundsView>, tid: TournamentId, r_id: RoundId) {
+    pub fn round_query_ready(&mut self, rnd: Option<RoundProfile>) {
+        let data = rnd.map(|rnd| {
+            // send_ticker_future(rnd.id, ctx);
+            let updater = RoundUpdater::new(&rnd, self.process.clone());
+            (rnd, updater)
+        });
+        self.round = data;
+    }
+
+    /*
+    fn requery(&self, ctx: &Context<TournViewerComponentWrapper<RoundsView>>, tid: TournamentId, r_id: RoundId) {
+        /*
         ctx.link().send_future(async move {
             let data = CLIENT
                 .get()
@@ -178,14 +197,25 @@ impl SelectedRound {
                 .flatten();
             RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundQueryReady(data))
         });
+        */
+        let q_func = |tourn: &TournamentManager| {
+            tourn
+                .round_reg
+                .get_round(&r_id)
+                .map(|r| RoundProfile::new(tourn, r))
+        };
+        InteractionResponse::FetchData(Box::new(q_func))
     }
+    */
 
-    pub fn try_requery_existing(&self, ctx: &Context<RoundsView>) {
+    /*
+    pub fn try_requery_existing(&self, ctx: &Context<TournViewerComponentWrapper<RoundsView>>) {
         if self.round.is_some() {
             let r_id = self.round.as_ref().unwrap().0.id;
             self.requery(ctx, self.t_id, r_id)
         }
     }
+    */
 
     pub fn view(&self) -> Html {
         let Some((rnd, updater)) = self.round.as_ref() else {
@@ -213,10 +243,10 @@ impl SelectedRound {
 }
 
 /// Called once every second; updates the timer
-fn send_ticker_future(id: RoundId, ctx: &Context<RoundsView>) {
+fn send_ticker_future(id: RoundId, ctx: &Context<TournViewerComponentWrapper<RoundsView>>) {
     ctx.link().send_future(async move {
         async_std::task::sleep(std::time::Duration::from_secs(1)).await;
-        RoundsViewMessage::SelectedRound(SelectedRoundMessage::TimerTicked(id))
+        WrapperMessage::Interaction(RoundsViewMessage::SelectedRound(SelectedRoundMessage::TimerTicked(id)))
     });
 }
 
