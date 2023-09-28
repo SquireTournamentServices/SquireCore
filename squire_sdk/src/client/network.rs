@@ -50,10 +50,10 @@ impl ActorState for NetworkState {
     type Message = NetworkCommand;
 
     async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
-        scheduler.add_task(
-            self.post_request(GuestSession, [])
-                .map(|resp| resp.map(|resp| SessionToken::try_from(resp.headers()).ok())),
-        );
+        let resp = self.post_request(GuestSession, [])
+            .map(|resp| resp.map(|resp| SessionToken::try_from(resp.headers()).ok()))
+            .await;
+        self.process(scheduler, resp.into()).await;
     }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
@@ -83,13 +83,15 @@ impl ActorState for NetworkState {
             }
             NetworkCommand::OpenWebsocket(id, send) => {
                 let url = match self.token.as_ref() {
-                    Some(token) => format!("ws{HOST_ADDRESS}/api/v1/tournaments/subscribe/other/{id}?session={token}"),
+                    Some(token) => format!(
+                        "ws{HOST_ADDRESS}/api/v1/tournaments/subscribe/other/{id}?session={token}"
+                    ),
                     None => format!(
                         "ws{HOST_ADDRESS}{}",
                         Subscribe::ROUTE.replace([id.to_string().as_str()])
                     ),
                 };
-                log("Sending WS request to: {url}");
+                log(&format!("Sending WS request to: {url:?}"));
                 drop(send.send(Websocket::new(&url).await.ok()));
             }
         }
