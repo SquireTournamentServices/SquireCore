@@ -46,8 +46,8 @@ impl PlayerFilterInput {
 impl PlayerFilterInput {
     pub fn new(
         process: Callback<PlayerFilterInputMessage>,
-        id: TournamentId,
-        admin_id: AdminId,
+        _id: TournamentId,
+        _admin_id: AdminId,
     ) -> Self {
         Self {
             name: None,
@@ -77,7 +77,7 @@ impl PlayerFilterInput {
                 if self.guest_name.is_none() {
                     return false;
                 };
-                let tracker = CLIENT.get().unwrap().update_tourn(
+                let _tracker = CLIENT.get().unwrap().update_tourn(
                     state.t_id,
                     TournOp::JudgeOp(
                         state.a_id.into(),
