@@ -1,6 +1,7 @@
-use squire_sdk::{model::{
-    identifiers::{AdminId, TournamentId}, operations::{TournOp, AdminOp},
-}, sync::TournamentManager};
+use squire_sdk::{
+    model::{identifiers::TournamentId, operations::AdminOp},
+    sync::TournamentManager,
+};
 use yew::prelude::*;
 
 pub mod creator;
@@ -17,7 +18,10 @@ pub use roundresultticker::*;
 pub use scroll::*;
 pub use selected::*;
 
-use super::{viewer_component::{TournViewerComponent, WrapperMessage, InteractionResponse}, model::RoundProfile};
+use super::{
+    model::RoundProfile,
+    viewer_component::{Op, TournViewerComponent, WrapperMessage},
+};
 
 #[derive(Debug, PartialEq, Properties, Clone)]
 pub struct RoundsFilterProps {}
@@ -37,12 +41,11 @@ pub enum RoundsViewQueryMessage {
 }
 
 pub struct RoundsViewQueryData {
-    rounds: Vec<RoundSummary>
+    rounds: Vec<RoundSummary>,
 }
 
 pub struct RoundsView {
     pub id: TournamentId,
-    pub admin_id: AdminId,
     input: RoundFilterInput,
     scroll: RoundScroll,
     selected: SelectedRound,
@@ -53,117 +56,46 @@ impl TournViewerComponent for RoundsView {
     type InteractionMessage = RoundsViewMessage;
     type QueryMessage = RoundsViewQueryMessage;
 
-    /*
-    fn create(ctx: &Context<Self>) -> Self {
-        spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
-        let RoundsFilterProps {
-            id,
-            admin_id,
-            send_op_result,
-        } = ctx.props().clone();
-        Self {
-            id,
-            send_op_result,
-            input: RoundFilterInput::new(ctx.link().callback(RoundsViewMessage::FilterInput)),
-            scroll: RoundScroll::new(ctx, id),
-            admin_id,
-            selected: SelectedRound::new(ctx, id, admin_id),
-        }
-    }
-
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            RoundsViewMessage::FilterInput(msg) => self.input.update(msg),
-            RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg),
-            RoundsViewMessage::SelectedRound(msg) => {
-                self.selected.update(ctx, msg, &self.send_op_result)
-            }
-            RoundsViewMessage::ReQuery => {
-                spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
-                self.scroll.requery(ctx);
-                self.selected.try_requery_existing(ctx);
-                false
-            }
-            RoundsViewMessage::BulkConfirmation => {
-                let tracker = CLIENT.get().unwrap().update_tourn(
-                    self.id,
-                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::ConfirmAllRounds),
-                );
-                let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
-                false
-            }
-        }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let cb = ctx.link().callback(|_| RoundsViewMessage::BulkConfirmation);
-        html! {
-            <div>
-                <div class="row">
-                    <div class="col">{ self.input.view() }</div>
-                    <div class="col"><button onclick={cb}>{"Confirm all rounds"}</button></div>
-                </div>
-                <div class="d-flex flex-row my-4">
-                    <div>
-                        <div class="overflow-auto player-scroll-box px-4">
-                            { self.scroll.view(self.input.get_report()) }
-                        </div>
-                    </div>
-                    <div> { self.selected.view() } </div>
-                </div>
-            </div>
-        }
-    }
-    */
-
-    fn v_create(ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>, state: &super::viewer_component::WrapperState) -> Self {
+    fn v_create(
+        ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
+        state: &super::viewer_component::WrapperState,
+    ) -> Self {
         Self {
             id: state.t_id,
-            input: RoundFilterInput::new(ctx.link().callback(|input| WrapperMessage::Interaction(RoundsViewMessage::FilterInput(input))) ),
+            input: RoundFilterInput::new(ctx.link().callback(|input| {
+                WrapperMessage::Interaction(RoundsViewMessage::FilterInput(input))
+            })),
             scroll: RoundScroll::new(ctx, state.t_id),
-            admin_id: state.a_id,
-            selected: SelectedRound::new(ctx, state.t_id, state.a_id),
+            selected: SelectedRound::new(ctx, state.t_id),
         }
     }
 
     fn interaction(
-            &mut self,
-            ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
-            msg: Self::InteractionMessage,
-            _state: &super::viewer_component::WrapperState,
-        ) -> super::viewer_component::InteractionResponse<Self> {
-            match msg {
-                RoundsViewMessage::FilterInput(msg) => self.input.update(msg).into(),
-                RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg).into(),
-                RoundsViewMessage::SelectedRound(msg) => {
-                    self.selected.update(ctx, msg).into()
-                }
-                /*
-                RoundsViewMessage::ReQuery => {
-                    spawn_update_listener(ctx, RoundsViewMessage::ReQuery);
-                    self.scroll.requery(ctx);
-                    self.selected.try_requery_existing(ctx);
-                    false
-                }
-                */
-                RoundsViewMessage::BulkConfirmation => {
-                    /*
-                    let tracker = CLIENT.get().unwrap().update_tourn(
-                        self.id,
-                        TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::ConfirmAllRounds),
-                    );
-                    let send_op_result = self.send_op_result.clone();
-                    spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
-                    false
-                    */
+        &mut self,
+        ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
+        msg: Self::InteractionMessage,
+        state: &super::viewer_component::WrapperState,
+    ) -> super::viewer_component::InteractionResponse<Self> {
+        match msg {
+            RoundsViewMessage::FilterInput(msg) => self.input.update(msg).into(),
+            RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg).into(),
+            RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg, state).into(),
+            /*
+            RoundsViewMessage::BulkConfirmation => state
+                .get_user_id()
+                .map(|user_id| {
                     let ops = vec![TournOp::AdminOp(
-                        self.admin_id.clone().into(),
+                        user_id.convert(),
                         AdminOp::ConfirmAllRounds,
                     )];
                     InteractionResponse::Update(ops)
-                }
+                })
+                .unwrap_or_default(),
+            */
+            RoundsViewMessage::BulkConfirmation => {
+                state.op_response(vec![Op::Admin(AdminOp::ConfirmAllRounds)])
             }
+        }
     }
 
     fn query(
@@ -172,24 +104,28 @@ impl TournViewerComponent for RoundsView {
         _state: &super::viewer_component::WrapperState,
     ) -> super::viewer_component::TournQuery<Self::QueryMessage> {
         let q_func = |tourn: &TournamentManager| {
-            let rounds : Vec<RoundSummary> = tourn
-            .round_reg
-            .rounds
-            .values()
-            .map(RoundSummary::new)
-            .collect();
-            Self::QueryMessage::AllDataReady(RoundsViewQueryData {
-                rounds
-            })
+            let mut rounds: Vec<RoundSummary> = tourn
+                .round_reg
+                .rounds
+                .values()
+                .map(RoundSummary::new)
+                .collect();
+            rounds.sort_by_cached_key(|r| r.table_number);
+            rounds.sort_by_cached_key(|r| r.status);
+            Self::QueryMessage::AllDataReady(RoundsViewQueryData { rounds })
         };
         Box::new(q_func)
     }
 
-    fn load_queried_data(&mut self, msg: Self::QueryMessage, _state: &super::viewer_component::WrapperState) -> bool {
+    fn load_queried_data(
+        &mut self,
+        msg: Self::QueryMessage,
+        _state: &super::viewer_component::WrapperState,
+    ) -> bool {
         match msg {
-            RoundsViewQueryMessage::AllDataReady(data) => {
-                self.scroll.update(RoundScrollMessage::ScrollQueryReady(data.rounds))
-            }
+            RoundsViewQueryMessage::AllDataReady(data) => self
+                .scroll
+                .update(RoundScrollMessage::ScrollQueryReady(data.rounds)),
             RoundsViewQueryMessage::SelectedRoundReady(rnd) => {
                 self.selected.round_query_ready(rnd);
                 true
@@ -202,7 +138,9 @@ impl TournViewerComponent for RoundsView {
         ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
         _state: &super::viewer_component::WrapperState,
     ) -> yew::Html {
-        let cb = ctx.link().callback(|_| WrapperMessage::Interaction(RoundsViewMessage::BulkConfirmation) );
+        let cb = ctx
+            .link()
+            .callback(|_| WrapperMessage::Interaction(RoundsViewMessage::BulkConfirmation));
         html! {
             <div>
                 <div class="row">

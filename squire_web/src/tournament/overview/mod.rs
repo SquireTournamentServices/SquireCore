@@ -1,11 +1,9 @@
-use std::time::Duration;
-
 use squire_sdk::{
     model::{
         identifiers::TournamentId, players::PlayerStatus, rounds::RoundStatus,
         tournament::TournamentStatus,
     },
-    sync::TournamentManager, compat::sleep,
+    sync::TournamentManager,
 };
 use yew::prelude::*;
 

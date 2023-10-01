@@ -1,15 +1,16 @@
 use std::borrow::Cow;
 
 use squire_sdk::model::{
-    identifiers::AdminId,
-    operations::{JudgeOp, TournOp},
+    operations::JudgeOp,
     players::PlayerId,
     rounds::{RoundId, RoundResult},
 };
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::rounds::roundchangesbuffer::RoundChangesBufferMessage;
+use crate::tournament::{
+    rounds::roundchangesbuffer::RoundChangesBufferMessage, viewer_component::Op,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a result and associated changes to that result
@@ -44,14 +45,14 @@ impl RoundResultTicker {
         }
     }
 
-    pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
+    pub fn into_op(&self, rid: RoundId) -> Option<Op> {
         if !self.was_changed {
             return None;
         }
-        Some(TournOp::JudgeOp(
-            admin_id.clone().into(),
-            JudgeOp::AdminRecordResult(rid, self.stored_result),
-        ))
+        Some(Op::Judge(JudgeOp::AdminRecordResult(
+            rid,
+            self.stored_result,
+        )))
     }
 
     pub fn update(&mut self, msg: RoundResultTickerMessage) -> bool {

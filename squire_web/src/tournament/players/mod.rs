@@ -1,6 +1,7 @@
-use squire_sdk::{model::{
-    identifiers::{AdminId, TournamentId}, error::TournamentError,
-}, sync::TournamentManager};
+use squire_sdk::{
+    model::{error::TournamentError, identifiers::TournamentId},
+    sync::TournamentManager,
+};
 use yew::prelude::*;
 
 pub mod creator;
@@ -12,13 +13,19 @@ pub use input::*;
 pub use scroll::*;
 pub use selected::*;
 
-use super::{viewer_component::{TournViewerComponent, WrapperState, TournViewerComponentWrapper, TournQuery, InteractionResponse, WrapperMessage}, model::PlayerProfile};
+use super::{
+    model::PlayerProfile,
+    viewer_component::{
+        InteractionResponse, TournQuery, TournViewerComponent, TournViewerComponentWrapper,
+        WrapperMessage, WrapperState,
+    },
+};
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerViewProps {
-//    pub id: TournamentId,
-//    pub admin_id: AdminId,
-//    pub send_op_result: Callback<OpResult>,
+    //    pub id: TournamentId,
+    //    pub admin_id: AdminId,
+    //    pub send_op_result: Callback<OpResult>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -30,15 +37,14 @@ pub enum PlayerViewMessage {
 pub enum PlayerViewQueryMessage {
     AllDataReady(PlayerViewQueryData),
     SelectedPlayerReady(Result<PlayerProfile, TournamentError>),
-    SelectedSubviewReady(Option<SubviewProfile>)
+    SelectedSubviewReady(Option<SubviewProfile>),
 }
 pub struct PlayerViewQueryData {
-    players: Vec<PlayerSummary>
+    players: Vec<PlayerSummary>,
 }
 
 pub struct PlayerView {
     pub id: TournamentId,
-    pub admin_id: AdminId,
     input: PlayerFilterInput,
     scroll: PlayerScroll,
     selected: SelectedPlayer,
@@ -51,23 +57,27 @@ impl TournViewerComponent for PlayerView {
 
     fn v_create(ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
         let id = state.t_id.clone();
-        let admin_id = state.a_id.clone();
         Self {
             id,
-            admin_id,
             input: PlayerFilterInput::new(
-                ctx.link().callback(|input| WrapperMessage::Interaction(PlayerViewMessage::FilterInput(input))),
+                ctx.link().callback(|input| {
+                    WrapperMessage::Interaction(PlayerViewMessage::FilterInput(input))
+                }),
                 id,
-                admin_id,
             ),
             scroll: PlayerScroll::new(
-                ctx.link().callback(|input| WrapperMessage::Interaction(PlayerViewMessage::SelectedPlayer(SelectedPlayerMessage::PlayerSelected(input)))), 
-                id
+                ctx.link().callback(|input| {
+                    WrapperMessage::Interaction(PlayerViewMessage::SelectedPlayer(
+                        SelectedPlayerMessage::PlayerSelected(input),
+                    ))
+                }),
+                id,
             ),
             selected: SelectedPlayer::new(
-                ctx.link().callback(|input| WrapperMessage::Interaction(PlayerViewMessage::SelectedPlayer(input))),
+                ctx.link().callback(|input| {
+                    WrapperMessage::Interaction(PlayerViewMessage::SelectedPlayer(input))
+                }),
                 id,
-                admin_id,
             ),
         }
     }
@@ -78,30 +88,32 @@ impl TournViewerComponent for PlayerView {
         _state: &WrapperState,
     ) -> TournQuery<Self::QueryMessage> {
         let q_func = |tourn: &TournamentManager| {
-            let players : Vec<PlayerSummary> = tourn
-            .player_reg
-            .players
-            .values()
-            .map(PlayerSummary::new)
-            .collect();
-            Self::QueryMessage::AllDataReady(PlayerViewQueryData {
-                players
-            })
+            let mut players: Vec<PlayerSummary> = tourn
+                .player_reg
+                .players
+                .values()
+                .map(PlayerSummary::new)
+                .collect();
+            players.sort_by_cached_key(|p| p.name.clone());
+            players.sort_by_cached_key(|p| p.status);
+            Self::QueryMessage::AllDataReady(PlayerViewQueryData { players })
         };
         Box::new(q_func)
     }
 
-    fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
-        match _msg {
-            PlayerViewQueryMessage::AllDataReady(data) => {
-                self.scroll.update(PlayerScrollMessage::ScrollQueryReady(data.players))
-            }
+    fn load_queried_data(&mut self, msg: Self::QueryMessage, state: &WrapperState) -> bool {
+        match msg {
+            PlayerViewQueryMessage::AllDataReady(data) => self
+                .scroll
+                .update(PlayerScrollMessage::ScrollQueryReady(data.players)),
             PlayerViewQueryMessage::SelectedPlayerReady(result) => {
-                self.selected.update(SelectedPlayerMessage::PlayerQueryReady(result.ok()));
+                self.selected
+                    .update(SelectedPlayerMessage::PlayerQueryReady(result.ok()), state);
                 true
             }
             PlayerViewQueryMessage::SelectedSubviewReady(profile) => {
-                self.selected.update(SelectedPlayerMessage::SubviewQueryReady(profile));
+                self.selected
+                    .update(SelectedPlayerMessage::SubviewQueryReady(profile), state);
                 true
             }
         }
@@ -117,9 +129,8 @@ impl TournViewerComponent for PlayerView {
             PlayerViewMessage::FilterInput(msg) => self.input.update(msg, _state).into(),
             PlayerViewMessage::SelectedPlayer(msg) => {
                 //_ctx.link().send_message(PlayerViewMessage::ReQuery);
-                self.selected.update(msg)
-            }
-            // PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg).into(),
+                self.selected.update(msg, _state)
+            } // PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg).into(),
         }
     }
 

@@ -44,7 +44,7 @@ pub struct TournamentViewer {
     pub mode: Option<TournViewMode>,
     listener: Option<Receiver<()>>,
     tourn_name: String,
-    admin_id: AdminId,
+    // admin_id: AdminId,
     error_message: String,
 }
 
@@ -80,27 +80,27 @@ impl TournamentViewer {
             }
             Some(TournViewMode::Overview) => {
                 let inner_props = OverviewProps {};
-                html!( <TournViewerComponentWrapper<TournOverview> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
+                html!( <TournViewerComponentWrapper<TournOverview> t_id = {self.id } props = {inner_props} /> )
             }
             Some(TournViewMode::Players) => {
                 let inner_props = PlayerViewProps {};
-                html!( <TournViewerComponentWrapper<PlayerView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
+                html!( <TournViewerComponentWrapper<PlayerView> t_id = {self.id } props = {inner_props} /> )
             }
             Some(TournViewMode::Rounds) => {
                 let inner_props = RoundsFilterProps {};
-                html!( <TournViewerComponentWrapper<RoundsView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
+                html!( <TournViewerComponentWrapper<RoundsView> t_id = {self.id } props = {inner_props} /> )
             }
             Some(TournViewMode::Pairings) => {
                 let inner_props = PairingsViewProps {};
-                html!( <TournViewerComponentWrapper<PairingsView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
+                html!( <TournViewerComponentWrapper<PairingsView> t_id = {self.id } props = {inner_props} /> )
             }
             Some(TournViewMode::Standings) => {
                 let inner_props = StandingsProps {};
-                html!( <TournViewerComponentWrapper<StandingsView> t_id = {self.id } a_id = { self.admin_id } props = {inner_props} /> )
+                html!( <TournViewerComponentWrapper<StandingsView> t_id = {self.id } props = {inner_props} /> )
             }
             Some(TournViewMode::Settings) => {
                 let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
-                html! { <SettingsView id = { self.id } admin_id = { self.admin_id } send_op_result = { send_op_result } /> }
+                html! { <SettingsView id = { self.id } admin_id = { AdminId::default() } send_op_result = { send_op_result } /> }
             }
         }
     }
@@ -121,7 +121,7 @@ impl Component for TournamentViewer {
             id,
             mode: None,
             tourn_name: String::new(),
-            admin_id: AdminId::default(),
+            // admin_id: AdminId::default(),
             error_message: "no message".to_owned(),
             listener: None,
         }
@@ -153,10 +153,10 @@ impl Component for TournamentViewer {
                 });
                 false
             }
-            TournViewMessage::QueryReady(Some((name, admin_id))) => {
+            TournViewMessage::QueryReady(Some((name, _admin_id))) => {
                 let digest = self.tourn_name != name;
                 self.tourn_name = name;
-                self.admin_id = admin_id;
+                // self.admin_id = admin_id;
                 self.mode = Some(TournViewMode::Overview);
                 digest
             }
