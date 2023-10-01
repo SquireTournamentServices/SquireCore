@@ -4,8 +4,8 @@ use squire_sdk::model::{
 };
 use yew::prelude::*;
 
-use super::{input::RoundFilterReport, RoundsView, SelectedRoundMessage, RoundsViewMessage};
-use crate::{tournament::viewer_component::{TournViewerComponentWrapper, WrapperMessage}};
+use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
+use crate::tournament::viewer_component::{TournViewerComponentWrapper, WrapperMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RoundScrollMessage {
@@ -44,7 +44,11 @@ impl RoundScroll {
         // fetch_round_summaries(ctx, id);
         Self {
             id,
-            process: ctx.link().callback(|input| WrapperMessage::Interaction(RoundsViewMessage::SelectedRound(SelectedRoundMessage::RoundSelected(input))) ),
+            process: ctx.link().callback(|input| {
+                WrapperMessage::Interaction(RoundsViewMessage::SelectedRound(
+                    SelectedRoundMessage::RoundSelected(input),
+                ))
+            }),
             rounds: Default::default(),
         }
     }

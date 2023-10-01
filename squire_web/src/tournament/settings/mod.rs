@@ -54,7 +54,6 @@ impl SettingsView {
                 .get()
                 .unwrap()
                 .query_tourn(id, |tourn| tourn.settings())
-
                 .await
                 .unwrap_or_else(TournamentSettingsTree::new);
             SettingsMessage::QueryReady(Box::new(settings))

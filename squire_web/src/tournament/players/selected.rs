@@ -1,16 +1,16 @@
-use squire_sdk::{model::{
-    identifiers::{AdminId, TournamentId},
-    operations::{AdminOp, TournOp},
-    players::PlayerId,
-    rounds::RoundId,
-    tournament::Tournament,
-}, sync::TournamentManager};
+use squire_sdk::{
+    model::{
+        identifiers::TournamentId, operations::AdminOp, players::PlayerId, rounds::RoundId,
+        tournament::Tournament,
+    },
+    sync::TournamentManager,
+};
 use yew::prelude::*;
 
 use super::{PlayerView, PlayerViewQueryMessage};
-use crate::{
-    tournament::{model::{PlayerProfile, RoundProfile}, viewer_component::{InteractionResponse}},
-    CLIENT,
+use crate::tournament::{
+    model::{PlayerProfile, RoundProfile},
+    viewer_component::{InteractionResponse, Op, WrapperState},
 };
 
 /// The set of data needed by the UI to display a deck. Should be capable of rendering itself in
@@ -47,21 +47,15 @@ pub enum SelectedPlayerMessage {
 pub struct SelectedPlayer {
     pub process: Callback<SelectedPlayerMessage>,
     pub id: TournamentId,
-    admin_id: AdminId,
     player: Option<PlayerProfile>,
     subview: Option<SubviewProfile>,
 }
 
 impl SelectedPlayer {
-    pub fn new(
-        process: Callback<SelectedPlayerMessage>,
-        id: TournamentId,
-        admin_id: AdminId,
-    ) -> Self {
+    pub fn new(process: Callback<SelectedPlayerMessage>, id: TournamentId) -> Self {
         Self {
             process,
             id,
-            admin_id,
             player: None,
             subview: None,
         }
@@ -79,7 +73,11 @@ impl SelectedPlayer {
 
     // TODO: This should probably be generic over the context's type. Roughly, where T:
     // Component<Message = M>, M: From<... something>
-    pub fn update(&mut self, msg: SelectedPlayerMessage) -> InteractionResponse<PlayerView> {
+    pub fn update(
+        &mut self,
+        msg: SelectedPlayerMessage,
+        state: &WrapperState,
+    ) -> InteractionResponse<PlayerView> {
         match msg {
             SelectedPlayerMessage::PlayerSelected(p_id) => {
                 let q_func = move |tourn: &TournamentManager| {
@@ -98,41 +96,49 @@ impl SelectedPlayer {
                     .map(|sv| !sv.matches(&info))
                     .unwrap_or(true)
                 {
-                /*
-                {
-                    let id = self.id;
-                    ctx.link().send_future(async move {
-                        let data = CLIENT
-                            .get()
-                            .unwrap()
-                            .query_tourn(id, |t| info.to_profile(t.tourn()))
-                            .await
-                            .flatten();
-                        PlayerViewMessage::SelectedPlayer(SelectedPlayerMessage::SubviewQueryReady(
-                            data,
-                        ))
-                    })
+                    /*
+                    {
+                        let id = self.id;
+                        ctx.link().send_future(async move {
+                            let data = CLIENT
+                                .get()
+                                .unwrap()
+                                .query_tourn(id, |t| info.to_profile(t.tourn()))
+                                .await
+                                .flatten();
+                            PlayerViewMessage::SelectedPlayer(SelectedPlayerMessage::SubviewQueryReady(
+                                data,
+                            ))
+                        })
+                    }
+                    false.into()
+                    */
+                    let q_func = |tourn: &TournamentManager| {
+                        let data = info.to_profile(tourn);
+                        PlayerViewQueryMessage::SelectedSubviewReady(data)
+                    };
+                    InteractionResponse::FetchData(Box::new(q_func))
+                } else {
+                    false.into()
                 }
-                false.into()
-                */
-                let q_func = |tourn: &TournamentManager| {
-                    let data = info.to_profile(tourn);
-                    PlayerViewQueryMessage::SelectedSubviewReady(data)
-                };
-                InteractionResponse::FetchData(Box::new(q_func))
-                }
-                else { false.into() }
             }
-            SelectedPlayerMessage::PlayerQueryReady(Some(data)) => self.load_player_data(data).into(),
-            SelectedPlayerMessage::SubviewQueryReady(Some(data)) => self.load_subview_data(data).into(),
+            SelectedPlayerMessage::PlayerQueryReady(Some(data)) => {
+                self.load_player_data(data).into()
+            }
+            SelectedPlayerMessage::SubviewQueryReady(Some(data)) => {
+                self.load_subview_data(data).into()
+            }
             SelectedPlayerMessage::PlayerQueryReady(None)
             | SelectedPlayerMessage::SubviewQueryReady(None) => false.into(),
             SelectedPlayerMessage::DropPlayer(pid) => {
+                /*
                 CLIENT.get().unwrap().update_tourn(
                     self.id,
-                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::AdminDropPlayer(pid)),
+                    TournOp::AdminOp(state.get_user_id().convert(), AdminOp::AdminDropPlayer(pid)),
                 );
                 false.into()
+                */
+                state.op_response(vec![Op::Admin(AdminOp::AdminDropPlayer(pid))])
             }
         }
     }

@@ -106,6 +106,10 @@ impl<T> TypeId<T> {
     pub fn new(id: Uuid) -> Self {
         Self(id, PhantomData)
     }
+    /// Converts type id into another type id of type U
+    pub fn convert<U>(self) -> TypeId<U> {
+        TypeId::<U>::new(self.0)
+    }
 }
 
 impl<T> Default for TypeId<T> {

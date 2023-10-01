@@ -1,13 +1,10 @@
-use squire_sdk::model::{
-    identifiers::AdminId,
-    operations::{JudgeOp, TournOp},
-    players::PlayerId,
-    rounds::RoundId,
-};
+use squire_sdk::model::{operations::JudgeOp, players::PlayerId, rounds::RoundId};
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::rounds::roundchangesbuffer::RoundChangesBufferMessage;
+use crate::tournament::{
+    rounds::roundchangesbuffer::RoundChangesBufferMessage, viewer_component::Op,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a confirmation for a player
@@ -43,14 +40,10 @@ impl RoundConfirmationTicker {
         }
     }
 
-    pub fn into_op(&self, admin_id: AdminId, rid: RoundId) -> Option<TournOp> {
+    pub fn into_op(&self, rid: RoundId) -> Option<Op> {
         // AdminConfirmResult(RoundId, PlayerId)
-        (self.currently_confirmed && !self.pre_confirmed).then(|| {
-            TournOp::JudgeOp(
-                admin_id.clone().into(),
-                JudgeOp::AdminConfirmResult(rid, self.pid.clone()),
-            )
-        })
+        (self.currently_confirmed && !self.pre_confirmed)
+            .then(|| Op::Judge(JudgeOp::AdminConfirmResult(rid, self.pid.clone())))
     }
 
     pub fn update(&mut self, msg: RoundConfirmationTickerMessage) -> bool {

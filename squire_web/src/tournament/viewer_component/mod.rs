@@ -1,8 +1,9 @@
 use squire_sdk::{
     client::SquireClient,
     model::{
-        identifiers::AdminId,
-        operations::{OpResult, TournOp},
+        admin::TournOfficialId,
+        identifiers::SquireAccountId,
+        operations::{AdminOp, JudgeOp, OpResult, TournOp},
         tournament::TournamentId,
     },
     sync::TournamentManager,
@@ -21,11 +22,37 @@ pub struct TournViewerComponentWrapper<T> {
     error_message: String,
     comp: T,
 }
+pub enum Op {
+    Admin(AdminOp),
+    Judge(JudgeOp),
+}
 pub struct WrapperState {
-    pub a_id: AdminId,
+    // pub u_id: SquireAccountId,
     pub t_id: TournamentId,
     pub send_op_result: Callback<OpResult>,
     pub client: &'static SquireClient,
+}
+impl WrapperState {
+    pub fn get_user_id(&self) -> Option<SquireAccountId> {
+        self.client.get_user().map(|acc| acc.id)
+    }
+    pub fn op_response<T: TournViewerComponent>(
+        &self,
+        operations: Vec<Op>,
+    ) -> InteractionResponse<T> {
+        self.get_user_id()
+            .map(|user_id| {
+                let mut ops: Vec<TournOp> = Vec::new();
+                ops.extend(operations.into_iter().map(|op| match op {
+                    Op::Admin(a_op) => TournOp::AdminOp(user_id.convert(), a_op),
+                    Op::Judge(j_op) => {
+                        TournOp::JudgeOp(TournOfficialId::Judge(user_id.convert()), j_op)
+                    }
+                }));
+                InteractionResponse::Update(ops)
+            })
+            .unwrap_or_default()
+    }
 }
 pub enum InteractionResponse<T>
 where
@@ -34,6 +61,7 @@ where
     Redraw(bool),
     Update(Vec<TournOp>), // <- We probably want to pass in a client Update type instead
     FetchData(TournQuery<T::QueryMessage>),
+    NoOp,
 }
 pub enum WrapperMessage<T>
 where
@@ -58,7 +86,6 @@ where
     P: PartialEq,
 {
     pub t_id: TournamentId,
-    pub a_id: AdminId,
     pub props: P,
 }
 impl<T> Component for TournViewerComponentWrapper<T>
@@ -70,7 +97,7 @@ where
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let state = WrapperState {
-            a_id: ctx.props().a_id,
+            // a_id: ctx.props().a_id,
             t_id: ctx.props().t_id,
             send_op_result: ctx.link().callback(WrapperMessage::ReceiveOpResult),
             client: CLIENT.get().unwrap(),
@@ -109,6 +136,7 @@ where
                         self.query_tourn(ctx, q_func);
                         true
                     }
+                    InteractionResponse::NoOp => false,
                 }
             }
             WrapperMessage::ReQuery => {
@@ -225,3 +253,9 @@ impl<T: TournViewerComponent> From<T::InteractionMessage> for WrapperMessage<T> 
 */
 
 // yew::Context<TournViewerComponentWrapper<T>> -> yew::Context<T>
+
+impl<T: TournViewerComponent> Default for InteractionResponse<T> {
+    fn default() -> Self {
+        Self::NoOp
+    }
+}

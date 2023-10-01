@@ -6,7 +6,7 @@ use std::{
 use futures::Future;
 use instant::{Duration, Instant};
 use pin_project::pin_project;
-use squire_lib::accounts::SquireAccount;
+use squire_lib::{accounts::SquireAccount, identifiers::SquireAccountId};
 use tokio::sync::watch::{channel, Receiver as Watcher, Sender as Broadcaster};
 
 use crate::compat::{sleep_until, Sleep};
@@ -120,6 +120,14 @@ impl SessionWatcher {
 
     pub fn session_info(&self) -> SessionInfo {
         self.recv.borrow().clone()
+    }
+
+    pub fn get_squire_account_id(&self) -> Option<SquireAccountId> {
+        let acc_option = self.session_info().get_user();
+        match acc_option {
+            Some(acc) => Some(acc.id),
+            None => None
+        }
     }
 }
 

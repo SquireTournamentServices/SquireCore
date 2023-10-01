@@ -2,7 +2,6 @@ use std::{borrow::Cow, collections::HashMap};
 
 use squire_sdk::{
     model::{
-        identifiers::AdminId,
         operations::{AdminOp, TournOp},
         pairings::Pairings,
         players::PlayerId,
@@ -14,7 +13,7 @@ use squire_sdk::{
 use yew::{prelude::*, virtual_dom::VNode};
 
 use super::viewer_component::{
-    InteractionResponse, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
+    InteractionResponse, Op, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
     WrapperState,
 };
 use crate::utils::{generic_popout_window, generic_scroll_vnode, TextInput};
@@ -63,12 +62,6 @@ pub enum PairingsViewMessage {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum PairingsQueryMessage {
-    /* Data ready */
-    /*
-    MatchSizeReady(u8),
-    PlayerNamesReady(HashMap<PlayerId, String>),
-    ActiveRoundsReady(Vec<ActiveRoundSummary>),
-    */
     PairingsReady(PairingsWrapper),
     AllDataReady(PairingsQueryData),
 }
@@ -88,14 +81,7 @@ pub enum PairingsViewMode {
 
 pub struct PairingsView {
     pub id: TournamentId,
-    pub admin_id: AdminId,
-    // names: Option<HashMap<PlayerId, String>>,
-    // send_names: Callback<HashMap<PlayerId, String>>,
     pairings: Option<PairingsWrapper>,
-    // active: Option<Vec<ActiveRoundSummary>>,
-    // send_active: Callback<Vec<ActiveRoundSummary>>,
-    // max_player_count: Option<u8>,
-    // send_max_player_count: Callback<u8>,
     mode: PairingsViewMode,
     single_round_inputs: Vec<String>,
     single_bye_input: String,
@@ -108,34 +94,13 @@ impl TournViewerComponent for PairingsView {
     type QueryMessage = PairingsQueryMessage;
 
     fn v_create(ctx: &Context<TournViewerComponentWrapper<Self>>, _state: &WrapperState) -> Self {
-        //spawn_update_listener(ctx, PairingsViewMessage::PairingsReady() );
-        /*
-        let WrapperProps<PairingsViewProps> {
-            id,
-            admin_id,
-            send_op_result,
-            props
-        } = ctx.props().props.clone();
-        */
         let to_return = Self {
             id: ctx.props().t_id,
-            admin_id: ctx.props().a_id,
-            /*
-            names: None,
-            send_names: ctx.link().callback(WrapperMessage::Interaction(PairingsViewMessage::PlayerNamesReady) ),
-            pairings: None,
-            send_pairings: ctx.link().callback(PairingsViewMessage::PairingsReady),
-            active: None,
-            send_active: ctx.link().callback(PairingsViewMessage::ActiveRoundsReady),
-            max_player_count: None,
-            send_max_player_count: ctx.link().callback(PairingsViewMessage::MatchSizeReady),
-            */
             mode: PairingsViewMode::CreatePairings,
             single_round_inputs: Vec::new(),
             single_bye_input: "".to_string(),
             query_data: None,
             pairings: None,
-            // send_query_data: ctx.link().callback( WrapperMessage::QueryData(PairingsQueryMessage::AllDataReady) ),
         };
         to_return
     }
@@ -179,25 +144,6 @@ impl TournViewerComponent for PairingsView {
 
     fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
         match _msg {
-            /*
-            PairingsQueryMessage::MatchSizeReady(msize) => {
-                self.max_player_count = Some(msize);
-                self.single_round_inputs = std::iter::repeat_with(String::new)
-                    .take(msize.into())
-                    .collect();
-                true.into()
-            }
-            PairingsQueryMessage::PlayerNamesReady(pnhm) => {
-                self.names = Some(pnhm);
-                true.into()
-            }
-            PairingsQueryMessage::ActiveRoundsReady(v_ars) => {
-                let mut v_ars = v_ars.clone();
-                v_ars.sort_by_cached_key(|r| r.round_number);
-                self.active = Some(v_ars);
-                true.into()
-            }
-            */
             PairingsQueryMessage::AllDataReady(_data) => {
                 self.query_data = Some(_data);
                 true.into()
@@ -217,25 +163,10 @@ impl TournViewerComponent for PairingsView {
     ) -> InteractionResponse<Self> {
         match _msg {
             PairingsViewMessage::ChangeMode(vm) => {
-                /*
-                if vm == PairingsViewMode::ActivePairings {
-                    self.query_active_rounds(ctx);
-                };
-                */
                 self.mode = vm;
                 true.into()
             }
             PairingsViewMessage::GeneratePairings => {
-                /*
-                let tracker = CLIENT.get().unwrap().query_tourn(self.id, |tourn| {
-                    let pairings = tourn.create_pairings().unwrap_or_default();
-                    PairingsWrapper { pairings }
-                });
-                let send_pairings = self.send_pairings.clone();
-                spawn_local(async move { send_pairings.emit(tracker.process().await.unwrap()) });
-                false.into()
-                */
-                // Box<dyn 'static + Send + FnOnce(&TournamentManager) -> T::QueryMessage>
                 let q_func = |tourn: &TournamentManager| {
                     let pairings = tourn.create_pairings().unwrap_or_default();
                     Self::QueryMessage::PairingsReady(PairingsWrapper { pairings })
@@ -246,20 +177,22 @@ impl TournViewerComponent for PairingsView {
                 let Some(pairings) = self.pairings.take() else {
                     return false.into()
                 };
-                let ops = vec![TournOp::AdminOp(
-                    self.admin_id.clone().into(),
-                    AdminOp::PairRound(pairings.pairings),
-                )];
-                InteractionResponse::Update(ops)
+                _state
+                    .get_user_id()
+                    .map(|user_id| {
+                        let ops = vec![TournOp::AdminOp(
+                            user_id.convert(),
+                            AdminOp::PairRound(pairings.pairings),
+                        )];
+                        InteractionResponse::Update(ops)
+                    })
+                    .unwrap_or_default()
             }
             PairingsViewMessage::PopoutActiveRounds() => {
                 if self.query_data.is_none() {
                     return false.into();
                 }
                 let scroll_strings = self.query_data.as_ref().unwrap().active.iter().map(|ars| {
-                    //let player_list = ars.players.iter().map(|pn|{
-                    //    format!("{}, ", pn)
-                    //}).collect();
                     format!(
                         "Round #{}, Table #{} :: {}",
                         ars.round_number,
@@ -289,11 +222,8 @@ impl TournViewerComponent for PairingsView {
                     })
                     .collect();
                 let mut ops = Vec::new();
-                ops.push(TournOp::AdminOp(
-                    self.admin_id.clone().into(),
-                    AdminOp::CreateRound(player_ids),
-                ));
-                InteractionResponse::Update(ops)
+                ops.push(Op::Admin(AdminOp::CreateRound(player_ids)));
+                _state.op_response(ops)
             }
             PairingsViewMessage::CreateSingleBye() => {
                 if self.query_data.is_none() {
@@ -308,11 +238,8 @@ impl TournViewerComponent for PairingsView {
                     .find_map(|(id, name)| (self.single_bye_input == *name).then_some(*id))
                     .unwrap_or_default();
                 let mut ops = Vec::new();
-                ops.push(TournOp::AdminOp(
-                    self.admin_id.clone().into(),
-                    AdminOp::GiveBye(player_id),
-                ));
-                InteractionResponse::Update(ops)
+                ops.push(Op::Admin(AdminOp::GiveBye(player_id)));
+                _state.op_response(ops)
             }
             PairingsViewMessage::SingleRoundInput(vec_index, text) => {
                 let Some(name) = self.single_round_inputs.get_mut(vec_index) else {

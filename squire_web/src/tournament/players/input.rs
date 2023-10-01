@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 
-use squire_sdk::model::{
-    identifiers::{AdminId, TournamentId},
-    operations::{JudgeOp, TournOp},
-    players::PlayerStatus,
-};
+use squire_sdk::model::{identifiers::TournamentId, operations::JudgeOp, players::PlayerStatus};
 use yew::prelude::*;
 
-use super::{PlayerSummary};
-use crate::{utils::TextInput, CLIENT, tournament::viewer_component::{WrapperState}};
+use super::{PlayerSummary, PlayerView};
+use crate::{
+    tournament::viewer_component::{InteractionResponse, Op, WrapperState},
+    utils::TextInput,
+};
 
 #[derive(PartialEq, Properties)]
 pub struct PlayerFilterInputProps {}
@@ -44,11 +43,7 @@ impl PlayerFilterInput {
 }
 
 impl PlayerFilterInput {
-    pub fn new(
-        process: Callback<PlayerFilterInputMessage>,
-        _id: TournamentId,
-        _admin_id: AdminId,
-    ) -> Self {
+    pub fn new(process: Callback<PlayerFilterInputMessage>, _id: TournamentId) -> Self {
         Self {
             name: None,
             status: None,
@@ -57,56 +52,58 @@ impl PlayerFilterInput {
         }
     }
 
-    pub fn update(&mut self, msg: PlayerFilterInputMessage, state: &WrapperState) -> bool {
+    pub fn update(
+        &mut self,
+        msg: PlayerFilterInputMessage,
+        state: &WrapperState,
+    ) -> InteractionResponse<PlayerView> {
         match msg {
             PlayerFilterInputMessage::PlayerName(name) => {
                 self.name = Some(name);
-                true
+                true.into()
             }
             PlayerFilterInputMessage::PlayerStatus(s) => {
                 let status = s.parse().ok();
                 let digest = self.status != status;
                 self.status = status;
-                digest
+                digest.into()
             }
             PlayerFilterInputMessage::GuestName(name) => {
                 self.guest_name = Some(name);
-                true
+                true.into()
             }
             PlayerFilterInputMessage::SubmitGuest => {
                 if self.guest_name.is_none() {
-                    return false;
+                    return false.into();
                 };
+                /*
                 let _tracker = CLIENT.get().unwrap().update_tourn(
                     state.t_id,
                     TournOp::JudgeOp(
-                        state.a_id.into(),
+                        state.get_user_id(),
                         JudgeOp::RegisterGuest(self.guest_name.as_ref().unwrap().clone()),
                     ),
                 );
                 false
+                */
+                state.op_response(vec![Op::Judge(JudgeOp::RegisterGuest(
+                    self.guest_name.as_ref().unwrap().clone(),
+                ))])
             }
         }
     }
 
     pub fn view(&self) -> Html {
         let number = self.process.clone();
-        let number = Callback::from(move |s| number.emit(
-            PlayerFilterInputMessage::PlayerName(s)
-        ));
+        let number = Callback::from(move |s| number.emit(PlayerFilterInputMessage::PlayerName(s)));
         let status = self.process.clone();
-        let status = Callback::from(move |s| status.emit(
-            PlayerFilterInputMessage::PlayerStatus(s)
-        ));
+        let status =
+            Callback::from(move |s| status.emit(PlayerFilterInputMessage::PlayerStatus(s)));
         let guest_name = self.process.clone();
         let guest_name =
-            Callback::from(move |s| guest_name.emit(
-            PlayerFilterInputMessage::GuestName(s)
-        ));
+            Callback::from(move |s| guest_name.emit(PlayerFilterInputMessage::GuestName(s)));
         let cb = self.process.clone();
-        let submit_guest = move |_| { cb.emit(
-            PlayerFilterInputMessage::SubmitGuest
-        )};
+        let submit_guest = move |_| cb.emit(PlayerFilterInputMessage::SubmitGuest);
         html! {
             <div class="row">
                 <div class="col">
