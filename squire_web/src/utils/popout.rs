@@ -82,3 +82,40 @@ where
         </html>
     }
 }
+
+/*
+pub fn generic_static_table_vnode<I>() -> Html
+where
+    I: Iterator<Item = String>,
+{
+    let list = self
+    .rounds
+    .iter()
+    .cloned()
+    .filter_map(|r| {
+        report.matches(&r).then(|| {
+            let cb = self.process.clone();
+            html! {
+                <tr onclick = { move |_| cb.emit(r.id) }>
+                    <td>{ r.match_number }</td>
+                    <td>{ r.table_number }</td>
+                    <td>{ r.status }</td>
+                </tr>
+            }
+        })
+    })
+    .collect::<Html>();
+    html! {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>{ "Round" }</th>
+                    <th>{ "Table" }</th>
+                    <th>{ "Status" }</th>
+                </tr>
+            </thead>
+            <tbody> { list } </tbody>
+        </table>
+    }
+}
+*/

@@ -23,6 +23,7 @@ pub struct StandingsProps {
 pub enum StandingsMessage {
     StandingsQueryReady(Option<StandingsProfile>), // Optional for the same reasons
     SpawnPopout(i32),
+    SpawnPopoutStatic()
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -78,12 +79,42 @@ impl Component for StandingsView {
             StandingsMessage::StandingsQueryReady(data) => {
                 self.standings = data.unwrap_or_default();
             }
+            StandingsMessage::SpawnPopoutStatic() => {
+                let list = self
+                .standings
+                .standings
+                .iter()
+                .map(|(i, s)| {
+                        html! {
+                            <tr>
+                                <td>{ i }</td>
+                                <td>{ s }</td>
+                            </tr>
+                        }
+                })
+                .collect::<Html>();
+                let vnode = html!{
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{ "Rank" }</th>
+                                <th>{ "Player" }</th>
+                            </tr>
+                        </thead>
+                        <tbody> { list } </tbody>
+                    </table>
+                };
+                generic_popout_window(vnode.clone());
+            }
         }
         true
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let cb = self.process.clone();
+        let cb_static = ctx
+            .link()
+            .callback(move |_| StandingsMessage::SpawnPopoutStatic());
         html! {
             <div>
                 <div class="overflow-auto py-3 pairings-scroll-box">
@@ -97,6 +128,7 @@ impl Component for StandingsView {
                     }</ul>
                 </div>
                 <button onclick={ move |_| cb.emit(0) }>{ "Standings Scroll" }</button>
+                <button onclick={ cb_static}>{ "Standings Static" }</button>
             </div>
         }
     }

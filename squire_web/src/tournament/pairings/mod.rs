@@ -58,6 +58,7 @@ pub enum PairingsViewMessage {
     PairingsReady(PairingsWrapper),
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
     PopoutActiveRounds(),
+    PopoutActiveRoundsStatic(),
     MatchSizeReady(u8),
     CreateSingleRound(),
     CreateSingleBye(),
@@ -173,9 +174,6 @@ impl Component for PairingsView {
                     return false;
                 }
                 let scroll_strings = self.active.as_ref().unwrap().iter().map(|ars| {
-                    //let player_list = ars.players.iter().map(|pn|{
-                    //    format!("{}, ", pn)
-                    //}).collect();
                     format!(
                         "Round #{}, Table #{} :: {}",
                         ars.round_number,
@@ -185,6 +183,41 @@ impl Component for PairingsView {
                 });
                 let scroll_vnode = generic_scroll_vnode(90, scroll_strings);
                 generic_popout_window(scroll_vnode.clone());
+                false
+            }
+            PairingsViewMessage::PopoutActiveRoundsStatic() => {
+                if self.active.is_none() {
+                    return false;
+                }
+                let list = self
+                .active
+                .as_ref()
+                .unwrap()
+                .iter()
+                .cloned()
+                .map(|r| {
+                        html! {
+                            <tr>
+                                <td>{ r.round_number }</td>
+                                <td>{ r.table_number }</td>
+                                <td>{ r.players.join(", ") }</td>
+                            </tr>
+                        }
+                })
+                .collect::<Html>();
+                let vnode = html!{
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{ "Round" }</th>
+                                <th>{ "Table" }</th>
+                                <th>{ "Players" }</th>
+                            </tr>
+                        </thead>
+                        <tbody> { list } </tbody>
+                    </table>
+                };
+                generic_popout_window(vnode.clone());
                 false
             }
             PairingsViewMessage::MatchSizeReady(msize) => {
@@ -364,6 +397,9 @@ impl PairingsView {
         let cb_active_popout = ctx
             .link()
             .callback(move |_| PairingsViewMessage::PopoutActiveRounds());
+        let cb_active_popout_static = ctx
+            .link()
+            .callback(move |_| PairingsViewMessage::PopoutActiveRoundsStatic());
         html! {
             <div class="py-5">
                 <div class="overflow-auto py-3 pairings-scroll-box">
@@ -392,6 +428,7 @@ impl PairingsView {
                     }</ul>
                 </div>
                 <button onclick={cb_active_popout} >{ "Pop-out Scrolling Display" }</button>
+                <button onclick={cb_active_popout_static} >{ "Pop-out Static Display" }</button>
             </div>
         }
     }
