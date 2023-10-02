@@ -11,7 +11,7 @@ deck_sites = ["mtgjson/deck_sites"]
 
 [dependencies]
 #In-house deps
-cycle_map = { version = "0.1.1", features = ["serde"] }
+cycle_map = { version = "0.2.0", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffccde3b0eecd230c2f067e18383ed804c5f3", default-features = false }
 # mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 
