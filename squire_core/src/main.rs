@@ -2,6 +2,7 @@ use axum::{routing::get, Router};
 use mongodb::Database;
 use squire_sdk::server;
 use state::{AppState, AppStateBuilder};
+use tower_http::cors::CorsLayer;
 
 #[cfg(test)]
 mod tests;
@@ -16,6 +17,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/squire_web_bg.wasm", get(assets::get_wasm))
         .route("/squire_web.js", get(assets::get_js))
         .fallback(assets::landing)
+        .layer(CorsLayer::permissive())
         .with_state(state)
 }
 

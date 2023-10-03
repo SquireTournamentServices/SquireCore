@@ -5,7 +5,7 @@ use squire_sdk::model::{
     operations::{JudgeOp, OpResult, TournOp},
     players::PlayerStatus,
 };
-use wasm_bindgen_futures::spawn_local;
+// use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use super::PlayerSummary;
@@ -90,16 +90,16 @@ impl PlayerFilterInput {
                 if self.guest_name.is_none() {
                     return false;
                 };
-                let tracker = CLIENT.get().unwrap().update_tourn(
+                CLIENT.get().unwrap().update_tourn(
                     self.id,
                     TournOp::JudgeOp(
                         self.admin_id.into(),
                         JudgeOp::RegisterGuest(self.guest_name.as_ref().unwrap().clone()),
                     ),
                 );
-                let send_op_result = self.send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
-                false
+                // let send_op_result = self.send_op_result.clone();
+                // spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
+                true
             }
         }
     }

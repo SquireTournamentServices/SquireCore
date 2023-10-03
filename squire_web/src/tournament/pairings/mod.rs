@@ -173,7 +173,7 @@ impl Component for PairingsView {
                 if self.active.is_none() {
                     return false;
                 }
-                let scroll_strings = self.active.as_ref().unwrap().iter().map(|ars| {
+                let scroll_strings = self.active.as_ref().unwrap().iter().rev().map(|ars| {
                     format!(
                         "Round #{}, Table #{} :: {}",
                         ars.round_number,
@@ -194,6 +194,7 @@ impl Component for PairingsView {
                 .as_ref()
                 .unwrap()
                 .iter()
+                .rev()
                 .cloned()
                 .map(|r| {
                         html! {

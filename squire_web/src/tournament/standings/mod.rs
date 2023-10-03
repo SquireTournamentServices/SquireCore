@@ -1,8 +1,8 @@
-use squire_sdk::model::{identifiers::TournamentId, tournament::Tournament};
+use squire_sdk::model::{identifiers::TournamentId, tournament::Tournament, r64};
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
-    utils::{generic_popout_window, generic_scroll_vnode},
+    utils::{generic_popout_window, generic_scroll_vnode, rational_to_float},
     CLIENT,
 };
 
@@ -28,7 +28,7 @@ pub enum StandingsMessage {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct StandingsProfile {
-    standings: Vec<(usize, String)>,
+    standings: Vec<(usize, String, r64, r64, r64)>,
 }
 
 pub struct StandingsView {
@@ -72,7 +72,7 @@ impl Component for StandingsView {
                     .standings
                     .standings
                     .iter()
-                    .map(|(i, s)| format!("{i} : {s}"));
+                    .map(|(i, s, _points, _mwp, _opp_mwp)| format!("{i} : {s}"));
                 self.scroll_vnode = Some(generic_scroll_vnode(120, scroll_strings));
                 generic_popout_window(self.scroll_vnode.clone().unwrap());
             }
@@ -84,11 +84,14 @@ impl Component for StandingsView {
                 .standings
                 .standings
                 .iter()
-                .map(|(i, s)| {
+                .map(|(i, s, points, mwp, opp_mwp)| {
                         html! {
                             <tr>
                                 <td>{ i }</td>
                                 <td>{ s }</td>
+                                <td>{ points }</td>
+                                <td>{ format!( "{:.3}", rational_to_float(*mwp) ) }</td>
+                                <td>{ format!( "{:.3}", rational_to_float(*opp_mwp) ) }</td>
                             </tr>
                         }
                 })
@@ -99,6 +102,9 @@ impl Component for StandingsView {
                             <tr>
                                 <th>{ "Rank" }</th>
                                 <th>{ "Player" }</th>
+                                <th>{ "Points" }</th>
+                                <th>{ "Match Win %" }</th>
+                                <th>{ "Opponent Match Win %" }</th>
                             </tr>
                         </thead>
                         <tbody> { list } </tbody>
@@ -119,7 +125,7 @@ impl Component for StandingsView {
             <div>
                 <div class="overflow-auto py-3 pairings-scroll-box">
                     <ul class="force_left">{
-                        self.standings.standings.iter().map(|(i, name)| {
+                        self.standings.standings.iter().map(|(i, name, _points, _mwp, _opp_mwp)| {
                             html! {
                                 <li>{ format!("{} : {}", i, name) }</li>
                             }
@@ -140,12 +146,13 @@ impl StandingsProfile {
             .get_standings()
             .scores
             .into_iter()
+            .rev()
             .enumerate()
-            .filter_map(|(i, (id, _score))| {
+            .filter_map(|(i, (id, score))| {
                 tourn
                     .player_reg
                     .get_player(&id)
-                    .map(|p| (i, p.name.clone()))
+                    .map(|p| (i+1, p.name.clone(), score.match_points, score.mwp, score.opp_mwp))
                     .ok()
             })
             .collect();

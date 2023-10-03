@@ -5,6 +5,7 @@ pub mod requests;
 pub use input::*;
 pub use popout::*;
 pub use requests::*;
+use squire_sdk::model::r64;
 
 /// A wrapper around web_sys console log_1
 #[allow(unused)]
@@ -22,3 +23,8 @@ where
     digest
 }
 */
+
+pub fn rational_to_float(r: r64) -> f64 {
+    let (a, b) = r.into();
+    (a as f64) / (b as f64)
+}
