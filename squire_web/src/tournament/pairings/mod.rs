@@ -1,12 +1,16 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use squire_sdk::model::{
-    identifiers::AdminId,
-    operations::{AdminOp, OpResult, TournOp},
-    pairings::Pairings,
-    players::PlayerId,
-    rounds::{Round, RoundId},
-    tournament::{Tournament, TournamentId},
+use itertools::Itertools;
+use squire_sdk::{
+    model::{
+        identifiers::AdminId,
+        operations::{AdminOp, OpResult, TournOp},
+        pairings::Pairings,
+        players::PlayerId,
+        rounds::{Round, RoundId},
+        tournament::{Tournament, TournamentId},
+    },
+    sync::TournamentManager,
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::{prelude::*, virtual_dom::VNode};
@@ -59,7 +63,7 @@ pub enum PairingsViewMessage {
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
     PopoutActiveRounds(),
     PopoutActiveRoundsStatic(),
-    PopoutMatchSlips(String),
+    PopoutMatchSlips(MatchSlips),
     MatchSizeReady(u8),
     CreateSingleRound(),
     CreateSingleBye(),
@@ -151,10 +155,7 @@ impl Component for PairingsView {
                 };
                 let tracker = CLIENT.get().unwrap().update_tourn(
                     self.id,
-                    TournOp::AdminOp(
-                        self.admin_id.clone().into(),
-                        AdminOp::PairRound(pairings.pairings),
-                    ),
+                    TournOp::AdminOp(self.admin_id, AdminOp::PairRound(pairings.pairings)),
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
@@ -223,23 +224,7 @@ impl Component for PairingsView {
                 false
             }
             PairingsViewMessage::PopoutMatchSlips(slips) => {
-                let vnode = html! { { slips } };
-                generic_popout_window(vnode);
-                /*
-                window()
-                    .and_then(|w| w.open().ok().flatten())
-                    .and_then(|new_w_o| new_w_o.document())
-                    .and_then(|doc| doc.get_elements_by_tag_name("html").get_with_index(0))
-                    .map(|r| {
-                        yew::Renderer::<GeneralPopout>::with_root_and_props(
-                            r,
-                            GeneralPopoutProps {
-                                display_vnode: vnode,
-                            },
-                        )
-                        .render()
-                    });
-                */
+                generic_popout_window(slips.view());
                 false
             }
             PairingsViewMessage::MatchSizeReady(msize) => {
@@ -427,7 +412,7 @@ impl PairingsView {
             let slips = CLIENT
                 .get()
                 .unwrap()
-                .query_tourn(t_id, |t| t.tourn().round_slips_html(""))
+                .query_tourn(t_id, MatchSlips::new)
                 .await
                 .unwrap_or_default();
             PairingsViewMessage::PopoutMatchSlips(slips)
@@ -510,3 +495,69 @@ impl PairingsView {
         }
     }
 }
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct MatchSlips(Vec<Slip>);
+
+#[derive(Debug, Default, Clone, PartialEq)]
+struct Slip {
+    round_no: u64,
+    table_no: u64,
+    names: Vec<String>,
+}
+
+impl MatchSlips {
+    fn new(tourn: &TournamentManager) -> Self {
+        let inner = tourn
+            .tourn()
+            .round_reg
+            .rounds
+            .values()
+            .filter(|r| r.is_active())
+            .map(|r| Slip::new(tourn.tourn(), r))
+            .collect();
+        Self(inner)
+    }
+
+    fn view(&self) -> Html {
+        self.0.iter().map(Slip::view).collect()
+    }
+}
+
+impl Slip {
+    fn new(tourn: &Tournament, rnd: &Round) -> Self {
+        let names = rnd
+            .players
+            .iter()
+            .filter_map(|p| tourn.get_player_by_id(p).ok().map(|p| p.name.clone()))
+            .collect();
+        Self {
+            round_no: rnd.match_number,
+            table_no: rnd.table_number,
+            names,
+        }
+    }
+
+    fn view(&self) -> Html {
+        const UNDERLINE: &str = "________________________________________";
+        html! {
+        <>
+            <p> {"Round #"}{self.round_no}{"\t\t\t\tTable #"}{self.table_no} </p>
+            <p> {"Result: "}{self.names.iter().map(|n| n.as_str()).chain(std::iter::once("Draw")).join(",\t")} </p>
+            <p> {"Drops?: "}{self.names.iter().join(", ")} </p>
+            <p> {"Signatures:"} </p>
+            <p> {self.names.iter().take(2).map(|n| format!("{n} : {UNDERLINE}")).join("\t")} </p>
+            <p> {self.names.iter().skip(2).take(2).map(|n| format!("{n} : {UNDERLINE}")).join("\t")} </p>
+            <hr/>
+        </>
+        }
+    }
+}
+
+/*
+ * Round #{}        Table #{}
+ * Result: P1, P2, P3, P4, Draw
+ * Drops:  P1, P2, P3, P4,
+ * Signatures: P1: __________  P2: __________
+ *           : P3: __________  P4: __________
+ */
