@@ -59,6 +59,7 @@ pub enum PairingsViewMessage {
     ActiveRoundsReady(Vec<ActiveRoundSummary>),
     PopoutActiveRounds(),
     PopoutActiveRoundsStatic(),
+    PopoutMatchSlips(String),
     MatchSizeReady(u8),
     CreateSingleRound(),
     CreateSingleBye(),
@@ -190,13 +191,13 @@ impl Component for PairingsView {
                     return false;
                 }
                 let list = self
-                .active
-                .as_ref()
-                .unwrap()
-                .iter()
-                .rev()
-                .cloned()
-                .map(|r| {
+                    .active
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .rev()
+                    .cloned()
+                    .map(|r| {
                         html! {
                             <tr>
                                 <td>{ r.round_number }</td>
@@ -204,9 +205,9 @@ impl Component for PairingsView {
                                 <td>{ r.players.join(", ") }</td>
                             </tr>
                         }
-                })
-                .collect::<Html>();
-                let vnode = html!{
+                    })
+                    .collect::<Html>();
+                let vnode = html! {
                     <table class="table">
                         <thead>
                             <tr>
@@ -218,7 +219,27 @@ impl Component for PairingsView {
                         <tbody> { list } </tbody>
                     </table>
                 };
-                generic_popout_window(vnode.clone());
+                generic_popout_window(vnode);
+                false
+            }
+            PairingsViewMessage::PopoutMatchSlips(slips) => {
+                let vnode = html! { { slips } };
+                generic_popout_window(vnode);
+                /*
+                window()
+                    .and_then(|w| w.open().ok().flatten())
+                    .and_then(|new_w_o| new_w_o.document())
+                    .and_then(|doc| doc.get_elements_by_tag_name("html").get_with_index(0))
+                    .map(|r| {
+                        yew::Renderer::<GeneralPopout>::with_root_and_props(
+                            r,
+                            GeneralPopoutProps {
+                                display_vnode: vnode,
+                            },
+                        )
+                        .render()
+                    });
+                */
                 false
             }
             PairingsViewMessage::MatchSizeReady(msize) => {
@@ -401,6 +422,16 @@ impl PairingsView {
         let cb_active_popout_static = ctx
             .link()
             .callback(move |_| PairingsViewMessage::PopoutActiveRoundsStatic());
+        let t_id = self.id;
+        let cb_get_match_slips = ctx.link().callback_future(move |_| async move {
+            let slips = CLIENT
+                .get()
+                .unwrap()
+                .query_tourn(t_id, |t| t.tourn().round_slips_html(""))
+                .await
+                .unwrap_or_default();
+            PairingsViewMessage::PopoutMatchSlips(slips)
+        });
         html! {
             <div class="py-5">
                 <div class="overflow-auto py-3 pairings-scroll-box">
@@ -430,6 +461,7 @@ impl PairingsView {
                 </div>
                 <button onclick={cb_active_popout} >{ "Pop-out Scrolling Display" }</button>
                 <button onclick={cb_active_popout_static} >{ "Pop-out Static Display" }</button>
+                <button onclick={cb_get_match_slips} >{ "Get Match Slips" }</button>
             </div>
         }
     }
@@ -437,7 +469,7 @@ impl PairingsView {
     fn view_single_menu(&self, ctx: &Context<Self>) -> Html {
         if self.max_player_count.is_some() && self.names.is_some() {
             let mut name_boxes: Vec<VNode> = Vec::new();
-            let max_players = self.max_player_count.unwrap().clone();
+            let max_players = self.max_player_count.unwrap();
             for i in 0..max_players {
                 let name_string = format!("player {}: ", i + 1);
                 name_boxes.push(html!{
@@ -464,7 +496,7 @@ impl PairingsView {
                     <h2>{ "Create a bye: " }</h2>
                     <div class="py-2">
                         <>
-                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(move |s| PairingsViewMessage::SingleByeInput(s)) } />
+                        <TextInput label = {Cow::from("Player to give bye :")} process = { ctx.link().callback(PairingsViewMessage::SingleByeInput) } />
                         <br/>
                         </>
                     </div>

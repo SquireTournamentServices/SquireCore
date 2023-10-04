@@ -137,7 +137,7 @@ async fn tournament_management_task<F>(
                 match msg {
                     Some(Ok(msg)) => handle_ws_msg(&mut state, &mut on_update, msg).await,
                     Some(Err(err)) => handle_ws_err(&mut state, err),
-                    None => {}
+                    None => { /* TODO: The server has gone down... yikes!! */ }
                 }
                 None
             }
@@ -310,8 +310,9 @@ where
     }
 }
 
-fn handle_ws_err(_state: &mut ManagerState, err: WebsocketError) {
-    panic!("Got error from Websocket: {err:?}")
+fn handle_ws_err(_state: &mut ManagerState, _err: WebsocketError) {
+    // Error is dropped. If the server is attempting to send a message, it will resend it or the
+    // client will resend it.
 }
 
 async fn handle_server_op_link<F>(

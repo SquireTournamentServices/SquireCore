@@ -107,7 +107,7 @@ impl<S: ServerState> GatheringHall<S> {
     }
 
     pub async fn run(mut self) -> ! {
-        let wait_time = Duration::from_secs(5);
+        let wait_time = Duration::from_secs(10);
         let now_then = || Instant::now().checked_add(wait_time).unwrap();
         let mut then = now_then();
         let mut to_persist = HashSet::new();
@@ -123,7 +123,7 @@ impl<S: ServerState> GatheringHall<S> {
                         let sender = self.gatherings.get_mut(&id).unwrap();
                         let (send, recv) = oneshot_channel();
                         let msg = GatheringMessage::GetTournament(send);
-                        sender.send(msg);
+                        sender.send(msg).await;
                         let tourn = recv.await.unwrap();
                         _ = persist_reqs.insert(id, tourn);
                     }
@@ -155,18 +155,22 @@ impl<S: ServerState> GatheringHall<S> {
 
     async fn process_new_onlooker(&mut self, id: TournamentId, user: User, ws: WebSocket) {
         let msg = GatheringMessage::NewConnection(user, ws);
-        let send = self.get_or_init_gathering(id).await;
-        send.send(msg).await.unwrap()
+        if let Some(send) = self.get_or_init_gathering(id).await {
+            send.send(msg).await.unwrap()
+        }
     }
 
-    async fn get_or_init_gathering(&mut self, id: TournamentId) -> Sender<GatheringMessage> {
+    async fn get_or_init_gathering(
+        &mut self,
+        id: TournamentId,
+    ) -> Option<Sender<GatheringMessage>> {
         if let Some(send) = self.gatherings.get(&id).cloned() {
-            return send;
+            return Some(send);
         }
         // FIXME: This can fail. We need a way to signal this possibility.
-        let send = self.spawn_gathering(id).await.unwrap();
+        let send = self.spawn_gathering(id).await?;
         _ = self.gatherings.insert(id, send.clone());
-        send
+        Some(send)
     }
 
     async fn get_tourn(&self, id: &TournamentId) -> Option<TournamentManager> {

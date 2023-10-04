@@ -87,14 +87,17 @@ impl Gathering {
     }
 
     fn send_persist_message(&mut self) {
-        self.persist.send(PersistMessage(self.tourn.id));
+        drop(self.persist.try_send(PersistMessage(self.tourn.id)));
     }
 
     async fn run(mut self) -> ! {
         loop {
             tokio::select! {
-                msg = self.messages.recv() =>
-                    self.process_channel_message(msg.unwrap()),
+                msg = self.messages.recv() => {
+                    if let Some(msg) = msg {
+                        self.process_channel_message(msg)
+                    }
+                },
                 msg = self.ws_streams.next(), if !self.ws_streams.is_empty() =>
                     self.process_websocket_message(msg).await,
                 (user, msg) = self.forwarding.forward_retry() => {
@@ -118,15 +121,21 @@ impl Gathering {
                 self.process_incoming_message(user, bytes).await;
             }
             Some((user, None)) => {
+                println!("WS connection closed: {user}");
                 _ = self.onlookers.remove(&user);
             }
-            None => {}
+            None => {
+                println!("Got empty WS message...");
+            }
         }
     }
 
     fn process_channel_message(&mut self, msg: GatheringMessage) {
         match msg {
-            GatheringMessage::GetTournament(send) => send.send(self.tourn.clone()).unwrap(),
+            GatheringMessage::GetTournament(send) => {
+                println!("Got persist message from gathering hall. Sending copy of tournament...");
+                send.send(self.tourn.clone()).unwrap()
+            },
             GatheringMessage::NewConnection(user, ws) => {
                 let (sink, stream) = ws.split();
                 let crier = Crier::new(stream, user.account.id);
@@ -160,6 +169,7 @@ impl Gathering {
                 let link = self.handle_sync_request(id, sync);
                 // If completed, send forwarding requests
                 if let ServerOpLink::Completed(comp) = &link {
+                    println!("Completed sync! Sending persist message...");
                     self.send_persist_message();
                     self.send_forwarding(&user, comp).await;
                 }

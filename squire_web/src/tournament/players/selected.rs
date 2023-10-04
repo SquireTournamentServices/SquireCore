@@ -1,6 +1,6 @@
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::{AdminOp, TournOp},
+    operations::{AdminOp, TournOp, JudgeOp},
     players::PlayerId,
     rounds::RoundId,
     tournament::Tournament,
@@ -42,6 +42,7 @@ pub enum SelectedPlayerMessage {
     /// Optional because the lookup "may" fail
     SubviewQueryReady(Option<SubviewProfile>),
     DropPlayer(PlayerId),
+    ReRegister(String),
 }
 
 pub struct SelectedPlayer {
@@ -136,7 +137,14 @@ impl SelectedPlayer {
             SelectedPlayerMessage::DropPlayer(pid) => {
                 CLIENT.get().unwrap().update_tourn(
                     self.id,
-                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::AdminDropPlayer(pid)),
+                    TournOp::AdminOp(self.admin_id, AdminOp::AdminDropPlayer(pid)),
+                );
+                false
+            }
+            SelectedPlayerMessage::ReRegister(name) => {
+                CLIENT.get().unwrap().update_tourn(
+                    self.id,
+                    TournOp::JudgeOp(self.admin_id.into(), JudgeOp::ReRegisterGuest(name)),
                 );
                 false
             }
@@ -146,18 +154,18 @@ impl SelectedPlayer {
     fn subview(&self) -> Html {
         match &self.subview {
             None => {
-                html! { <h3>{" No info selected "}</h3> }
+                html! { <h3>{""}</h3> }
             }
             Some(SubviewProfile::Round(rnd)) => rnd.view(),
             Some(SubviewProfile::Deck(deck)) => deck.view(),
         }
     }
 
-    pub fn view(&self) -> Html {
+    pub fn view(&self, ctx: &Context<PlayerView>) -> Html {
         html! {
             <div class="m-2">
                 <div class="row">
-                    <div class="col"> { self.player.as_ref().map(|p| p.view(self.process.clone())).unwrap_or_default() }</div>
+                    <div class="col"> { self.player.as_ref().map(|p| p.view(ctx, self.process.clone())).unwrap_or_default() }</div>
                     <div class="col">{ self.subview() }</div>
                 </div>
             </div>

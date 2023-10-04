@@ -18,8 +18,6 @@ where
     M: 'static,
 {
     let recv = ON_UPDATE.get().unwrap().clone();
-    ctx.link().send_future(async move {
-        let to_return = recv.recv().await.map(|_| msg).unwrap();
-        to_return
-    })
+    ctx.link()
+        .send_future(async move { recv.recv().await.map(|_| msg).unwrap() })
 }

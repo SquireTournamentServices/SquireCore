@@ -197,6 +197,7 @@ impl ServerState for AppState {
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
+        println!("Attempting to persist tournament: {}", tourn.id);
         // There appears to be a problem in bson right now where `Collection::replace_one` uses the
         // normal document serializer, but `Collection::find_one` (and `Collection::insert_one` as
         // well) use the raw document serializer, which unfortunately behave differently. Therefore
@@ -211,26 +212,26 @@ impl ServerState for AppState {
             .update_one(
                 Self::make_query(tourn.id),
                 UpdateModifications::Document(doc! {"$set": doc}),
-                UpdateOptions::builder()
-                    .upsert(true)
-                    .hint(Hint::Name(Self::TOURN_INDEX_NAME.to_string()))
-                    .build(),
+                UpdateOptions::builder().upsert(true).build(),
             )
             .await
         {
             Ok(result) => result.matched_count != 0,
-            Err(_) => match self.get_tourns().insert_one(tourn, None).await {
-                Ok(_) => true,
-                Err(err) => {
-                    tracing::event!(
-                        Level::WARN,
-                        r#"Could not persist tournament with name "{}" and id "{}" due to error: {err}"#,
-                        tourn.tourn().name,
-                        tourn.tourn().id,
-                    );
-                    false
+            Err(err) => {
+                println!("Could not update tourn {}. Got error: {err}", tourn.id);
+                match self.get_tourns().insert_one(tourn, None).await {
+                    Ok(_) => true,
+                    Err(err) => {
+                        tracing::event!(
+                            Level::WARN,
+                            r#"Could not persist tournament with name "{}" and id "{}" due to error: {err}"#,
+                            tourn.tourn().name,
+                            tourn.tourn().id,
+                        );
+                        false
+                    }
                 }
-            },
+            }
         }
     }
 }

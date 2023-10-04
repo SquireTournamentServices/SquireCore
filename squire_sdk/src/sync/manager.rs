@@ -65,12 +65,10 @@ impl TournamentManager {
         let mut buffer = self.tourn().clone();
         let mut f_ops = Vec::with_capacity(ops.len());
         for f_op in ops.by_ref() {
-            let FullOp { op, salt, id } = f_op.clone();
-            println!("Processing Op {id}");
+            let FullOp { op, salt, .. } = f_op.clone();
             _ = buffer.apply_op(salt, op)?;
             f_ops.push(f_op);
         }
-        println!("Finished bulk processing operations...");
         self.log.ops.extend(f_ops);
         self.tourn = buffer;
         Ok(OpData::Nothing)
@@ -230,7 +228,6 @@ impl TournamentManager {
 
         match self.bulk_apply_ops_inner(proc.to_process.into_iter()) {
             Err(err) => {
-                println!("{err:?}");
                 err.into()
             }
             Ok(_) => {

@@ -34,7 +34,8 @@ pub trait ServerState: SessionStore + Clone + Send + Sync {
         for tourn in iter {
             digest &= self.persist_tourn(&tourn).await;
             if !digest {
-                break;
+                println!("Failed to persist tournament!!");
+                return false;
             }
         }
         digest

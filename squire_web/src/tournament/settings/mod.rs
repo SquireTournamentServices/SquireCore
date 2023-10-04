@@ -19,7 +19,7 @@ use pairings::*;
 use scoring::*;
 
 use super::spawn_update_listener;
-use crate::CLIENT;
+use crate::{utils::generic_popout_window, CLIENT};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SettingsMessage {
@@ -28,6 +28,7 @@ pub enum SettingsMessage {
     ReQuery,
     Submitted,
     StartTourn,
+    ExportJson(String),
 }
 
 #[derive(Debug, Properties, PartialEq)]
@@ -91,7 +92,7 @@ impl Component for SettingsView {
             SettingsMessage::Setting(setting) => match setting {
                 TournamentSetting::GeneralSetting(setting) => self.general.update(setting),
                 TournamentSetting::PairingSetting(setting) => self.pairings.update(setting),
-                TournamentSetting::ScoringSetting(_) => false,
+                TournamentSetting::ScoringSetting(setting) => self.scoring.update(setting),
             },
             SettingsMessage::StartTourn => {
                 let op = TournOp::AdminOp(self.admin_id, AdminOp::Start);
@@ -131,16 +132,31 @@ impl Component for SettingsView {
                 self.pairings = PairingsSettings::new(emitter, pairing);
                 true
             }
+            SettingsMessage::ExportJson(json) => {
+                generic_popout_window(html! { { json } });
+                false
+            }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let submit = ctx.link().callback(|_| SettingsMessage::Submitted);
         let start = ctx.link().callback(|_| SettingsMessage::StartTourn);
+        let t_id = self.id;
+        let json = ctx.link().callback_future(move |_| async move {
+            let json = CLIENT
+                .get()
+                .unwrap()
+                .query_tourn(t_id, |t| serde_json::to_string(t).unwrap_or_default())
+                .await
+                .unwrap_or_default();
+            SettingsMessage::ExportJson(json)
+        });
         html! {
             <div>
                 <button onclick = { submit }> { "Update Settings"} </button>
                 <button onclick = { start }> { "Start Tourn"} </button>
+                <button onclick = { json }> { "Export Json"} </button>
                 { self.general.view() }
                 { self.pairings.view() }
                 { self.scoring.view() }

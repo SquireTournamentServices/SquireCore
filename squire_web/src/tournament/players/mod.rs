@@ -81,7 +81,7 @@ impl Component for PlayerView {
         }
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let report = self.input.get_report();
         html! {
             <div>
@@ -93,7 +93,7 @@ impl Component for PlayerView {
                         </div>
                     </div>
                     <div>
-                        { self.selected.view() }
+                        { self.selected.view(ctx) }
                     </div>
                 </div>
             </div>

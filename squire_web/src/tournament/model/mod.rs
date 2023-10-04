@@ -9,9 +9,12 @@ use squire_sdk::{
     },
     sync::TournamentManager,
 };
-use yew::{html, Callback, Html};
+use yew::{html, Callback, Context, Html};
 
-use super::{players::SelectedPlayerMessage, rounds::RoundSummary};
+use super::{
+    players::{PlayerView, SelectedPlayerMessage},
+    rounds::RoundSummary,
+};
 use crate::tournament::players::SubviewInfo;
 
 /// The set of data needed by the UI to display a player. Should be capable of rendering itself in
@@ -37,7 +40,7 @@ impl PlayerProfile {
                 .get_player_rounds(&plyr.id.into())
                 .unwrap()
                 .iter()
-                .map(|r| RoundSummary::new(*r))
+                .map(|r| RoundSummary::new(r))
                 .collect(),
         };
         to_return.rounds.sort_by_cached_key(|r| r.match_number);
@@ -45,12 +48,19 @@ impl PlayerProfile {
         to_return
     }
 
-    pub fn view(&self, process: Callback<SelectedPlayerMessage>) -> Html {
-        let id = self.id.clone();
-        let cb = process.clone();
-        let dropplayer = move |_| {
-            cb.emit(SelectedPlayerMessage::DropPlayer(id));
-        };
+    pub fn view(
+        &self,
+        ctx: &Context<PlayerView>,
+        process: Callback<SelectedPlayerMessage>,
+    ) -> Html {
+        let id = self.id;
+        let dropplayer = ctx
+            .link()
+            .callback(move |_| SelectedPlayerMessage::DropPlayer(id));
+        let name = self.name.clone();
+        let rereg = ctx
+            .link()
+            .callback(move |_| SelectedPlayerMessage::ReRegister(name.clone()));
         let list = self
             .rounds
             .iter()
@@ -89,6 +99,11 @@ impl PlayerProfile {
                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#killModal">
                 {"Drop player"}
                 </button>
+                if !self.can_play {
+                    <button type="button" onclick = { rereg }>
+                    {"Re-Register Player"}
+                    </button>
+                }
                 <div class="modal fade" id="killModal" tabindex="-1" aria-labelledby="killModalLabel" aria-hidden="true">
                   <div class="modal-dialog">
                     <div class="modal-content">

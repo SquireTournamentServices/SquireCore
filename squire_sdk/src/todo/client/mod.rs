@@ -99,7 +99,6 @@ impl SquireClient {
     }
 
     pub async fn verify(&mut self) -> Result<String, ClientError> {
-        println!("Attempting to verify!");
         let data = match &self.verification {
             Some(data) => self.verify_get().await?,
             None => self.verify_post().await?,
@@ -113,7 +112,6 @@ impl SquireClient {
         let body = VerificationRequest {
             account: self.user.clone(),
         };
-        println!("Sending verification request!");
         let resp = self
             .post_request(VERIFY_ACCOUNT_ROUTE.as_str(), body)
             .await?;
@@ -179,7 +177,6 @@ impl SquireClient {
     }
 
     async fn get_request(&self, path: &str) -> Result<Response, reqwest::Error> {
-        println!("Sending a GET request to: {}{path}", self.url);
         self.client.get(format!("{}{path}", self.url)).send().await
     }
 
@@ -205,7 +202,6 @@ impl SquireClient {
     where
         B: Serialize,
     {
-        println!("Sending a POST request to: {}{path}", self.url);
         self.client
             .post(format!("{}{path}", self.url))
             .header(CONTENT_TYPE, "application/json")

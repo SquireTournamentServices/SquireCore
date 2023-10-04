@@ -1,6 +1,6 @@
 use squire_sdk::model::settings::{
     ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree, StandardScoringSetting,
-    TournamentSetting,
+    TournamentSetting, ScoringSetting,
 };
 use yew::prelude::*;
 
@@ -105,12 +105,10 @@ impl ScoringSettings {
         }
     }
 
-    /*
     pub fn update(&mut self, setting: ScoringSetting) -> bool {
         let _ = self.to_change.update(setting);
         false
     }
-    */
 
     pub fn view(&self) -> Html {
         #[allow(irrefutable_let_patterns)]
