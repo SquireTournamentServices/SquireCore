@@ -16,7 +16,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
-    utils::{generic_popout_window, generic_scroll_vnode, TextInput},
+    utils::{generic_popout_window, generic_scroll_vnode, TextInput, table_page},
     CLIENT,
 };
 
@@ -220,7 +220,7 @@ impl Component for PairingsView {
                         <tbody> { list } </tbody>
                     </table>
                 };
-                generic_popout_window(vnode);
+                generic_popout_window(table_page(vnode));
                 false
             }
             PairingsViewMessage::PopoutMatchSlips(slips) => {
