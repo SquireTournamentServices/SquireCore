@@ -4,7 +4,7 @@ use async_session::{async_trait, SessionStore};
 use futures::StreamExt;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
-    options::{ClientOptions, FindOptions, Hint, UpdateModifications, UpdateOptions},
+    options::{ClientOptions, FindOptions, UpdateModifications, UpdateOptions},
     Client as DbClient, Collection, Database,
 };
 use squire_sdk::{
@@ -133,7 +133,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    const TOURN_INDEX_NAME: &str = "tourn_id";
+    //const TOURN_INDEX_NAME: &str = "tourn_id";
 
     pub async fn new() -> Self {
         AppStateBuilder::new().build().await

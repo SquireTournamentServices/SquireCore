@@ -252,10 +252,7 @@ impl Component for PairingsView {
                     .collect();
                 let tracker = CLIENT.get().unwrap().update_tourn(
                     self.id,
-                    TournOp::AdminOp(
-                        self.admin_id.clone().into(),
-                        AdminOp::CreateRound(player_ids),
-                    ),
+                    TournOp::AdminOp(self.admin_id, AdminOp::CreateRound(player_ids)),
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
@@ -274,7 +271,7 @@ impl Component for PairingsView {
                     .unwrap_or_default();
                 let tracker = CLIENT.get().unwrap().update_tourn(
                     self.id,
-                    TournOp::AdminOp(self.admin_id.clone().into(), AdminOp::GiveBye(player_id)),
+                    TournOp::AdminOp(self.admin_id, AdminOp::GiveBye(player_id)),
                 );
                 let send_op_result = self.send_op_result.clone();
                 spawn_local(async move { send_op_result.emit(tracker.process().await.unwrap()) });
@@ -421,9 +418,9 @@ impl PairingsView {
             <div class="py-5">
                 <div class="overflow-auto py-3 pairings-scroll-box">
                     <ul class="force_left">{
-                        if self.active.is_some()
+                        if let Some(active) = self.active.as_ref()
                         {
-                            self.active.as_ref().unwrap().clone().into_iter().map( |ars| {
+                            active.iter().map( |ars| {
                                 html!{
                                     <li>
                                         <>{ format!("Round #{}, Table #{} :: ", ars.round_number, ars.table_number) }</>
@@ -507,8 +504,10 @@ struct Slip {
 }
 
 impl MatchSlips {
+    const PAGE_SIZE: usize = 4;
+
     fn new(tourn: &TournamentManager) -> Self {
-        let inner = tourn
+        let mut inner: Vec<_> = tourn
             .tourn()
             .round_reg
             .rounds
@@ -516,12 +515,35 @@ impl MatchSlips {
             .filter(|r| r.is_active())
             .map(|r| Slip::new(tourn.tourn(), r))
             .collect();
-        Self(inner)
+        inner.sort_by(|r1, r2| r1.table_no.cmp(&r2.table_no));
+        // Slips are sorted by table number, now we collate them so that they can be easily printed
+        // and cut by judges.
+        let l = inner.len();
+        let page_count = (l / Self::PAGE_SIZE) + ((l % Self::PAGE_SIZE == 0) as usize);
+        let mut sorted = Vec::with_capacity(page_count);
+        sorted.extend(std::iter::repeat(Vec::with_capacity(Self::PAGE_SIZE)).take(page_count));
+        inner
+            .into_iter()
+            .enumerate()
+            .for_each(|(i, slip)| sorted[i % page_count].push(slip));
+        Self(sorted.into_iter().flatten().collect())
     }
 
     fn view(&self) -> Html {
-        self.0.iter().map(Slip::view).collect()
+        self.0
+            .iter()
+            .chunks(Self::PAGE_SIZE)
+            .into_iter()
+            .map(page_break)
+            .collect()
     }
+}
+
+fn page_break<'a, I>(iter: I) -> Html
+where
+    I: Iterator<Item = &'a Slip>,
+{
+    html! { <div style="page-break-before: always">{ iter.map(Slip::view).collect::<Html>() } </div> }
 }
 
 impl Slip {
@@ -539,25 +561,47 @@ impl Slip {
     }
 
     fn view(&self) -> Html {
-        const UNDERLINE: &str = "________________________________________";
+        const UNDERLINE: &str = "________________________";
         html! {
         <>
-            <p> {"Round #"}{self.round_no}{"\t\t\t\tTable #"}{self.table_no} </p>
-            <p> {"Result: "}{self.names.iter().map(|n| n.as_str()).chain(std::iter::once("Draw")).join(",\t")} </p>
-            <p> {"Drops?: "}{self.names.iter().join(", ")} </p>
+            <table style="color: black">
+            <tr>
+                <td style={"padding: 0px 10px 0px 0px"}> {"Round #"}{self.round_no} </td>
+                <td> {"Table #"}{self.table_no} </td>
+            </tr>
+            </table>
+            <table style="color: black">
+            <tr>
+                <td style="padding: 10px 0px 0px 0px"> {"Result: "} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(0)}{"|"} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(1)}{"|"} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(2)}{"|"} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(3)}{"|"} </td>
+                <td style="padding: 10px 0px 0px 0px"> {"|"}{"Draw"}{"|"} </td>
+            </tr>
+            </table>
+            <table style="color: black">
+            <tr>
+                <td style="padding: 10px 0px 0px 0px"> {"Drops?: "} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(0)}{"|"} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(1)}{"|"} </td>
+                <td style="padding: 10px 5px 0px 0px"> {"|"}{self.names.get(2)}{"|"} </td>
+                <td style="padding: 10px 0px 0px 0px"> {"|"}{self.names.get(3)}{"|"} </td>
+            </tr>
+            </table>
             <p> {"Signatures:"} </p>
-            <p> {self.names.iter().take(2).map(|n| format!("{n} : {UNDERLINE}")).join("\t")} </p>
-            <p> {self.names.iter().skip(2).take(2).map(|n| format!("{n} : {UNDERLINE}")).join("\t")} </p>
-            <hr/>
+            <table style="color: black">
+                <tr>
+                    <td> {self.names.get(0)}{" : "}{UNDERLINE} </td>
+                    <td> {self.names.get(1)}{" : "}{UNDERLINE} </td>
+                </tr>
+                <tr>
+                    <td style={"padding: 30px 0px 10px 0px"}> {self.names.get(2)}{" : "}{UNDERLINE} </td>
+                    <td style={"padding: 30px 0px 10px 0px"}> {self.names.get(3)}{" : "}{UNDERLINE} </td>
+                </tr>
+            </table>
+            <hr style="color: black"/>
         </>
         }
     }
 }
-
-/*
- * Round #{}        Table #{}
- * Result: P1, P2, P3, P4, Draw
- * Drops:  P1, P2, P3, P4,
- * Signatures: P1: __________  P2: __________
- *           : P3: __________  P4: __________
- */
