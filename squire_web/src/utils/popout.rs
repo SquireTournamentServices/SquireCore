@@ -83,6 +83,29 @@ where
     }
 }
 
+pub fn table_page(inner : VNode) -> VNode {
+    html! {
+        <html>
+        <head>
+            <style>{"
+                table {
+                    margin : auto;
+                    border-collapse : collapse;
+                    text-align : center;
+                }
+                table, th, td {
+                    border : 1px solid;
+                }
+                th, td {
+                    padding : 10px 20px;
+                }
+            "}</style>
+        </head>
+        <body>{ inner }</body>
+        </html>
+    }
+}
+
 /*
 pub fn generic_static_table_vnode<I>() -> Html
 where

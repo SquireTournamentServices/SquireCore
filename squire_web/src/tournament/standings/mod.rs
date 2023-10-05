@@ -2,7 +2,7 @@ use squire_sdk::model::{identifiers::TournamentId, tournament::Tournament, r64};
 use yew::{prelude::*, virtual_dom::VNode};
 
 use crate::{
-    utils::{generic_popout_window, generic_scroll_vnode, rational_to_float},
+    utils::{generic_popout_window, generic_scroll_vnode, rational_to_float, table_page},
     CLIENT,
 };
 
@@ -110,7 +110,7 @@ impl Component for StandingsView {
                         <tbody> { list } </tbody>
                     </table>
                 };
-                generic_popout_window(vnode.clone());
+                generic_popout_window(table_page(vnode.clone()));
             }
         }
         true
