@@ -42,43 +42,43 @@ squire_lib = { path = "../squire_lib", default-features = false }
 
 # Common deps
 serde = { version = "1.0", features = ["derive"] }
-serde_with = { version = "3.0" }
-const_format = { version = "0.2.30" }
-array-concat = { version = "0.5.1" }
+serde_with = { version = "3.3" }
+const_format = { version = "0.2.31" }
+array-concat = { version = "0.5.2" }
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
+uuid = { version = "1.4", features = ["v4", "serde"] }
 
 # Client || Server deps
 cookie = { version = "0.17", optional = true }
-serde_json = { version = "1.0.68", optional = true }
+serde_json = { version = "1.0.107", optional = true }
 futures = { version = "0.3", optional = true }
 postcard = { version = "1.0", features = ["alloc"], optional = true }
 
 # Client deps
 reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
 cookie_store = { version = "0.20", optional = true }
-tokio = { version = "1.27", features = [
+tokio = { version = "1.32", features = [
   "macros",
   "sync",
 ], optional = true }
 
 # Server deps
-axum = { version = "0.6.1", features = ["ws"], optional = true }
+axum = { version = "0.6.20", features = ["ws"], optional = true }
 rand = { version = "0.8.5", optional = true }
 async-session = { version = "3.0.0", optional = true }
 headers = { version = "0.3", optional = true }
 http = { version = "0.2", optional = true }
 
 # To be moved
-hashbag = { version = "0.1.10", features = ["serde"] }
+hashbag = { version = "0.1.11", features = ["serde"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = { version = "0.4.34" }
+wasm-bindgen-futures = { version = "0.4.37" }
 gloo-net = { version = "0.3", optional = true }
 gloo-timers = { version = "0.2", features = ["futures"], optional = true }
 instant = { version = "0.1", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
-web-sys = { version = "0.3.61", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
+web-sys = { version = "0.3.64", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio-tungstenite = { version = "0.19.0", optional = true }
@@ -91,8 +91,8 @@ wasm-bindgen-test = "0.3"
 # Server deps
 tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }
-once_cell = { version = "1.13.0" }
-dashmap = { version = "5.0" }
+once_cell = { version = "1.18.0" }
+dashmap = { version = "5.5" }
 
 [dev-dependencies]
 # In-house
