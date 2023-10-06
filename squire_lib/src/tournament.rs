@@ -105,7 +105,7 @@ impl Tournament {
             name,
             settings: GeneralSettingsTree::with_format(format),
             player_reg: PlayerRegistry::new(),
-            round_reg: RoundRegistry::new(0, Duration::from_secs(3000)),
+            round_reg: RoundRegistry::new(Duration::from_secs(3000)),
             pairing_sys: PairingSystem::new(preset),
             scoring_sys: ScoringSystem::new(preset),
             reg_open: true,
@@ -325,7 +325,7 @@ impl Tournament {
             .round_reg
             .rounds
             .values()
-            .filter_map(|r| r.players.contains(&id).then_some(r))
+            .filter(|r| r.players.contains(&id))
             .collect())
     }
 
@@ -412,9 +412,12 @@ impl Tournament {
         }
         self.pairing_sys.update(&pairings);
         let context = self.pairing_sys.get_context();
-        Ok(OpData::Pair(
-            self.round_reg.rounds_from_pairings(salt, pairings, context),
-        ))
+        Ok(OpData::Pair(self.round_reg.rounds_from_pairings(
+            salt,
+            pairings,
+            context,
+            self.settings.starting_table_number,
+        )))
     }
 
     /// Attempts to create the next set of rounds for the tournament
@@ -679,7 +682,12 @@ impl Tournament {
                 {
                     Some(pairings) => {
                         let context = self.pairing_sys.get_context();
-                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings, context);
+                        let rounds = self.round_reg.rounds_from_pairings(
+                            salt,
+                            pairings,
+                            context,
+                            self.settings.starting_table_number,
+                        );
                         Ok(OpData::Pair(rounds))
                     }
                     None => Ok(OpData::Nothing),
@@ -725,9 +733,12 @@ impl Tournament {
             Err(TournamentError::RepeatedPlayerInMatch)
         } else {
             let context = self.pairing_sys.get_context();
-            Ok(OpData::CreateRound(
-                self.round_reg.create_round(salt, plyrs, context),
-            ))
+            Ok(OpData::CreateRound(self.round_reg.create_round(
+                salt,
+                plyrs,
+                context,
+                self.settings.starting_table_number,
+            )))
         }
     }
 
@@ -874,7 +885,12 @@ impl Tournament {
                 {
                     Some(pairings) => {
                         let context = self.pairing_sys.get_context();
-                        let rounds = self.round_reg.rounds_from_pairings(salt, pairings, context);
+                        let rounds = self.round_reg.rounds_from_pairings(
+                            salt,
+                            pairings,
+                            context,
+                            self.settings.starting_table_number,
+                        );
                         Ok(OpData::Pair(rounds))
                     }
                     None => Ok(OpData::Nothing),

@@ -145,6 +145,7 @@ mod tests {
             Utc::now(),
             pairings.paired[0].clone(),
             RoundContext::Contextless,
+            0,
         );
         assert_eq!(rnds.opponents.len(), 4);
         println!("{:?}", rnds.get_round(&id).unwrap());
@@ -174,6 +175,7 @@ mod tests {
             Utc::now(),
             pairings.paired[0].clone(),
             RoundContext::Contextless,
+            0,
         );
         for id in plyrs.players.keys() {
             sys.ready_player(*id);

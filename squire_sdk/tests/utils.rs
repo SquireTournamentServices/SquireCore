@@ -62,7 +62,7 @@ pub fn spoof_data(
     (
         sys,
         plyrs,
-        RoundRegistry::new(0, Duration::from_secs(0)),
+        RoundRegistry::new(Duration::from_secs(0)),
         StandardScoring::new(),
     )
 }

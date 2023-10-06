@@ -57,6 +57,7 @@ mod tests {
             Utc::now(),
             pairings.paired[0].clone(),
             RoundContext::Contextless,
+            0,
         );
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
@@ -82,7 +83,7 @@ mod tests {
         assert!(sys.ready_to_pair(&plyrs, &rnds));
         let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
         let matches =
-            rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
+            rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless, 0);
         assert!(!sys.ready_to_pair(&plyrs, &rnds));
         assert!(sys
             .pair(&plyrs, &rnds, standings.get_standings(&plyrs, &rnds))
@@ -142,7 +143,7 @@ mod tests {
             println!("The current count is {count}");
             let winners: Vec<_> = pairings.paired.iter().map(|p| p[0]).collect();
             let matches =
-                rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless);
+                rnds.rounds_from_pairings(Utc::now(), pairings.clone(), RoundContext::Contextless, 0);
             assert!(!rnds.opponents.is_empty());
             assert!(rnds
                 .opponents
