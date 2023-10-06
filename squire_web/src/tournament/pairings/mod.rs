@@ -519,7 +519,7 @@ impl MatchSlips {
         // Slips are sorted by table number, now we collate them so that they can be easily printed
         // and cut by judges.
         let l = inner.len();
-        let page_count = (l / Self::PAGE_SIZE) + ((l % Self::PAGE_SIZE == 0) as usize);
+        let page_count = (l / Self::PAGE_SIZE) + ((l % Self::PAGE_SIZE != 0) as usize);
         let mut sorted = Vec::with_capacity(page_count);
         sorted.extend(std::iter::repeat(Vec::with_capacity(Self::PAGE_SIZE)).take(page_count));
         inner

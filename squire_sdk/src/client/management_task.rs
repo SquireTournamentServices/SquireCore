@@ -14,6 +14,8 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 
+#[allow(unused)]
+use super::compat::log;
 use super::{
     compat::{spawn_task, Websocket, WebsocketError, WebsocketMessage},
     import::{import_channel, ImportTracker, TournamentImport},

@@ -197,7 +197,6 @@ impl ServerState for AppState {
     }
 
     async fn persist_tourn(&self, tourn: &TournamentManager) -> bool {
-        println!("Attempting to persist tournament: {}", tourn.id);
         // There appears to be a problem in bson right now where `Collection::replace_one` uses the
         // normal document serializer, but `Collection::find_one` (and `Collection::insert_one` as
         // well) use the raw document serializer, which unfortunately behave differently. Therefore

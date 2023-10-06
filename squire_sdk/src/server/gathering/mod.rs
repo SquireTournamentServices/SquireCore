@@ -133,7 +133,6 @@ impl Gathering {
     fn process_channel_message(&mut self, msg: GatheringMessage) {
         match msg {
             GatheringMessage::GetTournament(send) => {
-                println!("Got persist message from gathering hall. Sending copy of tournament...");
                 send.send(self.tourn.clone()).unwrap()
             },
             GatheringMessage::NewConnection(user, ws) => {
@@ -169,7 +168,6 @@ impl Gathering {
                 let link = self.handle_sync_request(id, sync);
                 // If completed, send forwarding requests
                 if let ServerOpLink::Completed(comp) = &link {
-                    println!("Completed sync! Sending persist message...");
                     self.send_persist_message();
                     self.send_forwarding(&user, comp).await;
                 }

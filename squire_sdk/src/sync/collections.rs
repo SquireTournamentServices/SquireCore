@@ -94,14 +94,9 @@ impl OpLog {
         // have updated since the sync started
         _ = self.ops.iter().rev().find(|op| op.id == id)?;
         let mut tourn = self.init_tourn();
-        let mut iter = self.ops.iter().cloned();
-        for FullOp { op, salt, .. } in iter.by_ref().take_while(|op| op.id != id) {
+        for FullOp { op, salt, .. } in self.ops.iter().cloned() {
             // TODO: This should never error, but if it doesn't, it needs to be logged
-            _ = tourn.apply_op(salt, op.clone()).ok()?;
-        }
-        for FullOp { op, salt, .. } in iter {
-            // TODO: This should never error, but if it doesn't, it needs to be logged
-            _ = tourn.apply_op(salt, op).ok()?;
+            let _ = tourn.apply_op(salt, op).ok()?;
         }
         let mut not_found = true;
         self.ops.retain(|op| {
