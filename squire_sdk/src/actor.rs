@@ -233,6 +233,7 @@ impl<A: ActorState> ActorClient<A> {
         ActorBuilder::new(state)
     }
 
+    // TODO(dora): talk to tyler about how to handle closing an actor.
     pub fn send(&self, msg: impl Into<A::Message>) {
         // This returns a result. It only errors when the connected actor panics. Should we "bubble
         // up" that panic?

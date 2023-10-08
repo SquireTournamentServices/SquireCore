@@ -57,6 +57,8 @@ pub enum GatheringHallMessage {
     NewConnection(TournamentId, SessionWatcher, WebSocket),
     /// Perist all the tournaments that need to be persisted
     Persist,
+    /// Destroy a gathering when the gathering decides that it should be terminated
+    DestroyGathering(TournamentId),
 }
 
 /// This structure manages all of the `Gathering`s around tournaments. This includes adding new
@@ -94,18 +96,23 @@ where
                     let _ = to_persist.insert(id);
                 }
                 for id in to_persist.drain() {
-                    let sender = self.gatherings.get_mut(&id).unwrap();
-                    let (send, recv) = oneshot_channel();
-                    let msg = GatheringMessage::GetTournament(send);
-                    sender.send(msg);
-                    let tourn = recv.await.unwrap();
-                    let _ = persist_reqs.insert(id, tourn);
+                    if let Some(sender) = self.gatherings.get_mut(&id) {
+                        let (send, recv) = oneshot_channel();
+                        let msg = GatheringMessage::GetTournament(send);
+                        sender.send(msg);
+                        let tourn = recv.await.unwrap();
+                        let _ = persist_reqs.insert(id, tourn);
+                    }
                 }
 
                 persist_reqs
                     .drain()
                     .for_each(|(_, tourn)| self.persister.send(tourn));
                 schedule_persist(scheduler);
+            }
+            GatheringHallMessage::DestroyGathering(id) => {
+                let client = self.gatherings.remove(&id);
+                // TODO(dora): We might need to do more bookkeeping on the destruction.
             }
         }
     }
@@ -129,6 +136,9 @@ where
 
     async fn spawn_gathering(&self, id: TournamentId) -> Option<ActorClient<Gathering>> {
         let tourn = self.get_tourn(&id).await?;
+
+        // TODO(dora): we need to pass a handle for the Gathering Hall to new gatherings
+        let hall_client = self.clone();
         let gathering = Gathering::new(*tourn, self.persist_sender.clone());
         let client = ActorBuilder::new(gathering).launch();
         Some(client)

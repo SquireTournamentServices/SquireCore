@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Add};
 
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
 use futures::StreamExt;
+use instant::{Duration, Instant};
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
 use uuid::Uuid;
@@ -33,6 +34,7 @@ pub enum GatheringMessage {
     NewConnection(SessionWatcher, WebSocket),
     WebsocketMessage(CrierMessage),
     ResendMessage(Box<(AuthUser, ClientBoundMessage)>),
+    CheckForTermination,
 }
 
 impl From<((), OneshotSender<Box<TournamentManager>>)> for GatheringMessage {
@@ -69,6 +71,7 @@ pub struct Gathering {
     persist: Sender<PersistReadyMessage>,
     syncs: ServerSyncManager,
     forwarding: ServerForwardingManager,
+    last_message_processed_at: Instant,
 }
 
 // Send forwarding message
@@ -84,6 +87,10 @@ impl ActorState for Gathering {
     type Message = GatheringMessage;
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+        if msg != CheckForTermination {
+            self.last_message_processed_at = Instant::now();
+        }
+
         match msg {
             GatheringMessage::GetTournament(send) => {
                 send.send(Box::new(self.tourn.clone())).unwrap()
@@ -118,6 +125,17 @@ impl ActorState for Gathering {
                     self.forwarding.terminate_chain(&retry.1.id);
                 }
             },
+            GatheringMessage::CheckForTermination => {
+                if self.termination_period_exceeded() {
+                    // communicate with the gathering hall
+                } else {
+                    let next_check_at = self
+                        .last_message_processed_at
+                        .add(Duration::from_secs(24 * 60 * 60));
+
+                    scheduler.schedule(next_check_at, GatheringMessage::CheckForTermination);
+                }
+            }
         }
     }
 }
@@ -131,6 +149,7 @@ impl Gathering {
             persist,
             syncs: ServerSyncManager::default(),
             forwarding: ServerForwardingManager::new(),
+            last_message_processed_at: Instant::now(),
         }
     }
 
@@ -306,6 +325,11 @@ impl Gathering {
 
     fn handle_forwarding_resp(&mut self, id: &Uuid, _: SyncForwardResp) {
         self.forwarding.terminate_chain(id);
+    }
+
+    fn termination_period_exceeded(&self) -> bool {
+        let twenty_four_hrs = Duration::from_secs(24 * 60 * 60);
+        self.last_message_processed_at.elapsed() >= twenty_four_hrs
     }
 }
 
