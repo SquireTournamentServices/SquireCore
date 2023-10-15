@@ -4,6 +4,10 @@
  */
 
 use std::{env, process::Command};
+use std::fs::File;
+use std::io::{Read, Write, BufWriter};
+use flate2::write::GzEncoder;
+use flate2::Compression;
 
 fn main() -> Result<(), i32> {
     if env::var("CARGO_FEATURE_IGNORE_FRONTEND").is_ok() {
@@ -53,6 +57,17 @@ fn main() -> Result<(), i32> {
     }
     cmd.arg(format!("{fe_path}/index.html"));
 
+    // Compresses the wasm package
+    let wasm_package = format!("{}/../assets/squire_web_bg.wasm", wd);
+    let mut wasm_file = File::open(&wasm_package).expect("Failed to open WASM file");
+    let mut wasm_data = Vec::new();
+    wasm_file.read_to_end(&mut wasm_data).unwrap();
+
+    let output_path = format!("{}/../build_outputs/squire_web_bg.wasm.gz", wd);
+    let output_file = File::create(&output_path).unwrap();  
+    let mut encoder = GzEncoder::new(BufWriter::new(output_file), Compression::default());
+    encoder.write_all(&wasm_data).unwrap();
+
     // If in debug mode, all for failed compilation of frontend.
     // In release mode, require that the frontend to be functional.
     if matches!(cmd.status().map(|s| s.success()), Ok(false) | Err(_)) && is_release {
@@ -61,3 +76,4 @@ fn main() -> Result<(), i32> {
         Ok(())
     }
 }
+

@@ -45,3 +45,6 @@ squire_tests = { path = "../squire_tests" }
 
 tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }
+
+[build-dependencies]
+flate2 = "1.0"
