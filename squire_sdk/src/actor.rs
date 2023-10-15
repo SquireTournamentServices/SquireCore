@@ -39,11 +39,11 @@ pub struct ActorBuilder<A: ActorState> {
     state: A,
 }
 
-pub struct ActorClient<A: ActorState> {
-    send: SendableWrapper<UnboundedSender<A::Message>>,
+pub struct ActorClient<M> {
+    send: SendableWrapper<UnboundedSender<M>>,
 }
 
-impl<A: ActorState> Clone for ActorClient<A> {
+impl<M> Clone for ActorClient<M> {
     fn clone(&self) -> Self {
         Self::new(self.send.clone().take())
     }
@@ -77,7 +77,7 @@ impl<A: ActorState> ActorBuilder<A> {
         Self { state, send, recv }
     }
 
-    pub fn client(&self) -> ActorClient<A> {
+    pub fn client(&self) -> ActorClient<A::Message> {
         ActorClient::new(self.send.clone())
     }
 
@@ -90,9 +90,9 @@ impl<A: ActorState> ActorBuilder<A> {
             .push(ActorStream::Secondary(Box::new(stream.map(|m| m.into()))));
     }
 
-    pub fn launch(self) -> ActorClient<A> {
+    pub fn launch(self) -> ActorClient<A::Message> {
         let Self { send, recv, state } = self;
-        let runner = ActorRunner::new(state, recv);
+        let runner = ActorRunner::new(state, recv, send.clone());
         runner.launch();
         ActorClient::new(send)
     }
@@ -103,6 +103,8 @@ pub struct Scheduler<A: ActorState> {
     #[allow(clippy::type_complexity)]
     queue: SendableWrapper<FuturesUnordered<Pin<Box<dyn SendableFuture<Output = A::Message>>>>>,
     tasks: SendableWrapper<FuturesUnordered<Pin<Box<dyn SendableFuture<Output = ()>>>>>,
+    should_terminate: bool,
+    sender: UnboundedSender<A::Message>,
     // TODO:
     //  - Add a `FuturesUnordered` for futures that are 'static  + Send and yield nothing
     //  - Add a queue for timers so that they are not lumped in the `queue`.
@@ -136,8 +138,12 @@ impl<T> Future for Timer<T> {
 }
 
 impl<A: ActorState> ActorRunner<A> {
-    fn new(state: A, recvs: impl IntoIterator<Item = ActorStream<A>>) -> Self {
-        let scheduler = Scheduler::new(recvs);
+    fn new(
+        state: A,
+        recvs: impl IntoIterator<Item = ActorStream<A>>,
+        sender: UnboundedSender<A::Message>,
+    ) -> Self {
+        let scheduler = Scheduler::new(recvs, sender);
         Self { state, scheduler }
     }
 
@@ -145,9 +151,12 @@ impl<A: ActorState> ActorRunner<A> {
         spawn_task(self.run())
     }
 
-    async fn run(mut self) -> ! {
+    async fn run(mut self) {
         self.state.start_up(&mut self.scheduler).await;
         loop {
+            if self.scheduler.should_terminate {
+                break;
+            }
             tokio::select! {
                 msg = self.scheduler.recv.next() => {
                     self.state.process(&mut self.scheduler, msg.unwrap()).await;
@@ -162,11 +171,24 @@ impl<A: ActorState> ActorRunner<A> {
 }
 
 impl<A: ActorState> Scheduler<A> {
-    fn new(recv: impl IntoIterator<Item = ActorStream<A>>) -> Self {
+    fn new(
+        recv: impl IntoIterator<Item = ActorStream<A>>,
+        sender: UnboundedSender<A::Message>,
+    ) -> Self {
         let recv = SendableWrapper::new(select_all(recv));
         let queue = SendableWrapper::new(FuturesUnordered::new());
         let tasks = SendableWrapper::new(FuturesUnordered::new());
-        Self { recv, queue, tasks }
+        Self {
+            recv,
+            queue,
+            tasks,
+            sender,
+            should_terminate: false,
+        }
+    }
+
+    pub fn client(&self) -> ActorClient<A::Message> {
+        ActorClient::new(self.sender.clone())
     }
 
     pub fn add_task<F, I>(&mut self, fut: F)
@@ -199,6 +221,10 @@ impl<A: ActorState> Scheduler<A> {
     {
         self.queue.push(Box::pin(Timer::new(deadline, msg.into())));
     }
+
+    pub fn terminate(&mut self) {
+        self.should_terminate = true;
+    }
 }
 
 impl<A: ActorState> Stream for Scheduler<A> {
@@ -223,29 +249,32 @@ impl<A: ActorState> From<UnboundedReceiver<A::Message>> for ActorStream<A> {
     }
 }
 
-impl<A: ActorState> ActorClient<A> {
-    fn new(send: UnboundedSender<A::Message>) -> Self {
+impl<M> ActorClient<M> {
+    fn new(send: UnboundedSender<M>) -> Self {
         let send = SendableWrapper::new(send);
         Self { send }
     }
 
-    pub fn builder(state: A) -> ActorBuilder<A> {
+    pub fn builder<A>(state: A) -> ActorBuilder<A>
+    where
+        A: ActorState<Message = M>,
+    {
         ActorBuilder::new(state)
     }
 
     // TODO(dora): talk to tyler about how to handle closing an actor.
-    pub fn send(&self, msg: impl Into<A::Message>) {
+    pub fn send(&self, msg: impl Into<M>) {
         // This returns a result. It only errors when the connected actor panics. Should we "bubble
         // up" that panic?
         let _ = self.send.send(msg.into());
     }
 
-    pub fn track<M, T>(&self, msg: M) -> Tracker<T>
+    pub fn track<I, T>(&self, msg: I) -> Tracker<T>
     where
-        A::Message: From<(M, OneshotSender<T>)>,
+        M: From<(M, OneshotSender<T>)>,
     {
         let (send, recv) = oneshot_channel();
-        let msg = A::Message::from((msg, send));
+        let msg = M::from((msg, send));
         self.send(msg);
         Tracker::new(recv)
     }
@@ -269,17 +298,8 @@ impl<T> Future for Tracker<T> {
     }
 }
 
-impl<A: ActorState> Debug for ActorClient<A> {
+impl<M> Debug for ActorClient<M> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, r#"ActorClient {{ "send": {:?} }}"#, &*self.send)
-    }
-}
-
-impl<A> Default for ActorClient<A>
-where
-    A: ActorState + Default,
-{
-    fn default() -> Self {
-        Self::builder(A::default()).launch()
     }
 }

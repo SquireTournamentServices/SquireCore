@@ -5,12 +5,12 @@ use axum::extract::ws::WebSocket;
 use futures::StreamExt;
 use instant::{Duration, Instant};
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
-use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
+use tokio::sync::oneshot::Sender as OneshotSender;
 use uuid::Uuid;
 use derive_more::From;
 
 use crate::{
-    actor::{ActorState, Scheduler},
+    actor::{ActorClient, ActorState, Scheduler},
     api::AuthUser,
     sync::{
         processor::{SyncCompletion, SyncDecision},
@@ -68,7 +68,7 @@ pub enum PersistMessage {
 pub struct Gathering {
     tourn: TournamentManager,
     onlookers: HashMap<AuthUser, Onlooker>,
-    persist: Sender<PersistReadyMessage>,
+    hall_client: ActorClient<GatheringHallMessage>,
     syncs: ServerSyncManager,
     forwarding: ServerForwardingManager,
     last_message_processed_at: Instant,
@@ -86,8 +86,16 @@ pub struct Gathering {
 impl ActorState for Gathering {
     type Message = GatheringMessage;
 
+    async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
+        let next_check_at = self.get_last_message_checked_at();
+        scheduler.schedule(next_check_at, GatheringMessage::CheckForTermination);
+    }
+
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
-        if msg != CheckForTermination {
+        if !matches!(
+            &msg,
+            GatheringMessage::CheckForTermination | GatheringMessage::GetTournament(_)
+        ) {
             self.last_message_processed_at = Instant::now();
         }
 
@@ -127,12 +135,10 @@ impl ActorState for Gathering {
             },
             GatheringMessage::CheckForTermination => {
                 if self.termination_period_exceeded() {
-                    // communicate with the gathering hall
+                    self.hall_client.track(self.tourn.id).await;
+                    scheduler.terminate();
                 } else {
-                    let next_check_at = self
-                        .last_message_processed_at
-                        .add(Duration::from_secs(24 * 60 * 60));
-
+                    let next_check_at = self.get_last_message_checked_at();
                     scheduler.schedule(next_check_at, GatheringMessage::CheckForTermination);
                 }
             }
@@ -141,12 +147,18 @@ impl ActorState for Gathering {
 }
 
 impl Gathering {
-    fn new(tourn: TournamentManager, persist: Sender<PersistReadyMessage>) -> Self {
+    #[cfg(debug_assertions)]
+    const CHECK_FREQUENCY: Duration = Duration::from_secs(10);
+
+    #[cfg(not(debug_assertions))]
+    const CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
+
+    fn new(tourn: TournamentManager, hall_client: ActorClient<GatheringHallMessage>) -> Self {
         let count = tourn.tourn().get_player_count();
         Self {
             tourn,
             onlookers: HashMap::with_capacity(count),
-            persist,
+            hall_client,
             syncs: ServerSyncManager::default(),
             forwarding: ServerForwardingManager::new(),
             last_message_processed_at: Instant::now(),
@@ -155,7 +167,13 @@ impl Gathering {
 
     fn send_persist_message(&mut self) {
         // If the persistance queue is full, we continue on
-        let _persist_fut = self.persist.send(PersistReadyMessage(self.tourn.id));
+        self.hall_client
+            .send(GatheringHallMessage::PersistReady(self.tourn.id));
+    }
+
+    fn get_last_message_checked_at(&self) -> Instant {
+        self.last_message_processed_at
+            .add(Duration::from_secs(24 * 60 * 60))
     }
 
     async fn process_websocket_message(
@@ -328,7 +346,7 @@ impl Gathering {
     }
 
     fn termination_period_exceeded(&self) -> bool {
-        let twenty_four_hrs = Duration::from_secs(24 * 60 * 60);
+        let twenty_four_hrs = Self::CHECK_FREQUENCY;
         self.last_message_processed_at.elapsed() >= twenty_four_hrs
     }
 }

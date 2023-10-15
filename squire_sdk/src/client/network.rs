@@ -27,7 +27,7 @@ const fn do_wrap<T>(value: T) -> T {
 }
 
 pub type ReqwestResult<T> = Result<T, reqwest::Error>;
-pub type NetworkClient = ActorClient<NetworkState>;
+pub type NetworkClient = ActorClient<NetworkCommand>;
 
 #[derive(Debug)]
 pub struct NetworkState {

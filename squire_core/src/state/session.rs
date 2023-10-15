@@ -378,7 +378,7 @@ async fn delete_session(table: Collection<Session>, session: Session) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct SessionStoreHandle {
-    client: ActorClient<SessionStore>,
+    client: ActorClient<SessionCommand>,
 }
 
 impl SessionStoreHandle {
