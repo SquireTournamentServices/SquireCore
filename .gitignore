@@ -2,10 +2,10 @@
 Cargo.lock
 ./cbindgen.toml
 ./squire_core.h
-
-assets/*
-
+/assets/
 squire_web/dist/*
 squire_web/target
-.history/*
 squire_web/.idea
+.history/
+build_outputs/*
+.idea/
