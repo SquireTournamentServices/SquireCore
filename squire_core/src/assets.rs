@@ -24,7 +24,7 @@ mod frontend {
     use hyper::{body::Bytes, Body};
 
     const INDEX_HTML: &str = include_str!("../../assets/index.html");
-    const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm");
+    const APP_WASM: &[u8] = include_bytes!("../../build_outputs/squire_web_bg.wasm.gz"); 
     const APP_JS: &str = include_str!("../../assets/squire_web.js");
 
     pub async fn landing() -> Html<&'static str> {
@@ -36,6 +36,7 @@ mod frontend {
         let body: Body = bytes.into();
 
         Response::builder()
+            .header(header::CONTENT_ENCODING, "gzip") // Unzips the compressed file
             .header(header::CONTENT_TYPE, "application/wasm")
             .body(body)
             .unwrap()
