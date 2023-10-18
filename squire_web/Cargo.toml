@@ -18,15 +18,15 @@ squire_sdk = { path = "../squire_sdk", features = ["client"] }
 
 yew = { version = "0.21", features = ["csr"] }
 yew-router = { version = "0.18.0" }
-once_cell = { version = "1.17" }
-web-sys = { version = "0.3.61", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
-js-sys = "0.3.61"
-wasm-bindgen = "0.2.84"
-wasm-bindgen-futures = "0.4.34"
-futures = "0.3.27"
-gloo-net = "0.3.0"
+once_cell = { version = "1.18" }
+web-sys = { version = "0.3.64", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
+js-sys = "0.3.64"
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+futures = "0.3.28"
+gloo-net = "0.3.1"
 async-std = "1.12.0"
-chrono = "0.4.24"
-tokio = { version = "1.27.0", default-features = false, features = [
+chrono = "0.4.31"
+tokio = { version = "1.33.0", default-features = false, features = [
   "sync",
 ] }

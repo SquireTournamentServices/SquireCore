@@ -15,14 +15,14 @@ cycle_map = { version = "0.2.0", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffccde3b0eecd230c2f067e18383ed804c5f3", default-features = false }
 # mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 
-uuid = { version = "1.1", features = ["serde", "v4"] }
+uuid = { version = "1.5", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_with = { version = "3.0" }
-once_cell = { version = "1.8.0" }
+serde_with = { version = "3.4" }
+once_cell = { version = "1.18.0" }
 chrono = { version = "0.4", features = ["serde"] }
 itertools = { version = "0.11.0" }
 num-rational = { version = "0.4.1", features = ["serde"] }
-html-escape = { version = "0.2.12" }
+html-escape = { version = "0.2.13" }
 getrandom = { version = "0.2" }
 deterministic-hash = "=1.0.1"
 fxhash = "=0.2.1"
@@ -32,7 +32,7 @@ getrandom = { version = "0.2", features = ["js"] }
 chrono = { version = "0.4", features = ["serde", "wasmbind"] }
 
 [dev-dependencies]
-serde_json = { version = "1.0.68" }
+serde_json = { version = "1.0.107" }
 squire_tests = { path = "../squire_tests" }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
