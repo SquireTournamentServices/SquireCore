@@ -1,10 +1,10 @@
 use squire_sdk::model::{
     identifiers::{AdminId, TournamentId},
-    operations::OpResult,
+    //operations::OpResult,
 };
 use tokio::sync::watch::Receiver;
-use wasm_bindgen::JsCast;
-use web_sys::{window, HtmlDialogElement};
+//use wasm_bindgen::JsCast;
+//use web_sys::{window, HtmlDialogElement};
 use yew::{html, Component, Context, Html, Properties};
 
 use crate::{
@@ -26,12 +26,12 @@ pub enum TournViewMode {
     Settings,
 }
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub enum TournViewMessage {
     TournamentImported(Option<Receiver<()>>),
     QueryReady(Option<(String, AdminId)>),
     SwitchModes(TournViewMode),
-    TournamentUpdated(OpResult),
+    //TournamentUpdated(OpResult),
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
@@ -71,7 +71,7 @@ impl TournamentViewer {
         }
     }
 
-    fn get_control_plane(&self, ctx: &Context<Self>) -> Html {
+    fn get_control_plane(&self, _ctx: &Context<Self>) -> Html {
         match self.mode {
             None => {
                 html! (
@@ -99,8 +99,8 @@ impl TournamentViewer {
                 html!( <TournViewerComponentWrapper<StandingsView> t_id = {self.id } props = {inner_props} /> )
             }
             Some(TournViewMode::Settings) => {
-                let send_op_result = ctx.link().callback(TournViewMessage::TournamentUpdated);
-                html! { <SettingsView id = { self.id } admin_id = { AdminId::default() } send_op_result = { send_op_result } /> }
+                let inner_props = SettingsProps {};
+                html! { <TournViewerComponentWrapper<SettingsView> t_id = { self.id } props = {inner_props} /> }
             }
         }
     }
@@ -168,6 +168,7 @@ impl Component for TournamentViewer {
                 });
                 false
             }
+            /*
             TournViewMessage::TournamentUpdated(opr) => {
                 let Err(err) = opr else { return false };
                 let element: HtmlDialogElement = window()
@@ -179,6 +180,7 @@ impl Component for TournamentViewer {
                 let _ = element.show_modal();
                 true
             }
+             */
         }
     }
 

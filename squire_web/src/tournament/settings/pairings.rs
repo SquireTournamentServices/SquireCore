@@ -30,6 +30,10 @@ impl PairingsSettings {
         }
     }
 
+    pub fn load_settings(&mut self, tree: PairingSettingsTree) {
+        *self = Self::new(self.common.algorithm.emitter.clone(), tree);
+    }
+
     pub fn update(&mut self, setting: PairingSetting) -> bool {
         match setting {
             PairingSetting::Common(setting) => {

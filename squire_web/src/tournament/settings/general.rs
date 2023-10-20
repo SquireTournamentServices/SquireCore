@@ -43,6 +43,10 @@ impl GeneralSettings {
         }
     }
 
+    pub fn load_settings(&mut self, tree: GeneralSettingsTree) {
+        *self = Self::new(self.starting_table.emitter.clone(), tree);
+    }
+
     pub fn update(&mut self, setting: GeneralSetting) -> bool {
         let _ = self.to_change.update(setting);
         false

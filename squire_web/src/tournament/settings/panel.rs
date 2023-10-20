@@ -8,7 +8,7 @@ use crate::utils::TextInput;
 pub struct SettingPanel {
     label: &'static str,
     convert: Rc<dyn Fn(String) -> Option<TournamentSetting>>,
-    emitter: Callback<TournamentSetting>,
+    pub emitter: Callback<TournamentSetting>,
 }
 
 pub fn make_panel<T, G, S>(

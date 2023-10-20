@@ -1,7 +1,4 @@
-use squire_sdk::model::settings::{
-    ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree, StandardScoringSetting,
-    TournamentSetting,
-};
+use squire_sdk::model::settings::{ScoringSetting, ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree, StandardScoringSetting, TournamentSetting};
 use yew::prelude::*;
 
 use super::panel::{make_panel, SettingPanel};
@@ -105,12 +102,14 @@ impl ScoringSettings {
         }
     }
 
-    /*
+    pub fn load_settings(&mut self, tree: ScoringSettingsTree) {
+        *self = Self::new(self.bye_points.emitter.clone(), tree);
+    }
+
     pub fn update(&mut self, setting: ScoringSetting) -> bool {
         let _ = self.to_change.update(setting);
         false
     }
-    */
 
     pub fn view(&self) -> Html {
         #[allow(irrefutable_let_patterns)]
