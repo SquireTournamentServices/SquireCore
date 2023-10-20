@@ -1,8 +1,8 @@
 // use squire_sdk::tournaments::TournamentManager;
 // use wasm_bindgen_futures::spawn_local;
-use yew::{Component, Context};
+// use yew::{Component};
 
-use crate::ON_UPDATE;
+// use crate::ON_UPDATE;
 
 // use self::viewer_component::{TournViewerComponentWrapper, TournViewerComponent};
 
@@ -17,6 +17,7 @@ pub mod standings;
 pub mod viewer;
 pub mod viewer_component;
 
+/*
 pub fn spawn_update_listener<V, M>(ctx: &Context<V>, msg: M)
 where
     V: Component<Message = M>,
@@ -28,3 +29,4 @@ where
         to_return
     })
 }
+*/
