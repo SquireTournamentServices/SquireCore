@@ -1,4 +1,7 @@
-use squire_sdk::model::settings::{ScoringSetting, ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree, StandardScoringSetting, TournamentSetting};
+use squire_sdk::model::settings::{
+    ScoringSetting, ScoringSettingsTree, ScoringStyleSettingsTree, SettingsTree,
+    StandardScoringSetting, TournamentSetting,
+};
 use yew::prelude::*;
 
 use super::panel::{make_panel, SettingPanel};

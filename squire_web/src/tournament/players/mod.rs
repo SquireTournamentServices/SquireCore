@@ -23,15 +23,11 @@ use super::{
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct PlayerViewProps {
-    //    pub id: TournamentId,
-    //    pub admin_id: AdminId,
-    //    pub send_op_result: Callback<OpResult>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerViewMessage {
     FilterInput(PlayerFilterInputMessage),
-    // PlayerScroll(PlayerScrollMessage),
     SelectedPlayer(SelectedPlayerMessage),
 }
 pub enum PlayerViewQueryMessage {
@@ -56,7 +52,7 @@ impl TournViewerComponent for PlayerView {
     type QueryMessage = PlayerViewQueryMessage;
 
     fn v_create(ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
-        let id = state.t_id.clone();
+        let id = state.t_id;
         Self {
             id,
             input: PlayerFilterInput::new(
@@ -126,11 +122,10 @@ impl TournViewerComponent for PlayerView {
         _state: &WrapperState,
     ) -> InteractionResponse<Self> {
         match _msg {
-            PlayerViewMessage::FilterInput(msg) => self.input.update(msg, _state).into(),
+            PlayerViewMessage::FilterInput(msg) => self.input.update(msg, _state),
             PlayerViewMessage::SelectedPlayer(msg) => {
-                //_ctx.link().send_message(PlayerViewMessage::ReQuery);
                 self.selected.update(msg, _state)
-            } // PlayerViewMessage::PlayerScroll(msg) => self.scroll.update(msg).into(),
+            }
         }
     }
 

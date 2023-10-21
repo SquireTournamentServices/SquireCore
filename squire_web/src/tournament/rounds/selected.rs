@@ -27,7 +27,6 @@ pub enum SelectedRoundMessage {
     RoundSelected(RoundId),
     TimerTicked(RoundId),
     /// Optional because the lookup "may" fail
-    // RoundQueryReady(Option<RoundProfile>),
     BufferMessage(RoundChangesBufferMessage),
     PushChanges(RoundId),
     BulkConfirm(RoundId),
@@ -37,10 +36,8 @@ pub enum SelectedRoundMessage {
 /// Sub-Component displaying round currently selected
 pub struct SelectedRound {
     pub t_id: TournamentId,
-    // draw_ticker: RoundResultTicker,
     /// The data from the tournament that is used to display the round
     pub round: Option<(RoundProfile, RoundUpdater)>,
-    // round_changes_buffer: Option<RoundChangesBuffer>,
     pub process: Callback<SelectedRoundMessage>,
 }
 
@@ -59,7 +56,7 @@ impl SelectedRound {
     pub fn update(
         &mut self,
         ctx: &Context<TournViewerComponentWrapper<RoundsView>>,
-        msg: SelectedRoundMessage, // send_op_result: &Callback<OpResult>,
+        msg: SelectedRoundMessage,
         state: &WrapperState,
     ) -> InteractionResponse<RoundsView> {
         match msg {
@@ -111,7 +108,6 @@ impl SelectedRound {
                 }
             }
             SelectedRoundMessage::PushChanges(rid) => {
-                // let user_id = state.get_user_id();
                 let rcb = self
                     .round
                     .as_ref()
@@ -124,7 +120,7 @@ impl SelectedRound {
                 if rcb.draw_ticker.was_changed {
                     ops.push(Op::Judge(JudgeOp::AdminRecordResult(
                         rid,
-                        rcb.draw_ticker.stored_result.clone(),
+                        rcb.draw_ticker.stored_result,
                     )));
                 }
                 ops.extend(rcb.win_tickers.values().filter_map(|wt| wt.into_op(rid)));
@@ -139,40 +135,12 @@ impl SelectedRound {
                         Duration::from_secs(rcb.current_extension_minutes * 60),
                     )));
                 }
-                // Update methods return a tracker that is a future and needs to be awaited
-                /*
-                let tracker = CLIENT.get().unwrap().bulk_update(self.t_id, ops);
-                let send_op_result = send_op_result.clone();
-                spawn_local(async move { send_op_result.emit(tracker.await.unwrap()) });
-                false
-                */
-                // InteractionResponse::Update(ops)
                 state.op_response(ops)
             }
             SelectedRoundMessage::BulkConfirm(rid) => {
-                /*
-                CLIENT.get().unwrap().update_tourn(
-                    self.t_id,
-                    TournOp::JudgeOp(
-                        state.get_user_id().clone().into(),
-                        JudgeOp::ConfirmRound(rid),
-                    ),
-                );
-                false.into()
-                */
                 state.op_response(vec![Op::Judge(JudgeOp::ConfirmRound(rid))])
             }
             SelectedRoundMessage::KillRound(rid) => {
-                /*
-                CLIENT.get().unwrap().update_tourn(
-                    self.t_id,
-                    TournOp::AdminOp(
-                        state.get_user_id().clone().into(),
-                        AdminOp::RemoveRound(rid),
-                    ),
-                );
-                false.into()
-                */
                 state.op_response(vec![Op::Admin(AdminOp::RemoveRound(rid))])
             }
         }
@@ -180,7 +148,6 @@ impl SelectedRound {
 
     pub fn round_query_ready(&mut self, rnd: Option<RoundProfile>) {
         let data = rnd.map(|rnd| {
-            // send_ticker_future(rnd.id, ctx);
             let updater = RoundUpdater::new(&rnd, self.process.clone());
             (rnd, updater)
         });
@@ -200,7 +167,6 @@ impl SelectedRound {
             <p>
             {
                 updater.view(&self.round.as_ref().unwrap().0)
-                //self.round_changes_buffer.as_ref().unwrap().view_draw_ticker()
             }
             </p>
             // Moved to RoundUpdater's view method
@@ -242,7 +208,6 @@ impl RoundUpdater {
             RoundResultTicker::new("Draws".into(), None, RoundResult::Draw(rnd.draws), proc),
         );
         proc = process.clone();
-        //rcb.win_tickers.insert(*r.0, ticker);
         rcb.win_tickers.extend(rnd.player_names.iter().map(|r| {
             let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
             (
@@ -257,7 +222,6 @@ impl RoundUpdater {
         }));
         rcb.confirmation_tickers
             .extend(rnd.player_names.iter().map(|r| {
-                // let found_result = rnd.results.get(r.0).cloned().unwrap_or_default();
                 (
                     *r.0,
                     RoundConfirmationTicker::new(
@@ -275,7 +239,7 @@ impl RoundUpdater {
     }
 
     pub fn view(&self, rnd: &RoundProfile) -> Html {
-        let rid = self.rid.clone();
+        let rid = self.rid;
         let mut cb = self.process.clone();
         let pushdata = move |_| {
             cb.emit(SelectedRoundMessage::PushChanges(rid));

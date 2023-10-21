@@ -37,7 +37,7 @@ impl PlayerProfile {
                 .get_player_rounds(&plyr.id.into())
                 .unwrap()
                 .iter()
-                .map(|r| RoundSummary::new(*r))
+                .map(|r| RoundSummary::new(r))
                 .collect(),
         };
         to_return.rounds.sort_by_cached_key(|r| r.match_number);
@@ -46,7 +46,7 @@ impl PlayerProfile {
     }
 
     pub fn view(&self, process: Callback<SelectedPlayerMessage>) -> Html {
-        let id = self.id.clone();
+        let id = self.id;
         let cb = process.clone();
         let dropplayer = move |_| {
             cb.emit(SelectedPlayerMessage::DropPlayer(id));

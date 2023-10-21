@@ -1,10 +1,5 @@
-use squire_sdk::model::{
-    identifiers::{AdminId, TournamentId},
-    //operations::OpResult,
-};
+use squire_sdk::model::identifiers::{AdminId, TournamentId};
 use tokio::sync::watch::Receiver;
-//use wasm_bindgen::JsCast;
-//use web_sys::{window, HtmlDialogElement};
 use yew::{html, Component, Context, Html, Properties};
 
 use crate::{
@@ -26,12 +21,10 @@ pub enum TournViewMode {
     Settings,
 }
 
-// #[derive(Debug)]
 pub enum TournViewMessage {
     TournamentImported(Option<Receiver<()>>),
     QueryReady(Option<(String, AdminId)>),
     SwitchModes(TournViewMode),
-    //TournamentUpdated(OpResult),
 }
 
 #[derive(Debug, Properties, PartialEq, Eq)]
@@ -44,7 +37,6 @@ pub struct TournamentViewer {
     pub mode: Option<TournViewMode>,
     listener: Option<Receiver<()>>,
     tourn_name: String,
-    // admin_id: AdminId,
     error_message: String,
 }
 
@@ -121,7 +113,6 @@ impl Component for TournamentViewer {
             id,
             mode: None,
             tourn_name: String::new(),
-            // admin_id: AdminId::default(),
             error_message: "no message".to_owned(),
             listener: None,
         }
@@ -156,7 +147,6 @@ impl Component for TournamentViewer {
             TournViewMessage::QueryReady(Some((name, _admin_id))) => {
                 let digest = self.tourn_name != name;
                 self.tourn_name = name;
-                // self.admin_id = admin_id;
                 self.mode = Some(TournViewMode::Overview);
                 digest
             }
@@ -168,19 +158,6 @@ impl Component for TournamentViewer {
                 });
                 false
             }
-            /*
-            TournViewMessage::TournamentUpdated(opr) => {
-                let Err(err) = opr else { return false };
-                let element: HtmlDialogElement = window()
-                    .and_then(|w| w.document())
-                    .and_then(|d| d.get_element_by_id("errormessage"))
-                    .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
-                    .unwrap();
-                self.error_message = err.to_string();
-                let _ = element.show_modal();
-                true
-            }
-             */
         }
     }
 
