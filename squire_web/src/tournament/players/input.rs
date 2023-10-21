@@ -76,16 +76,6 @@ impl PlayerFilterInput {
                 if self.guest_name.is_none() {
                     return false.into();
                 };
-                /*
-                let _tracker = CLIENT.get().unwrap().update_tourn(
-                    state.t_id,
-                    TournOp::JudgeOp(
-                        state.get_user_id(),
-                        JudgeOp::RegisterGuest(self.guest_name.as_ref().unwrap().clone()),
-                    ),
-                );
-                false
-                */
                 state.op_response(vec![Op::Judge(JudgeOp::RegisterGuest(
                     self.guest_name.as_ref().unwrap().clone(),
                 ))])

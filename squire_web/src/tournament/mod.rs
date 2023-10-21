@@ -1,11 +1,3 @@
-// use squire_sdk::tournaments::TournamentManager;
-// use wasm_bindgen_futures::spawn_local;
-// use yew::{Component};
-
-// use crate::ON_UPDATE;
-
-// use self::viewer_component::{TournViewerComponentWrapper, TournViewerComponent};
-
 pub mod creator;
 pub mod model;
 pub mod overview;

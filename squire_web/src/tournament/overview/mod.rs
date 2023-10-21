@@ -21,36 +21,18 @@ pub struct TournOverview {
     pub id: TournamentId,
     profile: Option<TournamentProfile>,
 }
-
-/*
-pub fn fetch_overview_data(ctx: &Context<TournViewerComponentWrapper<TournOverview>>, id: TournamentId) {
-    ctx.link().send_future(async move {
-        let data = CLIENT
-            .get()
-            .unwrap()
-            .query_tourn(id, TournamentProfile::new)
-            .await;
-        if data.is_none() {
-            sleep(Duration::from_millis(10)).await;
-        }
-        TournOverviewMessage::OverviewQueryReady(data)
-    })
-}
-*/
-
 impl TournViewerComponent for TournOverview {
     type Properties = OverviewProps;
     type InteractionMessage = TournOverviewMessage;
     type QueryMessage = TournOverviewQueryMessage;
 
     fn v_create(_ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
-        let id = state.t_id.clone();
-        // fetch_overview_data(ctx, id);
+        let id = state.t_id;
         TournOverview { id, profile: None }
     }
 
-    fn load_queried_data(&mut self, _msg: Self::QueryMessage, _state: &WrapperState) -> bool {
-        match _msg {
+    fn load_queried_data(&mut self, msg: Self::QueryMessage, _state: &WrapperState) -> bool {
+        match msg {
             TournOverviewQueryMessage::OverviewQueryReady(data) => {
                 let digest = self.profile != data || data.is_none();
                 self.profile = data;
@@ -67,7 +49,6 @@ impl TournViewerComponent for TournOverview {
         match self.profile.as_ref() {
             Some(p) => p.view(),
             None => {
-                // fetch_overview_data(_ctx, self.id);
                 Html::default()
             }
         }

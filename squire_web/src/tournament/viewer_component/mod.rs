@@ -11,8 +11,6 @@ use squire_sdk::{
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, HtmlDialogElement};
-// use squire_sdk::tournaments::TournamentManager;
-// use wasm_bindgen_futures::spawn_local;
 use yew::{html, Callback, Component, Context, Properties};
 
 use crate::{utils::console_log, CLIENT, ON_UPDATE};
@@ -27,7 +25,6 @@ pub enum Op {
     Judge(JudgeOp),
 }
 pub struct WrapperState {
-    // pub u_id: SquireAccountId,
     pub t_id: TournamentId,
     pub send_op_result: Callback<OpResult>,
     pub client: &'static SquireClient,
@@ -97,7 +94,6 @@ where
 
     fn create(ctx: &yew::Context<Self>) -> Self {
         let state = WrapperState {
-            // a_id: ctx.props().a_id,
             t_id: ctx.props().t_id,
             send_op_result: ctx.link().callback(WrapperMessage::ReceiveOpResult),
             client: CLIENT.get().unwrap(),
@@ -244,15 +240,6 @@ impl<T: TournViewerComponent> From<bool> for InteractionResponse<T> {
     }
 }
 
-/*
-impl<T: TournViewerComponent> From<T::InteractionMessage> for WrapperMessage<T> {
-    fn from(value: T::InteractionMessage) -> Self {
-        WrapperMessage::Interaction(value)
-    }
-}
-*/
-
-// yew::Context<TournViewerComponentWrapper<T>> -> yew::Context<T>
 
 impl<T: TournViewerComponent> Default for InteractionResponse<T> {
     fn default() -> Self {

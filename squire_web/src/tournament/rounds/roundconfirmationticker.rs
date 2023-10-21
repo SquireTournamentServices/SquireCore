@@ -41,9 +41,8 @@ impl RoundConfirmationTicker {
     }
 
     pub fn into_op(&self, rid: RoundId) -> Option<Op> {
-        // AdminConfirmResult(RoundId, PlayerId)
         (self.currently_confirmed && !self.pre_confirmed)
-            .then(|| Op::Judge(JudgeOp::AdminConfirmResult(rid, self.pid.clone())))
+            .then(|| Op::Judge(JudgeOp::AdminConfirmResult(rid, self.pid)))
     }
 
     pub fn update(&mut self, msg: RoundConfirmationTickerMessage) -> bool {
@@ -66,10 +65,10 @@ impl RoundConfirmationTicker {
     }
 
     pub fn view(&self) -> Html {
-        let mut pid = self.pid.clone();
+        let mut pid = self.pid;
         let cb = self.process.clone();
-        let pre_confirmed = self.pre_confirmed.clone();
-        let currently_confirmed = self.currently_confirmed.clone();
+        let pre_confirmed = self.pre_confirmed;
+        let currently_confirmed = self.currently_confirmed;
         let check = move |_| {
             if currently_confirmed {
                 cb.emit(SelectedRoundMessage::BufferMessage(
@@ -87,7 +86,7 @@ impl RoundConfirmationTicker {
                 ));
             }
         };
-        pid = self.pid.clone();
+        pid = self.pid;
         html! {
             <input type={"checkbox"} id={pid.to_string()} disabled={pre_confirmed} checked={currently_confirmed} onclick={check} />
         }

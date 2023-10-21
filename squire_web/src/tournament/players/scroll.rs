@@ -38,7 +38,7 @@ impl PlayerScroll {
         let mapper = |plyr: &PlayerSummary| {
             let cb = self.process.clone();
             let name = plyr.name.clone();
-            let status = plyr.status.clone();
+            let status = plyr.status;
             let id = plyr.id;
             html! {
                 <tr onclick = { move |_| cb.emit(id) }>

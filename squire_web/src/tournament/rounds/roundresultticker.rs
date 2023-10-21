@@ -64,24 +64,20 @@ impl RoundResultTicker {
             RoundResultTickerMessage::Decrement => {
                 self.stored_result.dec_result();
                 self.was_changed = true;
-            } /*
-              RoundResultTickerMessage::SetChanged(val) => {
-                  self.was_changed = val;
-              }
-              */
+            }
         }
         true
     }
 
     pub fn view(&self) -> Html {
-        let pid = self.pid.clone();
+        let pid = self.pid;
         let cb = self.process.clone();
         let up = move |_| {
             cb.emit(SelectedRoundMessage::BufferMessage(
                 RoundChangesBufferMessage::TickClicked(pid, RoundResultTickerMessage::Increment),
             ));
         };
-        let pid = self.pid.clone();
+        let pid = self.pid;
         let cb = self.process.clone();
         let down = move |_| {
             cb.emit(SelectedRoundMessage::BufferMessage(

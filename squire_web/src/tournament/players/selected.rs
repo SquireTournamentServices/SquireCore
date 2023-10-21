@@ -96,23 +96,6 @@ impl SelectedPlayer {
                     .map(|sv| !sv.matches(&info))
                     .unwrap_or(true)
                 {
-                    /*
-                    {
-                        let id = self.id;
-                        ctx.link().send_future(async move {
-                            let data = CLIENT
-                                .get()
-                                .unwrap()
-                                .query_tourn(id, |t| info.to_profile(t.tourn()))
-                                .await
-                                .flatten();
-                            PlayerViewMessage::SelectedPlayer(SelectedPlayerMessage::SubviewQueryReady(
-                                data,
-                            ))
-                        })
-                    }
-                    false.into()
-                    */
                     let q_func = |tourn: &TournamentManager| {
                         let data = info.to_profile(tourn);
                         PlayerViewQueryMessage::SelectedSubviewReady(data)
@@ -131,13 +114,6 @@ impl SelectedPlayer {
             SelectedPlayerMessage::PlayerQueryReady(None)
             | SelectedPlayerMessage::SubviewQueryReady(None) => false.into(),
             SelectedPlayerMessage::DropPlayer(pid) => {
-                /*
-                CLIENT.get().unwrap().update_tourn(
-                    self.id,
-                    TournOp::AdminOp(state.get_user_id().convert(), AdminOp::AdminDropPlayer(pid)),
-                );
-                false.into()
-                */
                 state.op_response(vec![Op::Admin(AdminOp::AdminDropPlayer(pid))])
             }
         }
@@ -175,7 +151,6 @@ impl SubviewProfile {
     fn matches(&self, info: &SubviewInfo) -> bool {
         match (self, info) {
             (SubviewProfile::Round(rnd), SubviewInfo::Round(id)) => rnd.id == *id,
-            // (SubviewProfile::Deck(deck), SubviewInfo::Deck(_, name)) => &deck.name == name,
             _ => false,
         }
     }
@@ -189,15 +164,6 @@ impl SubviewInfo {
                 .rounds
                 .get(&r_id)
                 .map(|rnd| RoundProfile::new(tourn, rnd).into()),
-            /*
-            SubviewInfo::Deck(p_id, name) => tourn
-                .player_reg
-                .players
-                .get(&p_id)?
-                .decks
-                .get(&name)
-                .map(|deck| DeckProfile::new(deck).into()),
-            */
         }
     }
 }

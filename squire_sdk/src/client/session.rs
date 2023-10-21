@@ -123,12 +123,7 @@ impl SessionWatcher {
     }
 
     pub fn get_squire_account_id(&self) -> Option<SquireAccountId> {
-        let acc_option = self.session_info().get_user();
-        match acc_option {
-            Some(acc) => Some(acc.id),
-            None => None
-        }
-    }
+        self.session_info().get_user().map(|acc| acc.id)
 }
 
 impl SessionInfo {

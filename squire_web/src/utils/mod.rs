@@ -5,7 +5,6 @@ pub mod requests;
 pub use input::*;
 pub use popout::*;
 pub use requests::*;
-// use yew::{Html, html};
 
 /// A wrapper around web_sys console log_1
 #[allow(unused)]

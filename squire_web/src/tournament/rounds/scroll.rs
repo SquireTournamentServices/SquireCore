@@ -18,30 +18,8 @@ pub struct RoundScroll {
     rounds: Vec<RoundSummary>,
 }
 
-/*
-fn fetch_round_summaries(ctx: &Context<RoundsView>, id: TournamentId) {
-    ctx.link().send_future(async move {
-        let mut data = CLIENT
-            .get()
-            .unwrap()
-            .query_rounds(id, |rnds| {
-                rnds.rounds
-                    .values()
-                    .map(RoundSummary::new)
-                    .collect::<Vec<_>>()
-            })
-            .await
-            .unwrap_or_default();
-        data.sort_by_cached_key(|r| r.match_number);
-        data.sort_by_cached_key(|r| r.status);
-        RoundsViewMessage::RoundScroll(RoundScrollMessage::ScrollQueryReady(data))
-    })
-}
-*/
-
 impl RoundScroll {
     pub fn new(ctx: &Context<TournViewerComponentWrapper<RoundsView>>, id: TournamentId) -> Self {
-        // fetch_round_summaries(ctx, id);
         Self {
             id,
             process: ctx.link().callback(|input| {
@@ -52,12 +30,6 @@ impl RoundScroll {
             rounds: Default::default(),
         }
     }
-
-    /*
-    pub fn requery(&self, ctx: &Context<RoundsView>) {
-        // fetch_round_summaries(ctx, self.id);
-    }
-    */
 
     pub fn update(&mut self, msg: RoundScrollMessage) -> bool {
         match msg {

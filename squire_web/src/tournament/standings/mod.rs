@@ -40,32 +40,17 @@ pub struct StandingsView {
     standings: StandingsProfile,
 }
 
-/*
-pub fn fetch_standings_profile(ctx: &Context<TournViewerComponentWrapper<StandingsView>>, id: TournamentId) {
-    ctx.link().send_future(async move {
-        let data = CLIENT
-            .get()
-            .unwrap()
-            .query_tourn(id, |t| StandingsProfile::new(t.tourn()))
-            .await;
-        WrapperMessage::Interaction(StandingsQueryMessage::StandingsQueryReady(data))
-    })
-}
-*/
-
 impl TournViewerComponent for StandingsView {
     type InteractionMessage = StandingsMessage;
     type QueryMessage = StandingsQueryMessage;
     type Properties = StandingsProps;
 
     fn v_create(_ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
-        let to_return = StandingsView {
-            id: state.t_id.clone(),
+        StandingsView {
+            id: state.t_id,
             scroll_vnode: None,
             standings: Default::default(),
-        };
-        //fetch_standings_profile(ctx, to_return.id);
-        to_return
+        }
     }
 
     fn interaction(
@@ -92,7 +77,7 @@ impl TournViewerComponent for StandingsView {
         match _msg {
             StandingsQueryMessage::StandingsQueryReady(data) => {
                 self.standings = data.unwrap_or_default();
-                true.into()
+                true
             }
         }
     }

@@ -79,19 +79,7 @@ impl TournViewerComponent for RoundsView {
         match msg {
             RoundsViewMessage::FilterInput(msg) => self.input.update(msg).into(),
             RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg).into(),
-            RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg, state).into(),
-            /*
-            RoundsViewMessage::BulkConfirmation => state
-                .get_user_id()
-                .map(|user_id| {
-                    let ops = vec![TournOp::AdminOp(
-                        user_id.convert(),
-                        AdminOp::ConfirmAllRounds,
-                    )];
-                    InteractionResponse::Update(ops)
-                })
-                .unwrap_or_default(),
-            */
+            RoundsViewMessage::SelectedRound(msg) => self.selected.update(ctx, msg, state),
             RoundsViewMessage::BulkConfirmation => {
                 state.op_response(vec![Op::Admin(AdminOp::ConfirmAllRounds)])
             }

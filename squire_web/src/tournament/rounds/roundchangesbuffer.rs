@@ -64,15 +64,7 @@ impl RoundChangesBuffer {
             }
             RoundChangesBufferMessage::ExtensionDecrease() => {
                 self.current_extension_minutes = self.current_extension_minutes.saturating_sub(1);
-            } /*
-              RoundChangesBufferMessage::ResetAll() => {
-                  self.draw_ticker
-                      .update(RoundResultTickerMessage::SetChanged(false));
-                  self.win_tickers.iter_mut().for_each(|(pid, wt)| {
-                      wt.update(RoundResultTickerMessage::SetChanged(false));
-                  });
-              }
-              */
+            }
         }
         true
     }
