@@ -7,7 +7,7 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-use super::viewer_component::{TournViewerComponent, TournViewerComponentWrapper, WrapperState};
+use super::viewer_component::{TournViewerComponent, TournViewerComponentWrapper, WrapperState, TournQuery};
 
 pub enum TournOverviewMessage {}
 pub enum TournOverviewQueryMessage {
@@ -58,7 +58,7 @@ impl TournViewerComponent for TournOverview {
         &mut self,
         _ctx: &Context<TournViewerComponentWrapper<Self>>,
         _state: &WrapperState,
-    ) -> Box<dyn 'static + Send + FnOnce(&TournamentManager) -> Self::QueryMessage> {
+    ) -> TournQuery<Self::QueryMessage> {
         let q_func = |tourn: &TournamentManager| {
             let data = TournamentProfile::new(tourn);
             Self::QueryMessage::OverviewQueryReady(Some(data))

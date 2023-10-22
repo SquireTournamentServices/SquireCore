@@ -14,7 +14,7 @@ use yew::{prelude::*, virtual_dom::VNode};
 
 use super::viewer_component::{
     InteractionResponse, Op, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
-    WrapperState,
+    WrapperState, TournQuery,
 };
 use crate::utils::{generic_popout_window, generic_scroll_vnode, TextInput};
 
@@ -259,7 +259,7 @@ impl TournViewerComponent for PairingsView {
         &mut self,
         _ctx: &Context<TournViewerComponentWrapper<Self>>,
         _state: &WrapperState,
-    ) -> Box<dyn 'static + Send + FnOnce(&TournamentManager) -> Self::QueryMessage> // <- we probably want to alias over this at some point
+    ) -> TournQuery<Self::QueryMessage> 
     {
         let q_func = |tourn: &TournamentManager| {
             let names: HashMap<PlayerId, String> = tourn
