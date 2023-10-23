@@ -17,7 +17,7 @@ strip = true  # Automatically strip symbols from the binary.
 squire_sdk = { path = "../squire_sdk", features = ["client"] }
 
 yew = { version = "0.20", features = ["csr"] }
-yew-router = { version = "0.17.0" }
+yew-router = { version = "0.18.0" }
 once_cell = { version = "1.18" }
 web-sys = { version = "0.3.64", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
 js-sys = "0.3.64"
