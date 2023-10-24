@@ -124,6 +124,7 @@ impl SessionWatcher {
 
     pub fn get_squire_account_id(&self) -> Option<SquireAccountId> {
         self.session_info().get_user().map(|acc| acc.id)
+    }
 }
 
 impl SessionInfo {

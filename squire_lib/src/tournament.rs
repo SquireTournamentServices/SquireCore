@@ -1001,7 +1001,7 @@ impl Tournament {
 }
 
 impl TournamentSeed {
-    const MAGIC_SYNONYMS: &[&'static str] = &[
+    const MAGIC_SYNONYMS: &'static [&'static str] = &[
         "Magic",
         "Illusion",
         "Wizardry",
@@ -1031,7 +1031,7 @@ impl TournamentSeed {
         "Witchcraft",
     ];
 
-    const GATHERING_SYNONYMS: &[&'static str] = &[
+    const GATHERING_SYNONYMS: &'static [&'static str] = &[
         "Gathering",
         "Association",
         "Caucus",

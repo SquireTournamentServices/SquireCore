@@ -274,8 +274,8 @@ impl SessionStore {
 }
 
 impl SessionDb {
-    const ACTIVE_SESSION_TABLE: &str = "ActiveSessions";
-    const EXPIRED_SESSION_TABLE: &str = "ExpiredSessions";
+    const ACTIVE_SESSION_TABLE: &'static str = "ActiveSessions";
+    const EXPIRED_SESSION_TABLE: &'static str = "ExpiredSessions";
 
     pub fn new(db: Database) -> Self {
         Self { db }
