@@ -143,4 +143,3 @@ impl Trackable<RegForm, SquireAccountId> for AccountCommand {
         Self::Create(msg, send)
     }
 }
-

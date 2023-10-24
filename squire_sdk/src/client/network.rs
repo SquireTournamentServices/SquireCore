@@ -50,7 +50,8 @@ impl ActorState for NetworkState {
     type Message = NetworkCommand;
 
     async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
-        let resp = self.post_request(GuestSession, [])
+        let resp = self
+            .post_request(GuestSession, [])
             .map(|resp| resp.map(|resp| SessionToken::try_from(resp.headers()).ok()))
             .await;
         self.process(scheduler, resp.into()).await;

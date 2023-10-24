@@ -1,7 +1,7 @@
 use axum::{routing::get, Router};
 use mongodb::Database;
 use squire_sdk::{api::*, server};
-use  tower_http::cors::CorsLayer;
+use tower_http::cors::CorsLayer;
 
 #[cfg(test)]
 mod tests;
@@ -26,12 +26,15 @@ pub fn create_router(state: AppState) -> Router {
         .add_route::<0, POST, Reauth, _, _>(reauth)
         .add_route::<0, DELETE, Terminate, _, _>(terminate)
         .into_router()
-        .route("/api/v1/tournaments/subscribe/other/:t_id", get(tournaments::join_gathering))
+        .route(
+            "/api/v1/tournaments/subscribe/other/:t_id",
+            get(tournaments::join_gathering),
+        )
         .route("/", get(assets::landing))
         .route("/squire_web_bg.wasm", get(assets::get_wasm))
         .route("/squire_web.js", get(assets::get_js))
         .fallback(assets::landing)
-		.layer(CorsLayer::permissive())
+        .layer(CorsLayer::permissive())
         .with_state(state)
 }
 

@@ -123,11 +123,11 @@ impl SelectedRound {
                         rcb.draw_ticker.stored_result,
                     )));
                 }
-                ops.extend(rcb.win_tickers.values().filter_map(|wt| wt.into_op(rid)));
+                ops.extend(rcb.win_tickers.values().filter_map(|wt| wt.as_op(rid)));
                 ops.extend(
                     rcb.confirmation_tickers
                         .values()
-                        .filter_map(|ct| ct.into_op(rid)),
+                        .filter_map(|ct| ct.as_op(rid)),
                 );
                 if rcb.current_extension_minutes > 0 {
                     ops.push(Op::Judge(JudgeOp::TimeExtension(

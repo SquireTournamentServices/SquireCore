@@ -40,7 +40,7 @@ impl RoundConfirmationTicker {
         }
     }
 
-    pub fn into_op(&self, rid: RoundId) -> Option<Op> {
+    pub fn as_op(&self, rid: RoundId) -> Option<Op> {
         (self.currently_confirmed && !self.pre_confirmed)
             .then(|| Op::Judge(JudgeOp::AdminConfirmResult(rid, self.pid)))
     }

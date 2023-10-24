@@ -1,13 +1,14 @@
-use std::{sync::Arc, ops::Range};
+use std::{ops::Range, sync::Arc};
 
 use futures::StreamExt;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
-    Collection, Database, options::{UpdateModifications, UpdateOptions, Hint, FindOptions},
+    options::{FindOptions, Hint, UpdateModifications, UpdateOptions},
+    Collection, Database,
 };
 use squire_sdk::{
-    actor::*, model::tournament::TournamentId, server::gathering::PersistMessage,
-    sync::TournamentManager, api::TournamentSummary,
+    actor::*, api::TournamentSummary, model::tournament::TournamentId,
+    server::gathering::PersistMessage, sync::TournamentManager,
 };
 use tracing::Level;
 

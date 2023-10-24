@@ -89,7 +89,11 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
-        Ok(SquireClient { client, tourns, user })
+        Ok(SquireClient {
+            client,
+            tourns,
+            user,
+        })
     }
 
     /// Creates a client but does not check if the URL is valid.
@@ -99,7 +103,11 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
-        SquireClient { client, tourns, user }
+        SquireClient {
+            client,
+            tourns,
+            user,
+        }
     }
 }
 
@@ -112,7 +120,11 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, Credentials> {
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
-        Ok(SquireClient { client, tourns, user })
+        Ok(SquireClient {
+            client,
+            tourns,
+            user,
+        })
     }
 }
 
@@ -129,7 +141,11 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
-        Ok(SquireClient { client, tourns, user })
+        Ok(SquireClient {
+            client,
+            tourns,
+            user,
+        })
     }
 
     /// Creates a client but does not check if the URL is valid.
@@ -143,6 +159,10 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
-        SquireClient { client, tourns, user }
+        SquireClient {
+            client,
+            tourns,
+            user,
+        }
     }
 }

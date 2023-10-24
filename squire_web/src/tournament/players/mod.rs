@@ -22,8 +22,7 @@ use super::{
 };
 
 #[derive(Debug, PartialEq, Properties)]
-pub struct PlayerViewProps {
-}
+pub struct PlayerViewProps {}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlayerViewMessage {
@@ -31,9 +30,9 @@ pub enum PlayerViewMessage {
     SelectedPlayer(SelectedPlayerMessage),
 }
 pub enum PlayerViewQueryMessage {
-    AllDataReady(PlayerViewQueryData),
-    SelectedPlayerReady(Result<PlayerProfile, TournamentError>),
-    SelectedSubviewReady(Option<SubviewProfile>),
+    AllData(PlayerViewQueryData),
+    SelectedPlayer(Result<PlayerProfile, TournamentError>),
+    SelectedSubview(Option<SubviewProfile>),
 }
 pub struct PlayerViewQueryData {
     players: Vec<PlayerSummary>,
@@ -92,22 +91,22 @@ impl TournViewerComponent for PlayerView {
                 .collect();
             players.sort_by_cached_key(|p| p.name.clone());
             players.sort_by_cached_key(|p| p.status);
-            Self::QueryMessage::AllDataReady(PlayerViewQueryData { players })
+            Self::QueryMessage::AllData(PlayerViewQueryData { players })
         };
         Box::new(q_func)
     }
 
     fn load_queried_data(&mut self, msg: Self::QueryMessage, state: &WrapperState) -> bool {
         match msg {
-            PlayerViewQueryMessage::AllDataReady(data) => self
+            PlayerViewQueryMessage::AllData(data) => self
                 .scroll
                 .update(PlayerScrollMessage::ScrollQueryReady(data.players)),
-            PlayerViewQueryMessage::SelectedPlayerReady(result) => {
+            PlayerViewQueryMessage::SelectedPlayer(result) => {
                 self.selected
                     .update(SelectedPlayerMessage::PlayerQueryReady(result.ok()), state);
                 true
             }
-            PlayerViewQueryMessage::SelectedSubviewReady(profile) => {
+            PlayerViewQueryMessage::SelectedSubview(profile) => {
                 self.selected
                     .update(SelectedPlayerMessage::SubviewQueryReady(profile), state);
                 true
@@ -123,9 +122,7 @@ impl TournViewerComponent for PlayerView {
     ) -> InteractionResponse<Self> {
         match _msg {
             PlayerViewMessage::FilterInput(msg) => self.input.update(msg, _state),
-            PlayerViewMessage::SelectedPlayer(msg) => {
-                self.selected.update(msg, _state)
-            }
+            PlayerViewMessage::SelectedPlayer(msg) => self.selected.update(msg, _state),
         }
     }
 

@@ -6,7 +6,11 @@
 //!
 //! By no means is this an exhuastive or future-proof module. Rather, the module just implements
 //! wrappers for functionalities that are presently needed.
-use std::{pin::Pin, fmt::Debug, task::{Context, Poll}};
+use std::{
+    fmt::Debug,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures::{Future, FutureExt};
 

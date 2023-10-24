@@ -28,7 +28,7 @@ pub enum SubviewProfile {
     Deck(DeckProfile),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SubviewInfo {
     Round(RoundId),
 }
@@ -85,7 +85,7 @@ impl SelectedPlayer {
                         .player_reg
                         .get_player(&p_id)
                         .map(|p| PlayerProfile::new(p, tourn));
-                    PlayerViewQueryMessage::SelectedPlayerReady(player)
+                    PlayerViewQueryMessage::SelectedPlayer(player)
                 };
                 InteractionResponse::FetchData(Box::new(q_func))
             }
@@ -96,9 +96,9 @@ impl SelectedPlayer {
                     .map(|sv| !sv.matches(&info))
                     .unwrap_or(true)
                 {
-                    let q_func = |tourn: &TournamentManager| {
+                    let q_func = move |tourn: &TournamentManager| {
                         let data = info.to_profile(tourn);
-                        PlayerViewQueryMessage::SelectedSubviewReady(data)
+                        PlayerViewQueryMessage::SelectedSubview(data)
                     };
                     InteractionResponse::FetchData(Box::new(q_func))
                 } else {

@@ -1,10 +1,10 @@
 use std::ops::Range;
 
 use async_trait::async_trait;
+use axum::extract::ws::WebSocket;
 use squire_lib::identifiers::SquireAccountId;
 
-use axum::extract::ws::WebSocket;
-use super::session::{AnyUser, SquireSession, SessionWatcher};
+use super::session::{AnyUser, SessionWatcher, SquireSession};
 use crate::{
     api::{SessionToken, TournamentSummary, Version},
     model::tournament::TournamentId,

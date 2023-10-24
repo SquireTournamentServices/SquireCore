@@ -1,6 +1,4 @@
-use std::{
-    collections::{hash_map::Entry, HashMap},
-};
+use std::collections::{hash_map::Entry, HashMap};
 
 use async_trait::async_trait;
 use futures::{stream::SplitSink, FutureExt, SinkExt, StreamExt};

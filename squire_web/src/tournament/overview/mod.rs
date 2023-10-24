@@ -7,7 +7,9 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-use super::viewer_component::{TournViewerComponent, TournViewerComponentWrapper, WrapperState, TournQuery};
+use super::viewer_component::{
+    TournQuery, TournViewerComponent, TournViewerComponentWrapper, WrapperState,
+};
 
 pub enum TournOverviewMessage {}
 pub enum TournOverviewQueryMessage {
@@ -48,9 +50,7 @@ impl TournViewerComponent for TournOverview {
     ) -> yew::Html {
         match self.profile.as_ref() {
             Some(p) => p.view(),
-            None => {
-                Html::default()
-            }
+            None => Html::default(),
         }
     }
 

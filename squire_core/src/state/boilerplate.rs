@@ -35,7 +35,10 @@ impl Trackable<AnyUser, SessionToken> for SessionCommand {
 }
 
 impl Trackable<SessionToken, Option<watch::Receiver<SquireSession>>> for SessionCommand {
-    fn track(msg: SessionToken, send: OneshotSender<Option<watch::Receiver<SquireSession>>>) -> Self {
+    fn track(
+        msg: SessionToken,
+        send: OneshotSender<Option<watch::Receiver<SquireSession>>>,
+    ) -> Self {
         Self::Subscribe(msg, send)
     }
 }
@@ -48,7 +51,7 @@ impl Trackable<AnyUser, bool> for SessionCommand {
 
 impl Debug for SessionCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self{
+        match self {
             Self::Create(value, _) => write!(f, "Create({value:?})"),
             Self::Guest(_) => write!(f, "Guest()"),
             Self::Get(value, _) => write!(f, "Get({value:?})"),

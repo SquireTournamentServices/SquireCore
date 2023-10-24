@@ -45,14 +45,9 @@ impl RoundResultTicker {
         }
     }
 
-    pub fn into_op(&self, rid: RoundId) -> Option<Op> {
-        if !self.was_changed {
-            return None;
-        }
-        Some(Op::Judge(JudgeOp::AdminRecordResult(
-            rid,
-            self.stored_result,
-        )))
+    pub fn as_op(&self, rid: RoundId) -> Option<Op> {
+        self.was_changed
+            .then(|| Op::Judge(JudgeOp::AdminRecordResult(rid, self.stored_result)))
     }
 
     pub fn update(&mut self, msg: RoundResultTickerMessage) -> bool {

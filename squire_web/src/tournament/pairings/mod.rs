@@ -13,8 +13,8 @@ use squire_sdk::{
 use yew::{prelude::*, virtual_dom::VNode};
 
 use super::viewer_component::{
-    InteractionResponse, Op, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
-    WrapperState, TournQuery,
+    InteractionResponse, Op, TournQuery, TournViewerComponent, TournViewerComponentWrapper,
+    WrapperMessage, WrapperState,
 };
 use crate::utils::{generic_popout_window, generic_scroll_vnode, TextInput};
 
@@ -175,7 +175,7 @@ impl TournViewerComponent for PairingsView {
             }
             PairingsViewMessage::PairingsToRounds => {
                 let Some(pairings) = self.pairings.take() else {
-                    return false.into()
+                    return false.into();
                 };
                 state
                     .get_user_id()
@@ -221,8 +221,7 @@ impl TournViewerComponent for PairingsView {
                             .unwrap_or_default()
                     })
                     .collect();
-                let mut ops = Vec::new();
-                ops.push(Op::Admin(AdminOp::CreateRound(player_ids)));
+                let ops = vec![Op::Admin(AdminOp::CreateRound(player_ids))];
                 state.op_response(ops)
             }
             PairingsViewMessage::CreateSingleBye => {
@@ -237,8 +236,7 @@ impl TournViewerComponent for PairingsView {
                     .iter()
                     .find_map(|(id, name)| (self.single_bye_input == *name).then_some(*id))
                     .unwrap_or_default();
-                let mut ops = Vec::new();
-                ops.push(Op::Admin(AdminOp::GiveBye(player_id)));
+                let ops = vec![Op::Admin(AdminOp::GiveBye(player_id))];
                 state.op_response(ops)
             }
             PairingsViewMessage::SingleRoundInput(vec_index, text) => {
@@ -259,8 +257,7 @@ impl TournViewerComponent for PairingsView {
         &mut self,
         _ctx: &Context<TournViewerComponentWrapper<Self>>,
         _state: &WrapperState,
-    ) -> TournQuery<Self::QueryMessage> 
-    {
+    ) -> TournQuery<Self::QueryMessage> {
         let q_func = |tourn: &TournamentManager| {
             let names: HashMap<PlayerId, String> = tourn
                 .player_reg
