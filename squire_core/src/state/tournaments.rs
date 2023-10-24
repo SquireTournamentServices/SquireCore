@@ -48,7 +48,7 @@ impl TournPersister {
 }
 
 impl TournDb {
-    const TOURN_INDEX_NAME: &str = "tourn_id";
+    const TOURN_INDEX_NAME: &'static str = "tourn_id";
 
     pub fn new(db_conn: Database, tourn_coll: Arc<str>) -> Self {
         Self {
