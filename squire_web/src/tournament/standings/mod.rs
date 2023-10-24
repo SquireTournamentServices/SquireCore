@@ -5,8 +5,8 @@ use squire_sdk::{
 use yew::{prelude::*, virtual_dom::VNode};
 
 use super::viewer_component::{
-    InteractionResponse, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
-    WrapperState, TournQuery,
+    InteractionResponse, TournQuery, TournViewerComponent, TournViewerComponentWrapper,
+    WrapperMessage, WrapperState,
 };
 use crate::utils::{generic_popout_window, generic_scroll_vnode};
 
@@ -86,8 +86,7 @@ impl TournViewerComponent for StandingsView {
         &mut self,
         _ctx: &Context<TournViewerComponentWrapper<Self>>,
         _state: &WrapperState,
-    ) -> TournQuery<Self::QueryMessage>
-    {
+    ) -> TournQuery<Self::QueryMessage> {
         let q_func = |tourn: &TournamentManager| {
             let data = StandingsProfile::new(tourn.tourn());
             Self::QueryMessage::StandingsQueryReady(Some(data))

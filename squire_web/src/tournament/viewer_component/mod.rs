@@ -240,7 +240,6 @@ impl<T: TournViewerComponent> From<bool> for InteractionResponse<T> {
     }
 }
 
-
 impl<T: TournViewerComponent> Default for InteractionResponse<T> {
     fn default() -> Self {
         Self::NoOp

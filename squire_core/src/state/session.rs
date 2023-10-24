@@ -114,7 +114,9 @@ impl ActorState for SessionStore {
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         println!("Got session message: {msg:?}");
         match msg {
-            SessionCommand::Create(id, send) => drop(send.send(self.create_session(scheduler, id).token)),
+            SessionCommand::Create(id, send) => {
+                drop(send.send(self.create_session(scheduler, id).token))
+            }
             SessionCommand::Get(token, send) => drop(send.send(self.get_session(token))),
             SessionCommand::Reauth(id, send) => drop(send.send(self.reauth_session(scheduler, id))),
             SessionCommand::Delete(id, send) => drop(send.send(self.delete_session(scheduler, id))),
@@ -145,11 +147,7 @@ impl SessionStore {
         digest
     }
 
-    fn create_session(
-        &mut self,
-        scheduler: &mut Scheduler<Self>,
-        id: SquireAccountId,
-    ) -> Session {
+    fn create_session(&mut self, scheduler: &mut Scheduler<Self>, id: SquireAccountId) -> Session {
         let token = self.generate_session(scheduler);
         let session = Session::new_with_id(token.clone(), id);
         self.sessions.insert(token.clone(), session.clone());
@@ -254,10 +252,7 @@ impl SessionStore {
         self.sessions.remove(token)
     }
 
-    fn sub_to_session(
-        &mut self,
-        token: &SessionToken,
-    ) -> Option<Watcher<SquireSession>> {
+    fn sub_to_session(&mut self, token: &SessionToken) -> Option<Watcher<SquireSession>> {
         self.comms
             .get(token)
             .map(|comm| comm.subscribe())

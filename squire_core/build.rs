@@ -3,15 +3,18 @@
  * JS bindings. Trunk is used to compile and generate the app and the JS bindings.
  */
 
-use std::{env, process::Command};
-use std::fs::File;
-use std::io::{Read, Write, BufWriter};
-use flate2::write::GzEncoder;
-use flate2::Compression;
+use std::{
+    env,
+    fs::File,
+    io::{BufWriter, Read, Write},
+    process::Command,
+};
+
+use flate2::{write::GzEncoder, Compression};
 
 fn main() -> Result<(), i32> {
     if env::var("CARGO_FEATURE_IGNORE_FRONTEND").is_ok() {
-        return Ok(())
+        return Ok(());
     }
 
     let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -81,4 +84,3 @@ fn main() -> Result<(), i32> {
         Ok(())
     }
 }
-

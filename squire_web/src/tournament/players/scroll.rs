@@ -50,7 +50,8 @@ impl PlayerScroll {
         let inner = self
             .players
             .iter()
-            .filter_map(|p| report.matches(p).then(|| mapper(p)))
+            .filter(|p| report.matches(p))
+            .map(mapper)
             .collect::<Html>();
         html! {
             <table class="table">
