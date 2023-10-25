@@ -24,7 +24,7 @@ mod frontend {
     use hyper::{body::Bytes, Body};
 
     const INDEX_HTML: &str = include_str!("../../assets/index.html");
-    const APP_WASM: &[u8] = include_bytes!("../../build_outputs/squire_web_bg.wasm.gz");
+    const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm.gz");
     const APP_JS: &str = include_str!("../../assets/squire_web.js");
 
     pub async fn landing() -> Html<&'static str> {
