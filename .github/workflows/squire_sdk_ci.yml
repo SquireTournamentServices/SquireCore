@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [nightly]
+        rust: [nightly, beta, stable]
     steps:
       - uses: hecrj/setup-rust-action@v2
         with:
