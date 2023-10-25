@@ -1,10 +1,9 @@
 pub mod input;
 pub mod popout;
-pub mod requests;
 
 pub use input::*;
 pub use popout::*;
-pub use requests::*;
+use yew::{html, Html};
 
 /// A wrapper around web_sys console log_1
 #[allow(unused)]
@@ -23,31 +22,51 @@ where
 }
 */
 
-/*
-pub fn tabularize<H, I, T, M>(header: H, iter: I, map: M) -> Html
+/* Standings example:
+ * [ (name, score), ... ]
+ * -> Vec<(String, StandardScore)>
+ *
+ * Place | Name | score.match_points | ..
+ * Place | Name | score.match_points | ..
+ * Place | Name | score.match_points | ..
+ * Place | Name | score.match_points | ..
+ */
+/* Pairings example:
+ * [ [name, name, ...], ...]
+ * -> Vec<Vec<String>>
+ *
+ * Name1 | Name2 | ..
+ * Name1 | Name2 | ..
+ * Name1 | Name2 | ..
+ * Name1 | Name2 | ..
+ */
+#[allow(dead_code)]
+pub fn tabularize<H, OUTER, INNER, M>(header: H, outer: OUTER) -> Html
 where
-H: Iterator<Item=String>,
-I: Iterator<Item=T>,
-M: FnMut(T) -> IntoIterator<Item=String, IntoIter=String>
+    H: Iterator<Item = String>,
+    OUTER: Iterator<Item = INNER>,
+    INNER: IntoIterator<Item = String>,
 {
-    let list = iter
-        .map(map)
-        .map(|inner| html!{ <tr> { inner.map(|item| html! { <td> { item } </td> }) } </tr> })
-        .collect::<Html>();
+    /*
+     * <tr> <td> str11 </td> | str12 | str13 | ... </tr>
+     * str21 | str22 | str23 | ...
+     * ...
+     *
+     */
     let header = html! {
-        <thead>
-            <tr>
-                { header.map(|h| html! { <th> { h } </th> }).collect::<Html>() }
-            </tr>
-        </thead>
-        };
+    <thead>
+        <tr>
+            { header.map(|h| html! { <th> { h } </th> }).collect::<Html>() }
+        </tr>
+    </thead>
+    };
+    let body = outer.map(|inner: INNER| html!{ <tr> { for inner.into_iter().map(|item| html! { <td>{item}</td> }) } </tr> });
     html! {
         <>
         <table class="table">
             { header }
-            <tbody> { list } </tbody>
+            <tbody> { for body } </tbody>
         </table>
         </>
     }
 }
-*/

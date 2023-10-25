@@ -4,11 +4,9 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-pub mod creator;
 pub mod input;
 pub mod scroll;
 pub mod selected;
-pub use creator::*;
 pub use input::*;
 pub use scroll::*;
 pub use selected::*;

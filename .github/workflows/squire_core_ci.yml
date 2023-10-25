@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust: [nightly]
+        rust: [stable, beta, nightly]
         os: [ubuntu-latest]
     steps:
       - uses: hecrj/setup-rust-action@v2
