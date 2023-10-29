@@ -1,10 +1,10 @@
 use axum::{extract::State, Json};
 use http::StatusCode;
 use squire_sdk::{
-    api::{Login, SessionToken},
+    api::{Login, SessionStatus, SessionToken},
     model::accounts::SquireAccount,
     server::{
-        session::{AnyUser, Session},
+        session::{AnyUser, Session, SquireSession},
         state::ServerState,
     },
 };
@@ -48,4 +48,25 @@ pub async fn terminate(
     Session(session): Session<AnyUser>,
 ) -> Json<bool> {
     Json(state.terminate_session(session).await)
+}
+
+pub async fn status(
+    State(state): State<AppState>,
+    Session(session): Session<SquireSession>,
+) -> Json<SessionStatus> {
+    let status = match session {
+        SquireSession::NotLoggedIn => SessionStatus::NotLoggedIn,
+        SquireSession::UnknownUser => SessionStatus::UnknownUser,
+        SquireSession::Guest(_) => SessionStatus::Guest,
+        SquireSession::Active(id) => match state.get_account(id).await {
+            Some(acc) => SessionStatus::ActiveUser(acc),
+            None => SessionStatus::UnknownUser,
+        },
+        SquireSession::Expired(id) => match state.get_account(id).await {
+            Some(acc) => SessionStatus::ExpiredUser(acc),
+            None => SessionStatus::UnknownUser,
+        },
+        SquireSession::ExpiredGuest(_) => SessionStatus::ExpiredGuest,
+    };
+    Json(status)
 }
