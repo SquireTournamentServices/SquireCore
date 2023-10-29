@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use futures::{Future, FutureExt};
+use futures::Future;
 use http::header::CONTENT_TYPE;
-use reqwest::{Client, Error as ReqwestError, Response};
+use reqwest::{Client, Error as ReqwestError, Request, Response};
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
 
 use super::{
@@ -26,6 +26,7 @@ const fn do_wrap<T>(value: T) -> T {
     value
 }
 
+pub type ReqwestResult<T> = Result<T, reqwest::Error>;
 pub type NetworkClient = ActorClient<NetworkState>;
 
 #[derive(Debug)]
@@ -37,11 +38,14 @@ pub struct NetworkState {
 }
 
 pub enum NetworkCommand {
-    Query(Box<dyn 'static + Send + FnOnce(&NetworkState)>),
-    Login(Credentials),
-    GuestLogin,
-    LoginComplete(Result<(SquireAccount, Option<SessionToken>), ReqwestError>),
-    GuestLoginComplete(Result<Option<SessionToken>, ReqwestError>),
+    Request(Request, OneshotSender<ReqwestResult<Response>>),
+    Login(Credentials, OneshotSender<SessionWatcher>),
+    LoginComplete(
+        Option<(SquireAccount, SessionToken)>,
+        OneshotSender<SessionWatcher>,
+    ),
+    GuestLogin(OneshotSender<SessionWatcher>),
+    GuestLoginComplete(Option<SessionToken>, OneshotSender<SessionWatcher>),
     OpenWebsocket(TournamentId, OneshotSender<Option<Websocket>>),
 }
 
@@ -49,38 +53,59 @@ pub enum NetworkCommand {
 impl ActorState for NetworkState {
     type Message = NetworkCommand;
 
-    async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
-        let resp = self
+    async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
+        // TODO: The browser should store a cookie. We should ping the server to get the session
+        // info. If that fails, we should ping the server for an guest session.
+        let token = self
             .post_request(GuestSession, [])
-            .map(|resp| resp.map(|resp| SessionToken::try_from(resp.headers()).ok()))
-            .await;
-        self.process(scheduler, resp.into()).await;
+            .await
+            .ok()
+            .and_then(|resp| SessionToken::try_from(resp.headers()).ok());
+        self.token = token;
+        self.session.guest_auth();
     }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         log(&format!("Got message in networking actor: {msg:?}"));
         match msg {
-            NetworkCommand::Query(query) => query(self),
-            NetworkCommand::Login(cred) => {
-                scheduler.add_task(self.post_request(Login(cred), []).then(process_login));
+            NetworkCommand::Request(req, send) => {
+                let fut = self.client.execute(req);
+                scheduler.process(async move { drop(send.send(fut.await)) });
             }
-            NetworkCommand::GuestLogin => {
-                scheduler.add_task(self.post_request(GuestSession, []).map(process_guest_login));
+            NetworkCommand::Login(cred, send) => {
+                let req = self.post_request(Login(cred), []);
+                scheduler.add_task(async move {
+                    let digest = match req.await {
+                        Ok(resp) => match SessionToken::try_from(resp.headers()).ok() {
+                            Some(token) => resp.json().await.ok().map(|acc| (acc, token)),
+                            None => None,
+                        },
+                        Err(_) => None,
+                    };
+                    NetworkCommand::LoginComplete(digest, send)
+                });
             }
-            NetworkCommand::LoginComplete(res) => {
-                if let Ok((acc, token)) = res {
-                    self.token = token;
+            NetworkCommand::LoginComplete(digest, send) => {
+                if let Some((acc, token)) = digest {
+                    self.token = Some(token);
                     self.session.user_auth(acc);
                 }
+                drop(send.send(self.session.subscribe()))
             }
-            NetworkCommand::GuestLoginComplete(res) => {
-                log(&format!(
-                    "Attempted to login as a guest. Got response: {res:?}"
-                ));
-                if let Ok(token) = res {
-                    self.token = token;
-                    self.session.guest_auth();
-                }
+            NetworkCommand::GuestLogin(send) => {
+                let req = self.post_request(GuestSession, []);
+                scheduler.add_task(async move {
+                    let digest = match req.await {
+                        Ok(resp) => SessionToken::try_from(resp.headers()).ok(),
+                        Err(_) => None,
+                    };
+                    NetworkCommand::GuestLoginComplete(digest, send)
+                });
+            }
+            NetworkCommand::GuestLoginComplete(token, send) => {
+                self.token = token;
+                self.session.guest_auth();
+                drop(send.send(self.session.subscribe()))
             }
             NetworkCommand::OpenWebsocket(id, send) => {
                 let url = match self.token.as_ref() {
@@ -168,40 +193,16 @@ impl NetworkState {
     }
 }
 
-fn process_login(
-    res: Result<Response, ReqwestError>,
-) -> impl 'static + Send + Future<Output = NetworkCommand> {
-    let digest = async move {
-        match res {
-            Ok(resp) => {
-                let token = SessionToken::try_from(resp.headers()).ok();
-                NetworkCommand::LoginComplete(resp.json().await.map(move |acc| (acc, token)))
-            }
-            Err(err) => NetworkCommand::LoginComplete(Err(err)),
-        }
-    };
-    do_wrap(digest)
-}
-
-fn process_guest_login(res: Result<Response, ReqwestError>) -> NetworkCommand {
-    match res {
-        Ok(resp) => {
-            NetworkCommand::GuestLoginComplete(Ok(SessionToken::try_from(resp.headers()).ok()))
-        }
-        Err(err) => NetworkCommand::GuestLoginComplete(Err(err)),
-    }
-}
-
 impl Debug for NetworkCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            NetworkCommand::Query(_) => write!(f, "NetworkCommand::Query(..)"),
-            NetworkCommand::Login(cred) => write!(f, "NetworkCommand::Login({cred:?})"),
-            NetworkCommand::GuestLogin => write!(f, "NetworkCommand::GuestLogin"),
-            NetworkCommand::LoginComplete(login_comp) => {
+            NetworkCommand::Request(_, _) => write!(f, "NetworkCommand::Request(..)"),
+            NetworkCommand::Login(cred, _) => write!(f, "NetworkCommand::Login({cred:?})"),
+            NetworkCommand::GuestLogin(_) => write!(f, "NetworkCommand::GuestLogin"),
+            NetworkCommand::LoginComplete(login_comp, _) => {
                 write!(f, "NetworkCommand::LoginComplete({login_comp:?})")
             }
-            NetworkCommand::GuestLoginComplete(guest_login_comp) => write!(
+            NetworkCommand::GuestLoginComplete(guest_login_comp, _) => write!(
                 f,
                 "NetworkCommand::GuestLoginComplete({guest_login_comp:?})"
             ),
@@ -212,14 +213,26 @@ impl Debug for NetworkCommand {
     }
 }
 
-impl From<Result<Option<SessionToken>, ReqwestError>> for NetworkCommand {
-    fn from(value: Result<Option<SessionToken>, ReqwestError>) -> Self {
-        Self::GuestLoginComplete(value)
+impl Trackable<Credentials, SessionWatcher> for NetworkCommand {
+    fn track(cred: Credentials, send: OneshotSender<SessionWatcher>) -> Self {
+        Self::Login(cred, send)
+    }
+}
+
+impl Trackable<(), SessionWatcher> for NetworkCommand {
+    fn track((): (), send: OneshotSender<SessionWatcher>) -> Self {
+        Self::GuestLogin(send)
     }
 }
 
 impl Trackable<TournamentId, Option<Websocket>> for NetworkCommand {
     fn track(id: TournamentId, send: OneshotSender<Option<Websocket>>) -> Self {
         NetworkCommand::OpenWebsocket(id, send)
+    }
+}
+
+impl Trackable<Request, Result<Response, reqwest::Error>> for NetworkCommand {
+    fn track(req: Request, send: OneshotSender<Result<Response, reqwest::Error>>) -> Self {
+        NetworkCommand::Request(req, send)
     }
 }

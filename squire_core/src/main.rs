@@ -25,6 +25,7 @@ pub fn create_router(state: AppState) -> Router {
         .add_route::<0, POST, GuestSession, _, _>(guest)
         .add_route::<0, POST, Reauth, _, _>(reauth)
         .add_route::<0, DELETE, Terminate, _, _>(terminate)
+        .add_route::<0, GET, GetSessionStatus, _, _>(status)
         .into_router()
         .route(
             "/api/v1/tournaments/subscribe/other/:t_id",

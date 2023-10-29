@@ -1,20 +1,21 @@
-use std::borrow::Cow;
+use std::marker::PhantomData;
 
-use futures::FutureExt;
+use reqwest::Method;
+use reqwest::{Request, Response};
+use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
-use tokio::sync::{oneshot::channel as oneshot_channel, watch::Receiver as Subscriber};
+use tokio::sync::watch::Receiver as Subscriber;
 
 use self::{
     builder::ClientBuilder,
-    network::{NetworkClient, NetworkState},
+    network::NetworkClient,
     session::SessionWatcher,
     tournaments::{TournsClient, UpdateType},
 };
+use crate::api::{RegForm, Credentials};
 use crate::{
     actor::Tracker,
     api::{GetRequest, ListTournaments, PostRequest, SessionToken, TournamentSummary},
-    client::network::NetworkCommand,
-    compat::spawn_task,
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
@@ -86,6 +87,21 @@ pub enum BackendImportStatus {
     NotFound,
 }
 
+pub struct ResponseTracker<R>(Tracker<Result<Response, reqwest::Error>>, PhantomData<R>);
+
+impl<R> ResponseTracker<R>
+where
+    R: DeserializeOwned,
+{
+    pub fn new(tracker: Tracker<Result<Response, reqwest::Error>>) -> Self {
+        Self(tracker, PhantomData)
+    }
+
+    async fn output(self) -> Result<R, reqwest::Error> {
+        self.0.await?.json().await
+    }
+}
+
 impl SquireClient {
     /// Returns a builder for the client
     pub fn builder() -> ClientBuilder<Box<dyn OnUpdate>, (), ()> {
@@ -110,7 +126,8 @@ impl SquireClient {
         let Some(tourn) = self.tourns.query(id, |tourn| tourn.clone()).await else {
             return BackendImportStatus::NotFound;
         };
-        if self.post_request(tourn, []).await.unwrap() {
+
+        if self.post_request(tourn, []).output().await.unwrap() {
             BackendImportStatus::Success
         } else {
             BackendImportStatus::AlreadyImported
@@ -123,53 +140,34 @@ impl SquireClient {
         self.tourns.subscribe(id).await
     }
 
-    fn get_request<const N: usize, R>(
-        &self,
-        subs: [Cow<'static, str>; N],
-    ) -> Tracker<Result<R::Response, reqwest::Error>>
+    fn get_request<const N: usize, R>(&self, subs: [&str; N]) -> ResponseTracker<R::Response>
     where
         R: 'static + GetRequest<N>,
         R::Response: Send,
     {
-        let (send, recv) = oneshot_channel();
-        let query = Box::new(move |state: &NetworkState| {
-            let subs = subs
-                .iter()
-                .map(|s| s.as_ref())
-                .collect::<Vec<&str>>()
-                .try_into()
-                .unwrap();
-            spawn_task(state.get_request::<N, R>(subs).map(|resp| send.send(resp)))
-        });
-        self.client.send(NetworkCommand::Query(query));
-        Tracker::new(recv)
+        let url = format!("http{HOST_ADDRESS}{}", R::ROUTE.replace(subs));
+        let url = reqwest::Url::parse(&url).unwrap();
+        let req = Request::new(Method::GET, url);
+        let tracker = self.client.track(req);
+        ResponseTracker::new(tracker)
     }
 
     fn post_request<const N: usize, B>(
         &self,
         body: B,
-        subs: [Cow<'static, str>; N],
-    ) -> Tracker<Result<B::Response, reqwest::Error>>
+        subs: [&str; N],
+    ) -> ResponseTracker<B::Response>
     where
         B: 'static + Send + Sync + PostRequest<N>,
         B::Response: Send,
     {
-        let (send, recv) = oneshot_channel();
-        let query = Box::new(move |state: &NetworkState| {
-            let subs = subs
-                .iter()
-                .map(|s| s.as_ref())
-                .collect::<Vec<&str>>()
-                .try_into()
-                .unwrap();
-            spawn_task(
-                state
-                    .json_post_request::<N, B>(body, subs)
-                    .map(|resp| send.send(resp)),
-            )
-        });
-        self.client.send(NetworkCommand::Query(query));
-        Tracker::new(recv)
+        let url = format!("http{HOST_ADDRESS}{}", B::ROUTE.replace(subs));
+        let url = reqwest::Url::parse(&url).unwrap();
+        let mut req = Request::new(Method::POST, url);
+        let body = serde_json::to_string(&body).unwrap();
+        let _ = req.body_mut().insert(body.into());
+        let tracker = self.client.track(req);
+        ResponseTracker::new(tracker)
     }
 
     pub fn import_tourn(&self, tourn: TournamentManager) -> Tracker<TournamentId> {
@@ -216,8 +214,21 @@ impl SquireClient {
         self.tourns.query(id, move |tourn| query(&tourn.round_reg))
     }
 
+    pub fn register(&self, body: RegForm) -> ResponseTracker<bool> {
+        self.post_request(body, [])
+    }
+
+    pub fn login(&self, cred: Credentials) -> Tracker<SessionWatcher> {
+        self.client.track(cred)
+    }
+
+    pub fn guest_login(&self) -> Tracker<SessionWatcher> {
+        self.client.track(())
+    }
+
     pub async fn get_tourn_summaries(&self) -> Option<Vec<TournamentSummary>> {
-        self.get_request::<1, ListTournaments>(["0".into()])
+        self.get_request::<1, ListTournaments>(["0"])
+            .output()
             .await
             .ok()
     }

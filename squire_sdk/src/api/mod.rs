@@ -90,6 +90,11 @@ impl PostRequest<0> for GuestSession {
     type Response = ();
 }
 
+impl GetRequest<0> for GetSessionStatus {
+    const ROUTE: Url<0> = SESSION_ROUTE;
+    type Response = SessionStatus;
+}
+
 impl PostRequest<0> for Reauth {
     const ROUTE: Url<0> = SESSION_ROUTE;
     type Response = ();
