@@ -36,7 +36,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hyper = { version = "0.14" }
 shuttle-runtime = { version = "0.29.0", features = [] }
 shuttle-shared-db = { version = "0.29.0", features = ["mongodb"] }
-shuttle-axum = { version = "0.29.0", features = [] }
+shuttle-axum = { version = "0.30.1", features = [] }
 tower-http = { version = "0.4.4", features = ["cors"] }
 
 [dev-dependencies]
