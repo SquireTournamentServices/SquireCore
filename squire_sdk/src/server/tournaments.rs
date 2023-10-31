@@ -1,16 +1,20 @@
+use std::time::Duration;
 use axum::{
-    extract::{ws::WebSocket, Path, Query, State, WebSocketUpgrade},
-    response::{IntoResponse, Response},
+    extract::{
+        ws::{Message, WebSocket},
+        Path, Query, State, WebSocketUpgrade,
+    },
+    response::Response,
     Json,
 };
 use http::StatusCode;
 use squire_lib::tournament::TournamentId;
 
 use super::{
-    session::{AnyUser, Session, SessionWatcher, UserSession},
+    session::{AnyUser, Session, SessionConvert, UserSession},
     SquireRouter,
 };
-use crate::{api::*, server::state::ServerState, sync::TournamentManager};
+use crate::{api::*, compat::sleep, server::state::ServerState, sync::TournamentManager};
 
 pub fn get_routes<S: ServerState>() -> SquireRouter<S> {
     SquireRouter::new()
@@ -78,23 +82,29 @@ where
 /// Adds a user to the gathering via a websocket
 pub async fn join_gathering<S: ServerState>(
     State(state): State<S>,
-    Session(user): Session<AnyUser>,
     ws: WebSocketUpgrade,
     Path(id): Path<TournamentId>,
 ) -> Response {
-    match state.watch_session(user).await {
-        Some(watcher) if watcher.auth_user().is_some() => {
-            ws.on_upgrade(move |ws| handle_new_onlooker(state, id, watcher, ws))
-        }
-        _ => StatusCode::UNAUTHORIZED.into_response(),
-    }
+    ws.on_upgrade(move |ws| handle_new_onlooker(state, id, ws))
 }
 
-async fn handle_new_onlooker<S: ServerState>(
-    state: S,
-    id: TournamentId,
-    user: SessionWatcher,
-    ws: WebSocket,
-) {
-    state.handle_new_onlooker(id, user, ws).await
+async fn handle_new_onlooker<S: ServerState>(state: S, id: TournamentId, mut ws: WebSocket) {
+    // Wait either 10 seconds or until we get a message
+    // First message should be the user's session token, which we then must validate.
+    let bytes = tokio::select! {
+        msg = ws.recv() => match msg {
+            Some(Ok(Message::Binary(bytes))) => bytes,
+            _ => return,
+        },
+        () = sleep(Duration::from_secs(10)) => return,
+    };
+    let Ok(token) = postcard::from_bytes::<SessionToken>(&bytes) else {
+        return;
+    };
+    let session = state.get_session(token.clone()).await;
+    let Ok(session) = AnyUser::convert(token, session) else {
+        return;
+    };
+    let user = state.watch_session(session).await.unwrap();
+    state.handle_new_onlooker(id, user, ws).await;
 }

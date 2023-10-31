@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use futures::Future;
+use futures::{Future, SinkExt};
 use http::header::CONTENT_TYPE;
 use reqwest::{Client, Error as ReqwestError, Request, Response};
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
@@ -11,8 +11,8 @@ use super::{
 };
 use crate::{
     actor::*,
-    api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken, Subscribe},
-    compat::{log, NetworkResponse,apper, Websocket, Websocket},
+    api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken},
+    compat::{NetworkResponse, SendableWrapper, Websocket, WebsocketMessage},
 };
 
 #[cfg(target_family = "wasm")]
@@ -105,21 +105,15 @@ impl ActorState for NetworkState {
                 self.session.guest_auth();
                 drop(send.send(self.session.subscribe()))
             }
-            NetworkCommand::OpenWebsocket(id, send) => {
-                let url = match self.token.as_ref() {
-                    Some(token) => format!(
-                        "ws{HOST_ADDRESS}/api/v1/tournaments/subscribe/other/{id}?session={token}"
-                    ),
-                    None => format!(
-                        "ws{HOST_ADDRESS}{}",
-                        Subscribe::ROUTE.replace([id.to_string().as_str()])
-                    ),
-                };
-                log(&format!("Sending WS request to: {url:?}"));
-                scheduler.process(async move {
-                    drop(send.send(Websocket::new(&url).await.ok()));
-                });
-            }
+            NetworkCommand::OpenWebsocket(id, send) => match self.token.clone() {
+                Some(token) => {
+                    let url = format!("ws{HOST_ADDRESS}/api/v1/tournaments/subscribe/{id}");
+                    scheduler.process(async move {
+                        drop(send.send(init_ws(Websocket::new(&url).await.ok(), token).await));
+                    });
+                }
+                None => drop(send.send(None)),
+            },
         }
     }
 }
@@ -191,6 +185,14 @@ impl NetworkState {
         let resp = self.post_request(body, subs);
         do_wrap(async move { resp.await?.json().await })
     }
+}
+
+async fn init_ws(mut ws: Option<Websocket>, token: SessionToken) -> Option<Websocket> {
+    if let Some(ws) = ws.as_mut() {
+        let msg = WebsocketMessage::Bytes(postcard::to_allocvec(&token).unwrap());
+        ws.send(msg).await.ok()?;
+    }
+    ws
 }
 
 impl Debug for NetworkCommand {
