@@ -10,7 +10,6 @@ mod accounts;
 mod assets;
 mod session;
 mod state;
-mod tournaments;
 
 use accounts::*;
 use session::*;
@@ -27,10 +26,6 @@ pub fn create_router(state: AppState) -> Router {
         .add_route::<0, DELETE, Terminate, _, _>(terminate)
         .add_route::<0, GET, GetSessionStatus, _, _>(status)
         .into_router()
-        .route(
-            "/api/v1/tournaments/subscribe/other/:t_id",
-            get(tournaments::join_gathering),
-        )
         .route("/", get(assets::landing))
         .route("/squire_web_bg.wasm", get(assets::get_wasm))
         .route("/squire_web.js", get(assets::get_js))
