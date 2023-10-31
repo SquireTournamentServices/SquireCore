@@ -1,37 +1,57 @@
 use std::time::Duration;
 
-use futures::{Future, FutureExt};
+use futures::FutureExt;
 use instant::Instant;
 use send_wrapper::SendWrapper;
 
-use super::Sleep;
+use super::{SendableFuture, Sleep};
+
+/* ------ Send workarounds ------ */
+
+pub trait Sendable: 'static {}
+
+impl<T> Sendable for T where T: 'static {}
+
+pub type SendableWrapper<T> = SendWrapper<T>;
 
 /* ------ General Utils ------ */
-
 /// Spawns a future that will execute in the background of the current thread. WASM bindgen's
 /// `spawn_local` is used for this as tokio is caused problems in the browswer.
 pub fn spawn_task<F, T>(fut: F)
 where
-    F: 'static + Send + Future<Output = T>,
-    T: 'static + Send,
+    F: SendableFuture<Output = T>,
+    T: Sendable,
 {
     wasm_bindgen_futures::spawn_local(fut.map(drop));
 }
 
 /// Creates a future that will perform a non-blocking sleep
 pub fn sleep(dur: Duration) -> Sleep {
-    Sleep(Box::pin(SendWrapper::new(gloo_timers::future::sleep(dur))))
+    Sleep(Box::pin(gloo_timers::future::sleep(dur)))
 }
 
 /// Creates a future that will perform a non-blocking sleep
 pub fn sleep_until(deadline: Instant) -> Sleep {
-    Sleep(Box::pin(SendWrapper::new(gloo_timers::future::sleep(
+    Sleep(Box::pin(gloo_timers::future::sleep(
         deadline - Instant::now(),
-    ))))
+    )))
 }
 
 pub fn log(_msg: &str) {
     //web_sys::console::log_1(&msg.into());
+}
+
+/* ------ Network ------ */
+pub struct NetworkResponse(Result<reqwest::Response, reqwest::Error>);
+
+impl NetworkResponse {
+    pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
+        Self(inner)
+    }
+
+    pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
+        self.0
+    }
 }
 
 #[cfg(feature = "client")]

@@ -1,8 +1,71 @@
-use std::{future::Future, time::Duration};
+use std::{
+    ops::{Deref, DerefMut},
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
+use futures::{Future, Stream};
 use instant::Instant;
+use pin_project::pin_project;
 
-use super::Sleep;
+use super::{SendableFuture, Sleep};
+
+/* ------ Send workarounds ------ */
+
+pub trait Sendable: 'static + Send {}
+
+impl<T> Sendable for T where T: 'static + Send {}
+
+#[pin_project]
+pub struct SendableWrapper<T>(#[pin] T);
+
+impl<T> SendableWrapper<T> {
+    pub fn new(inner: T) -> Self {
+        Self(inner)
+    }
+
+    pub fn take(self) -> T {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl<T: Send> Deref for SendableWrapper<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T: Send> DerefMut for SendableWrapper<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T: Future> Future for SendableWrapper<T> {
+    type Output = T::Output;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.project().0.poll(cx)
+    }
+}
+
+impl<T: Stream> Stream for SendableWrapper<T> {
+    type Item = T::Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.project().0.poll_next(cx)
+    }
+}
+
+impl<T: Clone> Clone for SendableWrapper<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 /* ------ General Utils ------ */
 
@@ -10,8 +73,8 @@ use super::Sleep;
 /// WASM version.
 pub fn spawn_task<F, T>(fut: F)
 where
-    F: 'static + Send + Future<Output = T>,
-    T: 'static + Send,
+    F: SendableFuture<Output = T>,
+    T: Sendable,
 {
     drop(tokio::spawn(fut));
 }
@@ -28,6 +91,21 @@ pub fn sleep_until(deadline: Instant) -> Sleep {
 
 pub fn log(msg: &str) {
     println!("{msg}");
+}
+
+/* ------ Network ------ */
+#[cfg(feature = "client")]
+pub struct NetworkResponse(Result<reqwest::Response, reqwest::Error>);
+
+#[cfg(feature = "client")]
+impl NetworkResponse {
+    pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
+        Self(inner)
+    }
+
+    pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
+        self.0
+    }
 }
 
 /* ------ Session ------ */

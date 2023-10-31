@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use async_trait::async_trait;
 use futures::Future;
 use http::header::CONTENT_TYPE;
 use reqwest::{Client, Error as ReqwestError, Request, Response};
@@ -13,7 +12,7 @@ use super::{
 use crate::{
     actor::*,
     api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken, Subscribe},
-    compat::{log, Websocket},
+    compat::{log, NetworkResponse,apper, Websocket, Websocket},
 };
 
 #[cfg(target_family = "wasm")]
@@ -38,7 +37,7 @@ pub struct NetworkState {
 }
 
 pub enum NetworkCommand {
-    Request(Request, OneshotSender<ReqwestResult<Response>>),
+    Request(Request, OneshotSender<NetworkResponse>),
     Login(Credentials, OneshotSender<SessionWatcher>),
     LoginComplete(
         Option<(SquireAccount, SessionToken)>,
@@ -51,7 +50,7 @@ pub enum NetworkCommand {
 
 #[async_trait]
 impl ActorState for NetworkState {
-    type Message = NetworkCommand;
+    type Message = SendableWrapper<NetworkCommand>;
 
     async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
         // TODO: The browser should store a cookie. We should ping the server to get the session
@@ -66,11 +65,10 @@ impl ActorState for NetworkState {
     }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
-        log(&format!("Got message in networking actor: {msg:?}"));
-        match msg {
+        match msg.take() {
             NetworkCommand::Request(req, send) => {
                 let fut = self.client.execute(req);
-                scheduler.process(async move { drop(send.send(fut.await)) });
+                scheduler.process(async move { drop(send.send(NetworkResponse::new(fut.await))) });
             }
             NetworkCommand::Login(cred, send) => {
                 let req = self.post_request(Login(cred), []);
@@ -82,7 +80,7 @@ impl ActorState for NetworkState {
                         },
                         Err(_) => None,
                     };
-                    NetworkCommand::LoginComplete(digest, send)
+                    SendableWrapper::new(NetworkCommand::LoginComplete(digest, send))
                 });
             }
             NetworkCommand::LoginComplete(digest, send) => {
@@ -99,7 +97,7 @@ impl ActorState for NetworkState {
                         Ok(resp) => SessionToken::try_from(resp.headers()).ok(),
                         Err(_) => None,
                     };
-                    NetworkCommand::GuestLoginComplete(digest, send)
+                    SendableWrapper::new(NetworkCommand::GuestLoginComplete(digest, send))
                 });
             }
             NetworkCommand::GuestLoginComplete(token, send) => {
@@ -118,7 +116,9 @@ impl ActorState for NetworkState {
                     ),
                 };
                 log(&format!("Sending WS request to: {url:?}"));
-                drop(send.send(Websocket::new(&url).await.ok()));
+                scheduler.process(async move {
+                    drop(send.send(Websocket::new(&url).await.ok()));
+                });
             }
         }
     }
@@ -213,26 +213,26 @@ impl Debug for NetworkCommand {
     }
 }
 
-impl Trackable<Credentials, SessionWatcher> for NetworkCommand {
+impl Trackable<Credentials, SessionWatcher> for SendableWrapper<NetworkCommand> {
     fn track(cred: Credentials, send: OneshotSender<SessionWatcher>) -> Self {
-        Self::Login(cred, send)
+        SendableWrapper::new(NetworkCommand::Login(cred, send))
     }
 }
 
-impl Trackable<(), SessionWatcher> for NetworkCommand {
+impl Trackable<(), SessionWatcher> for SendableWrapper<NetworkCommand> {
     fn track((): (), send: OneshotSender<SessionWatcher>) -> Self {
-        Self::GuestLogin(send)
+        SendableWrapper::new(NetworkCommand::GuestLogin(send))
     }
 }
 
-impl Trackable<TournamentId, Option<Websocket>> for NetworkCommand {
+impl Trackable<TournamentId, Option<Websocket>> for SendableWrapper<NetworkCommand> {
     fn track(id: TournamentId, send: OneshotSender<Option<Websocket>>) -> Self {
-        NetworkCommand::OpenWebsocket(id, send)
+        SendableWrapper::new(NetworkCommand::OpenWebsocket(id, send))
     }
 }
 
-impl Trackable<Request, Result<Response, reqwest::Error>> for NetworkCommand {
-    fn track(req: Request, send: OneshotSender<Result<Response, reqwest::Error>>) -> Self {
-        NetworkCommand::Request(req, send)
+impl Trackable<Request, NetworkResponse> for SendableWrapper<NetworkCommand> {
+    fn track(req: Request, send: OneshotSender<NetworkResponse>) -> Self {
+        SendableWrapper::new(NetworkCommand::Request(req, send))
     }
 }

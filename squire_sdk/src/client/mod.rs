@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use reqwest::Method;
-use reqwest::{Request, Response};
+use reqwest::Request;
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
@@ -12,7 +12,9 @@ use self::{
     session::SessionWatcher,
     tournaments::{TournsClient, UpdateType},
 };
-use crate::api::{RegForm, Credentials};
+use crate::api::{Credentials, RegForm};
+use crate::compat::NetworkResponse;
+use crate::compat::Sendable;
 use crate::{
     actor::Tracker,
     api::{GetRequest, ListTournaments, PostRequest, SessionToken, TournamentSummary},
@@ -30,6 +32,8 @@ pub const HOST_ADDRESS: &str = "s://squire.shuttleapp.rs";
 /// The address of the local hosh
 pub const HOST_ADDRESS: &str = "://localhost:8000";
 
+// This needs to be `'static + Send` because of constraints on `async_trait`. Ideally, it would
+// just be `Sendable`.
 pub trait OnUpdate: 'static + Send + FnMut(TournamentId) {}
 
 impl<T> OnUpdate for T where T: 'static + Send + FnMut(TournamentId) {}
@@ -87,18 +91,18 @@ pub enum BackendImportStatus {
     NotFound,
 }
 
-pub struct ResponseTracker<R>(Tracker<Result<Response, reqwest::Error>>, PhantomData<R>);
+pub struct ResponseTracker<R>(Tracker<NetworkResponse>, PhantomData<R>);
 
 impl<R> ResponseTracker<R>
 where
     R: DeserializeOwned,
 {
-    pub fn new(tracker: Tracker<Result<Response, reqwest::Error>>) -> Self {
+    pub fn new(tracker: Tracker<NetworkResponse>) -> Self {
         Self(tracker, PhantomData)
     }
 
     async fn output(self) -> Result<R, reqwest::Error> {
-        self.0.await?.json().await
+        self.0.await.inner()?.json().await
     }
 }
 
@@ -143,7 +147,7 @@ impl SquireClient {
     fn get_request<const N: usize, R>(&self, subs: [&str; N]) -> ResponseTracker<R::Response>
     where
         R: 'static + GetRequest<N>,
-        R::Response: Send,
+        R::Response: Sendable,
     {
         let url = format!("http{HOST_ADDRESS}{}", R::ROUTE.replace(subs));
         let url = reqwest::Url::parse(&url).unwrap();
@@ -158,8 +162,8 @@ impl SquireClient {
         subs: [&str; N],
     ) -> ResponseTracker<B::Response>
     where
-        B: 'static + Send + Sync + PostRequest<N>,
-        B::Response: Send,
+        B: Sendable + Sync + PostRequest<N>,
+        B::Response: Sendable,
     {
         let url = format!("http{HOST_ADDRESS}{}", B::ROUTE.replace(subs));
         let url = reqwest::Url::parse(&url).unwrap();
