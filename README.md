@@ -1,7 +1,7 @@
 [![Crates.io](https://img.shields.io/crates/v/squire_core.svg)](https://crates.io/crates/squire_core)
 [![Documentation](https://docs.rs/squire_core/badge.svg)](https://docs.rs/squire_core/)
-![GitHub Workflows](https://github.com/MonarchDevelopment/SquireCore/actions/workflows/ci.yml/badge.svg)
-[![Coverage Status](https://codecov.io/gh/MonarchDevelopment/SquireCore/branch/main/graph/badge.svg)](https://codecov.io/gh/MonarchDevelopment/SquireCore)
+![GitHub Workflows](https://github.com/SquireTournamentServices/SquireCore/actions/workflows/ci.yml/badge.svg)
+[![Coverage Status](https://codecov.io/gh/SquireTournamentServices/SquireCore/branch/main/graph/badge.svg)](https://codecov.io/gh/SquireTournamentServices/SquireCore)
 ![Maintenance](https://img.shields.io/badge/Maintenance-Actively%20Developed-brightgreen.svg)
 
 ## Overview
@@ -37,8 +37,8 @@ It is a language that can be distributed very easily across most platforms, can 
 
 ## Clients and Services
 Currently, there are two ready Squire services outside of this repo:
- - [SquireDesktop](https://github.com/MonarchDevelopment/SquireDesktop)
- - [SquireBot](https://github.com/MonarchDevelopment/SquireBot)
+ - [SquireDesktop](https://github.com/SquireTournamentServices/SquireDesktop)
+ - [SquireBot](https://github.com/SquireTournamentServices/SquireBot)
 
 SquireDesktop is a native desktop application that lets you create and manage tournaments from your desktop.
 Like any Squire client, it can back up all tournament data to SquireCore in order to make it publicly accessible.

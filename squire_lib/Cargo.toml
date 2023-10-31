@@ -32,7 +32,7 @@ getrandom = { version = "0.2", features = ["js"] }
 chrono = { version = "0.4", features = ["serde", "wasmbind"] }
 
 [dev-dependencies]
-serde_json = { version = "1.0.107" }
+serde_json = { version = "1.0.108" }
 squire_tests = { path = "../squire_tests" }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]

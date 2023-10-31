@@ -12,7 +12,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures::{Future, FutureExt};
+use futures::{Future, FutureExt, Stream};
 
 #[cfg(not(target_family = "wasm"))]
 mod native;
@@ -24,9 +24,17 @@ mod wasm;
 #[cfg(target_family = "wasm")]
 pub use wasm::*;
 
+pub trait SendableFuture: Sendable + Future {}
+
+impl<T> SendableFuture for T where T: Sendable + Future {}
+
+pub trait SendableStream: Sendable + Unpin + Stream {}
+
+impl<T> SendableStream for T where T: Sendable + Unpin + Stream {}
+
 /// A struct that will sleep for a set amount of time. Construct by the `sleep` and `sleep_until`
 /// functions.
-pub struct Sleep(Pin<Box<dyn 'static + Send + Future<Output = ()>>>);
+pub struct Sleep(Pin<Box<dyn SendableFuture<Output = ()>>>);
 
 impl Debug for Sleep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

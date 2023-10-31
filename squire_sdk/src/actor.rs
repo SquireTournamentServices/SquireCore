@@ -10,17 +10,22 @@ use futures::{
     Future, FutureExt, Stream, StreamExt,
 };
 use instant::Instant;
+use pin_project::pin_project;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 pub use tokio::sync::oneshot::{
     channel as oneshot_channel, Receiver as OneshotReceiver, Sender as OneshotSender,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
-use crate::compat::{sleep_until, spawn_task, Sleep};
+use crate::compat::{
+    sleep_until, spawn_task, Sendable, SendableFuture, SendableStream, SendableWrapper, Sleep,
+};
 
+// This state needs to be send because of constraints of `async_trait`. Ideally, it would be
+// `Sendable`.
 #[async_trait]
 pub trait ActorState: 'static + Send + Sized {
-    type Message: Send + Unpin;
+    type Message: Sendable;
 
     #[allow(unused_variables)]
     async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {}
@@ -35,18 +40,18 @@ pub struct ActorBuilder<A: ActorState> {
 }
 
 pub struct ActorClient<A: ActorState> {
-    send: UnboundedSender<A::Message>,
+    send: SendableWrapper<UnboundedSender<A::Message>>,
 }
 
 impl<A: ActorState> Clone for ActorClient<A> {
     fn clone(&self) -> Self {
-        Self::new(self.send.clone())
+        Self::new(self.send.clone().take())
     }
 }
 
 enum ActorStream<A: ActorState> {
     Main(UnboundedReceiverStream<A::Message>),
-    Secondary(Box<dyn 'static + Send + Unpin + Stream<Item = A::Message>>),
+    Secondary(Box<dyn SendableStream<Item = A::Message>>),
 }
 
 impl<A: ActorState> Stream for ActorStream<A> {
@@ -78,7 +83,7 @@ impl<A: ActorState> ActorBuilder<A> {
 
     pub fn add_input<S, I>(&mut self, stream: S)
     where
-        S: 'static + Unpin + Send + Stream<Item = I>,
+        S: SendableStream<Item = I>,
         I: Into<A::Message>,
     {
         self.recv
@@ -94,16 +99,19 @@ impl<A: ActorState> ActorBuilder<A> {
 }
 
 pub struct Scheduler<A: ActorState> {
-    recv: SelectAll<ActorStream<A>>,
-    queue: FuturesUnordered<Pin<Box<dyn 'static + Send + Future<Output = A::Message>>>>,
-    tasks: FuturesUnordered<Pin<Box<dyn 'static + Send + Future<Output = ()>>>>,
+    recv: SendableWrapper<SelectAll<ActorStream<A>>>,
+    #[allow(clippy::type_complexity)]
+    queue: SendableWrapper<FuturesUnordered<Pin<Box<dyn SendableFuture<Output = A::Message>>>>>,
+    tasks: SendableWrapper<FuturesUnordered<Pin<Box<dyn SendableFuture<Output = ()>>>>>,
     // TODO:
     //  - Add a `FuturesUnordered` for futures that are 'static  + Send and yield nothing
     //  - Add a queue for timers so that they are not lumped in the `queue`.
     //    - Make those timers cancelable by assoicating each on with an id (usize)
 }
 
+#[pin_project]
 pub struct Timer<T> {
+    #[pin]
     deadline: Sleep,
     msg: Option<T>,
 }
@@ -117,7 +125,7 @@ impl<T> Timer<T> {
     }
 }
 
-impl<T: Unpin> Future for Timer<T> {
+impl<T> Future for Timer<T> {
     type Output = T;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -155,15 +163,15 @@ impl<A: ActorState> ActorRunner<A> {
 
 impl<A: ActorState> Scheduler<A> {
     fn new(recv: impl IntoIterator<Item = ActorStream<A>>) -> Self {
-        let recv = select_all(recv);
-        let queue = FuturesUnordered::new();
-        let tasks = FuturesUnordered::new();
+        let recv = SendableWrapper::new(select_all(recv));
+        let queue = SendableWrapper::new(FuturesUnordered::new());
+        let tasks = SendableWrapper::new(FuturesUnordered::new());
         Self { recv, queue, tasks }
     }
 
     pub fn add_task<F, I>(&mut self, fut: F)
     where
-        F: 'static + Send + Future<Output = I>,
+        F: SendableFuture<Output = I>,
         I: 'static + Into<A::Message>,
     {
         self.queue.push(Box::pin(fut.map(Into::into)));
@@ -171,14 +179,14 @@ impl<A: ActorState> Scheduler<A> {
 
     pub fn process<F>(&mut self, fut: F)
     where
-        F: 'static + Send + Future<Output = ()>,
+        F: SendableFuture<Output = ()>,
     {
         self.tasks.push(Box::pin(fut));
     }
 
     pub fn add_stream<S, I>(&mut self, stream: S)
     where
-        S: 'static + Unpin + Send + Stream<Item = I>,
+        S: SendableStream<Item = I>,
         I: Into<A::Message>,
     {
         self.recv
@@ -217,6 +225,7 @@ impl<A: ActorState> From<UnboundedReceiver<A::Message>> for ActorStream<A> {
 
 impl<A: ActorState> ActorClient<A> {
     fn new(send: UnboundedSender<A::Message>) -> Self {
+        let send = SendableWrapper::new(send);
         Self { send }
     }
 
@@ -265,7 +274,7 @@ impl<T> Future for Tracker<T> {
 
 impl<A: ActorState> Debug for ActorClient<A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, r#"ActorClient {{ "send": {:?} }}"#, self.send)
+        write!(f, r#"ActorClient {{ "send": {:?} }}"#, &*self.send)
     }
 }
 
