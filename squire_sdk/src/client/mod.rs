@@ -101,7 +101,7 @@ where
         Self(tracker, PhantomData)
     }
 
-    async fn output(self) -> Result<R, reqwest::Error> {
+    pub async fn output(self) -> Result<R, reqwest::Error> {
         self.0.await.inner()?.json().await
     }
 }
@@ -170,6 +170,7 @@ impl SquireClient {
         let mut req = Request::new(Method::POST, url);
         let body = serde_json::to_string(&body).unwrap();
         let _ = req.body_mut().insert(body.into());
+        let _ = req.headers_mut().insert(http::header::CONTENT_TYPE, reqwest::header::HeaderValue::from_str("application/json").unwrap());
         let tracker = self.client.track(req);
         ResponseTracker::new(tracker)
     }
