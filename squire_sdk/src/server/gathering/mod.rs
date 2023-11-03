@@ -6,9 +6,10 @@ use futures::StreamExt;
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
 use uuid::Uuid;
+use derive_more::From;
 
 use crate::{
-    actor::{ActorState, Scheduler, Trackable},
+    actor::{ActorState, Scheduler},
     api::AuthUser,
     sync::{
         processor::{SyncCompletion, SyncDecision},
@@ -34,27 +35,21 @@ pub enum GatheringMessage {
     ResendMessage(Box<(AuthUser, ClientBoundMessage)>),
 }
 
+impl From<((), OneshotSender<Box<TournamentManager>>)> for GatheringMessage {
+    fn from(((), send): ((), OneshotSender<Box<TournamentManager>>)) -> Self {
+        Self::GetTournament(send)
+    }
+}
+
 /// A message that communicates to the `GatheringHall` that it needs to backup tournament data.
 /// How this data is backed up depends on the server implementation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PersistReadyMessage(TournamentId);
 
-#[derive(Debug)]
+#[derive(Debug, From)]
 pub enum PersistMessage {
     Get(TournamentId, OneshotSender<Option<Box<TournamentManager>>>),
     Persist(Box<TournamentManager>),
-}
-
-impl Trackable<TournamentId, Option<Box<TournamentManager>>> for PersistMessage {
-    fn track(id: TournamentId, send: OneshotSender<Option<Box<TournamentManager>>>) -> Self {
-        Self::Get(id, send)
-    }
-}
-
-impl From<Box<TournamentManager>> for PersistMessage {
-    fn from(tourn: Box<TournamentManager>) -> Self {
-        Self::Persist(tourn)
-    }
 }
 
 /// This structure contains all users currently subscribed to a tournament and can be thought of as
@@ -323,11 +318,5 @@ impl From<CrierMessage> for GatheringMessage {
 impl From<(AuthUser, ClientBoundMessage)> for GatheringMessage {
     fn from((user, msg): (AuthUser, ClientBoundMessage)) -> Self {
         Self::ResendMessage(Box::new((user, msg)))
-    }
-}
-
-impl Trackable<(), Box<TournamentManager>> for GatheringMessage {
-    fn track((): (), send: OneshotSender<Box<TournamentManager>>) -> Self {
-        Self::GetTournament(send)
     }
 }

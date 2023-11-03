@@ -63,8 +63,10 @@ use tokio::sync::{
     oneshot::Sender as OneshotSender,
     watch::{channel, Receiver as Watcher, Sender as Broadcaster},
 };
+use derive_more::From;
 use tracing::Level;
 
+#[derive(From)]
 pub enum SessionCommand {
     Create(SquireAccountId, OneshotSender<SessionToken>),
     Guest(OneshotSender<SessionToken>),
@@ -72,8 +74,16 @@ pub enum SessionCommand {
     Reauth(AnyUser, OneshotSender<SessionToken>),
     Delete(AnyUser, OneshotSender<bool>),
     Subscribe(SessionToken, OneshotSender<Option<Watcher<SquireSession>>>),
+    #[from(ignore)]
     Expiry(SessionToken),
+    #[from(ignore)]
     Revoke(SessionToken),
+}
+
+impl From<((), OneshotSender<SessionToken>)> for SessionCommand {
+    fn from(((), send): ((), OneshotSender<SessionToken>)) -> Self {
+        Self::Guest(send)
+    }
 }
 
 pub struct SessionStore {
