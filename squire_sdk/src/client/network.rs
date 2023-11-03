@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use derive_more::From;
 use futures::{Future, SinkExt};
 use http::header::CONTENT_TYPE;
 use reqwest::{Client, Error as ReqwestError, Request, Response};
@@ -12,7 +13,7 @@ use super::{
 use crate::{
     actor::*,
     api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken},
-    compat::{NetworkResponse, SendableWrapper, Websocket, WebsocketMessage},
+    compat::{NetworkResponse, Websocket, WebsocketMessage},
 };
 
 #[cfg(target_family = "wasm")]
@@ -36,6 +37,7 @@ pub struct NetworkState {
     client: Client,
 }
 
+#[derive(From)]
 pub enum NetworkCommand {
     Request(Request, OneshotSender<NetworkResponse>),
     Login(Credentials, OneshotSender<SessionWatcher>),
@@ -50,7 +52,7 @@ pub enum NetworkCommand {
 
 #[async_trait]
 impl ActorState for NetworkState {
-    type Message = SendableWrapper<NetworkCommand>;
+    type Message = NetworkCommand;
 
     async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
         // TODO: The browser should store a cookie. We should ping the server to get the session
@@ -65,10 +67,12 @@ impl ActorState for NetworkState {
     }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
-        match msg.take() {
+        match msg {
             NetworkCommand::Request(req, send) => {
                 let fut = self.client.execute(req);
-                scheduler.process(async move { drop(send.send(NetworkResponse::new(fut.await))) });
+                scheduler.process(async move {
+                    drop(send.send(NetworkResponse::new(fut.await)))
+                });
             }
             NetworkCommand::Login(cred, send) => {
                 let req = self.post_request(Login(cred), []);
@@ -80,7 +84,7 @@ impl ActorState for NetworkState {
                         },
                         Err(_) => None,
                     };
-                    SendableWrapper::new(NetworkCommand::LoginComplete(digest, send))
+                    (digest, send)
                 });
             }
             NetworkCommand::LoginComplete(digest, send) => {
@@ -97,7 +101,7 @@ impl ActorState for NetworkState {
                         Ok(resp) => SessionToken::try_from(resp.headers()).ok(),
                         Err(_) => None,
                     };
-                    SendableWrapper::new(NetworkCommand::GuestLoginComplete(digest, send))
+                    (digest, send)
                 });
             }
             NetworkCommand::GuestLoginComplete(token, send) => {
@@ -215,26 +219,8 @@ impl Debug for NetworkCommand {
     }
 }
 
-impl Trackable<Credentials, SessionWatcher> for SendableWrapper<NetworkCommand> {
-    fn track(cred: Credentials, send: OneshotSender<SessionWatcher>) -> Self {
-        SendableWrapper::new(NetworkCommand::Login(cred, send))
-    }
-}
-
-impl Trackable<(), SessionWatcher> for SendableWrapper<NetworkCommand> {
-    fn track((): (), send: OneshotSender<SessionWatcher>) -> Self {
-        SendableWrapper::new(NetworkCommand::GuestLogin(send))
-    }
-}
-
-impl Trackable<TournamentId, Option<Websocket>> for SendableWrapper<NetworkCommand> {
-    fn track(id: TournamentId, send: OneshotSender<Option<Websocket>>) -> Self {
-        SendableWrapper::new(NetworkCommand::OpenWebsocket(id, send))
-    }
-}
-
-impl Trackable<Request, NetworkResponse> for SendableWrapper<NetworkCommand> {
-    fn track(req: Request, send: OneshotSender<NetworkResponse>) -> Self {
-        SendableWrapper::new(NetworkCommand::Request(req, send))
+impl From<((), OneshotSender<SessionWatcher>)> for NetworkCommand {
+    fn from(((), send): ((), OneshotSender<SessionWatcher>)) -> Self {
+        NetworkCommand::GuestLogin(send)
     }
 }

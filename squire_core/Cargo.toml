@@ -38,6 +38,7 @@ shuttle-runtime = { version = "0.30.1", features = [] }
 shuttle-shared-db = { version = "0.30.1", features = ["mongodb"] }
 shuttle-axum = { version = "0.30.1", features = [] }
 tower-http = { version = "0.4.4", features = ["cors"] }
+derive_more = "0.99.17"
 
 [dev-dependencies]
 # In-house

@@ -8,6 +8,7 @@ use squire_lib::{
 };
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
 use uuid::Uuid;
+use derive_more::From;
 
 use super::{network::NetworkState, OnUpdate};
 use crate::{
@@ -26,9 +27,10 @@ pub struct TournsClient {
     client: ActorClient<ManagerState>,
 }
 
+#[derive(From)]
 pub(crate) enum ManagementCommand {
     Query(TournamentId, Query),
-    Update(TournamentId, UpdateType, OneshotSender<Option<OpResult>>),
+    Update((TournamentId, UpdateType), OneshotSender<Option<OpResult>>),
     Import(Box<TournamentManager>, OneshotSender<TournamentId>),
     Subscribe(TournamentId, OneshotSender<Option<Watcher<()>>>),
     Connection(Option<Websocket>, OneshotSender<Option<Watcher<()>>>),
@@ -58,7 +60,7 @@ impl ActorState for ManagerState {
             ManagementCommand::Import(tourn, send) => {
                 let _ = send.send(self.handle_import(*tourn));
             }
-            ManagementCommand::Update(id, update, send) => {
+            ManagementCommand::Update((id, update), send) => {
                 let _ = send.send(self.handle_update(scheduler, id, update).await);
             }
             ManagementCommand::Subscribe(id, send) => match self.handle_sub(id) {
@@ -114,7 +116,7 @@ impl TournsClient {
     }
 
     pub fn import(&self, tourn: TournamentManager) -> Tracker<TournamentId> {
-        self.client.track(tourn)
+        self.client.track(Box::new(tourn))
     }
 
     pub fn subscribe(&self, id: TournamentId) -> Tracker<Option<Watcher<()>>> {
@@ -375,48 +377,16 @@ impl TournComm {
     }
 }
 
-impl Trackable<TournamentManager, TournamentId> for ManagementCommand {
-    fn track(tourn: TournamentManager, send: OneshotSender<TournamentId>) -> Self {
-        Self::Import(Box::new(tourn), send)
-    }
-}
-
-impl Trackable<TournamentId, Option<Watcher<()>>> for ManagementCommand {
-    fn track(id: TournamentId, send: OneshotSender<Option<Watcher<()>>>) -> Self {
-        Self::Subscribe(id, send)
-    }
-}
-
-impl<F, T> Trackable<(TournamentId, F), Option<T>> for ManagementCommand
+impl<F, T> From<((TournamentId, F), OneshotSender<Option<T>>)> for ManagementCommand
 where
     F: 'static + Send + FnOnce(&TournamentManager) -> T,
     T: 'static + Send,
 {
-    fn track((id, query): (TournamentId, F), send: OneshotSender<Option<T>>) -> Self {
+    fn from(((id, query), send): ((TournamentId, F), OneshotSender<Option<T>>)) -> Self {
         let query = Box::new(move |tourn: Option<&TournamentManager>| {
             let _ = send.send(tourn.map(query));
         });
         Self::Query(id, query)
-    }
-}
-
-impl Trackable<(TournamentId, UpdateType), Option<OpResult>> for ManagementCommand {
-    fn track(
-        (id, update): (TournamentId, UpdateType),
-        send: OneshotSender<Option<OpResult>>,
-    ) -> Self {
-        Self::Update(id, update, send)
-    }
-}
-
-impl From<WebsocketResult> for ManagementCommand {
-    fn from(value: WebsocketResult) -> Self {
-        ManagementCommand::Remote(value)
-    }
-}
-impl From<MessageRetry> for ManagementCommand {
-    fn from(value: MessageRetry) -> Self {
-        Self::Retry(value)
     }
 }
 

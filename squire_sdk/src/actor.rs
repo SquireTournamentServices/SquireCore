@@ -241,17 +241,13 @@ impl<A: ActorState> ActorClient<A> {
 
     pub fn track<M, T>(&self, msg: M) -> Tracker<T>
     where
-        A::Message: Trackable<M, T>,
+        A::Message: From<(M, OneshotSender<T>)>,
     {
         let (send, recv) = oneshot_channel();
-        let msg = A::Message::track(msg, send);
+        let msg = A::Message::from((msg, send));
         self.send(msg);
         Tracker::new(recv)
     }
-}
-
-pub trait Trackable<M, T>: Sized {
-    fn track(msg: M, send: OneshotSender<T>) -> Self;
 }
 
 pub struct Tracker<T> {

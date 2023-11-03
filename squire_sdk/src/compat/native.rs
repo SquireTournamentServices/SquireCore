@@ -95,16 +95,16 @@ pub fn log(msg: &str) {
 
 /* ------ Network ------ */
 #[cfg(feature = "client")]
-pub struct NetworkResponse(Result<reqwest::Response, reqwest::Error>);
+pub struct NetworkResponse(SendableWrapper<Result<reqwest::Response, reqwest::Error>>);
 
 #[cfg(feature = "client")]
 impl NetworkResponse {
     pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
-        Self(inner)
+        Self(SendableWrapper::new(inner))
     }
 
     pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
-        self.0
+        self.0.take()
     }
 }
 

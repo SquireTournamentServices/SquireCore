@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use axum::response::{IntoResponse, Response};
 use cycle_map::CycleMap;
 use http::StatusCode;
+use derive_more::From;
 use squire_sdk::{
     actor::*,
     api::{Credentials, RegForm},
@@ -45,6 +46,7 @@ impl AccountStoreHandle {
     }
 }
 
+#[derive(From)]
 pub enum AccountCommand {
     Create(RegForm, OneshotSender<SquireAccountId>),
     Authenticate(Credentials, OneshotSender<Option<SquireAccountId>>),
@@ -117,29 +119,5 @@ impl AccountStore {
         let digest = self.users.remove(&id).is_some();
         self.credentials.remove_via_right(&id);
         digest
-    }
-}
-
-impl Trackable<SquireAccountId, Option<SquireAccount>> for AccountCommand {
-    fn track(id: SquireAccountId, send: OneshotSender<Option<SquireAccount>>) -> Self {
-        Self::Get(id, send)
-    }
-}
-
-impl Trackable<SquireAccountId, bool> for AccountCommand {
-    fn track(msg: SquireAccountId, send: OneshotSender<bool>) -> Self {
-        Self::Delete(msg, send)
-    }
-}
-
-impl Trackable<Credentials, Option<SquireAccountId>> for AccountCommand {
-    fn track(msg: Credentials, send: OneshotSender<Option<SquireAccountId>>) -> Self {
-        Self::Authenticate(msg, send)
-    }
-}
-
-impl Trackable<RegForm, SquireAccountId> for AccountCommand {
-    fn track(msg: RegForm, send: OneshotSender<SquireAccountId>) -> Self {
-        Self::Create(msg, send)
     }
 }
