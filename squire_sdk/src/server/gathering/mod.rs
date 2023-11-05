@@ -153,7 +153,7 @@ impl Gathering {
     #[cfg(not(debug_assertions))]
     const CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
 
-    fn new(tourn: TournamentManager, hall_client: ActorClient<GatheringHallMessage>) -> Self {
+    pub fn new(tourn: TournamentManager, hall_client: ActorClient<GatheringHallMessage>) -> Self {
         let count = tourn.tourn().get_player_count();
         Self {
             tourn,
