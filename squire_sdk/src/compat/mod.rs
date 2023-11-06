@@ -50,6 +50,7 @@ impl Future for Sleep {
     }
 }
 
+/* ------ Network ------ */
 /// A shorthand for the results of fallible Websocket operations
 pub type WebsocketResult = Result<WebsocketMessage, WebsocketError>;
 
@@ -63,3 +64,17 @@ pub enum WebsocketMessage {
 #[derive(Debug, Clone, PartialEq)]
 /// The common error type used by the websocket types
 pub struct WebsocketError;
+
+#[cfg(feature = "client")]
+pub struct NetworkResponse(SendableWrapper<Result<reqwest::Response, reqwest::Error>>);
+
+#[cfg(feature = "client")]
+impl NetworkResponse {
+    pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
+        Self(SendableWrapper::new(inner))
+    }
+
+    pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
+        self.0.take()
+    }
+}
