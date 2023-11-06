@@ -1,4 +1,5 @@
 use squire_sdk::{
+    compat::sleep,
     model::{
         identifiers::TournamentId, players::PlayerStatus, rounds::RoundStatus,
         tournament::TournamentStatus,

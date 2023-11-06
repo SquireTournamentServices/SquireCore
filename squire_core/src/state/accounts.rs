@@ -20,7 +20,7 @@ impl IntoResponse for LoginError {
 
 #[derive(Debug, Clone)]
 pub struct AccountStoreHandle {
-    client: ActorClient<AccountStore>,
+    client: ActorClient<AccountCommand>,
 }
 
 impl AccountStoreHandle {

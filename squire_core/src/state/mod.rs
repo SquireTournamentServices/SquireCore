@@ -152,7 +152,7 @@ pub struct AppState {
     tourn_db: TournDb,
     sessions: SessionStoreHandle,
     accounts: AccountStoreHandle,
-    gatherings: ActorClient<GatheringHall<TournPersister>>,
+    gatherings: ActorClient<GatheringHallMessage>,
 }
 
 impl AppState {

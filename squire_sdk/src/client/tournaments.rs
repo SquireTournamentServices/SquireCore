@@ -24,7 +24,7 @@ use crate::{
 /// A container for the channels used to communicate with the tournament management task.
 #[derive(Debug, Clone)]
 pub struct TournsClient {
-    client: ActorClient<ManagerState>,
+    client: ActorClient<ManagementCommand>,
 }
 
 #[derive(From)]
@@ -43,7 +43,7 @@ pub(crate) enum ManagementCommand {
 struct ManagerState {
     cache: TournamentCache,
     syncs: ClientSyncManager,
-    network: ActorClient<NetworkState>,
+    network: ActorClient<NetworkCommand>,
     forwarded: ClientForwardingManager,
     on_update: Box<dyn OnUpdate>,
 }
@@ -110,7 +110,7 @@ pub enum UpdateType {
 type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
 
 impl TournsClient {
-    pub fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+    pub fn new<O: OnUpdate>(network: ActorClient<NetworkCommand>, on_update: O) -> Self {
         let client = ActorBuilder::new(ManagerState::new(network, on_update)).launch();
         Self { client }
     }
@@ -161,7 +161,7 @@ enum SubCreation {
 }
 
 impl ManagerState {
-    fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+    fn new<O: OnUpdate>(network: ActorClient<NetworkCommand>, on_update: O) -> Self {
         Self {
             on_update: Box::new(on_update),
             cache: Default::default(),

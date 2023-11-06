@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+pub mod gathering;
 pub mod init;
 pub mod requests;
 pub mod tournaments;
