@@ -93,21 +93,6 @@ pub fn log(msg: &str) {
     println!("{msg}");
 }
 
-/* ------ Network ------ */
-#[cfg(feature = "client")]
-pub struct NetworkResponse(SendableWrapper<Result<reqwest::Response, reqwest::Error>>);
-
-#[cfg(feature = "client")]
-impl NetworkResponse {
-    pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
-        Self(SendableWrapper::new(inner))
-    }
-
-    pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
-        self.0.take()
-    }
-}
-
 /* ------ Session ------ */
 #[cfg(feature = "client")]
 pub use client::*;

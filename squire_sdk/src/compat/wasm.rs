@@ -41,19 +41,6 @@ pub fn log(_msg: &str) {
     //web_sys::console::log_1(&msg.into());
 }
 
-/* ------ Network ------ */
-pub struct NetworkResponse(Result<reqwest::Response, reqwest::Error>);
-
-impl NetworkResponse {
-    pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
-        Self(inner)
-    }
-
-    pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
-        self.0
-    }
-}
-
 #[cfg(feature = "client")]
 pub use client::*;
 
