@@ -13,7 +13,6 @@ deck_sites = ["mtgjson/deck_sites"]
 #In-house deps
 cycle_map = { version = "0.2.0", features = ["serde"] }
 mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev="979ffccde3b0eecd230c2f067e18383ed804c5f3", default-features = false }
-# mtgjson = { path = "../mtgjson-rust-sdk", features = ["deck_sites"] }
 
 uuid = { version = "1.5", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
