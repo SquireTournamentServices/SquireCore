@@ -1,14 +1,12 @@
-#[allow(unused_imports)]
-use std::convert::Infallible;
 use std::fmt::Display;
 
 #[cfg(feature = "server")]
 use axum::{body::HttpBody, handler::Handler, routing::MethodRouter};
 use serde::{de::DeserializeOwned, Serialize};
 
-use super::url::Url;
 #[cfg(feature = "server")]
 use crate::server::state::ServerState;
+use super::url::Url;
 
 /// An enum that is used by the `RestRequest` to "know" what `MethodRouter` contructor to call
 pub enum Method {
@@ -68,7 +66,7 @@ pub trait RestRequest<const N: usize, const M: u8>: Serialize + DeserializeOwned
     /// This method takes a handler, calls a `MethodRouter` constructor (based on the generic
     /// constant M), and returns the method router. This method is largely used by the
     /// `SquireRouter` to construct API routes by calling this method and used the associated URL.
-    fn as_route<S, T, B, H>(handler: H) -> MethodRouter<S, B, Infallible>
+    fn as_route<S, T, B, H>(handler: H) -> MethodRouter<S, B, std::convert::Infallible>
     where
         S: ServerState,
         T: 'static,
@@ -94,12 +92,63 @@ pub trait RestRequest<const N: usize, const M: u8>: Serialize + DeserializeOwned
  * Postcard binary, plain text, etc). This should be encoded in both the client and server traits.
  */
 
+/* This code is a rough draft of how we can more tightly link client calling code with server
+ * processing code.
+pub trait HandlerClone<Args, Input, State, Output, B = Body>:
+    Clone + Send + Sized + 'static
+{
+    type Input: 'static + Send + DeserializeOwned;
+    type Output: 'static + Send + Serialize;
+
+    // Required method
+    fn call(self, req: Request<B>, state: State) -> Json<Self::Output>;
+}
+
+impl<M, F, Fut, S, Res, I> HandlerClone<(M, I), I, S, Res> for F
+where
+    F: FnOnce(Json<I>) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = Json<Res>> + Send,
+    S: Send + Sync + 'static,
+    Res: 'static + Send + Serialize,
+    I: 'static + Send + DeserializeOwned,
+{
+    type Input = I;
+    type Output = Res;
+
+    fn call(self, _req: Request<Body>, _state: S) -> Json<Self::Output> {
+        todo!()
+    }
+}
+
+impl<M, F, Fut, S, Res, T1, I> HandlerClone<(M, T1, I), I, S, Res> for F
+where
+    F: 'static + Clone + Send + FnOnce(T1, Json<I>) -> Fut,
+    Fut: Future<Output = Json<Res>> + Send,
+    S: Send + Sync + 'static,
+    Res: 'static + Send + Serialize,
+    T1: FromRequestParts<S> + Send,
+    I: 'static + Send + DeserializeOwned,
+{
+    type Input = I;
+    type Output = Res;
+
+    fn call(self, req: Request<Body>, _state: S) -> Json<Self::Output> {
+        todo!()
+    }
+}
+*/
+
 /* ------ GET Request ------ */
 /// This trait abstracts the connections needed for calling and constructing GET APIs. It connects
 /// a request type, a response type, and a URL.
 pub trait GetRequest<const N: usize>: Serialize + DeserializeOwned {
     const ROUTE: Url<N>;
     type Response: DeserializeOwned;
+
+    /*
+    fn add_route<F>(f: F) -> Route
+    where F: A subset of the functions which are handlers and return Json<Self::Response>
+    */
 }
 
 impl<const N: usize, T> RestRequest<N, GET> for T
@@ -108,6 +157,12 @@ where
 {
     const ROUTE: Url<N> = T::ROUTE;
     type Response = T::Response;
+
+    /*
+    fn add_route<F>(f: F) -> Route
+    where F: A subset of the functions which are handlers whose FromRequest component is Json<Self>
+             and who return Json<Self::Response>
+    */
 }
 
 /* ------ POST Request ------ */
