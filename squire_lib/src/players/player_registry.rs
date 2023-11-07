@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
-use cycle_map::CycleMap;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
 use TournamentError::{PlayerAlreadyRegistered, PlayerNotFound};
@@ -20,7 +19,7 @@ pub struct PlayerRegistry {
     /// A lookup table between player ids and their names
     // TODO: We don't need this. A GroupMap between PlayerIdentifiers and Players would suffice for
     // the players field
-    pub name_and_id: CycleMap<String, PlayerId>,
+    pub name_and_id: HashMap<String, PlayerId>,
     /// All players in a tournament
     #[serde_as(as = "Seq<(_, _)>")]
     pub players: HashMap<PlayerId, Player>,
@@ -32,7 +31,7 @@ impl PlayerRegistry {
     /// Creates a new player registry with no players
     pub fn new() -> Self {
         PlayerRegistry {
-            name_and_id: CycleMap::new(),
+            name_and_id: HashMap::new(),
             players: HashMap::new(),
             check_ins: HashSet::new(),
         }
@@ -87,8 +86,8 @@ impl PlayerRegistry {
     }
 
     /// Checks if the name is known by the `name_and_id` map in the registry
-    fn name_known(&self, name: &String) -> bool {
-        self.name_and_id.contains_left(name)
+    fn name_known(&self, name: &str) -> bool {
+        self.name_and_id.contains_key(name)
     }
 
     /// Creates a new player, and attempts to give them the `tourn_name` if the account's user name
@@ -133,7 +132,7 @@ impl PlayerRegistry {
         salt: DateTime<Utc>,
         name: String,
     ) -> Result<PlayerId, TournamentError> {
-        if self.name_and_id.contains_left(&name) {
+        if self.name_and_id.contains_key(&name) {
             Err(PlayerAlreadyRegistered)
         } else {
             let mut plyr = Player::new(name.clone());
@@ -148,7 +147,7 @@ impl PlayerRegistry {
     /// Creates a new player without an account
     pub fn reregister_guest(&mut self, name: String) -> Result<(), TournamentError> {
         self.name_and_id
-            .get_right(&name)
+            .get(&name)
             .and_then(|id| self.players.get_mut(id))
             .ok_or(PlayerNotFound)?
             .status = PlayerStatus::Registered;
@@ -173,24 +172,24 @@ impl PlayerRegistry {
     }
 
     /// Given a player identifier, returns a reference to that player if found
-    pub fn get_by_name(&self, name: &String) -> Result<&Player, TournamentError> {
+    pub fn get_by_name(&self, name: &str) -> Result<&Player, TournamentError> {
         self.name_and_id
-            .get_right(name)
+            .get(name)
             .and_then(|id| self.players.get(id))
             .ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's id if found
-    pub fn get_player_id(&self, name: &String) -> Result<PlayerId, TournamentError> {
+    pub fn get_player_id(&self, name: &str) -> Result<PlayerId, TournamentError> {
         self.name_and_id
-            .get_right(name)
+            .get(name)
             .cloned()
             .ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's name if found
     pub fn get_player_name(&self, id: &PlayerId) -> Option<&String> {
-        self.name_and_id.get_left(id)
+        self.players.get(id).map(|p| &p.name)
     }
 
     /// Given a player identifier, returns that player's status if found

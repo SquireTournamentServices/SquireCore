@@ -4,7 +4,6 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-use cycle_map::CycleMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Seq};
@@ -22,7 +21,7 @@ use crate::{
 /// The struct that creates and manages all rounds.
 pub struct RoundRegistry {
     /// A lookup table between round ids and match numbers
-    pub num_and_id: CycleMap<u64, RoundId>,
+    pub num_and_id: HashMap<u64, RoundId>,
     /// All the rounds in a tournament
     #[serde_as(as = "Seq<(_, _)>")]
     pub rounds: HashMap<RoundId, Round>,
@@ -44,7 +43,7 @@ impl RoundRegistry {
     /// Creates a new round registry
     pub fn new(starting_table: u64, len: Duration) -> Self {
         RoundRegistry {
-            num_and_id: CycleMap::new(),
+            num_and_id: HashMap::new(),
             rounds: HashMap::new(),
             opponents: HashMap::new(),
             starting_table,
@@ -68,7 +67,7 @@ impl RoundRegistry {
 
     /// Gets a round's id by its match number
     pub fn get_round_id(&self, n: &u64) -> Result<RoundId, TournamentError> {
-        self.num_and_id.get_right(n).cloned().ok_or(RoundLookup)
+        self.num_and_id.get(n).cloned().ok_or(RoundLookup)
     }
 
     /// Gets a round's id by its match number
@@ -81,7 +80,7 @@ impl RoundRegistry {
 
     pub(crate) fn get_by_number(&self, n: &u64) -> Result<&Round, TournamentError> {
         self.num_and_id
-            .get_right(n)
+            .get(n)
             .and_then(|id| self.rounds.get(id))
             .ok_or(RoundLookup)
     }
@@ -201,7 +200,7 @@ impl RoundRegistry {
 
     /// Given a round identifier, returns a round's match number if the round can be found
     pub fn get_round_number(&self, id: &RoundId) -> Result<u64, TournamentError> {
-        self.num_and_id.get_left(id).cloned().ok_or(RoundLookup)
+        self.rounds.get(id).map(|r| r.match_number).ok_or(RoundLookup)
     }
 
     /// Given a round identifier, returns a mutable reference to the round if the round can be found
