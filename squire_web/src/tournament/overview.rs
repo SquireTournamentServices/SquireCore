@@ -7,9 +7,7 @@ use squire_sdk::{
 };
 use yew::prelude::*;
 
-use super::viewer_component::{
-    TournQuery, TournViewerComponent, TournViewerComponentWrapper, WrapperState,
-};
+use super::{TournQuery, TournViewerComponent, TournViewerComponentWrapper, WrapperState};
 
 pub enum TournOverviewMessage {}
 pub enum TournOverviewQueryMessage {

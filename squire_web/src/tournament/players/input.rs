@@ -5,7 +5,7 @@ use yew::prelude::*;
 
 use super::{PlayerSummary, PlayerView};
 use crate::{
-    tournament::viewer_component::{InteractionResponse, Op, WrapperState},
+    tournament::{InteractionResponse, Op, WrapperState},
     utils::TextInput,
 };
 

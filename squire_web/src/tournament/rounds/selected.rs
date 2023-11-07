@@ -15,10 +15,8 @@ use super::{
     RoundsViewMessage, RoundsViewQueryMessage,
 };
 use crate::tournament::{
-    model::RoundProfile,
-    viewer_component::{
-        InteractionResponse, Op, TournViewerComponentWrapper, WrapperMessage, WrapperState,
-    },
+    model::RoundProfile, InteractionResponse, Op, TournViewerComponentWrapper, WrapperMessage,
+    WrapperState,
 };
 
 /// Message to be passed to the selected round
