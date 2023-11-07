@@ -10,7 +10,7 @@ use yew::prelude::*;
 use super::{PlayerView, PlayerViewQueryMessage};
 use crate::tournament::{
     model::{PlayerProfile, RoundProfile},
-    viewer_component::{InteractionResponse, Op, WrapperState},
+    InteractionResponse, Op, WrapperState,
 };
 
 /// The set of data needed by the UI to display a deck. Should be capable of rendering itself in

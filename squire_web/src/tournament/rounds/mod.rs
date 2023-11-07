@@ -17,8 +17,8 @@ pub use scroll::*;
 pub use selected::*;
 
 use super::{
-    model::RoundProfile,
-    viewer_component::{Op, TournViewerComponent, WrapperMessage},
+    model::RoundProfile, Op, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
+    WrapperState, TournQuery, InteractionResponse,
 };
 
 #[derive(Debug, PartialEq, Properties, Clone)]
@@ -54,10 +54,7 @@ impl TournViewerComponent for RoundsView {
     type InteractionMessage = RoundsViewMessage;
     type QueryMessage = RoundsViewQueryMessage;
 
-    fn v_create(
-        ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
-        state: &super::viewer_component::WrapperState,
-    ) -> Self {
+    fn v_create(ctx: &Context<TournViewerComponentWrapper<Self>>, state: &WrapperState) -> Self {
         Self {
             id: state.t_id,
             input: RoundFilterInput::new(ctx.link().callback(|input| {
@@ -70,10 +67,10 @@ impl TournViewerComponent for RoundsView {
 
     fn interaction(
         &mut self,
-        ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
+        ctx: &Context<TournViewerComponentWrapper<Self>>,
         msg: Self::InteractionMessage,
-        state: &super::viewer_component::WrapperState,
-    ) -> super::viewer_component::InteractionResponse<Self> {
+        state: &WrapperState,
+    ) -> InteractionResponse<Self> {
         match msg {
             RoundsViewMessage::FilterInput(msg) => self.input.update(msg).into(),
             RoundsViewMessage::RoundScroll(msg) => self.scroll.update(msg).into(),
@@ -86,9 +83,9 @@ impl TournViewerComponent for RoundsView {
 
     fn query(
         &mut self,
-        _ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
-        _state: &super::viewer_component::WrapperState,
-    ) -> super::viewer_component::TournQuery<Self::QueryMessage> {
+        _ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _state: &WrapperState,
+    ) -> TournQuery<Self::QueryMessage> {
         let q_func = |tourn: &TournamentManager| {
             let mut rounds: Vec<RoundSummary> = tourn
                 .round_reg
@@ -103,11 +100,7 @@ impl TournViewerComponent for RoundsView {
         Box::new(q_func)
     }
 
-    fn load_queried_data(
-        &mut self,
-        msg: Self::QueryMessage,
-        _state: &super::viewer_component::WrapperState,
-    ) -> bool {
+    fn load_queried_data(&mut self, msg: Self::QueryMessage, _state: &WrapperState) -> bool {
         match msg {
             RoundsViewQueryMessage::AllDataReady(data) => self
                 .scroll
@@ -121,8 +114,8 @@ impl TournViewerComponent for RoundsView {
 
     fn v_view(
         &self,
-        ctx: &Context<super::viewer_component::TournViewerComponentWrapper<Self>>,
-        _state: &super::viewer_component::WrapperState,
+        ctx: &Context<TournViewerComponentWrapper<Self>>,
+        _state: &WrapperState,
     ) -> yew::Html {
         let cb = ctx
             .link()

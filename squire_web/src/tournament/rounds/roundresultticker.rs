@@ -8,9 +8,7 @@ use squire_sdk::model::{
 use yew::prelude::*;
 
 use super::SelectedRoundMessage;
-use crate::tournament::{
-    rounds::roundchangesbuffer::RoundChangesBufferMessage, viewer_component::Op,
-};
+use crate::tournament::{rounds::roundchangesbuffer::RoundChangesBufferMessage, Op};
 
 #[derive(Debug, PartialEq, Clone)]
 /// Sub component storing/displaying a result and associated changes to that result

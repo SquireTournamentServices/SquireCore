@@ -5,7 +5,7 @@ use yew::{html, Component, Context, Html, Properties};
 use crate::{
     tournament::{
         overview::*, pairings::*, players::*, rounds::*, settings::*, standings::*,
-        viewer_component::TournViewerComponentWrapper,
+        TournViewerComponentWrapper,
     },
     CLIENT,
 };
@@ -37,7 +37,6 @@ pub struct TournamentViewer {
     pub mode: Option<TournViewMode>,
     listener: Option<Receiver<()>>,
     tourn_name: String,
-    error_message: String,
 }
 
 impl TournamentViewer {
@@ -103,8 +102,7 @@ impl Component for TournamentViewer {
     type Properties = TournProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let TournProps { id } = ctx.props();
-        let id = *id;
+        let &TournProps { id } = ctx.props();
         ctx.link().send_future(async move {
             let res = CLIENT.get().unwrap().sub_to_tournament(id).await;
             TournViewMessage::TournamentImported(res)
@@ -113,7 +111,6 @@ impl Component for TournamentViewer {
             id,
             mode: None,
             tourn_name: String::new(),
-            error_message: "no message".to_owned(),
             listener: None,
         }
     }
@@ -164,12 +161,6 @@ impl Component for TournamentViewer {
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <>
-            <dialog id="errormessage">
-                <p>{self.error_message.clone()}</p>
-                <form method="dialog">
-                <button>{"OK"}</button>
-                </form>
-            </dialog>
             <div class="my-4 container-fluid">
                 <div class="row tviewer">
                     <aside class="col-md-2 tveiwer_sidebar px-md-3">

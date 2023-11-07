@@ -5,7 +5,7 @@ use squire_sdk::model::{
 use yew::prelude::*;
 
 use super::{input::RoundFilterReport, RoundsView, RoundsViewMessage, SelectedRoundMessage};
-use crate::tournament::viewer_component::{TournViewerComponentWrapper, WrapperMessage};
+use crate::tournament::{TournViewerComponentWrapper, WrapperMessage};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RoundScrollMessage {

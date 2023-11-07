@@ -12,7 +12,7 @@ use squire_sdk::{
 };
 use yew::{prelude::*, virtual_dom::VNode};
 
-use super::viewer_component::{
+use super::{
     InteractionResponse, Op, TournQuery, TournViewerComponent, TournViewerComponentWrapper,
     WrapperMessage, WrapperState,
 };

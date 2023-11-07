@@ -12,11 +12,8 @@ pub use scroll::*;
 pub use selected::*;
 
 use super::{
-    model::PlayerProfile,
-    viewer_component::{
-        InteractionResponse, TournQuery, TournViewerComponent, TournViewerComponentWrapper,
-        WrapperMessage, WrapperState,
-    },
+    model::PlayerProfile, InteractionResponse, TournQuery, TournViewerComponent,
+    TournViewerComponentWrapper, WrapperMessage, WrapperState,
 };
 
 #[derive(Debug, PartialEq, Properties)]

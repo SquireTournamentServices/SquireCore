@@ -21,7 +21,7 @@ use pairings::*;
 use scoring::*;
 
 use crate::{
-    tournament::viewer_component::{
+    tournament::{
         InteractionResponse, Op, TournQuery, TournViewerComponent, TournViewerComponentWrapper,
         WrapperMessage, WrapperState,
     },
