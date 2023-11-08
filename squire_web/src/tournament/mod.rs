@@ -1,5 +1,6 @@
 #![allow(non_camel_case_types)]
 
+use derive_more::From;
 use squire_sdk::{
     client::SquireClient,
     model::{
@@ -10,8 +11,6 @@ use squire_sdk::{
     },
     sync::TournamentManager,
 };
-
-use derive_more::From;
 use wasm_bindgen::JsCast;
 use web_sys::{window, HtmlDialogElement};
 use yew::{html, Component, Context, Properties};

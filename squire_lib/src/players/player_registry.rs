@@ -181,10 +181,7 @@ impl PlayerRegistry {
 
     /// Given a player identifier, returns that player's id if found
     pub fn get_player_id(&self, name: &str) -> Result<PlayerId, TournamentError> {
-        self.name_and_id
-            .get(name)
-            .cloned()
-            .ok_or(PlayerNotFound)
+        self.name_and_id.get(name).cloned().ok_or(PlayerNotFound)
     }
 
     /// Given a player identifier, returns that player's name if found

@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use squire_sdk::api::RegForm;
 use yew::prelude::*;
-// use yew_router::prelude::*;
 
+// use yew_router::prelude::*;
 use crate::{utils::TextInput, CLIENT};
 
 pub enum RegisterMessage {
@@ -16,23 +16,40 @@ pub enum RegisterMessage {
 }
 
 pub struct Register {
-    input: (Option<String>, Option<String>, Option<String>, Option<String>),
+    input: (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ),
 }
 
 impl Register {
     fn get_regform(&self) -> Result<RegForm, String> {
-        let name = self.input.0.clone().unwrap_or_else( || { "".to_owned() } );
-        if name.is_empty() { return Err("You need to enter a username".to_owned()); }
-        let display = self.input.1.clone().unwrap_or_else( || { "".to_owned() } );
-        if display.is_empty() { return Err("You need to enter a display name.".to_owned()); }
-        let password = self.input.2.clone().unwrap_or_else( || { "".to_owned() } );
-        if password.is_empty() { return Err("You need to enter a password".to_owned()); }
-        let repassword = self.input.3.clone().unwrap_or_else( || { "".to_owned() } );
-        if repassword.is_empty() { return Err("You need to re-enter your password".to_owned()); }
-        if password != repassword { return Err("Your entered passwords need to match.".to_owned()); }
-        Ok (
-            RegForm { username: name, display_name: display, password: password}
-        )
+        let name = self.input.0.clone().unwrap_or_else(|| "".to_owned());
+        if name.is_empty() {
+            return Err("You need to enter a username".to_owned());
+        }
+        let display = self.input.1.clone().unwrap_or_else(|| "".to_owned());
+        if display.is_empty() {
+            return Err("You need to enter a display name.".to_owned());
+        }
+        let password = self.input.2.clone().unwrap_or_else(|| "".to_owned());
+        if password.is_empty() {
+            return Err("You need to enter a password".to_owned());
+        }
+        let repassword = self.input.3.clone().unwrap_or_else(|| "".to_owned());
+        if repassword.is_empty() {
+            return Err("You need to re-enter your password".to_owned());
+        }
+        if password != repassword {
+            return Err("Your entered passwords need to match.".to_owned());
+        }
+        Ok(RegForm {
+            username: name,
+            display_name: display,
+            password: password,
+        })
     }
 }
 
@@ -54,11 +71,10 @@ impl Component for Register {
             RegisterMessage::RePasswordInput(s) => self.input.3 = Some(s),
             RegisterMessage::SubmitRegister => {
                 let client = CLIENT.get().unwrap();
-                ctx.link().send_future(
-                    client.register(self.get_regform().unwrap()).output()
-                );
+                ctx.link()
+                    .send_future(client.register(self.get_regform().unwrap()).output());
                 return false;
-            },
+            }
             RegisterMessage::RegisterResult(result) => {
                 todo!("{result:?}")
             }

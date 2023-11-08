@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
-use reqwest::Method;
-use reqwest::Request;
+use reqwest::{Method, Request};
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
@@ -12,12 +11,13 @@ use self::{
     session::SessionWatcher,
     tournaments::{TournsClient, UpdateType},
 };
-use crate::api::{Credentials, RegForm};
-use crate::compat::NetworkResponse;
-use crate::compat::Sendable;
 use crate::{
     actor::Tracker,
-    api::{GetRequest, ListTournaments, PostRequest, SessionToken, TournamentSummary},
+    api::{
+        Credentials, GetRequest, ListTournaments, PostRequest, RegForm, SessionToken,
+        TournamentSummary,
+    },
+    compat::{NetworkResponse, Sendable},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
@@ -170,7 +170,10 @@ impl SquireClient {
         let mut req = Request::new(Method::POST, url);
         let body = serde_json::to_string(&body).unwrap();
         let _ = req.body_mut().insert(body.into());
-        let _ = req.headers_mut().insert(http::header::CONTENT_TYPE, reqwest::header::HeaderValue::from_str("application/json").unwrap());
+        let _ = req.headers_mut().insert(
+            http::header::CONTENT_TYPE,
+            reqwest::header::HeaderValue::from_str("application/json").unwrap(),
+        );
         let tracker = self.client.track(req);
         ResponseTracker::new(tracker)
     }

@@ -4,9 +4,9 @@ use std::fmt::Display;
 use axum::{body::HttpBody, handler::Handler, routing::MethodRouter};
 use serde::{de::DeserializeOwned, Serialize};
 
+use super::url::Url;
 #[cfg(feature = "server")]
 use crate::server::state::ServerState;
-use super::url::Url;
 
 /// An enum that is used by the `RestRequest` to "know" what `MethodRouter` contructor to call
 pub enum Method {

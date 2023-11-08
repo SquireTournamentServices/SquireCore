@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
+use derive_more::From;
 use futures::StreamExt;
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
 use uuid::Uuid;
-use derive_more::From;
 
 use crate::{
     actor::{ActorState, Scheduler},
