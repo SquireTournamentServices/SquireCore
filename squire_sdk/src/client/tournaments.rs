@@ -1,5 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
+use derive_more::From;
 use futures::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use instant::Instant;
 use squire_lib::{
@@ -8,7 +9,6 @@ use squire_lib::{
 };
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
 use uuid::Uuid;
-use derive_more::From;
 
 use super::{network::NetworkState, OnUpdate};
 use crate::{

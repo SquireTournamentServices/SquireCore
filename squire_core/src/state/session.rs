@@ -45,6 +45,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use derive_more::From;
 use futures::StreamExt;
 use mongodb::{
     bson::{doc, Document},
@@ -63,7 +64,6 @@ use tokio::sync::{
     oneshot::Sender as OneshotSender,
     watch::{channel, Receiver as Watcher, Sender as Broadcaster},
 };
-use derive_more::From;
 use tracing::Level;
 
 #[derive(From)]

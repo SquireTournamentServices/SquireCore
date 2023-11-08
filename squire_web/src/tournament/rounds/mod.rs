@@ -17,8 +17,8 @@ pub use scroll::*;
 pub use selected::*;
 
 use super::{
-    model::RoundProfile, Op, TournViewerComponent, TournViewerComponentWrapper, WrapperMessage,
-    WrapperState, TournQuery, InteractionResponse,
+    model::RoundProfile, InteractionResponse, Op, TournQuery, TournViewerComponent,
+    TournViewerComponentWrapper, WrapperMessage, WrapperState,
 };
 
 #[derive(Debug, PartialEq, Properties, Clone)]

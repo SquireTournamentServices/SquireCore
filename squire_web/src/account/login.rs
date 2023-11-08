@@ -37,7 +37,7 @@ impl Component for Login {
             LoginMessage::SubmitLogin => {
                 let _client = CLIENT.get().unwrap();
                 todo!();
-            },
+            }
         }
         true
     }

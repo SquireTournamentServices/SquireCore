@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use axum::response::{IntoResponse, Response};
 use cycle_map::CycleMap;
-use http::StatusCode;
 use derive_more::From;
+use http::StatusCode;
 use squire_sdk::{
     actor::*,
     api::{Credentials, RegForm},

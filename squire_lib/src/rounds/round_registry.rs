@@ -200,7 +200,10 @@ impl RoundRegistry {
 
     /// Given a round identifier, returns a round's match number if the round can be found
     pub fn get_round_number(&self, id: &RoundId) -> Result<u64, TournamentError> {
-        self.rounds.get(id).map(|r| r.match_number).ok_or(RoundLookup)
+        self.rounds
+            .get(id)
+            .map(|r| r.match_number)
+            .ok_or(RoundLookup)
     }
 
     /// Given a round identifier, returns a mutable reference to the round if the round can be found

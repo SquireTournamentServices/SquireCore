@@ -70,9 +70,7 @@ impl ActorState for NetworkState {
         match msg {
             NetworkCommand::Request(req, send) => {
                 let fut = self.client.execute(req);
-                scheduler.process(async move {
-                    drop(send.send(NetworkResponse::new(fut.await)))
-                });
+                scheduler.process(async move { drop(send.send(NetworkResponse::new(fut.await))) });
             }
             NetworkCommand::Login(cred, send) => {
                 let req = self.post_request(Login(cred), []);
