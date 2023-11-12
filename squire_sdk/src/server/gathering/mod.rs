@@ -2,12 +2,12 @@ use std::{collections::HashMap, ops::Add};
 
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
+use derive_more::From;
 use futures::StreamExt;
 use instant::{Duration, Instant};
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::oneshot::Sender as OneshotSender;
 use uuid::Uuid;
-use derive_more::From;
 
 use crate::{
     actor::{ActorClient, ActorState, Scheduler},

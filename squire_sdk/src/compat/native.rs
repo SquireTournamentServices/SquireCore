@@ -31,7 +31,7 @@ impl<T> SendableWrapper<T> {
     }
 }
 
-impl<T: Send> Deref for SendableWrapper<T> {
+impl<T> Deref for SendableWrapper<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

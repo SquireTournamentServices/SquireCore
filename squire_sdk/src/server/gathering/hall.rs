@@ -8,7 +8,7 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 
 use super::{Gathering, GatheringMessage, PersistMessage};
 use crate::{
-    actor::{ActorBuilder, ActorClient, ActorState, Scheduler, Trackable},
+    actor::{ActorBuilder, ActorClient, ActorState, Scheduler},
     server::session::SessionWatcher,
     sync::TournamentManager,
 };
@@ -181,8 +181,15 @@ impl GatheringHall {
     }
 }
 
-impl Trackable<TournamentId, ()> for GatheringHallMessage {
-    fn track(msg: TournamentId, send: tokio::sync::oneshot::Sender<()>) -> Self {
-        Self::DestroyGathering(msg, send)
+// impl Trackable<TournamentId, ()> for GatheringHallMessage {
+//     fn track(msg: TournamentId, send: tokio::sync::oneshot::Sender<()>) -> Self {
+//         Self::DestroyGathering(msg, send)
+//     }
+// }
+
+impl From<(TournamentId, tokio::sync::oneshot::Sender<()>)> for GatheringHallMessage {
+    fn from(msg: (TournamentId, tokio::sync::oneshot::Sender<()>)) -> Self {
+        let (id, send) = msg;
+        Self::DestroyGathering(id, send)
     }
 }

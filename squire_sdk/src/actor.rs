@@ -271,7 +271,7 @@ impl<M> ActorClient<M> {
 
     pub fn track<I, T>(&self, msg: I) -> Tracker<T>
     where
-        M: From<(M, OneshotSender<T>)>,
+        M: From<(I, OneshotSender<T>)>,
     {
         let (send, recv) = oneshot_channel();
         let msg = M::from((msg, send));
