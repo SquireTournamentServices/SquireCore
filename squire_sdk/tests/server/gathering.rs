@@ -95,6 +95,48 @@ async fn gathering_does_not_terminate_if_not_necessary() {
     }
 }
 
+#[tokio::test]
+async fn gathering_terminates_at_the_right_time_after_processing_a_message() {
+    let (hall, mut recv) = MockGatheringHall::new();
+    let hall_client = ActorBuilder::new(hall).launch();
+
+    hall_client.send(GatheringHallMessage::NewGathering(TournamentId::new(
+        Uuid::new_v4(),
+    )));
+
+    const CHECK_FOR_TERMINATION_AFTER: Duration = Duration::from_secs(13);
+    const SEND_MESSAGE_TO_GATHERING_AFTER: Duration = Duration::from_secs(7);
+    const SECOND_CHECK_FOR_TERMINATION_AFTER: Duration = Duration::from_secs(18);
+    let timer = sleep(CHECK_FOR_TERMINATION_AFTER);
+    let timer_2 = sleep(SECOND_CHECK_FOR_TERMINATION_AFTER);
+
+    let mut gathering_created = false;
+    tokio::select! {
+        _ = timer => {
+            return;
+        },
+        _ = timer_2 => {
+            panic!("The gathering should have been dropped")
+        },
+        res = recv.recv() => match res.unwrap() {
+            MockGatheringHallResponse::GatheringCreated(gathering_client) => {
+                if gathering_created {
+                    panic!("The gathering should have been created only once")
+                }
+                gathering_created = true;
+
+                sleep(SEND_MESSAGE_TO_GATHERING_AFTER).await;
+                let (sender, _) = oneshot::channel();
+                gathering_client.send(GatheringMessage::GetTournament(sender));
+            },
+            MockGatheringHallResponse::GatheringDestroyed => {
+                panic!("The gathering should not have been destroyed before the timer ends");
+            },
+            _ => panic!("The gathering should have been created or destroyed")
+        }
+    }
+}
+
 #[derive(Debug)]
 enum MockGatheringHallResponse {
     GatheringDestroyed,
