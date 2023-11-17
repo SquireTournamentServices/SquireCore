@@ -19,6 +19,7 @@ pub struct PlayerRegistry {
     /// A lookup table between player ids and their names
     // TODO: We don't need this. A GroupMap between PlayerIdentifiers and Players would suffice for
     // the players field
+    #[serde_as(as = "Seq<(_, _)>")]
     pub name_and_id: HashMap<String, PlayerId>,
     /// All players in a tournament
     #[serde_as(as = "Seq<(_, _)>")]
@@ -27,6 +28,19 @@ pub struct PlayerRegistry {
     pub(crate) check_ins: HashSet<PlayerId>,
 }
 
+/*
+let cycle_map = [0     , 1    , 2]
+                 |       |      |
+                ["zero", "one", "two"]
+
+
+*/
+
+/* JSON
+"cycle_map": [ [0, "zero"], [1, "one"], [2, "two"] ]
+
+
+*/
 impl PlayerRegistry {
     /// Creates a new player registry with no players
     pub fn new() -> Self {

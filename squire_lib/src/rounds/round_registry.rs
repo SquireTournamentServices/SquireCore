@@ -21,6 +21,7 @@ use crate::{
 /// The struct that creates and manages all rounds.
 pub struct RoundRegistry {
     /// A lookup table between round ids and match numbers
+    #[serde_as(as = "Seq<(_, _)>")]
     pub num_and_id: HashMap<u64, RoundId>,
     /// All the rounds in a tournament
     #[serde_as(as = "Seq<(_, _)>")]
