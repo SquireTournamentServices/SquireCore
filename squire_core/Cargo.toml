@@ -33,7 +33,7 @@ headers = { version = "0.3" }
 http = { version = "0.2" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-hyper = { version = "0.14" }
+hyper = { version = "1.0" }
 shuttle-runtime = { version = "0.31", features = [] }
 shuttle-shared-db = { version = "0.31", features = ["mongodb"] }
 shuttle-axum = { version = "0.31", features = [] }
@@ -45,7 +45,7 @@ derive_more = "0.99.17"
 squire_tests = { path = "../squire_tests" }
 
 tower = { version = "0.4", features = ["util"] }
-hyper = { version = "0.14", features = ["full"] }
+hyper = { version = "1.0", features = ["full"] }
 
 [build-dependencies]
 flate2 = "1.0"
