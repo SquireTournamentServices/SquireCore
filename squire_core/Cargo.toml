@@ -30,7 +30,7 @@ axum = { version = "0.6.20", features = ["json", "macros", "headers"]}
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = { version = "0.1" }
 headers = { version = "0.3" }
-http = { version = "0.2" }
+http = { version = "1.0" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hyper = { version = "0.14" }
