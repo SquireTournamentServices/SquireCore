@@ -22,10 +22,12 @@ mod accounts;
 mod boilerplate;
 mod session;
 mod tournaments;
+mod user_profile;
 
 pub use accounts::*;
 pub use session::*;
 pub use tournaments::*;
+pub use user_profile::*;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
