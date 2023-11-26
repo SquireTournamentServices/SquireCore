@@ -1,13 +1,20 @@
 use uuid::Uuid;
 
+/// The rules that dictate which tournaments should be recommended to a user
 pub struct Rules {
+    /// The user's location
     pub location: Option<(f64, f64)>,
+    /// The recommended distance from the user's location
     pub distance_max: Option<f32>,
-    pub game_keywords: Option<Vec<String>>, // likely expand on this later, make more flexible for types of matchings
+    /// Keywords for tournament titles/types
+    pub game_keywords: Option<Vec<String>>, // likely change this later, make more flexible for types of matchings
+    /// Companies that the user wants to play tournaments under
     pub companies: Option<Vec<Uuid>>,
-    pub num_rules_set: u128,
+    /// The number of rules set by the user
+    num_rules_set: u128,
 }
 impl Rules {
+    /// Makes a new set of rules for a user
     pub fn new() -> Self {
         Rules {
             location: None,
@@ -17,38 +24,45 @@ impl Rules {
             num_rules_set: 0,
         }
     }
+    /// Sets the user's location
     pub fn set_location(&mut self, location: (f64, f64)) {
         if self.location.is_none() {
             self.increment_num_rules();
         }
         self.location = Some(location);
     }
+    /// Deletes the user's location
     pub fn delete_location(&mut self) {
         if self.location.is_some() {
             self.location = None;
             self.decrement_num_rules();
         }
     }
+    /// Gets the user's location
     pub fn get_location(&self) -> Option<(f64, f64)> {
         self.location.clone()
     }
 
+    /// Sets the maximum distance of recommended tournaments
     pub fn set_distance_max(&mut self, distance_max: f32) {
         if self.distance_max.is_none() {
             self.increment_num_rules();
         }
         self.distance_max = Some(distance_max);
     }
+    /// Deletes the maximum distance of recommended tournaments
     pub fn delete_distance_max(&mut self) {
         if self.distance_max.is_some() {
             self.distance_max = None;
             self.decrement_num_rules();
         }
     }
+    /// Gets the maximum distance of recommended tournaments
     pub fn get_distance_max(&self) -> Option<f32> {
         self.distance_max.clone()
     }
 
+    /// Adds a new keyword
     pub fn add_game_keyword(&mut self, new_keyword: String) {
         match self.game_keywords {
             Some(ref mut keywords) => {
@@ -60,6 +74,7 @@ impl Rules {
             }
         }
     } 
+    /// Deletes a specified keyword
     pub fn delete_game_keyword(&mut self, to_remove: String) {
         if let Some(pos) = self.game_keywords
             .as_ref()
@@ -73,6 +88,7 @@ impl Rules {
                 }
             }
     }
+    /// Gets the keywords
     pub fn get_game_keywords(&mut self) -> Option<Vec<String>> {
         if let Some(keywords) = self.game_keywords.as_mut() {
             keywords.sort();
@@ -80,6 +96,7 @@ impl Rules {
         self.game_keywords
     }
 
+    /// Adds a company
     pub fn add_company_id(&mut self, new_company: Uuid) {
         match self.companies {
             Some(ref mut companies) => {
@@ -91,6 +108,7 @@ impl Rules {
             }
         }
     }
+    /// Deletes a company
     pub fn delete_company_id(&mut self, to_remove: Uuid) {
         if let Some(pos) = self.companies 
             .as_ref()
@@ -105,21 +123,26 @@ impl Rules {
                 
             }
     }
+    /// Gets the company ids
     pub fn get_company_ids(&self) -> Option<Vec<Uuid>> {
         self.companies
     }
 
+    /// Gets the number of rules set for the user
     pub fn get_num_rules_set(&self) -> u128 {
         self.num_rules_set
     }
-    pub fn increment_num_rules(&mut self) {
+    /// Increments the number of rules
+    fn increment_num_rules(&mut self) {
         self.num_rules_set += 1;
     }
-    pub fn decrement_num_rules(&mut self) {
+    /// Decrements the number of rules
+    fn decrement_num_rules(&mut self) {
         if self.num_rules_set > 0 {
             self.num_rules_set -= 1;
         } 
     }
+    /// Validates and potentially corrects the number of rules for a user
     pub fn validate_num_rules(&mut self) {
         let mut num_rules = 0;
         if !(self.location.is_none()){
