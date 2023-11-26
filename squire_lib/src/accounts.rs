@@ -57,7 +57,7 @@ pub struct SquireAccount {
     pub id: SquireAccountId,
     /// The amount of data that the user wishes to have shared after a tournament is over
     pub permissions: SharingPermissions,
-    // the rules of the account for finding tournaments
+    /// The rules of the account for finding tournaments
     pub rules: Rules,
 }
 

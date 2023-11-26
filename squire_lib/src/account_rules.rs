@@ -1,6 +1,8 @@
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
 /// The rules that dictate which tournaments should be recommended to a user
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Rules {
     /// The user's location
     pub location: Option<(f64, f64)>,
@@ -13,6 +15,27 @@ pub struct Rules {
     /// The number of rules set by the user
     num_rules_set: u128,
 }
+
+impl PartialEq for Rules {
+    fn eq(&self, other: &Self) -> bool {
+        self.game_keywords == other.game_keywords
+            && self.companies == other.companies
+            && self.num_rules_set == other.num_rules_set
+            && match (self.location, other.location) {
+                (Some((lat1, lon1)), Some((lat2, lon2))) => (lat1 - lat2).abs() < f64::EPSILON && (lon1 - lon2).abs() < f64::EPSILON,
+                (None, None) => true,
+                _ => false,
+            }
+            && match (self.distance_max, other.distance_max) {
+                (Some(dm1), Some(dm2)) => (dm1 - dm2).abs() < f32::EPSILON,
+                (None, None) => true,
+                _ => false,
+            }
+    }
+}
+
+impl Eq for Rules {}
+
 impl Rules {
     /// Makes a new set of rules for a user
     pub fn new() -> Self {
@@ -24,6 +47,7 @@ impl Rules {
             num_rules_set: 0,
         }
     }
+
     /// Sets the user's location
     pub fn set_location(&mut self, location: (f64, f64)) {
         if self.location.is_none() {
@@ -42,7 +66,7 @@ impl Rules {
     pub fn get_location(&self) -> Option<(f64, f64)> {
         self.location.clone()
     }
-
+    
     /// Sets the maximum distance of recommended tournaments
     pub fn set_distance_max(&mut self, distance_max: f32) {
         if self.distance_max.is_none() {
@@ -62,7 +86,7 @@ impl Rules {
         self.distance_max.clone()
     }
 
-    /// Adds a new keyword
+    /// Adds a new game keyword
     pub fn add_game_keyword(&mut self, new_keyword: String) {
         match self.game_keywords {
             Some(ref mut keywords) => {
@@ -74,13 +98,27 @@ impl Rules {
             }
         }
     } 
-    /// Deletes a specified keyword
+    /// Adds batch of game keywords
+    pub fn add_batch_game_keywords(&mut self, new_keywords: Vec<String>) {
+        match self.game_keywords {
+            Some(ref mut keywords) => {
+                for keyword in new_keywords {
+                    keywords.push(keyword);
+                }
+            }
+            None => {
+                self.game_keywords = Some(new_keywords);
+                self.increment_num_rules();
+            }
+        }
+    }
+    /// Deletes a game keyword
     pub fn delete_game_keyword(&mut self, to_remove: String) {
         if let Some(pos) = self.game_keywords
             .as_ref()
             .and_then(|keywords| keywords.iter().position(|k| *k == to_remove)) {
                 if let Some(keywords) = self.game_keywords.as_mut() {
-                    keywords.remove(pos);
+                    let _  = keywords.remove(pos);
                     if keywords.is_empty() {
                         self.game_keywords = None;
                         self.decrement_num_rules();
@@ -88,16 +126,22 @@ impl Rules {
                 }
             }
     }
-    /// Gets the keywords
+    /// Deletes batch of game kewywrods
+    pub fn delete_batch_game_keywords(&mut self, to_remove: Vec<String>) {
+        for remove in to_remove {
+            self.delete_game_keyword(remove);
+        }
+    }
+    /// Gets the game keywords
     pub fn get_game_keywords(&mut self) -> Option<Vec<String>> {
         if let Some(keywords) = self.game_keywords.as_mut() {
             keywords.sort();
         }
-        self.game_keywords
+        self.game_keywords.clone()
     }
 
     /// Adds a company
-    pub fn add_company_id(&mut self, new_company: Uuid) {
+    pub fn add_company(&mut self, new_company: Uuid) {
         match self.companies {
             Some(ref mut companies) => {
                 companies.push(new_company);
@@ -108,13 +152,28 @@ impl Rules {
             }
         }
     }
+    /// Adds batch of companies
+    pub fn add_batch_company(&mut self, new_companies: Vec<Uuid>) {
+        match self.companies {
+            Some(ref mut companies) => {
+                for new_company in new_companies {
+                    companies.push(new_company);
+                
+                }
+            }
+            None => {
+                self.companies = Some(new_companies);
+                self.increment_num_rules();
+            }
+        }
+    }
     /// Deletes a company
-    pub fn delete_company_id(&mut self, to_remove: Uuid) {
+    pub fn delete_company(&mut self, to_remove: Uuid) {
         if let Some(pos) = self.companies 
             .as_ref()
             .and_then(|companies| companies.iter().position(|k| *k == to_remove)) {
                 if let Some(companies) = self.companies.as_mut() {
-                    companies.remove(pos);
+                    let _ = companies.remove(pos);
                     if companies.is_empty() {
                         self.companies = None;
                         self.decrement_num_rules();
@@ -123,9 +182,15 @@ impl Rules {
                 
             }
     }
-    /// Gets the company ids
-    pub fn get_company_ids(&self) -> Option<Vec<Uuid>> {
-        self.companies
+    /// Deletes batch of companies
+    pub fn delete_batch_companies(&mut self, to_remove: Vec<Uuid>) {
+        for remove in to_remove {
+            self.delete_company(remove);
+        }
+    }
+    /// Gets the companies
+    pub fn get_companies(&self) -> Option<Vec<Uuid>> {
+        self.companies.clone()
     }
 
     /// Gets the number of rules set for the user
