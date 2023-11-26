@@ -8,6 +8,7 @@ use crate::{
     admin::Admin,
     identifiers::SquireAccountId,
     tournament::{Tournament, TournamentSeed},
+    account_rules::Rules,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -57,11 +58,7 @@ pub struct SquireAccount {
     /// The amount of data that the user wishes to have shared after a tournament is over
     pub permissions: SharingPermissions,
     // the rules of the account for finding tournaments
-    pub rules: Vec<Rule>,
-}
-
-pub struct Rule {
-    
+    pub rules: Rules,
 }
 
 impl SquireAccount {
@@ -73,6 +70,7 @@ impl SquireAccount {
             gamer_tags: HashMap::new(),
             id: SquireAccountId::new(Uuid::new_v4()),
             permissions: SharingPermissions::default(),
+            rules: Rules::new(),
         }
     }
 
