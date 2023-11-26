@@ -11,6 +11,7 @@ use squire_lib::{
     rounds::RoundRegistry,
     scoring::StandardScoring,
     tournament::{TournamentPreset, TournamentSeed},
+    account_rules::Rules,
 };
 
 pub fn get_seed() -> TournamentSeed {
@@ -39,6 +40,7 @@ pub fn spoof_account() -> SquireAccount {
         display_name: id.to_string(),
         gamer_tags: HashMap::new(),
         permissions: SharingPermissions::Everything,
+        rules: Rules::new(),
     }
 }
 

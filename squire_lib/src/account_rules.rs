@@ -9,7 +9,7 @@ pub struct Rules {
     /// The recommended distance from the user's location
     pub distance_max: Option<f32>,
     /// Keywords for tournament titles/types
-    pub game_keywords: Option<Vec<String>>, // likely change this later, make more flexible for types of matchings
+    pub game_keywords: Option<Vec<String>>, // Likely change this later, make more flexible for types of matchings
     /// Companies that the user wants to play tournaments under
     pub companies: Option<Vec<Uuid>>,
     /// The number of rules set by the user
@@ -34,7 +34,7 @@ impl PartialEq for Rules {
     }
 }
 
-impl Eq for Rules {}
+impl Eq for Rules {} // Hacky solution because the struct uses floats. Likely revisit this
 
 impl Rules {
     /// Makes a new set of rules for a user
@@ -92,7 +92,7 @@ impl Rules {
             Some(ref mut keywords) => {
                 keywords.push(new_keyword);
             }
-            None => {
+            _ => {
                 self.game_keywords = Some(vec![new_keyword]);
                 self.increment_num_rules();
             }
@@ -106,7 +106,7 @@ impl Rules {
                     keywords.push(keyword);
                 }
             }
-            None => {
+            _ => {
                 self.game_keywords = Some(new_keywords);
                 self.increment_num_rules();
             }
@@ -161,7 +161,7 @@ impl Rules {
                 
                 }
             }
-            None => {
+            _ => {
                 self.companies = Some(new_companies);
                 self.increment_num_rules();
             }
@@ -222,11 +222,12 @@ impl Rules {
         if !(self.companies.is_none()) {
             num_rules += 1;
         }
-        if !(self.num_rules_set != num_rules) {
+        if self.num_rules_set != num_rules {
             self.num_rules_set = num_rules;
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -237,14 +238,19 @@ mod tests {
     fn test_new_rules() {
         let rules = Rules::new();
         assert_eq!(rules.num_rules_set, 0);
+        assert!(rules.location.is_none());
+        assert!(rules.distance_max.is_none());
+        assert!(rules.game_keywords.is_none());
+        assert!(rules.companies.is_none());
     }
 
     #[test]
-    fn test_set_location() {
+    fn test_set_and_get_location() {
         let mut rules = Rules::new();
-        rules.set_location((45.0, -75.0));
-        assert_eq!(rules.num_rules_set, 1);
-        assert!(rules.location.is_some());
+        let location = (45.0, -75.0);
+        rules.set_location(location);
+        assert_eq!(rules.get_location(), Some(location));
+        assert_eq!(rules.get_num_rules_set(), 1);
     }
 
     #[test]
@@ -252,45 +258,127 @@ mod tests {
         let mut rules = Rules::new();
         rules.set_location((45.0, -75.0));
         rules.delete_location();
-        assert_eq!(rules.num_rules_set, 0);
         assert!(rules.location.is_none());
+        assert_eq!(rules.get_num_rules_set(), 0);
     }
 
     #[test]
-    fn test_set_distance_max() {
+    fn test_set_and_get_distance_max() {
+        let mut rules = Rules::new();
+        let distance_max = 10.0;
+        rules.set_distance_max(distance_max);
+        assert_eq!(rules.get_distance_max(), Some(distance_max));
+        assert_eq!(rules.get_num_rules_set(), 1);
+    }
+
+    #[test]
+    fn test_delete_distance_max() {
         let mut rules = Rules::new();
         rules.set_distance_max(10.0);
-        assert_eq!(rules.num_rules_set, 1);
-        assert!(rules.distance_max.is_some());
+        rules.delete_distance_max();
+        assert!(rules.distance_max.is_none());
+        assert_eq!(rules.get_num_rules_set(), 0);
     }
 
     #[test]
-    fn test_add_and_delete_game_keyword() {
+    fn test_add_get_and_delete_game_keyword() {
         let mut rules = Rules::new();
-        let keyword = "chess".to_string();
+        let keyword = "abc".to_string();
         rules.add_game_keyword(keyword.clone());
-        assert_eq!(rules.num_rules_set, 1);
-        rules.delete_game_keyword(keyword);
-        assert_eq!(rules.num_rules_set, 0);
-        assert!(rules.game_keywords.is_none());
+        assert!(rules.get_game_keywords().unwrap().contains(&keyword));
+        assert_eq!(rules.get_num_rules_set(), 1);
+        rules.delete_game_keyword(keyword.clone());
+        assert!(!rules.get_game_keywords().unwrap_or_default().contains(&keyword));
+        assert_eq!(rules.get_num_rules_set(), 0);
     }
 
     #[test]
-    fn test_add_and_delete_company_id() {
+    fn test_add_get_and_delete_batch_game_keywords() {
+        let mut rules = Rules::new();
+        let keywords = vec!["abc".to_string(), "def".to_string()];
+        rules.add_batch_game_keywords(keywords.clone());
+        assert_eq!(rules.get_num_rules_set(), 1);
+        let mut i = 0;
+        for keyword in &keywords {
+            assert!(rules.get_game_keywords().unwrap().contains(keyword));
+            if i == 0 {
+                rules.delete_game_keyword(keyword.clone());
+                i += 1;
+            }
+        }
+        assert_eq!(rules.get_num_rules_set(), 1);
+        rules.delete_batch_game_keywords(keywords);
+        assert!(rules.get_game_keywords().is_none() || rules.get_game_keywords().unwrap().is_empty());
+        assert_eq!(rules.get_num_rules_set(), 0);
+    }
+
+    #[test]
+    fn test_add_get_and_delete_company() {
         let mut rules = Rules::new();
         let company_id = Uuid::new_v4();
-        rules.add_company_id(company_id);
-        assert_eq!(rules.num_rules_set, 1);
-        rules.delete_company_id(company_id);
-        assert_eq!(rules.num_rules_set, 0);
-        assert!(rules.companies.is_none());
+        rules.add_company(company_id);
+        assert!(rules.get_companies().unwrap().contains(&company_id));
+        assert_eq!(rules.get_num_rules_set(), 1);
+        rules.delete_company(company_id);
+        assert!(!rules.get_companies().unwrap_or_default().contains(&company_id));
+        assert_eq!(rules.get_num_rules_set(), 0);
     }
 
+    #[test]
+    fn test_add_get_and_delete_batch_companies() {
+        let mut rules = Rules::new();
+        let company_ids = vec![Uuid::new_v4(), Uuid::new_v4()];
+        rules.add_batch_company(company_ids.clone());
+        assert_eq!(rules.get_num_rules_set(), 1);
+        let mut i = 0;
+        for id in &company_ids {
+            assert!(rules.get_companies().unwrap().contains(id));
+            if i == 0 {
+                rules.delete_company(*id);
+                i += 1;
+            }
+        }
+        assert_eq!(rules.get_num_rules_set(), 1);
+        rules.delete_batch_companies(company_ids);
+        assert!(rules.get_companies().is_none() || rules.get_companies().unwrap().is_empty());
+        assert_eq!(rules.get_num_rules_set(), 0);
+    }
+
+    #[test]
+    fn test_num_rules_set_increments_and_decrements_correctly() {
+        let mut rules = Rules::new();
+        rules.set_location((45.0, -75.0));
+        rules.set_distance_max(10.0);
+        rules.add_game_keyword("abc".to_string());
+        let company_id = Uuid::new_v4();
+        rules.add_company(company_id);
+        assert_eq!(rules.get_num_rules_set(), 4);
+
+        rules.delete_location();
+        rules.delete_distance_max();
+        rules.delete_game_keyword("abc".to_string());
+        rules.delete_company(company_id);
+        assert_eq!(rules.get_num_rules_set(), 0);
+    }
+
+    #[test]
+    fn test_validate_num_rules() {
+        let mut rules = Rules::new();
+        rules.set_location((45.0, -75.0));
+        rules.set_distance_max(10.0);
+        rules.add_game_keyword("abc".to_string());
+        let company_id = Uuid::new_v4();
+        rules.add_company(company_id);
+
+        rules.num_rules_set = 999; 
+        rules.validate_num_rules();
+        assert_eq!(rules.get_num_rules_set(), 4); 
+    }
+    
     #[test]
     fn test_num_rules_set_does_not_go_below_zero() {
         let mut rules = Rules::new();
         rules.decrement_num_rules(); 
         assert_eq!(rules.num_rules_set, 0);
     }
-    
 }

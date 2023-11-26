@@ -227,6 +227,7 @@ mod tests {
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
             permissions: SharingPermissions::Everything,
+            rules: Rules::new(),
         }
     }
 
@@ -238,6 +239,7 @@ mod tests {
     use crate::{
         accounts::{SharingPermissions, SquireAccount},
         error::TournamentError,
+        account_rules::Rules,
     };
 
     #[test]

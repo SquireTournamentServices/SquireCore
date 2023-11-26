@@ -1197,6 +1197,7 @@ mod tests {
         operations::{AdminOp, PlayerOp, TournOp},
         rounds::RoundResult,
         tournament::TournamentSeed,
+        account_rules::Rules,
     };
 
     fn spoof_account() -> SquireAccount {
@@ -1207,6 +1208,7 @@ mod tests {
             display_name: id.to_string(),
             gamer_tags: HashMap::new(),
             permissions: SharingPermissions::Everything,
+            rules: Rules::new(),
         }
     }
 
