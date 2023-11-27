@@ -61,7 +61,7 @@ cookie_store = { version = "0.20", optional = true }
 
 # Server deps
 axum = { version = "0.6.20", features = ["ws"], optional = true }
-headers = { version = "0.3", optional = true }
+headers = { version = "0.4", optional = true }
 
 # To be moved
 hashbag = { version = "0.1.11", features = ["serde"] }
