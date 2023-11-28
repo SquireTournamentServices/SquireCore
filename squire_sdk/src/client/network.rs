@@ -41,14 +41,23 @@ pub struct NetworkState {
     client: Client,
 }
 
+/// Encapsulates all of the ways that a login attempt can fail.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoginError {
+    /// There was a network failure and the request (likely) did not reach the server.
+    NetworkError,
+    /// The server responded back saying that the given username and/or password are incorrect.
+    CredentialError,
+    /// There was an issue with the server... Unlikely to happen and should probably be logged
+    /// somehow.
+    ServerError,
+}
+
 #[derive(From)]
 pub enum NetworkCommand {
     Request(Request, OneshotSender<NetworkResponse>),
-    Login(Credentials, OneshotSender<SessionWatcher>),
-    LoginComplete(
-        Option<(SquireAccount, SessionToken)>,
-        OneshotSender<SessionWatcher>,
-    ),
+    Login(Credentials, OneshotSender<Result<SquireAccount, LoginError>>),
+    LoginComplete(Option<(SquireAccount, SessionToken)>),
     GuestLogin(OneshotSender<SessionWatcher>),
     GuestLoginComplete(Option<SessionToken>, OneshotSender<SessionWatcher>),
     OpenWebsocket(TournamentId, OneshotSender<Option<Websocket>>),
@@ -79,22 +88,29 @@ impl ActorState for NetworkState {
             NetworkCommand::Login(cred, send) => {
                 let req = self.post_request(Login(cred), []);
                 scheduler.add_task(async move {
-                    let digest = match req.await {
-                        Ok(resp) => match SessionToken::try_from(resp.headers()).ok() {
-                            Some(token) => resp.json().await.ok().map(|acc| (acc, token)),
-                            None => None,
-                        },
-                        Err(_) => None,
+                    let Ok(resp) = req.await else {
+                        // FIXME: Don't assume it was a cred error. Look at the error and
+                        // investigate.
+                        drop(send.send(Err(LoginError::CredentialError)));
+                        return None;
                     };
-                    (digest, send)
+                    let Some(token) = SessionToken::try_from(resp.headers()).ok() else {
+                        drop(send.send(Err(LoginError::ServerError)));
+                        return None;
+                    };
+                    let Some(acc) = resp.json::<SquireAccount>().await.ok() else {
+                        drop(send.send(Err(LoginError::ServerError)));
+                        return None;
+                    };
+                    drop(send.send(Ok(acc.clone())));
+                    Some((acc, token))
                 });
             }
-            NetworkCommand::LoginComplete(digest, send) => {
+            NetworkCommand::LoginComplete(digest) => {
                 if let Some((acc, token)) = digest {
                     self.token = Some(token);
                     self.session.user_auth(acc);
                 }
-                drop(send.send(self.session.subscribe()))
             }
             NetworkCommand::GuestLogin(send) => {
                 let req = self.post_request(GuestSession, []);
@@ -207,7 +223,7 @@ impl Debug for NetworkCommand {
             NetworkCommand::Request(_, _) => write!(f, "NetworkCommand::Request(..)"),
             NetworkCommand::Login(cred, _) => write!(f, "NetworkCommand::Login({cred:?})"),
             NetworkCommand::GuestLogin(_) => write!(f, "NetworkCommand::GuestLogin"),
-            NetworkCommand::LoginComplete(login_comp, _) => {
+            NetworkCommand::LoginComplete(login_comp) => {
                 write!(f, "NetworkCommand::LoginComplete({login_comp:?})")
             }
             NetworkCommand::GuestLoginComplete(guest_login_comp, _) => write!(

@@ -7,7 +7,7 @@ use tokio::sync::watch::Receiver as Subscriber;
 
 use self::{
     builder::ClientBuilder,
-    network::NetworkClient,
+    network::{NetworkClient, LoginError},
     session::SessionWatcher,
     tournaments::{TournsClient, UpdateType},
 };
@@ -226,7 +226,7 @@ impl SquireClient {
         self.post_request(body, [])
     }
 
-    pub fn login(&self, cred: Credentials) -> Tracker<SessionWatcher> {
+    pub fn login(&self, cred: Credentials) -> Tracker<Result<SquireAccount, LoginError>> {
         self.client.track(cred)
     }
 

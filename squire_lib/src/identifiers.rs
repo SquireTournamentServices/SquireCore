@@ -140,6 +140,18 @@ impl<T> PartialEq for TypeId<T> {
 
 impl<T> Eq for TypeId<T> {}
 
+impl<T> PartialOrd for TypeId<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.0.cmp(&other.0))
+    }
+}
+
+impl<T> Ord for TypeId<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
 impl<T> Deref for TypeId<T> {
     type Target = Uuid;
     fn deref(&self) -> &Self::Target {

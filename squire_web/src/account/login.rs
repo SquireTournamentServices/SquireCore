@@ -1,22 +1,33 @@
 use std::borrow::Cow;
 
+use derive_more::From;
+use squire_sdk::{api::Credentials, client::network::LoginError, model::accounts::SquireAccount};
 use yew::prelude::*;
+use yew_router::prelude::*;
 
-use crate::{utils::TextInput, CLIENT};
+use crate::{utils::TextInput, CLIENT, Route};
 
+#[derive(Debug, From)]
 pub enum LoginMessage {
+    #[from(ignore)]
     NameInput(String),
+    #[from(ignore)]
     PasswordInput(String),
     SubmitLogin,
+    LoginResult(Result<SquireAccount, LoginError>),
 }
 
 pub struct Login {
-    input: (Option<String>, Option<String>),
+    username: String,
+    password: String,
 }
 
 impl Login {
-    fn _get_logform(&self) -> Result<String, String> {
-        todo!()
+    fn get_cred(&self) -> Credentials {
+        Credentials::Basic {
+            username: self.username.clone(),
+            password: self.password.clone(),
+        }
     }
 }
 
@@ -26,18 +37,24 @@ impl Component for Login {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            input: (None, None),
+            username: String::new(),
+            password: String::new(),
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            LoginMessage::NameInput(s) => self.input.0 = Some(s),
-            LoginMessage::PasswordInput(s) => self.input.1 = Some(s),
+            LoginMessage::NameInput(s) => self.username = s,
+            LoginMessage::PasswordInput(s) => self.password = s,
             LoginMessage::SubmitLogin => {
-                let _client = CLIENT.get().unwrap();
-                todo!();
+                let tracker = CLIENT.get().unwrap().login(self.get_cred());
+                ctx.link().send_future(tracker);
             }
+            LoginMessage::LoginResult(Ok(_)) => {
+                let navigator = ctx.link().navigator().unwrap();
+                navigator.push(&Route::Create);
+            }
+            LoginMessage::LoginResult(_) => panic!("Login attempt failed!!"),
         }
         true
     }
