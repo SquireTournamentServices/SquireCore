@@ -78,17 +78,14 @@ impl ActorState for NetworkState {
                         // FIXME: Don't assume it was a cred error. Look at the error and
                         // investigate.
                         drop(send.send(Err(LoginError::CredentialError)));
-                        log("Request failed...");
                         return None;
                     };
                     let Ok(token) = resp.session_token() else {
                         drop(send.send(Err(LoginError::ServerError)));
-                        log("Could not construct session token...");
                         return None;
                     };
                     let Some(acc) = resp.json::<SquireAccount>().await.ok() else {
                         drop(send.send(Err(LoginError::ServerError)));
-                        log("Could not deserialize account...");
                         return None;
                     };
                     drop(send.send(Ok(acc.clone())));
