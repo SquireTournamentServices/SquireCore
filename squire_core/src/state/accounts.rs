@@ -1,14 +1,22 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, future::Future, hash::Hasher};
 
 use axum::response::{IntoResponse, Response};
-use cycle_map::CycleMap;
 use derive_more::From;
+use futures::{FutureExt, StreamExt};
+use fxhash::FxHasher;
 use http::StatusCode;
+use mongodb::{
+    bson::{doc, Document},
+    options::{UpdateModifications, UpdateOptions},
+    Collection, Database,
+};
+use serde::{Deserialize, Serialize};
 use squire_sdk::{
     actor::*,
     api::{Credentials, RegForm},
     model::{accounts::SquireAccount, identifiers::SquireAccountId},
 };
+use tracing::Level;
 
 pub struct LoginError;
 
@@ -23,9 +31,17 @@ pub struct AccountStoreHandle {
     client: ActorClient<AccountStore>,
 }
 
+fn salt_and_hash(password: &str, username: &str) -> u32 {
+    let mut hasher = FxHasher::default();
+    hasher.write(password.as_bytes());
+    hasher.write(username.as_bytes());
+    let hash = hasher.finish().to_be_bytes();
+    u32::from_be_bytes([hash[0], hash[1], hash[2], hash[3]])
+}
+
 impl AccountStoreHandle {
-    pub fn new() -> Self {
-        let client = ActorClient::builder(AccountStore::new()).launch();
+    pub fn new(db: Database) -> Self {
+        let client = ActorClient::builder(AccountStore::new(db)).launch();
         Self { client }
     }
 
@@ -54,45 +70,57 @@ pub enum AccountCommand {
     Delete(SquireAccountId, OneshotSender<bool>),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct AccountStore {
-    credentials: CycleMap<Credentials, SquireAccountId>,
-    users: HashMap<SquireAccountId, SquireAccount>,
+    credentials: HashMap<u32, SquireAccountId>,
+    users: HashMap<SquireAccountId, DbUser>,
+    db: AccountDb,
 }
 
 #[async_trait]
 impl ActorState for AccountStore {
     type Message = AccountCommand;
 
-    async fn process(&mut self, _scheduler: &mut Scheduler<Self>, msg: Self::Message) {
+    async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
+        let db = self.db.clone();
+        db.load_all_accounts(self).await;
+    }
+
+    async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
+            AccountCommand::Authenticate(cred, send) => drop(send.send(self.authenticate(cred))),
+            AccountCommand::Get(id, send) => drop(send.send(self.get_account(id))),
+            AccountCommand::Delete(id, send) => drop(send.send(self.delete_account(id, scheduler))),
             AccountCommand::Create(form, send) => {
-                let _ = send.send(self.create_account(form));
-            }
-            AccountCommand::Authenticate(cred, send) => {
-                let _ = send.send(self.authenticate(cred));
-            }
-            AccountCommand::Get(id, send) => {
-                let _ = send.send(self.get_account(id));
-            }
-            AccountCommand::Delete(id, send) => {
-                let _ = send.send(self.delete_account(id));
+                let _ = send.send(self.create_account(form, scheduler));
             }
         }
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct AccountDb {
+    db: Database,
+}
+
 impl AccountStore {
-    fn new() -> Self {
+    fn new(db: Database) -> Self {
         Self {
             users: HashMap::new(),
-            credentials: CycleMap::new(),
+            credentials: HashMap::new(),
+            db: AccountDb::new(db),
         }
     }
 
-    fn create_account(&mut self, form: RegForm) -> SquireAccountId {
+    fn create_account(
+        &mut self,
+        form: RegForm,
+        scheduler: &mut Scheduler<Self>,
+    ) -> SquireAccountId {
         let cred: Credentials = form.clone().into();
-        if let Some(id) = self.credentials.get_right(&cred) {
+        let Credentials::Basic { username, password } = cred;
+        let cred = salt_and_hash(&password, &username);
+        if let Some(id) = self.credentials.get(&cred) {
             return *id;
         }
         let RegForm {
@@ -100,24 +128,106 @@ impl AccountStore {
             display_name,
             ..
         } = form;
-        let acc = SquireAccount::new(username, display_name);
-        let digest = acc.id;
+        let account = SquireAccount::new(username, display_name);
+        let digest = account.id;
+        let user = DbUser { account, cred };
+        scheduler.process(self.db.persist_account(user.clone()));
         self.credentials.insert(cred, digest);
-        self.users.insert(digest, acc);
+        self.users.insert(digest, user);
         digest
     }
 
     fn authenticate(&mut self, cred: Credentials) -> Option<SquireAccountId> {
-        self.credentials.get_right(&cred).cloned()
+        let Credentials::Basic { username, password } = cred;
+        let hash = salt_and_hash(&password, &username);
+        self.credentials.get(&hash).cloned()
     }
 
     fn get_account(&mut self, id: SquireAccountId) -> Option<SquireAccount> {
-        self.users.get(&id).cloned()
+        self.users.get(&id).map(|user| &user.account).cloned()
     }
 
-    fn delete_account(&mut self, id: SquireAccountId) -> bool {
-        let digest = self.users.remove(&id).is_some();
-        self.credentials.remove_via_right(&id);
-        digest
+    fn delete_account(&mut self, id: SquireAccountId, scheduler: &mut Scheduler<Self>) -> bool {
+        self.credentials.retain(|_, a_id| id != *a_id);
+        if let Some(user) = self.users.remove(&id) {
+            scheduler.process(self.db.remove_account(user));
+            true
+        } else {
+            false
+        }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DbUser {
+    account: SquireAccount,
+    /// The salted and hashed password.
+    cred: u32,
+}
+
+impl AccountDb {
+    const ACCOUNTS_TABLE: &'static str = "Accounts";
+
+    pub fn new(db: Database) -> Self {
+        Self { db }
+    }
+
+    fn get_table(&self) -> Collection<DbUser> {
+        self.db.collection(Self::ACCOUNTS_TABLE)
+    }
+
+    #[allow(dead_code)]
+    pub async fn load_all_accounts(&self, cache: &mut AccountStore) {
+        let mut cursor = self.get_table().find(None, None).await.unwrap();
+        while let Some(acc) = cursor.next().await {
+            if let Ok(user) = acc {
+                cache.credentials.insert(user.cred, user.account.id);
+                cache.users.insert(user.account.id, user);
+            }
+        }
+    }
+
+    fn persist_account(&self, acc: DbUser) -> impl 'static + Future<Output = ()> {
+        let table = self.get_table();
+        persist_account(table, acc).map(drop)
+    }
+
+    fn remove_account(&self, acc: DbUser) -> impl 'static + Future<Output = ()> {
+        let table = self.get_table();
+        delete_account(table, acc).map(drop)
+    }
+}
+
+async fn persist_account(table: Collection<DbUser>, account: DbUser) -> bool {
+    println!("Saving user: {account:?}");
+    let doc: Document = mongodb::bson::to_raw_document_buf(&account)
+        .unwrap()
+        .try_into()
+        .unwrap();
+    if table
+        .update_one(
+            doc.clone(),
+            UpdateModifications::Document(doc! {"$set": doc}),
+            UpdateOptions::builder().upsert(true).build(),
+        )
+        .await
+        .is_err()
+    {
+        if let Err(err) = table.insert_one(account.clone(), None).await {
+            tracing::event!(
+                Level::WARN,
+                "Could not persist session `{account:?}` got error: {err}",
+            );
+            return false;
+        }
+    }
+    true
+}
+
+async fn delete_account(table: Collection<DbUser>, account: DbUser) -> bool {
+    let doc: Document = mongodb::bson::to_raw_document_buf(&account)
+        .unwrap()
+        .try_into()
+        .unwrap();
+    table.delete_one(doc, None).await.is_ok()
 }

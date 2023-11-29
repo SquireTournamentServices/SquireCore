@@ -27,7 +27,7 @@ mod user_profile;
 pub use accounts::*;
 pub use session::*;
 pub use tournaments::*;
-pub use user_profile::*;
+// pub use user_profile::*;
 
 pub type Uri = Cow<'static, str>;
 pub type DbName = Option<String>;
@@ -103,8 +103,8 @@ impl AppStateBuilder<Uri, DbName> {
         let tournaments = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
         let gatherings = ActorBuilder::new(GatheringHall::new(tournaments.clone())).launch();
         AppState {
-            sessions: SessionStoreHandle::new(db_conn),
-            accounts: AccountStoreHandle::new(),
+            sessions: SessionStoreHandle::new(db_conn.clone()),
+            accounts: AccountStoreHandle::new(db_conn),
             gatherings,
             tourn_db,
         }
@@ -128,8 +128,8 @@ impl AppStateBuilder<Database, ()> {
         let tourns = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
         let gatherings = ActorBuilder::new(GatheringHall::new(tourns.clone())).launch();
         AppState {
-            sessions: SessionStoreHandle::new(self.db_conn),
-            accounts: AccountStoreHandle::new(),
+            sessions: SessionStoreHandle::new(self.db_conn.clone()),
+            accounts: AccountStoreHandle::new(self.db_conn),
             gatherings,
             tourn_db,
         }
