@@ -118,27 +118,28 @@ impl Component for Register {
         let display_callback = ctx.link().callback(RegisterMessage::DisplayInput);
         let password_callback = ctx.link().callback(RegisterMessage::PasswordInput);
         let repassword_callback = ctx.link().callback(RegisterMessage::RePasswordInput);
-        let form = html! {
-            <div>
-                <TextInput label = {Cow::from("Username")} process = { name_callback } />
-                <TextInput label = {Cow::from("Display name")} process = { display_callback } />
-                <TextInput label = {Cow::from("Password")} process = { password_callback } />
-                <TextInput label = {Cow::from("Re-Type Password")} process = { repassword_callback } />
-            </div>
-        };
         html! {
             <>
             <>
-                <dialog id="errormessage">
-                    <p>{self.error_message.clone()}</p>
-                    <form method="dialog">
-                    <button>{"OK"}</button>
-                    </form>
-                </dialog>
+            <dialog id="errormessage">
+                <p>{self.error_message.clone()}</p>
+                <form method="dialog">
+                <button>{"OK"}</button>
+                </form>
+            </dialog>
             </>
-            <div>
-                { form }
-                <button onclick={submit_callback}>{ "Register" }</button>
+            <div class="m-lg-0 m-md-4 my-3">
+                <div class="p-5 bg-light rounded-3">
+                    <div class="container-fluid p-md-5">
+                        <h1 class="display-5 fw-bold">{ "Register" }</h1>
+                        <hr class="my-4"/>
+                        <TextInput label = {Cow::from("Username ")} process = { name_callback } /><br class="my-2"/>
+                        <TextInput label = {Cow::from("Display name ")} process = { display_callback } /><br class="my-2"/>
+                        <TextInput label = {Cow::from("Password ")} process = { password_callback } /><br class="my-2"/>
+                        <TextInput label = {Cow::from("Re-Type Password ")} process = { repassword_callback } /><br class="my-2"/>
+                        <button onclick={submit_callback}>{ "Register" }</button>
+                    </div>
+                </div>
             </div>
             </>
         }

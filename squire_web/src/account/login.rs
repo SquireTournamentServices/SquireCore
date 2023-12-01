@@ -75,27 +75,28 @@ impl Component for Login {
         let submit_callback = ctx.link().callback(|_| LoginMessage::SubmitLogin);
         let name_callback = ctx.link().callback(LoginMessage::NameInput);
         let password_callback = ctx.link().callback(LoginMessage::PasswordInput);
-        let form = html! {
-            <>
-            <>
-                <dialog id="errormessage">
-                    <p>{self.error_message.clone()}</p>
-                    <form method="dialog">
-                    <button>{"OK"}</button>
-                    </form>
-                </dialog>
-            </>
-            <div>
-                <TextInput label = {Cow::from("Username")} process = { name_callback } />
-                <TextInput label = {Cow::from("Password")} process = { password_callback } />
-            </div>
-            </>
-        };
         html! {
-            <div>
-                { form }
-                <button onclick={submit_callback}>{ "Log in" }</button>
+            <>
+            <>
+            <dialog id="errormessage">
+                <p>{self.error_message.clone()}</p>
+                <form method="dialog">
+                <button>{"OK"}</button>
+                </form>
+            </dialog>
+            </>
+            <div class="m-lg-0 m-md-4 my-3">
+                <div class="p-5 bg-light rounded-3">
+                    <div class="container-fluid p-md-5">
+                        <h1 class="display-5 fw-bold">{ "Login" }</h1>
+                        <hr class="my-4"/>
+                        <TextInput label = {Cow::from("Username ")} process = { name_callback } /><br class="my-2"/>
+                        <TextInput label = {Cow::from("Password ")} process = { password_callback } /><br class="my-2"/>
+                        <button onclick={submit_callback}>{ "Log in" }</button>
+                    </div>
+                </div>
             </div>
+            </>
         }
     }
 }
