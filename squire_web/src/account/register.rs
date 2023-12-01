@@ -1,10 +1,13 @@
 use std::borrow::Cow;
 
 use squire_sdk::api::RegForm;
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlDialogElement, window};
 use yew::prelude::*;
+use yew_router::scope_ext::RouterScopeExt;
 
 // use yew_router::prelude::*;
-use crate::{utils::TextInput, CLIENT};
+use crate::{utils::TextInput, CLIENT, Route};
 
 pub enum RegisterMessage {
     NameInput(String),
@@ -22,9 +25,19 @@ pub struct Register {
         Option<String>,
         Option<String>,
     ),
+    error_message : String
 }
 
 impl Register {
+    fn display_error(&mut self, err: String) {
+        let element: HtmlDialogElement = window()
+        .and_then(|w| w.document())
+        .and_then(|d| d.get_element_by_id("errormessage"))
+        .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
+        .unwrap();
+        self.error_message = err;
+        let _ = element.show_modal();
+    }
     fn get_regform(&self) -> Result<RegForm, String> {
         let name = self.input.0.clone().unwrap_or_else(|| "".to_owned());
         if name.is_empty() {
@@ -60,6 +73,7 @@ impl Component for Register {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             input: (None, None, None, None),
+            error_message : String::new()
         }
     }
 
@@ -71,12 +85,23 @@ impl Component for Register {
             RegisterMessage::RePasswordInput(s) => self.input.3 = Some(s),
             RegisterMessage::SubmitRegister => {
                 let client = CLIENT.get().unwrap();
-                ctx.link()
-                    .send_future(client.register(self.get_regform().unwrap()).output());
+                let reg_result = self.get_regform();
+                match reg_result {
+                    Ok(regform) => {
+                        ctx.link().send_future(client.register(regform).output());
+                    }
+                    Err(err) => {
+                        self.display_error(err);
+                    }
+                }
                 return false;
             }
-            RegisterMessage::RegisterResult(result) => {
-                todo!("{result:?}")
+            RegisterMessage::RegisterResult(Ok(_)) => {
+                let navigator = ctx.link().navigator().unwrap();
+                navigator.push(&Route::Create);
+            }
+            RegisterMessage::RegisterResult(_) => {
+                self.display_error("Failed to regeister".to_string());
             }
         }
         true
@@ -102,10 +127,20 @@ impl Component for Register {
             </div>
         };
         html! {
+            <>
+            <>
+                <dialog id="errormessage">
+                    <p>{self.error_message.clone()}</p>
+                    <form method="dialog">
+                    <button>{"OK"}</button>
+                    </form>
+                </dialog>
+            </>
             <div>
                 { form }
                 <button onclick={submit_callback}>{ "Register" }</button>
             </div>
+            </>
         }
     }
 }

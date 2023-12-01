@@ -2,6 +2,8 @@ use std::borrow::Cow;
 
 use derive_more::From;
 use squire_sdk::{api::Credentials, client::network::LoginError, model::accounts::SquireAccount};
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlDialogElement, window};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -20,6 +22,7 @@ pub enum LoginMessage {
 pub struct Login {
     username: String,
     password: String,
+    error_message: String,
 }
 
 impl Login {
@@ -39,6 +42,7 @@ impl Component for Login {
         Self {
             username: String::new(),
             password: String::new(),
+            error_message: String::new(),
         }
     }
 
@@ -54,7 +58,15 @@ impl Component for Login {
                 let navigator = ctx.link().navigator().unwrap();
                 navigator.push(&Route::Create);
             }
-            LoginMessage::LoginResult(_) => panic!("Login attempt failed!!"),
+            LoginMessage::LoginResult(_) => {
+                let element: HtmlDialogElement = window()
+                    .and_then(|w| w.document())
+                    .and_then(|d| d.get_element_by_id("errormessage"))
+                    .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
+                    .unwrap();
+                self.error_message = "Login attempt failed!!".to_owned();
+                let _ = element.show_modal();
+            }
         }
         true
     }
@@ -64,10 +76,20 @@ impl Component for Login {
         let name_callback = ctx.link().callback(LoginMessage::NameInput);
         let password_callback = ctx.link().callback(LoginMessage::PasswordInput);
         let form = html! {
+            <>
+            <>
+                <dialog id="errormessage">
+                    <p>{self.error_message.clone()}</p>
+                    <form method="dialog">
+                    <button>{"OK"}</button>
+                    </form>
+                </dialog>
+            </>
             <div>
                 <TextInput label = {Cow::from("Username")} process = { name_callback } />
                 <TextInput label = {Cow::from("Password")} process = { password_callback } />
             </div>
+            </>
         };
         html! {
             <div>
