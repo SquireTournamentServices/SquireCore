@@ -16,7 +16,7 @@ mod index;
 mod tournament;
 mod utils;
 
-use account::{Login, Register};
+use account::{Login, Register, Account};
 use header::Header;
 use index::Index;
 use tournament::{creator::TournamentCreator, viewer::TournamentViewer};
@@ -34,6 +34,8 @@ enum Route {
     Login,
     #[at("/register")]
     Register,
+    #[at("/account")]
+    Account,
     #[at("/create")]
     Create,
     #[at("/:id")]
@@ -45,6 +47,7 @@ fn switch(routes: Route) -> Html {
         Route::Index => html! { <Index /> },
         Route::Login => html! { <Login /> },
         Route::Register => html! { <Register /> },
+        Route::Account => html! { <Account /> },
         Route::Create => html! { <TournamentCreator /> },
         Route::Tourn { id } => html! { <TournamentViewer id = { id } /> },
     }

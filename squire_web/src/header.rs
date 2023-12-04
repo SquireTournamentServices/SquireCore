@@ -2,6 +2,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::Route;
+use crate::CLIENT;
 
 #[function_component(Header)]
 pub fn header() -> Html {
@@ -9,6 +10,30 @@ pub fn header() -> Html {
     let make_route = move |route| {
         let nav = nav.clone();
         Callback::from(move |_| nav.push(&route))
+    };
+    let account_option = CLIENT.get().unwrap().get_user();
+    let account_nav = match account_option {
+        Some(_) => {
+            html! {
+                <>
+                <li class="nav-item">
+                <a class="nav-link" onclick = { make_route(Route::Login) }>{ "Login" }</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" onclick = { make_route(Route::Register) }>{ "Register" }</a>
+                </li>
+                </>
+            }
+        }
+        None => {
+            html! {
+                <>
+                <li class="nav-item">
+                <a class="nav-link" onclick = { make_route(Route::Account) }>{ "Profile" }</a>
+                </li>
+                </>
+            }
+        }
     };
     html! {
         <header>
@@ -20,12 +45,7 @@ pub fn header() -> Html {
                     </button>
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" onclick = { make_route(Route::Login) }>{ "Login" }</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" onclick = { make_route(Route::Register) }>{ "Register" }</a>
-                            </li>
+                            <>{ account_nav }</>
                             <li class="nav-item">
                                 <a class="nav-link" onclick = { make_route(Route::Create) }>{ "Create Tournament" }</a>
                             </li>
