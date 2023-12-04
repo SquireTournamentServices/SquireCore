@@ -7,11 +7,8 @@ use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
 use super::session::{SessionBroadcaster, SessionWatcher};
 use crate::{
     actor::*,
-    api::{Credentials, GuestSession, Login, PostRequest, SessionToken},
-    compat::{
-        log, Client, NetworkError, NetworkResponse, Request, Response, Sendable, SendableFuture,
-        Websocket, WebsocketMessage,
-    },
+    api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken},
+    compat::{NetworkResponse, Websocket, WebsocketMessage, log},
 };
 
 pub type NetworkClient = ActorClient<NetworkState>;
@@ -78,14 +75,17 @@ impl ActorState for NetworkState {
                         // FIXME: Don't assume it was a cred error. Look at the error and
                         // investigate.
                         drop(send.send(Err(LoginError::CredentialError)));
+                        log("Request failed...");
                         return None;
                     };
                     let Ok(token) = resp.session_token() else {
                         drop(send.send(Err(LoginError::ServerError)));
+                        log("Could not construct session token...");
                         return None;
                     };
                     let Some(acc) = resp.json::<SquireAccount>().await.ok() else {
                         drop(send.send(Err(LoginError::ServerError)));
+                        log("Could not deserialize account...");
                         return None;
                     };
                     drop(send.send(Ok(acc.clone())));
