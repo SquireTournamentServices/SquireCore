@@ -17,7 +17,7 @@ use crate::{
     api::{
         Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken, TokenParseError,
     },
-    compat::{NetworkResponse, Websocket, WebsocketMessage},
+    compat::{NetworkResponse, Websocket, WebsocketMessage, log},
 };
 
 #[cfg(target_family = "wasm")]
@@ -81,7 +81,11 @@ impl ActorState for NetworkState {
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
-            NetworkCommand::Request(req, send) => {
+            NetworkCommand::Request(mut req, send) => {
+                let headers = req.headers_mut();
+                if let Some((name, header)) = self.token.as_ref().map(SessionToken::as_header) {
+                    let _ = headers.insert(name, header);
+                }
                 let fut = self.client.execute(req);
                 scheduler.process(async move { drop(send.send(NetworkResponse::new(fut.await))) });
             }
@@ -92,14 +96,17 @@ impl ActorState for NetworkState {
                         // FIXME: Don't assume it was a cred error. Look at the error and
                         // investigate.
                         drop(send.send(Err(LoginError::CredentialError)));
+                        log("Request failed...");
                         return None;
                     };
                     let Some(token) = SessionToken::try_from(resp.headers()).ok() else {
                         drop(send.send(Err(LoginError::ServerError)));
+                        log("Could not construct session token...");
                         return None;
                     };
                     let Some(acc) = resp.json::<SquireAccount>().await.ok() else {
                         drop(send.send(Err(LoginError::ServerError)));
+                        log("Could not deserialize account...");
                         return None;
                     };
                     drop(send.send(Ok(acc.clone())));

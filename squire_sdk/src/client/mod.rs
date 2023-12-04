@@ -131,7 +131,7 @@ impl SquireClient {
             return BackendImportStatus::NotFound;
         };
 
-        if self.post_request(tourn, []).output().await.unwrap() {
+        if self.post_request(tourn, []).output().await.is_ok() {
             BackendImportStatus::Success
         } else {
             BackendImportStatus::AlreadyImported

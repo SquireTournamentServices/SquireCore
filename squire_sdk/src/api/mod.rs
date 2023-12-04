@@ -52,7 +52,7 @@ const IMPORT_TOURN_ENDPOINT: Url<0> = Url::from("/");
 
 impl PostRequest<0> for TournamentManager {
     const ROUTE: Url<0> = extend!(TOURNAMENTS_ROUTE, IMPORT_TOURN_ENDPOINT);
-    type Response = bool;
+    type Response = ();
 }
 
 /* ---------- Account Routes ---------- */
