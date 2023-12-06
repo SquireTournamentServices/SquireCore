@@ -44,6 +44,3 @@ pub mod sync;
 
 /// A compatability layer to enable use in both native and WASM platforms
 pub mod compat;
-
-/// Contains the rules about recommending tournaments to users
-pub mod account_rules;

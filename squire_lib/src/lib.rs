@@ -47,3 +47,5 @@ pub mod scoring;
 pub mod settings;
 /// Contains the core tournament model
 pub mod tournament;
+
+pub use squire_sdk::api::Rules;

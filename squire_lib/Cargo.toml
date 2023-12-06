@@ -25,6 +25,7 @@ html-escape = { version = "0.2.13" }
 getrandom = { version = "0.2" }
 deterministic-hash = "=1.0.1"
 fxhash = "=0.2.1"
+squire_sdk = {version = "0.1.0", path = "../squire_sdk"}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

@@ -8,8 +8,9 @@ use crate::{
     admin::Admin,
     identifiers::SquireAccountId,
     tournament::{Tournament, TournamentSeed},
-    account_rules::Rules,
 };
+
+use crate::api::Rules;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 /// The platforms that we officially support (plus a wildcard)
