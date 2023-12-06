@@ -47,5 +47,3 @@ pub mod scoring;
 pub mod settings;
 /// Contains the core tournament model
 pub mod tournament;
-/// Contains the rules about recommending tournaments to users
-pub mod account_rules;
