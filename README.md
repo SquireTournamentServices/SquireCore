@@ -52,13 +52,15 @@ To learn more, see our [future plans](##Current-and-Future-State).
 ## Contributing
 To contribute to the project, create branches off the repository itself (don't fork into your own namespace) and open PR's against the main branch. All PR's are subject to review.
 
+### Basic Setup
+
 To construct the environment and run the project in development, you'll need to install a few things:
 
 * Rust
 * Docker (installed and running)
 * Possibly MongoDB
 
-### Debian Bullseye
+### Debian Bullseye Specific Setup
 
 A couple steps that are specific to Debian Bullseye, but which may or may not be relevant to other systems.
 
