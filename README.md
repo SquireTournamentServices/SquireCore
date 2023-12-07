@@ -73,7 +73,7 @@ sudo apt install -y gcc libssl-dev pkg-config
 Secondly, we need to be able to run Docker without root:
 
 ```
-sudo usermod -a -G docker user
+sudo usermod -a -G docker <your username>
 ```
 
 ### Finally
