@@ -50,14 +50,38 @@ There are plans for many more services in the future.
 To learn more, see our [future plans](##Current-and-Future-State).
 
 ## Contributing
-To contribute to the project, create branches off the repository itself (don't fork into your own namespace) and open PR's against the main branch. All PR's are subject to review. To run the project in development, execute the following commands:
+To contribute to the project, create branches off the repository itself (don't fork into your own namespace) and open PR's against the main branch. All PR's are subject to review.
+
+To construct the environment and run the project in development, you'll need to install a few things:
+
+* Rust
+* Docker (installed and running)
+* Possibly MongoDB
+
+### Debian Bullseye
+
+A couple steps that are specific to Debian Bullseye, but which may or may not be relevant to other systems.
+
+First install a couple requirements:
+
+````
+sudo apt install -y gcc libssl-dev pkg-config
+````
+
+Secondly, we need to be able to run Docker without root:
+
+```
+sudo usermod -a -G docker user
+```
+
+### Finally
 
 ```
 cargo install cargo-shuttle
 cargo install trunk // make sure to run these to installs separately
 rustup target add wasm32-unknown-unknown
+cargo shuttle run
 ```
-You must also have Docker installed and running to construct the environment. You may also need to install MongoDB.
 
 ## Current and Future State
 This repo (and STS as a whole) are still growing rapidly.
