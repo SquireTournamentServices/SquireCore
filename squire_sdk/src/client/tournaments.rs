@@ -8,11 +8,19 @@ use squire_lib::{
     tournament::TournamentId,
 };
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
+use troupe::{
+    ActorBuilder,
+    Transient,
+    Scheduler,
+    sink::{
+        SinkActor,
+        permanent::Tracker,
+    },
+};
 use uuid::Uuid;
 
 use super::{network::NetworkState, OnUpdate};
 use crate::{
-    actor::*,
     compat::{log, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     sync::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
@@ -24,7 +32,7 @@ use crate::{
 /// A container for the channels used to communicate with the tournament management task.
 #[derive(Debug, Clone)]
 pub struct TournsClient {
-    client: ActorClient<ManagerState>,
+    client: ActorClient<Transient, ManagementCommand>,
 }
 
 #[derive(From)]
@@ -43,14 +51,19 @@ pub(crate) enum ManagementCommand {
 struct ManagerState {
     cache: TournamentCache,
     syncs: ClientSyncManager,
-    network: ActorClient<NetworkState>,
+    network: ActorClient<Transient, NetworkCommand>,
     forwarded: ClientForwardingManager,
     on_update: Box<dyn OnUpdate>,
 }
 
 #[async_trait]
 impl ActorState for ManagerState {
+    type Permanence = Transient;
+    type ActorType = SinkActor;
+
     type Message = ManagementCommand;
+    type Output = ();
+
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
@@ -70,7 +83,7 @@ impl ActorState for ManagerState {
                 SubCreation::Connect(id) => {
                     log("Cache miss! Establishing connection...");
                     let tracker = self.network.track(id);
-                    scheduler.add_task(tracker.map(|ws| {
+                    scheduler.queue_task(tracker.map(|ws| {
                         log("Got response from network actor!");
                         ManagementCommand::Connection(ws, send)
                     }));
@@ -110,7 +123,7 @@ pub enum UpdateType {
 type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
 
 impl TournsClient {
-    pub fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+    pub fn new<O: OnUpdate>(network: ActorClient<Transient, NetworkCommand>, on_update: O) -> Self {
         let client = ActorBuilder::new(ManagerState::new(network, on_update)).launch();
         Self { client }
     }
@@ -161,7 +174,7 @@ enum SubCreation {
 }
 
 impl ManagerState {
-    fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+    fn new<O: OnUpdate>(network: ActorClient<Transient, NetworkCommand>, on_update: O) -> Self {
         Self {
             on_update: Box::new(on_update),
             cache: Default::default(),

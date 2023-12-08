@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
 use mongodb::{options::ClientOptions, Client as DbClient, Database};
 use squire_sdk::{
-    actor::{ActorBuilder, ActorClient},
     api::*,
     model::{
         accounts::SquireAccount,
@@ -17,6 +16,7 @@ use squire_sdk::{
     },
     sync::TournamentManager,
 };
+use troupe::{ActorBuilder, Permanent, sink::SinkClient};
 
 mod accounts;
 mod boilerplate;
@@ -100,8 +100,8 @@ impl AppStateBuilder<Uri, DbName> {
             .database(self.get_db_name());
         let tourn_coll = Arc::from(self.get_tournament_collection_name());
         let tourn_db = TournDb::new(db_conn.clone(), tourn_coll);
-        let tournaments = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
-        let gatherings = ActorBuilder::new(GatheringHall::new(tournaments.clone())).launch();
+        let tournaments = ActorBuilder::new(TournPersister::new(tourn_db.clone())).launch();
+        let gatherings = ActorBuilder::new(GatheringHall::<TournPersister>::new(tournaments.clone())).launch();
         AppState {
             sessions: SessionStoreHandle::new(db_conn.clone()),
             accounts: AccountStoreHandle::new(db_conn),
@@ -125,8 +125,8 @@ impl AppStateBuilder<Database, ()> {
     pub fn build(self) -> AppState {
         let tourn_coll: Arc<str> = Arc::from(self.get_tournament_collection_name());
         let tourn_db = TournDb::new(self.db_conn.clone(), tourn_coll);
-        let tourns = ActorClient::builder(TournPersister::new(tourn_db.clone())).launch();
-        let gatherings = ActorBuilder::new(GatheringHall::new(tourns.clone())).launch();
+        let tourns = ActorBuilder::new(TournPersister::new(tourn_db.clone())).launch();
+        let gatherings = ActorBuilder::new(GatheringHall::<TournPersister>::new(tourns.clone())).launch();
         AppState {
             sessions: SessionStoreHandle::new(self.db_conn.clone()),
             accounts: AccountStoreHandle::new(self.db_conn),
@@ -154,7 +154,7 @@ pub struct AppState {
     tourn_db: TournDb,
     sessions: SessionStoreHandle,
     accounts: AccountStoreHandle,
-    gatherings: ActorClient<GatheringHall<TournPersister>>,
+    gatherings: SinkClient<Permanent, GatheringHallMessage>,
 }
 
 impl AppState {
@@ -215,7 +215,7 @@ impl ServerState for AppState {
         self.tourn_db.persist_tourn(tourn).await
     }
 
-    async fn handle_new_onlooker(&self, id: TournamentId, user: SessionWatcher, ws: WebSocket) {
+    async fn handle_new_onlooker(&self, id: TournamentId, user: SessionWatcher, ws: WebSocket) -> bool {
         println!("Passing connection request off to gathering hall...");
         self.gatherings
             .send(GatheringHallMessage::NewConnection(id, user, ws))

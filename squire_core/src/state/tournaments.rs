@@ -1,5 +1,6 @@
 use std::{ops::Range, sync::Arc};
 
+use async_trait::async_trait;
 use futures::StreamExt;
 use mongodb::{
     bson::{doc, spec::BinarySubtype, Binary, Document},
@@ -7,10 +8,18 @@ use mongodb::{
     Collection, Database,
 };
 use squire_sdk::{
-    actor::*, api::TournamentSummary, model::tournament::TournamentId,
+    api::TournamentSummary, model::tournament::TournamentId,
     server::gathering::PersistMessage, sync::TournamentManager,
 };
 use tracing::Level;
+use troupe::{
+    ActorState,
+    Permanent,
+    Scheduler,
+    sink::{
+        SinkActor
+    },
+};
 
 #[derive(Debug, Clone)]
 pub struct TournDb {
@@ -24,7 +33,11 @@ pub struct TournPersister {
 
 #[async_trait]
 impl ActorState for TournPersister {
+    type Permanence = Permanent;
+    type ActorType = SinkActor;
+
     type Message = PersistMessage;
+    type Output = ();
 
     async fn process(&mut self, _scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {

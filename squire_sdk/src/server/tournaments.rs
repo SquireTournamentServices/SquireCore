@@ -107,5 +107,7 @@ async fn handle_new_onlooker<S: ServerState>(state: S, id: TournamentId, mut ws:
         return;
     };
     let user = state.watch_session(session).await.unwrap();
-    state.handle_new_onlooker(id, user, ws).await;
+    if !state.handle_new_onlooker(id, user, ws).await {
+        panic!("TODO what if this fails")
+    }
 }

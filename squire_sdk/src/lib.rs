@@ -33,8 +33,6 @@ pub mod client;
 /// The default client used by non-squire_core services to communicate with squire_core
 pub mod server;
 
-/// Contains the definition of the actor model used by both the client and server
-pub mod actor;
 /// Contains all of the API definitions
 pub mod api;
 /// The primary generic response type
