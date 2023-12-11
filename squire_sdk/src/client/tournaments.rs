@@ -10,7 +10,7 @@ use squire_lib::{
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
 use troupe::{
     ActorBuilder,
-    Transient,
+    Permanent,
     Scheduler,
     sink::{
         SinkActor,
@@ -33,7 +33,7 @@ use crate::{
 /// A container for the channels used to communicate with the tournament management task.
 #[derive(Debug, Clone)]
 pub struct TournsClient {
-    client: SinkClient<Transient, ManagementCommand>,
+    client: SinkClient<Permanent, ManagementCommand>,
 }
 
 #[derive(From)]
@@ -59,7 +59,7 @@ struct ManagerState {
 
 #[async_trait]
 impl ActorState for ManagerState {
-    type Permanence = Transient;
+    type Permanence = Permanent;
     type ActorType = SinkActor;
 
     type Message = ManagementCommand;
