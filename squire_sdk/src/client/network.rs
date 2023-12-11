@@ -5,7 +5,7 @@ use futures::SinkExt;
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
 use troupe::{
     ActorState,
-    Transient,
+    Permanent,
     Scheduler,
     sink::SinkActor,
 };
@@ -16,7 +16,7 @@ use crate::{
     compat::{NetworkResponse, Websocket, WebsocketMessage, log},
 };
 
-pub type NetworkClient = SyncClient<Transient, NetworkCommand>;
+pub type NetworkClient = SyncClient<Permanent, NetworkCommand>;
 
 #[derive(Debug)]
 pub struct NetworkState {
@@ -52,7 +52,7 @@ pub enum NetworkCommand {
 
 #[async_trait]
 impl ActorState for NetworkState {
-    type Permanence = Transient;
+    type Permanence = Permanent;
     type ActorType = SinkActor;
 
     type Message = NetworkCommand;

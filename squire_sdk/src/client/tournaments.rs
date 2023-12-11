@@ -52,7 +52,7 @@ pub(crate) enum ManagementCommand {
 struct ManagerState {
     cache: TournamentCache,
     syncs: ClientSyncManager,
-    network: SinkClient<Transient, NetworkCommand>,
+    network: SinkClient<Permanent, NetworkCommand>,
     forwarded: ClientForwardingManager,
     on_update: Box<dyn OnUpdate>,
 }
@@ -124,7 +124,7 @@ pub enum UpdateType {
 type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
 
 impl TournsClient {
-    pub fn new<O: OnUpdate>(network: SinkClient<Transient, NetworkCommand>, on_update: O) -> Self {
+    pub fn new<O: OnUpdate>(network: SinkClient<Permanent, NetworkCommand>, on_update: O) -> Self {
         let client = ActorBuilder::new(ManagerState::new(network, on_update)).launch();
         Self { client }
     }
@@ -175,7 +175,7 @@ enum SubCreation {
 }
 
 impl ManagerState {
-    fn new<O: OnUpdate>(network: SinkClient<Transient, NetworkCommand>, on_update: O) -> Self {
+    fn new<O: OnUpdate>(network: SinkClient<Permanent, NetworkCommand>, on_update: O) -> Self {
         Self {
             on_update: Box::new(on_update),
             cache: Default::default(),
