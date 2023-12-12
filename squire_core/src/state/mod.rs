@@ -16,7 +16,7 @@ use squire_sdk::{
     },
     sync::TournamentManager,
 };
-use troupe::{ActorBuilder, Permanent, sink::SinkClient};
+use troupe::prelude::{ActorBuilder, Permanent, SinkClient};
 
 mod accounts;
 mod boilerplate;

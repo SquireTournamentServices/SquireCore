@@ -1,5 +1,5 @@
 use squire_lib::accounts::SquireAccount;
-use troupe::{lib::ActorBuilder};
+use troupe::prelude::ActorBuilder;
 
 use super::{
     error::ClientError, network::NetworkState, tournaments::TournsClient, OnUpdate, SquireClient,

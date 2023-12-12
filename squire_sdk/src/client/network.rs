@@ -3,12 +3,7 @@ use std::fmt::Debug;
 use derive_more::From;
 use futures::SinkExt;
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
-use troupe::{
-    ActorState,
-    Permanent,
-    Scheduler,
-    sink::SinkActor,
-};
+use troupe::prelude::{ActorState, Permanent, Scheduler, SinkActor};
 
 use super::session::{SessionBroadcaster, SessionWatcher};
 use crate::{

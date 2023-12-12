@@ -12,14 +12,7 @@ use squire_sdk::{
     server::gathering::PersistMessage, sync::TournamentManager,
 };
 use tracing::Level;
-use troupe::{
-    ActorState,
-    Permanent,
-    Scheduler,
-    sink::{
-        SinkActor
-    },
-};
+use troupe::prelude::{ActorState, Permanent, Scheduler, SinkActor};
 
 #[derive(Debug, Clone)]
 pub struct TournDb {

@@ -8,16 +8,7 @@ use squire_lib::{
     tournament::TournamentId,
 };
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
-use troupe::{
-    ActorBuilder,
-    Permanent,
-    Scheduler,
-    sink::{
-        SinkActor,
-        SinkClient,
-        permanent::Tracker,
-    },
-};
+use troupe::prelude::*;
 use uuid::Uuid;
 
 use super::{network::NetworkState, OnUpdate};

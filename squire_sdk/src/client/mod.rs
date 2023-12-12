@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
-use troupe::sink::permanent::Tracker;
+use troupe::prelude::Tracker;
 
 use self::{
     builder::ClientBuilder,

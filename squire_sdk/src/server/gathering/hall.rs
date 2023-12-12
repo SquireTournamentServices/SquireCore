@@ -9,10 +9,7 @@ use tokio::sync::{
     mpsc::{channel, Receiver, Sender},
     oneshot::channel as oneshot_channel,
 };
-use troupe::{
-    ActorBuilder, ActorState, Scheduler, Permanent, Transient,
-    sink::{SinkClient, SinkActor},
-};
+use troupe::prelude::*;
 
 use super::{Gathering, GatheringMessage, PersistMessage, PersistReadyMessage};
 use crate::{

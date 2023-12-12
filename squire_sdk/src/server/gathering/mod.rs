@@ -6,7 +6,7 @@ use derive_more::From;
 use futures::StreamExt;
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
-use troupe::{ActorState, Scheduler, Transient, sink::SinkActor};
+use troupe::prelude::{ActorState, SinkActor, Scheduler, Transient};
 use uuid::Uuid;
 
 use crate::{
