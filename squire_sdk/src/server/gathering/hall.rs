@@ -92,7 +92,7 @@ where
             GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
             GatheringHallMessage::NewConnection(id, user, ws) => {
                 if !self.process_new_onlooker(id, user, ws).await {
-                    panic!("TODO what if this fails")
+                    panic!("process_new_onlooker failed")
                 }
             }
             GatheringHallMessage::Persist => {
@@ -106,7 +106,7 @@ where
                     let (send, recv) = oneshot_channel();
                     let msg = GatheringMessage::GetTournament(send);
                     if !sender.send(msg) {
-                        panic!("TODO what if this fails")
+                        panic!("GatheringMessage::GetTournament failed")
                     }
                     let tourn = recv.await.unwrap();
                     let _ = persist_reqs.insert(id, tourn);
@@ -116,7 +116,7 @@ where
                     .drain()
                     .for_each(|(_, tourn)| {
                         if !self.persister.send(tourn) {
-                            panic!("TODO what if this fails")
+                            panic!("Failed to persist tournament")
                         };
                     });
                 schedule_persist(scheduler);
