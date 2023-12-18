@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use reqwest::{Method, Request, header::HeaderName};
+use reqwest::{header::HeaderName, Method, Request};
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
