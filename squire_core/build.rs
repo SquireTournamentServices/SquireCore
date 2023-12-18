@@ -13,15 +13,6 @@ use std::{
 use flate2::{write::GzEncoder, Compression};
 
 fn main() -> Result<(), i32> {
-    if env::var("CARGO_FEATURE_IGNORE_FRONTEND").is_ok() {
-        return Ok(());
-    }
-
-    let wd = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let fe_path = format!("{wd}/../squire_web");
-
-    println!("cargo:rerun-if-changed={fe_path}");
-
     // Install external dependency (in the shuttle container only)
     if std::env::var("HOSTNAME")
         .unwrap_or_default()
@@ -46,37 +37,36 @@ fn main() -> Result<(), i32> {
         {
             panic!("failed to install trunk")
         }
+        compile_fe()
+    } else if env::var("PROFILE")
+        .map(|v| v == "release")
+        .unwrap_or_default()
+    {
+        compile_fe()
+    } else {
+        Ok(())
     }
 
+}
+
+fn compile_fe() -> Result<(), i32> {
+    // Calls trunk to compile the frontend
     let mut cmd = Command::new("trunk");
     cmd.args(["build", "-d", "../assets", "--filehash", "false"]);
 
-    let is_release = env::var("PROFILE")
-        .map(|v| v == "release")
-        .unwrap_or_default();
-
-    if is_release {
-        cmd.arg("--release");
-    }
-    cmd.arg(format!("{fe_path}/index.html"));
-
-    // If in debug mode, all for failed compilation of frontend.
-    // In release mode, require that the frontend to be functional.
-    if matches!(cmd.status().map(|s| s.success()), Ok(false) | Err(_)) {
-        eprintln!("Failed to compile frontend!");
-        if is_release {
-            return Err(1);
-        }
+    cmd.arg("--release");
+    cmd.arg("../squire_web/index.html");
+    if cmd.status().is_err() {
+        return Err(1);
     }
 
     // Compresses the wasm package
-    let wasm_package = format!("{wd}/../assets/squire_web_bg.wasm");
-    let mut wasm_file = File::open(wasm_package).expect("Failed to open WASM file");
+    let mut wasm_file =
+        File::open("../assets/squire_web_bg.wasm").expect("Failed to open WASM file");
     let mut wasm_data = Vec::new();
     wasm_file.read_to_end(&mut wasm_data).unwrap();
 
-    let output_path = format!("{wd}/../assets/squire_web_bg.wasm.gz");
-    let output_file = File::create(output_path).unwrap();
+    let output_file = File::create("../assets/squire_web_bg.wasm.gz").unwrap();
     let mut encoder = GzEncoder::new(BufWriter::new(output_file), Compression::default());
     encoder.write_all(&wasm_data).unwrap();
 

@@ -6,8 +6,10 @@ use tower_http::cors::CorsLayer;
 #[cfg(test)]
 mod tests;
 
-mod accounts;
+#[cfg(not(debug_assertions))]
 mod assets;
+
+mod accounts;
 mod session;
 mod state;
 
@@ -16,7 +18,7 @@ use session::*;
 use state::{AppState, AppStateBuilder};
 
 pub fn create_router(state: AppState) -> Router {
-    server::create_router::<AppState>()
+    let router = server::create_router::<AppState>()
         .add_route::<0, POST, RegForm, _, _>(create_account)
         .add_route::<0, GET, AccountCrud, _, _>(get_account)
         .add_route::<0, DELETE, AccountCrud, _, _>(delete_account)
@@ -25,13 +27,12 @@ pub fn create_router(state: AppState) -> Router {
         .add_route::<0, POST, Reauth, _, _>(reauth)
         .add_route::<0, DELETE, Terminate, _, _>(terminate)
         .add_route::<0, GET, GetSessionStatus, _, _>(status)
-        .into_router()
-        .route("/", get(assets::landing))
-        .route("/squire_web_bg.wasm", get(assets::get_wasm))
-        .route("/squire_web.js", get(assets::get_js))
-        .fallback(assets::landing)
-        .layer(CorsLayer::permissive())
-        .with_state(state)
+        .into_router();
+
+    #[cfg(not(debug_assertions))]
+    let router = assets::inject_ui(router);
+
+    router.layer(CorsLayer::permissive()).with_state(state)
 }
 
 #[shuttle_runtime::main]

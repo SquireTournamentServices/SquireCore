@@ -16,7 +16,7 @@ use crate::{
         Credentials, GetRequest, ListTournaments, PostRequest, RegForm, SessionToken,
         TournamentSummary,
     },
-    compat::{log, NetworkError, NetworkResponse, Request, Sendable},
+    compat::{NetworkError, NetworkResponse, Request, Sendable},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,

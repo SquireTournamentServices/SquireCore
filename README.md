@@ -85,6 +85,20 @@ rustup target add wasm32-unknown-unknown
 cargo shuttle run
 ```
 
+For development, you will need to run the backend via Shuttle and the frontend via trunk.
+The trunk process will need to be configured to proxy calls to the backend.
+To run the backend, run the follow command while your working directory is `SquireCore/squire_core`:
+```
+cargo shuttle run
+```
+To run the frontend, run the following command while your working directory is `SquireCore/squire_web`:
+```
+trunk serve --proxy-backend http://localhost:8000/ --proxy-rewrite /api/
+```
+Trunk will attempt to recompile and serve the frontend when you save your changes.
+If successful, the frontend will reload with the new frontend.
+
+
 ## Current and Future State
 This repo (and STS as a whole) are still growing rapidly.
 Currently, everything in this repo is focused around proving the functionality of the tournament model; however, SquireCore (and therefore SquireSDK) will soon support many more things:
