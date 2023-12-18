@@ -31,6 +31,10 @@ impl SessionToken {
             HeaderValue::from_str(&hex::encode(self.0)).unwrap(),
         )
     }
+
+    pub fn as_raw_header(&self) -> (&'static str, String) {
+        (Self::HEADER_NAME.as_str(), hex::encode(self.0))
+    }
 }
 
 impl FromStr for SessionToken {

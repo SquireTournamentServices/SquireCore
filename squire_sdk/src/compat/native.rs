@@ -105,8 +105,11 @@ mod client {
     };
 
     use cookie::Cookie;
-    use futures::{Sink, Stream};
-    use reqwest::Response;
+    use derive_more::From;
+    use futures::{FutureExt, Sink, Stream, TryFutureExt};
+    use http::Method;
+    use reqwest::Url;
+    use serde::{de::DeserializeOwned, Serialize};
     use tokio::net::TcpStream;
     use tokio_tungstenite::{
         tungstenite::{Error as TungsError, Message as TungsMessage},
@@ -114,10 +117,120 @@ mod client {
     };
 
     use crate::{
+        api::{SessionToken, TokenParseError},
         client::error::{ClientError, ClientResult},
-        compat::{WebsocketError, WebsocketMessage, WebsocketResult},
+        compat::{NetworkError, SendableFuture, WebsocketError, WebsocketMessage, WebsocketResult},
         COOKIE_NAME,
     };
+
+    /* --------- HTTP Client ---------- */
+    /// A wrapper around the reqwest HTTP client.
+    #[derive(From, Debug, Default)]
+    pub struct Client(reqwest::Client);
+
+    /// A wrapper around the reqwest RequestBuilder.
+    #[derive(From)]
+    pub struct Request(reqwest::Request);
+
+    /// A wrapper around the reqwest Response.
+    #[derive(From)]
+    pub struct Response(reqwest::Response);
+
+    impl Request {
+        pub fn delete(url: &str) -> Self {
+            reqwest::Request::new(Method::DELETE, Url::parse(url).unwrap()).into()
+        }
+
+        pub fn get(url: &str) -> Self {
+            reqwest::Request::new(Method::GET, Url::parse(url).unwrap()).into()
+        }
+
+        pub fn patch(url: &str) -> Self {
+            reqwest::Request::new(Method::PATCH, Url::parse(url).unwrap()).into()
+        }
+
+        pub fn post(url: &str) -> Self {
+            reqwest::Request::new(Method::POST, Url::parse(url).unwrap()).into()
+        }
+
+        pub fn put(url: &str) -> Self {
+            reqwest::Request::new(Method::PUT, Url::parse(url).unwrap()).into()
+        }
+
+        /// Sets a header in the request
+        pub fn header(mut self, key: &'static str, value: &str) -> Self {
+            let _ = self.0.headers_mut().insert(key, value.parse().unwrap());
+            self
+        }
+
+        pub fn session(mut self, token: Option<&SessionToken>) -> Self {
+            match token {
+                Some(token) => {
+                    let (key, value) = token.as_raw_header();
+                    self.header(key, &value)
+                }
+                None => {
+                    let _ = self
+                        .0
+                        .headers_mut()
+                        .remove(SessionToken::HEADER_NAME.as_str());
+                    self
+                }
+            }
+        }
+
+        pub fn json<B: Serialize>(mut self, json: &B) -> Self {
+            let _ = self
+                .0
+                .body_mut()
+                .insert(serde_json::to_string(&json).unwrap().into());
+            self.header(http::header::CONTENT_TYPE.as_str(), "application/json")
+        }
+    }
+
+    impl Response {
+        pub fn get_header(&self, key: &str) -> Option<String> {
+            self.0
+                .headers()
+                .get(key)
+                .and_then(|h| h.to_str().ok())
+                .map(ToOwned::to_owned)
+        }
+
+        pub fn session_token(&self) -> Result<SessionToken, TokenParseError> {
+            self.0
+                .headers()
+                .get(SessionToken::HEADER_NAME.as_str())
+                .ok_or(TokenParseError::NoAuthHeader)?
+                .to_str()
+                .map_err(|_| TokenParseError::InvalidToken)?
+                .parse()
+        }
+
+        pub fn json<T>(self) -> impl SendableFuture<Output = Result<T, NetworkError>>
+        where
+            T: 'static + DeserializeOwned,
+        {
+            self.0.json().map_err(|_| NetworkError)
+        }
+    }
+
+    impl Client {
+        pub fn new() -> Self {
+            Self(reqwest::Client::new())
+        }
+
+        pub fn execute(
+            &self,
+            req: Request,
+        ) -> impl SendableFuture<Output = Result<Response, NetworkError>> {
+            self.0
+                .execute(req.0)
+                .map(|r| r.map(Response).map_err(|_| NetworkError))
+        }
+    }
+
+    /* --------- Sessions ---------- */
 
     /// A structure that the client uses to track its current session with the backend. A session
     /// represents both an active session and a yet-to-be-session.
@@ -132,6 +245,7 @@ mod client {
         /// From a auth response from the backend, create and load the session as needed
         pub fn load_from_resp(&mut self, resp: &Response) -> ClientResult<()> {
             let session = resp
+                .0
                 .cookies()
                 .find(|c| c.name() == COOKIE_NAME)
                 .ok_or(ClientError::LogInFailed)?;

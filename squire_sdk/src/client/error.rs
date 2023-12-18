@@ -1,32 +1,17 @@
-use reqwest::StatusCode;
+use http::StatusCode;
 use squire_lib::error::TournamentError;
+use derive_more::From;
+
+use crate::compat::NetworkError;
 
 pub type ClientResult<T> = Result<T, ClientError>;
 
-#[derive(Debug)]
+#[derive(Debug, From)]
 pub enum ClientError {
     NotLoggedIn,
     LogInFailed,
     FailedToConnect,
-    Reqwest(reqwest::Error),
+    Network(NetworkError),
     RequestStatus(StatusCode),
     Tournament(TournamentError),
-}
-
-impl From<StatusCode> for ClientError {
-    fn from(status: StatusCode) -> Self {
-        Self::RequestStatus(status)
-    }
-}
-
-impl From<reqwest::Error> for ClientError {
-    fn from(error: reqwest::Error) -> Self {
-        Self::Reqwest(error)
-    }
-}
-
-impl From<TournamentError> for ClientError {
-    fn from(error: TournamentError) -> Self {
-        Self::Tournament(error)
-    }
 }

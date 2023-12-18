@@ -84,8 +84,8 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
     /// Attempts to create a client. Construction will fail if a Squire server can not be reached
     /// using the given URL or a guest session can not be gotten from the server.
     pub async fn guest_build(self) -> Result<SquireClient, ClientError> {
-        let ClientBuilder { on_update, url, .. } = self;
-        let state = NetworkState::new(url);
+        let ClientBuilder { on_update, .. } = self;
+        let state = NetworkState::new();
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
@@ -98,8 +98,8 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, ()> {
 
     /// Creates a client but does not check if the URL is valid.
     pub fn guest_build_unchecked(self) -> SquireClient {
-        let ClientBuilder { on_update, url, .. } = self;
-        let state = NetworkState::new(url);
+        let ClientBuilder { on_update, .. } = self;
+        let state = NetworkState::new();
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
@@ -115,8 +115,8 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, Credentials> {
     /// Attempts to create a client. Construction will fail if a Squire server can not be reached
     /// using the given URL or if the login credentials are not valid.
     pub async fn build(self) -> Result<SquireClient, ClientError> {
-        let ClientBuilder { on_update, url, .. } = self;
-        let state = NetworkState::new(url);
+        let ClientBuilder { on_update, .. } = self;
+        let state = NetworkState::new();
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
@@ -133,11 +133,9 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
     /// using the given URL.
     pub async fn build(self) -> Result<SquireClient, ClientError> {
         let ClientBuilder {
-            user,
-            on_update,
-            url,
+            user, on_update, ..
         } = self;
-        let state = NetworkState::new_with_user(url, user);
+        let state = NetworkState::new_with_user(user);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);
@@ -151,11 +149,9 @@ impl<UP: OnUpdate> ClientBuilder<UP, String, SquireAccount> {
     /// Creates a client but does not check if the URL is valid.
     pub fn build_unchecked(self) -> SquireClient {
         let ClientBuilder {
-            user,
-            on_update,
-            url,
+            user, on_update, ..
         } = self;
-        let state = NetworkState::new_with_user(url, user);
+        let state = NetworkState::new_with_user(user);
         let user = state.subscribe();
         let client = ActorBuilder::new(state).launch();
         let tourns = TournsClient::new(client.clone(), on_update);

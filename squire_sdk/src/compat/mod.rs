@@ -66,15 +66,19 @@ pub enum WebsocketMessage {
 pub struct WebsocketError;
 
 #[cfg(feature = "client")]
-pub struct NetworkResponse(SendableWrapper<Result<reqwest::Response, reqwest::Error>>);
+pub struct NetworkResponse(SendableWrapper<Result<Response, NetworkError>>);
+
+// TODO: Flesh out
+#[derive(Debug)]
+pub struct NetworkError;
 
 #[cfg(feature = "client")]
 impl NetworkResponse {
-    pub fn new(inner: Result<reqwest::Response, reqwest::Error>) -> Self {
+    pub fn new(inner: Result<Response, NetworkError>) -> Self {
         Self(SendableWrapper::new(inner))
     }
 
-    pub fn inner(self) -> Result<reqwest::Response, reqwest::Error> {
+    pub fn inner(self) -> Result<Response, NetworkError> {
         self.0.take()
     }
 }

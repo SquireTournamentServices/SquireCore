@@ -12,6 +12,7 @@ client = [
   "serde_json",
   "tokio-tungstenite",
   "postcard",
+  "reqwest",
   "gloo-net",
 ]
 server = [
@@ -70,12 +71,13 @@ getrandom = { version = "0.2", features = ["js"] }
 web-sys = { version = "0.3.64", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
 gloo-timers = { version = "0.3", features = ["futures"] }
 send_wrapper = { version = "0.6", features = ["futures"] }
-gloo-net = { version = "0.5", optional = true }
+gloo-net = { version = "0.5", features = ["websocket", "json", "http"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.33", features = ["full"] }
-tokio-tungstenite = { version = "0.20.1", optional = true }
 instant = { version = "0.1" }
+reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
+tokio-tungstenite = { version = "0.20.1", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"

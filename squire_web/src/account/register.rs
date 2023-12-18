@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use squire_sdk::api::RegForm;
+use squire_sdk::{api::RegForm, compat::NetworkError};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlDialogElement, window};
 use yew::prelude::*;
@@ -15,7 +15,7 @@ pub enum RegisterMessage {
     PasswordInput(String),
     RePasswordInput(String),
     SubmitRegister,
-    RegisterResult(Result<bool, reqwest::Error>),
+    RegisterResult(Result<bool, NetworkError>),
 }
 
 pub struct Register {
@@ -61,7 +61,7 @@ impl Register {
         Ok(RegForm {
             username: name,
             display_name: display,
-            password: password,
+            password,
         })
     }
 }
@@ -146,8 +146,8 @@ impl Component for Register {
     }
 }
 
-impl From<Result<bool, reqwest::Error>> for RegisterMessage {
-    fn from(value: Result<bool, reqwest::Error>) -> Self {
+impl From<Result<bool, NetworkError>> for RegisterMessage {
+    fn from(value: Result<bool, NetworkError>) -> Self {
         Self::RegisterResult(value)
     }
 }

@@ -1,13 +1,12 @@
 use std::marker::PhantomData;
 
-use reqwest::{header::HeaderName, Method, Request};
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
 
 use self::{
     builder::ClientBuilder,
-    network::{NetworkClient, LoginError},
+    network::{LoginError, NetworkClient},
     session::SessionWatcher,
     tournaments::{TournsClient, UpdateType},
 };
@@ -17,7 +16,7 @@ use crate::{
         Credentials, GetRequest, ListTournaments, PostRequest, RegForm, SessionToken,
         TournamentSummary,
     },
-    compat::{NetworkResponse, Sendable},
+    compat::{log, NetworkError, NetworkResponse, Request, Sendable},
     model::{
         accounts::SquireAccount, identifiers::TournamentId, operations::TournOp,
         players::PlayerRegistry, rounds::RoundRegistry, tournament::TournamentSeed,
@@ -95,13 +94,13 @@ pub struct ResponseTracker<R>(Tracker<NetworkResponse>, PhantomData<R>);
 
 impl<R> ResponseTracker<R>
 where
-    R: DeserializeOwned,
+    R: 'static + DeserializeOwned,
 {
     pub fn new(tracker: Tracker<NetworkResponse>) -> Self {
         Self(tracker, PhantomData)
     }
 
-    pub async fn output(self) -> Result<R, reqwest::Error> {
+    pub async fn output(self) -> Result<R, NetworkError> {
         self.0.await.inner()?.json().await
     }
 }
@@ -149,9 +148,11 @@ impl SquireClient {
         R: 'static + GetRequest<N>,
         R::Response: Sendable,
     {
+        #[cfg(not(target_family = "wasm"))]
         let url = format!("http{HOST_ADDRESS}{}", R::ROUTE.replace(subs));
-        let url = reqwest::Url::parse(&url).unwrap();
-        let req = Request::new(Method::GET, url);
+        #[cfg(target_family = "wasm")]
+        let url = R::ROUTE.replace(subs);
+        let req = Request::get(&url);
         let tracker = self.client.track(req);
         ResponseTracker::new(tracker)
     }
@@ -165,15 +166,11 @@ impl SquireClient {
         B: Sendable + Sync + PostRequest<N>,
         B::Response: Sendable,
     {
+        #[cfg(not(target_family = "wasm"))]
         let url = format!("http{HOST_ADDRESS}{}", B::ROUTE.replace(subs));
-        let url = reqwest::Url::parse(&url).unwrap();
-        let mut req = Request::new(Method::POST, url);
-        let body = serde_json::to_string(&body).unwrap();
-        let _ = req.body_mut().insert(body.into());
-        let _ = req.headers_mut().insert(
-            HeaderName::from_static("content-type"),
-            reqwest::header::HeaderValue::from_str("application/json").unwrap(),
-        );
+        #[cfg(target_family = "wasm")]
+        let url = B::ROUTE.replace(subs);
+        let req = Request::post(&url).json(&body);
         let tracker = self.client.track(req);
         ResponseTracker::new(tracker)
     }
