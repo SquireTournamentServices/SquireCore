@@ -26,18 +26,18 @@ rand = { version = "0.8" }
 
 # Server-specifics
 mongodb = { version = "2.7.0", features = ["tokio-runtime"] }
-axum = { version = "0.6.20", features = ["json", "macros", "headers"]}
+axum = { version = "0.7.2", features = ["json", "macros"]}
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = { version = "0.1" }
-headers = { version = "0.3" }
-http = { version = "0.2" }
+headers = { version = "0.4" }
+http = { version = "1.0" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-hyper = { version = "0.14" }
-shuttle-runtime = { version = "0.31", features = [] }
-shuttle-shared-db = { version = "0.31", features = ["mongodb"] }
-shuttle-axum = { version = "0.31", features = [] }
-tower-http = { version = "0.4.4", features = ["cors"] }
+hyper = { version = "1.0" }
+shuttle-runtime = { version = "0.35", features = [] }
+shuttle-shared-db = { version = "0.35", features = ["mongodb"] }
+shuttle-axum = { version = "0.35.1", default-features = false, features = ["axum-0-7"] }
+tower-http = { version = "0.5", features = ["cors"] }
 derive_more = "0.99.17"
 
 [dev-dependencies]
@@ -45,7 +45,7 @@ derive_more = "0.99.17"
 squire_tests = { path = "../squire_tests" }
 
 tower = { version = "0.4", features = ["util"] }
-hyper = { version = "0.14", features = ["full"] }
+hyper = { version = "1.0", features = ["full"] }
 
 [build-dependencies]
 flate2 = "1.0"

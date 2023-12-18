@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 #[cfg(feature = "server")]
-use axum::{body::HttpBody, handler::Handler, routing::MethodRouter};
+use axum::{handler::Handler, routing::MethodRouter};
 use serde::{de::DeserializeOwned, Serialize};
 
 use super::url::Url;
@@ -66,12 +66,11 @@ pub trait RestRequest<const N: usize, const M: u8>: Serialize + DeserializeOwned
     /// This method takes a handler, calls a `MethodRouter` constructor (based on the generic
     /// constant M), and returns the method router. This method is largely used by the
     /// `SquireRouter` to construct API routes by calling this method and used the associated URL.
-    fn as_route<S, T, B, H>(handler: H) -> MethodRouter<S, B, std::convert::Infallible>
+    fn as_route<S, T, H>(handler: H) -> MethodRouter<S, std::convert::Infallible>
     where
         S: ServerState,
         T: 'static,
-        B: 'static + Send + HttpBody,
-        H: Handler<T, S, B>,
+        H: Handler<T, S>,
     {
         use axum::routing::{delete, get, patch, post};
 

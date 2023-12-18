@@ -132,6 +132,7 @@ impl PlayerRegistry {
         salt: DateTime<Utc>,
         name: String,
     ) -> Result<PlayerId, TournamentError> {
+        #[allow(clippy::map_entry)]
         if self.name_and_id.contains_key(&name) {
             Err(PlayerAlreadyRegistered)
         } else {

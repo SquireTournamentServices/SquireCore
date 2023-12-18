@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use reqwest::{Method, Request};
+use reqwest::{Method, Request, header::HeaderName};
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
@@ -171,7 +171,7 @@ impl SquireClient {
         let body = serde_json::to_string(&body).unwrap();
         let _ = req.body_mut().insert(body.into());
         let _ = req.headers_mut().insert(
-            http::header::CONTENT_TYPE,
+            HeaderName::from_static("content-type"),
             reqwest::header::HeaderValue::from_str("application/json").unwrap(),
         );
         let tracker = self.client.track(req);

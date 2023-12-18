@@ -9,7 +9,6 @@ authors = ["TylerBloom <tylerbloom2222@gmail.com>"]
 deck_sites = ["squire_lib/deck_sites", "mtgjson/hyper", "mtgjson/hyper-tls"]
 client = [
   "cookie",
-  "reqwest",
   "serde_json",
   "tokio-tungstenite",
   "postcard",
@@ -17,9 +16,6 @@ client = [
 ]
 server = [
   "axum",
-  "axum/json",
-  "axum/macros",
-  "axum/headers",
   "tokio/full",
   "headers",
   "serde_json",
@@ -33,7 +29,7 @@ mtgjson = { git = "https://github.com/TylerBloom/mtgjson-rust-sdk", rev = "979ff
 squire_lib = { path = "../squire_lib", default-features = false }
 
 # Common deps
-http = { version = "0.2" }
+http = { version = "1.0" }
 hex = { version = "0.4" }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = { version = "3.4" }
@@ -49,6 +45,7 @@ tokio = { version = "1.33", features = [
 ] }
 tokio-stream = { version = "0.1" }
 pin-project = { version  = "1.1" }
+reqwest = { version = "0.11", features = ["json", "cookies"] }
 
 # Client || Server deps
 cookie = { version = "0.17", optional = true }
@@ -56,17 +53,15 @@ serde_json = { version = "1.0.108", optional = true }
 postcard = { version = "1.0", features = ["alloc"], optional = true }
 
 # Client deps
-reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
 cookie_store = { version = "0.20", optional = true }
 
 # Server deps
-axum = { version = "0.6.20", features = ["ws"], optional = true }
-headers = { version = "0.3", optional = true }
+axum = { version = "0.7.2", features = ["ws", "json", "macros"], optional = true }
+headers = { version = "0.4", optional = true }
 
 # To be moved
 hashbag = { version = "0.1.11", features = ["serde"] }
 derive_more = "0.99.17"
-hyper = "0.14"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = { version = "0.4.37" }
@@ -75,7 +70,7 @@ getrandom = { version = "0.2", features = ["js"] }
 web-sys = { version = "0.3.64", features = ["Element", "HtmlCollection", "HtmlDialogElement"] }
 gloo-timers = { version = "0.3", features = ["futures"] }
 send_wrapper = { version = "0.6", features = ["futures"] }
-gloo-net = { version = "0.4", optional = true }
+gloo-net = { version = "0.5", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.33", features = ["full"] }

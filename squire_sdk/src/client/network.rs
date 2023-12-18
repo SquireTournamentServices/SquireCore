@@ -2,8 +2,10 @@ use std::fmt::Debug;
 
 use derive_more::From;
 use futures::{Future, SinkExt};
-use http::header::CONTENT_TYPE;
-use reqwest::{Client, Error as ReqwestError, Request, Response};
+use reqwest::{
+    header::{HeaderMap, HeaderName},
+    Client, Error as ReqwestError, Request, Response,
+};
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
 
 use super::{
@@ -12,7 +14,9 @@ use super::{
 };
 use crate::{
     actor::*,
-    api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken},
+    api::{
+        Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken, TokenParseError,
+    },
     compat::{NetworkResponse, Websocket, WebsocketMessage},
 };
 
@@ -167,9 +171,9 @@ impl NetworkState {
         let mut builder = self
             .client
             .post(format!("{}{}", self.url, B::ROUTE.replace(subs)))
-            .header(CONTENT_TYPE, "application/json");
+            .header(HeaderName::from_static("content-type"), "application/json");
         if let Some((name, header)) = self.token.as_ref().map(SessionToken::as_header) {
-            builder = builder.header(name, header);
+            builder = builder.header(name.as_str(), header.to_str().unwrap());
         }
         let body = serde_json::to_string(&body).unwrap();
         do_wrap(async move { builder.body(body).send().await })
@@ -220,5 +224,19 @@ impl Debug for NetworkCommand {
 impl From<((), OneshotSender<SessionWatcher>)> for NetworkCommand {
     fn from(((), send): ((), OneshotSender<SessionWatcher>)) -> Self {
         NetworkCommand::GuestLogin(send)
+    }
+}
+
+impl TryFrom<&HeaderMap> for SessionToken {
+    type Error = TokenParseError;
+
+    fn try_from(headers: &HeaderMap) -> Result<Self, Self::Error> {
+        match headers
+            .get(Self::HEADER_NAME.as_str())
+            .and_then(|h| h.to_str().ok())
+        {
+            Some(header) => header.parse(),
+            None => Err(TokenParseError::NoAuthHeader),
+        }
     }
 }

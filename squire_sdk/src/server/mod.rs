@@ -1,9 +1,4 @@
-use axum::{
-    body::{Body, HttpBody},
-    extract::State,
-    handler::Handler,
-    Router,
-};
+use axum::{extract::State, handler::Handler, Router};
 
 use self::state::ServerState;
 use crate::api::*;
@@ -13,7 +8,7 @@ pub mod session;
 pub mod state;
 pub mod tournaments;
 
-pub fn create_router<S: ServerState>() -> SquireRouter<S, Body> {
+pub fn create_router<S: ServerState>() -> SquireRouter<S> {
     get_routes::<S>().merge(tournaments::get_routes::<S>())
 }
 
@@ -22,14 +17,13 @@ fn get_routes<S: ServerState>() -> SquireRouter<S> {
 }
 
 #[derive(Debug)]
-pub struct SquireRouter<S, B = Body> {
-    router: Router<S, B>,
+pub struct SquireRouter<S> {
+    router: Router<S>,
 }
 
-impl<S, B> SquireRouter<S, B>
+impl<S> SquireRouter<S>
 where
     S: ServerState,
-    B: HttpBody + Send + 'static,
 {
     pub fn new() -> Self {
         Self {
@@ -41,7 +35,7 @@ where
     where
         R: RestRequest<N, M>,
         T: 'static,
-        H: Handler<T, S, B>,
+        H: Handler<T, S>,
     {
         println!("Adding route: {} {}", R::METHOD, R::ROUTE);
         Self {
@@ -55,7 +49,7 @@ where
         }
     }
 
-    pub fn into_router(self) -> Router<S, B> {
+    pub fn into_router(self) -> Router<S> {
         let Self { router } = self;
         router
     }
@@ -65,10 +59,7 @@ pub async fn get_version<S: ServerState>(State(state): State<S>) -> ServerVersio
     ServerVersionResponse::new(state.get_version())
 }
 
-impl<S> Default for SquireRouter<S, Body>
-where
-    S: ServerState,
-{
+impl<S: ServerState> Default for SquireRouter<S> {
     fn default() -> Self {
         Self::new()
     }
