@@ -63,7 +63,7 @@ headers = { version = "0.4", optional = true }
 # To be moved
 hashbag = { version = "0.1.11", features = ["serde"] }
 derive_more = "0.99.17"
-hyper = "0.14"
+hyper = "1.0"
 troupe = "0.1.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

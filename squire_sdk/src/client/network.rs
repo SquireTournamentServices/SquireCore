@@ -3,15 +3,15 @@ use std::fmt::Debug;
 use derive_more::From;
 use futures::SinkExt;
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
-use troupe::prelude::{ActorState, Permanent, Scheduler, SinkActor};
+use troupe::{prelude::*, compat::{SendableFuture, Sendable}};
 
 use super::session::{SessionBroadcaster, SessionWatcher};
 use crate::{
-    api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken},
-    compat::{NetworkResponse, Websocket, WebsocketMessage, log},
+    api::{Credentials, GuestSession, Login, PostRequest, SessionToken},
+    compat::{NetworkResponse, Websocket, WebsocketMessage, log, Client, Request, Response, NetworkError},
 };
 
-pub type NetworkClient = SyncClient<Permanent, NetworkCommand>;
+pub type NetworkClient = SinkClient<Permanent, NetworkCommand>;
 
 #[derive(Debug)]
 pub struct NetworkState {

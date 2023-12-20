@@ -8,10 +8,10 @@ use squire_lib::{
     tournament::TournamentId,
 };
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
-use troupe::prelude::*;
+use troupe::{prelude::*, sink::permanent::Tracker};
 use uuid::Uuid;
 
-use super::{network::NetworkState, OnUpdate};
+use super::{network::NetworkCommand, OnUpdate};
 use crate::{
     compat::{log, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     sync::{
@@ -22,7 +22,7 @@ use crate::{
 };
 
 /// A container for the channels used to communicate with the tournament management task.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TournsClient {
     client: SinkClient<Permanent, ManagementCommand>,
 }
@@ -55,7 +55,6 @@ impl ActorState for ManagerState {
 
     type Message = ManagementCommand;
     type Output = ();
-
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
@@ -244,7 +243,7 @@ impl ManagerState {
                     let (sink, stream) = ws.split();
                     let (broad, sub) = watch_channel(());
                     entry.get_mut().comm = Some((sink, broad));
-                    scheduler.add_stream(stream);
+                    scheduler.attach_stream(stream.fuse());
                     sub
                 }
             },
@@ -257,7 +256,7 @@ impl ManagerState {
                     comm: Some((sink, broad)),
                 };
                 let _ = entry.insert(tc);
-                scheduler.add_stream(stream);
+                scheduler.attach_stream(stream.fuse());
                 sub
             }
         }

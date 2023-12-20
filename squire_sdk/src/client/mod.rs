@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
-use troupe::prelude::Tracker;
+use troupe::sink::permanent::Tracker;
 
 use self::{
     builder::ClientBuilder,
@@ -74,7 +74,6 @@ impl UserInfo {
     }
 }
 
-#[derive(Debug)]
 pub struct SquireClient {
     user: SessionWatcher,
     client: NetworkClient,

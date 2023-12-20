@@ -18,7 +18,7 @@ use squire_sdk::{
 };
 use tokio::sync::oneshot::Sender as OneshotSender;
 use tracing::Level;
-use troupe::prelude::*;
+use troupe::{prelude::*, sink::permanent::Tracker};
 
 pub struct LoginError;
 

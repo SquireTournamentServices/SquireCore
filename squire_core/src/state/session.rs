@@ -65,7 +65,7 @@ use tokio::sync::{
     watch::{channel, Receiver as Watcher, Sender as Broadcaster},
 };
 use tracing::Level;
-use troupe::prelude::*;
+use troupe::{prelude::*, sink::permanent::Tracker};
 
 #[derive(From)]
 pub enum SessionCommand {
