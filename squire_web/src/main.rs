@@ -16,7 +16,7 @@ mod index;
 mod tournament;
 mod utils;
 
-use account::{Login, Register, Account};
+use account::{Account, Login, Register};
 use header::Header;
 use index::Index;
 use tournament::{creator::TournamentCreator, viewer::TournamentViewer};

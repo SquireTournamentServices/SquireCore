@@ -2,12 +2,12 @@ use std::borrow::Cow;
 
 use squire_sdk::{api::RegForm, compat::NetworkError};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlDialogElement, window};
+use web_sys::{window, HtmlDialogElement};
 use yew::prelude::*;
 use yew_router::scope_ext::RouterScopeExt;
 
 // use yew_router::prelude::*;
-use crate::{utils::TextInput, CLIENT, Route};
+use crate::{utils::TextInput, Route, CLIENT};
 
 pub enum RegisterMessage {
     NameInput(String),
@@ -25,16 +25,16 @@ pub struct Register {
         Option<String>,
         Option<String>,
     ),
-    error_message : String
+    error_message: String,
 }
 
 impl Register {
     fn display_error(&mut self, err: String) {
         let element: HtmlDialogElement = window()
-        .and_then(|w| w.document())
-        .and_then(|d| d.get_element_by_id("errormessage"))
-        .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
-        .unwrap();
+            .and_then(|w| w.document())
+            .and_then(|d| d.get_element_by_id("errormessage"))
+            .and_then(|e| e.dyn_into::<HtmlDialogElement>().ok())
+            .unwrap();
         self.error_message = err;
         let _ = element.show_modal();
     }
@@ -73,7 +73,7 @@ impl Component for Register {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             input: (None, None, None, None),
-            error_message : String::new()
+            error_message: String::new(),
         }
     }
 

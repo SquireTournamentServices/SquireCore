@@ -1,6 +1,6 @@
+use derive_more::From;
 use http::StatusCode;
 use squire_lib::error::TournamentError;
-use derive_more::From;
 
 use crate::compat::NetworkError;
 

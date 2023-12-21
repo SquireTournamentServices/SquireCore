@@ -3,9 +3,10 @@ use axum::{
     routing::get,
     Router,
 };
-use crate::state::AppState;
 use http::{header, HeaderMap, HeaderValue, StatusCode};
 use hyper::{body::Bytes, Body};
+
+use crate::state::AppState;
 
 const INDEX_HTML: &str = include_str!("../../assets/index.html");
 const APP_WASM: &[u8] = include_bytes!("../../assets/squire_web_bg.wasm.gz");

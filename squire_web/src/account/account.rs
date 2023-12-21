@@ -1,16 +1,12 @@
 use derive_more::From;
-use yew::Html;
-use yew::prelude::*;
+use yew::{prelude::*, Html};
 
 #[derive(Debug, From)]
-pub enum AccountMessage {
-}
+pub enum AccountMessage {}
 
-pub struct Account {
-}
+pub struct Account {}
 
-impl Account {
-}
+impl Account {}
 
 impl Component for Account {
     type Message = AccountMessage;

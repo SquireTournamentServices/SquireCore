@@ -3,11 +3,11 @@ use std::borrow::Cow;
 use derive_more::From;
 use squire_sdk::{api::Credentials, client::network::LoginError, model::accounts::SquireAccount};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlDialogElement, window};
+use web_sys::{window, HtmlDialogElement};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{utils::TextInput, CLIENT, Route};
+use crate::{utils::TextInput, Route, CLIENT};
 
 #[derive(Debug, From)]
 pub enum LoginMessage {

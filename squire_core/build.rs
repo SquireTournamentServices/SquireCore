@@ -46,7 +46,6 @@ fn main() -> Result<(), i32> {
     } else {
         Ok(())
     }
-
 }
 
 fn compile_fe() -> Result<(), i32> {
