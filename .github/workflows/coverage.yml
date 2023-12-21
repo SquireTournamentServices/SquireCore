@@ -2,7 +2,7 @@ name: Squire Coverage
 
 on:
   push:
-    branches: [ main, development ]
+    branches: [ main ]
   pull_request:
     branches: [ main, development ]
 
