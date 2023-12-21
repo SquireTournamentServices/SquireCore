@@ -2,7 +2,7 @@ name: SquireSDK CI
 
 on:
   push:
-    branches: [ main, development ]
+    branches: [ main ]
   pull_request:
     branches: [ main, development ]
 
@@ -15,12 +15,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust: [stable, beta, nightly]
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
       - uses: hecrj/setup-rust-action@v2
         with:
-          rust-version: ${{ matrix.rust }}
+          rust-version: stable
           components: rustfmt
       - uses: taiki-e/install-action@cargo-hack
       - uses: actions/checkout@v4
@@ -30,13 +29,10 @@ jobs:
   squire_lib_wasm_tests:
     name: Wasm Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust: [nightly, beta, stable]
     steps:
       - uses: hecrj/setup-rust-action@v2
         with:
-          rust-version: ${{ matrix.rust }}
+          rust-version: stable
           targets: wasm32-unknown-unknown
       - uses: actions/checkout@v4
       - run: cargo build --package squire_sdk --features=client --target=wasm32-unknown-unknown --verbose

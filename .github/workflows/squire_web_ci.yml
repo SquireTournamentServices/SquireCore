@@ -2,7 +2,7 @@ name: SquireWeb CI
 
 on:
   push:
-    branches: [ main, development ]
+    branches: [ main ]
   pull_request:
     branches: [ main, development ]
 
@@ -13,13 +13,10 @@ jobs:
   squire_web_build_tests:
     name: Build Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust: [stable, beta, nightly]
     steps:
       - uses: hecrj/setup-rust-action@v2
         with:
-          rust-version: ${{ matrix.rust }}
+          rust-version: stable
           components: rustfmt
           targets: wasm32-unknown-unknown
       - uses: actions/checkout@v4

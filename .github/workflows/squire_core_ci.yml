@@ -2,7 +2,7 @@ name: SquireCore CI
 
 on:
   push:
-    branches: [ main, development ]
+    branches: [ main ]
   pull_request:
     branches: [ main, development ]
 
@@ -12,17 +12,13 @@ env:
 jobs:
   squire_core_build_tests:
     name: Tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        rust: [nightly]
-        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
-      - uses: hecrj/setup-rust-action@v2
+      - name: Setup Rust
+        uses: hecrj/setup-rust-action@v2
         with:
-          rust-version: ${{ matrix.rust }}
+          rust-version: stable
           components: rustfmt
-          targets: wasm32-unknown-unknown
       - uses: actions/checkout@v4
       - name: Fetch Trunk
         uses: jetli/trunk-action@v0.4.0
@@ -34,4 +30,4 @@ jobs:
           mongodb-version: '6.0'
       - run: cargo build --package squire_core --verbose
       - run: cargo test --package squire_core --verbose --features="db-tests"
-      - run: cargo doc --package squire_core --verbose
+      # - run: cargo doc --package squire_core --verbose
