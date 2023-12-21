@@ -107,8 +107,7 @@ mod client {
     use cookie::Cookie;
     use derive_more::From;
     use futures::{FutureExt, Sink, Stream, TryFutureExt};
-    use http::Method;
-    use reqwest::Url;
+    use reqwest::{Url, Method};
     use serde::{de::DeserializeOwned, Serialize};
     use tokio::net::TcpStream;
     use tokio_tungstenite::{

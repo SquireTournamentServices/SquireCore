@@ -37,8 +37,8 @@ pub fn sleep_until(deadline: Instant) -> Sleep {
     )))
 }
 
-pub fn log(msg: &str) {
-    web_sys::console::log_1(&msg.into());
+pub fn log(_msg: &str) {
+    // web_sys::console::log_1(&msg.into());
 }
 
 #[cfg(feature = "client")]

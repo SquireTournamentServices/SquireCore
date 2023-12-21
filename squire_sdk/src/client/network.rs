@@ -212,17 +212,3 @@ impl From<((), OneshotSender<SessionWatcher>)> for NetworkCommand {
         NetworkCommand::GuestLogin(send)
     }
 }
-
-impl TryFrom<&HeaderMap> for SessionToken {
-    type Error = TokenParseError;
-
-    fn try_from(headers: &HeaderMap) -> Result<Self, Self::Error> {
-        match headers
-            .get(Self::HEADER_NAME.as_str())
-            .and_then(|h| h.to_str().ok())
-        {
-            Some(header) => header.parse(),
-            None => Err(TokenParseError::NoAuthHeader),
-        }
-    }
-}
