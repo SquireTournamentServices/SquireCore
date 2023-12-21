@@ -10,8 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  squire_core_build_tests:
-    name: Tests
+  code_cleaniness_checks:
+    name: Formatting Checks
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,14 +24,7 @@ jobs:
           components: rustfmt
           targets: wasm32-unknown-unknown
       - uses: actions/checkout@v4
-      - name: Fetch Trunk
-        uses: jetli/trunk-action@v0.4.0
-        with:
-          version: 'latest'
-      - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@v1.10.0
-        with:
-          mongodb-version: '6.0'
-      - run: cargo build --package squire_core --verbose
-      - run: cargo test --package squire_core --verbose --features="db-tests"
-      - run: cargo doc --package squire_core --verbose
+      - run: cargo fmt --check --package squire_lib
+      - run: cargo fmt --check --package squire_sdk
+      - run: cargo fmt --check --package squire_web
+      - run: cargo fmt --check --package squire_core
