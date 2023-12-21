@@ -39,6 +39,7 @@
 //! should be termianted (or at least downgraded to be that of a guest) once it expires. Reauth
 //! should reset the timer in the task that manages a tournament's WS connections.
 
+use async_trait::async_trait;
 use std::{
     collections::hash_map::HashMap,
     time::{Duration, Instant},
@@ -55,7 +56,6 @@ use mongodb::{
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use squire_sdk::{
-    actor::*,
     api::SessionToken,
     model::identifiers::SquireAccountId,
     server::session::{AnyUser, SquireSession},
@@ -65,6 +65,7 @@ use tokio::sync::{
     watch::{channel, Receiver as Watcher, Sender as Broadcaster},
 };
 use tracing::Level;
+use troupe::{prelude::*, sink::permanent::Tracker};
 
 #[derive(From)]
 pub enum SessionCommand {
@@ -110,7 +111,11 @@ struct Session {
 
 #[async_trait]
 impl ActorState for SessionStore {
+    type Permanence = Permanent;
+    type ActorType = SinkActor;
+
     type Message = SessionCommand;
+    type Output = ();
 
     async fn start_up(&mut self, scheduler: &mut Scheduler<Self>) {
         self.db.clone().load_all_sessions(self).await;
@@ -163,7 +168,7 @@ impl SessionStore {
         self.sessions.insert(token.clone(), session.clone());
         let db = self.db.clone();
         let db_session = session.clone();
-        scheduler.process(async move { db.persist_session(db_session).await });
+        scheduler.manage_future(async move { db.persist_session(db_session).await });
         session
     }
 
@@ -173,7 +178,7 @@ impl SessionStore {
         self.sessions.insert(token.clone(), session.clone());
         let db = self.db.clone();
         let db_session = session.clone();
-        scheduler.process(async move { db.persist_session(db_session).await });
+        scheduler.manage_future(async move { db.persist_session(db_session).await });
         session
     }
 
@@ -214,7 +219,7 @@ impl SessionStore {
             AnyUser::Guest(token) | AnyUser::Active(token) => {
                 if let Some(session) = self.remove_session(&token) {
                     let db = self.db.clone();
-                    scheduler.process(async move { db.remove_session(session).await });
+                    scheduler.manage_future(async move { db.remove_session(session).await });
                     true
                 } else {
                     false
@@ -223,7 +228,7 @@ impl SessionStore {
             AnyUser::ExpiredGuest(token) | AnyUser::Expired(token) => {
                 if let Some(session) = self.remove_session(&token) {
                     let db = self.db.clone();
-                    scheduler.process(async move { db.remove_expired_session(session).await });
+                    scheduler.manage_future(async move { db.remove_expired_session(session).await });
                     true
                 } else {
                     false
@@ -243,14 +248,14 @@ impl SessionStore {
                 SessionCommand::Revoke(token.clone()),
             );
             let db = self.db.clone();
-            scheduler.process(async move { db.expire_session(session).await });
+            scheduler.manage_future(async move { db.expire_session(session).await });
         }
     }
 
     fn revoke_session(&mut self, scheduler: &mut Scheduler<Self>, token: &SessionToken) {
         if let Some(session) = self.remove_session(token) {
             let db = self.db.clone();
-            scheduler.process(async move { db.remove_expired_session(session).await });
+            scheduler.manage_future(async move { db.remove_expired_session(session).await });
         }
     }
 
@@ -378,12 +383,12 @@ async fn delete_session(table: Collection<Session>, session: Session) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct SessionStoreHandle {
-    client: ActorClient<SessionStore>,
+    client: SinkClient<Permanent, SessionCommand>,
 }
 
 impl SessionStoreHandle {
     pub fn new(db: Database) -> Self {
-        let client = ActorClient::builder(SessionStore::new(db)).launch();
+        let client = ActorBuilder::new(SessionStore::new(db)).launch();
         Self { client }
     }
 

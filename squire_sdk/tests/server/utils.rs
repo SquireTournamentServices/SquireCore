@@ -5,7 +5,6 @@ use http::{
     header::{CONTENT_TYPE, SET_COOKIE},
     Method,
 };
-use hyper::Body;
 use serde::{de::DeserializeOwned, Serialize};
 use tower::Service;
 

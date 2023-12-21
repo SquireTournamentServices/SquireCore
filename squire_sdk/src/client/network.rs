@@ -3,18 +3,15 @@ use std::fmt::Debug;
 use derive_more::From;
 use futures::SinkExt;
 use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
+use troupe::{prelude::*, compat::{SendableFuture, Sendable}};
 
 use super::session::{SessionBroadcaster, SessionWatcher};
 use crate::{
-    actor::*,
     api::{Credentials, GuestSession, Login, PostRequest, SessionToken},
-    compat::{
-        log, Client, NetworkError, NetworkResponse, Request, Response, Sendable, SendableFuture,
-        Websocket, WebsocketMessage,
-    },
+    compat::{NetworkResponse, Websocket, WebsocketMessage, log, Client, Request, Response, NetworkError},
 };
 
-pub type NetworkClient = ActorClient<NetworkState>;
+pub type NetworkClient = SinkClient<Permanent, NetworkCommand>;
 
 #[derive(Debug)]
 pub struct NetworkState {
@@ -50,7 +47,11 @@ pub enum NetworkCommand {
 
 #[async_trait]
 impl ActorState for NetworkState {
+    type Permanence = Permanent;
+    type ActorType = SinkActor;
+
     type Message = NetworkCommand;
+    type Output = ();
 
     async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
         // TODO: The browser should store a cookie. We should ping the server to get the session
@@ -69,11 +70,11 @@ impl ActorState for NetworkState {
         match msg {
             NetworkCommand::Request(req, send) => {
                 let fut = self.client.execute(req.session(self.token.as_ref()));
-                scheduler.process(async move { drop(send.send(NetworkResponse::new(fut.await))) });
+                scheduler.manage_future(async move { drop(send.send(NetworkResponse::new(fut.await))) });
             }
             NetworkCommand::Login(cred, send) => {
                 let req = self.post_request(Login(cred), []);
-                scheduler.add_task(async move {
+                scheduler.queue_task(async move {
                     let Ok(resp) = req.await else {
                         // FIXME: Don't assume it was a cred error. Look at the error and
                         // investigate.
@@ -103,7 +104,7 @@ impl ActorState for NetworkState {
             }
             NetworkCommand::GuestLogin(send) => {
                 let req = self.post_request(GuestSession, []);
-                scheduler.add_task(async move {
+                scheduler.queue_task(async move {
                     let digest = match req.await {
                         Ok(resp) => resp.session_token().ok(),
                         Err(_) => None,
@@ -119,7 +120,7 @@ impl ActorState for NetworkState {
             NetworkCommand::OpenWebsocket(id, send) => match self.token.clone() {
                 Some(token) => {
                     let url = format!("/api/v1/tournaments/subscribe/{id}");
-                    scheduler.process(async move {
+                    scheduler.manage_future(async move {
                         drop(send.send(init_ws(Websocket::new(&url).await.ok(), token).await));
                     });
                 }

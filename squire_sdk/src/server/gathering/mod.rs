@@ -6,10 +6,10 @@ use derive_more::From;
 use futures::StreamExt;
 use squire_lib::{identifiers::SquireAccountId, tournament::TournamentId};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneshotSender};
+use troupe::prelude::{ActorState, SinkActor, Scheduler, Transient};
 use uuid::Uuid;
 
 use crate::{
-    actor::{ActorState, Scheduler},
     api::AuthUser,
     sync::{
         processor::{SyncCompletion, SyncDecision},
@@ -81,7 +81,11 @@ pub struct Gathering {
 
 #[async_trait]
 impl ActorState for Gathering {
+    type Permanence = Transient;
+    type ActorType = SinkActor;
+
     type Message = GatheringMessage;
+    type Output = ();
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
@@ -99,7 +103,7 @@ impl ActorState for Gathering {
                             _ = self.onlookers.insert(user.clone(), onlooker);
                         }
                     }
-                    scheduler.add_stream(Crier::new(stream, user.clone(), session));
+                    scheduler.attach_stream(Crier::new(stream, user.clone(), session));
                 }
             }
             GatheringMessage::WebsocketMessage(msg) => {
@@ -111,7 +115,7 @@ impl ActorState for Gathering {
                     if !self.forwarding.is_terminated(&msg.id) {
                         let _ = onlooker.send_msg(&msg).await;
                         let fut = ForwardingRetry::new(user, msg);
-                        scheduler.add_task(fut);
+                        scheduler.queue_task(fut);
                     }
                 }
                 None => {
@@ -287,7 +291,7 @@ impl Gathering {
                 .add_msg(msg.id, id.clone(), self.tourn.id, sync.clone());
             let _ = onlooker.send_msg(&msg).await;
             let fut = ForwardingRetry::new(user.clone(), msg.clone());
-            scheduler.add_task(fut);
+            scheduler.queue_task(fut);
         }
     }
 

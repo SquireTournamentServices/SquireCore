@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use serde::de::DeserializeOwned;
 use squire_lib::{operations::OpResult, tournament::TournRole};
 use tokio::sync::watch::Receiver as Subscriber;
+use troupe::sink::permanent::Tracker;
 
 use self::{
     builder::ClientBuilder,
@@ -11,7 +12,6 @@ use self::{
     tournaments::{TournsClient, UpdateType},
 };
 use crate::{
-    actor::Tracker,
     api::{
         Credentials, GetRequest, ListTournaments, PostRequest, RegForm, SessionToken,
         TournamentSummary,

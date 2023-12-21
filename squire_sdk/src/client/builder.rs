@@ -1,9 +1,10 @@
 use squire_lib::accounts::SquireAccount;
+use troupe::prelude::ActorBuilder;
 
 use super::{
     error::ClientError, network::NetworkState, tournaments::TournsClient, OnUpdate, SquireClient,
 };
-use crate::{actor::ActorBuilder, api::Credentials};
+use crate::{api::Credentials};
 
 /// A builder for the SquireClient. This builder is generic over most of its fields. This is used
 /// to gate access to the build methods, requiring all necessary fields are filled before

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::SessionCommand;
+use super::{AccountCommand, SessionCommand};
 
 impl Debug for SessionCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -13,6 +13,17 @@ impl Debug for SessionCommand {
             Self::Subscribe(value, _) => write!(f, "Subscribe({value:?})"),
             Self::Expiry(value) => write!(f, "Expiry({value:?})"),
             Self::Revoke(value) => write!(f, "Revoke({value:?})"),
+        }
+    }
+}
+
+impl Debug for AccountCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Create(value, _) => write!(f, "Create({value:?})"),
+            Self::Authenticate(value, _) => write!(f, "Authenticate({value:?})"),
+            Self::Get(value, _) => write!(f, "Get({value:?})"),
+            Self::Delete(value, _) => write!(f, "Delete({value:?})"),
         }
     }
 }

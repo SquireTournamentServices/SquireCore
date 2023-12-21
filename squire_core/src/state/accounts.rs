@@ -1,5 +1,6 @@
 use std::{collections::HashMap, future::Future, hash::Hasher};
 
+use async_trait::async_trait;
 use axum::response::{IntoResponse, Response};
 use derive_more::From;
 use futures::{FutureExt, StreamExt};
@@ -12,11 +13,12 @@ use mongodb::{
 };
 use serde::{Deserialize, Serialize};
 use squire_sdk::{
-    actor::*,
     api::{Credentials, RegForm},
     model::{accounts::SquireAccount, identifiers::SquireAccountId},
 };
+use tokio::sync::oneshot::Sender as OneshotSender;
 use tracing::Level;
+use troupe::{prelude::*, sink::permanent::Tracker};
 
 pub struct LoginError;
 
@@ -28,7 +30,7 @@ impl IntoResponse for LoginError {
 
 #[derive(Debug, Clone)]
 pub struct AccountStoreHandle {
-    client: ActorClient<AccountStore>,
+    client: SinkClient<Permanent, AccountCommand>,
 }
 
 fn salt_and_hash(password: &str, username: &str) -> u32 {
@@ -41,7 +43,7 @@ fn salt_and_hash(password: &str, username: &str) -> u32 {
 
 impl AccountStoreHandle {
     pub fn new(db: Database) -> Self {
-        let client = ActorClient::builder(AccountStore::new(db)).launch();
+        let client = ActorBuilder::new(AccountStore::new(db)).launch();
         Self { client }
     }
 
@@ -79,7 +81,11 @@ pub struct AccountStore {
 
 #[async_trait]
 impl ActorState for AccountStore {
+    type Permanence = Permanent;
+    type ActorType = SinkActor;
+
     type Message = AccountCommand;
+    type Output = ();
 
     async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
         let db = self.db.clone();
@@ -131,7 +137,7 @@ impl AccountStore {
         let account = SquireAccount::new(username, display_name);
         let digest = account.id;
         let user = DbUser { account, cred };
-        scheduler.process(self.db.persist_account(user.clone()));
+        scheduler.manage_future(self.db.persist_account(user.clone()));
         self.credentials.insert(cred, digest);
         self.users.insert(digest, user);
         digest
@@ -150,7 +156,7 @@ impl AccountStore {
     fn delete_account(&mut self, id: SquireAccountId, scheduler: &mut Scheduler<Self>) -> bool {
         self.credentials.retain(|_, a_id| id != *a_id);
         if let Some(user) = self.users.remove(&id) {
-            scheduler.process(self.db.remove_account(user));
+            scheduler.manage_future(self.db.remove_account(user));
             true
         } else {
             false

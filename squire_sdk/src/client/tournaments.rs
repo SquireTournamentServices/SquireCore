@@ -7,12 +7,13 @@ use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
 };
+use std::fmt::Debug;
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
+use troupe::{prelude::*, sink::permanent::Tracker};
 use uuid::Uuid;
 
-use super::{network::NetworkState, OnUpdate};
+use super::{network::NetworkCommand, OnUpdate};
 use crate::{
-    actor::*,
     compat::{log, Websocket, WebsocketError, WebsocketMessage, WebsocketResult},
     sync::{
         ClientBound, ClientBoundMessage, ClientForwardingManager, ClientOpLink, ClientSyncManager,
@@ -24,7 +25,7 @@ use crate::{
 /// A container for the channels used to communicate with the tournament management task.
 #[derive(Debug, Clone)]
 pub struct TournsClient {
-    client: ActorClient<ManagerState>,
+    client: SinkClient<Permanent, ManagementCommand>,
 }
 
 #[derive(From)]
@@ -38,19 +39,38 @@ pub(crate) enum ManagementCommand {
     Retry(MessageRetry),
 }
 
+impl Debug for ManagementCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            // Ignoring some annoying to deal with fields for now
+            Self::Query(value, _) => write!(f, "Query({value:?})"),
+            Self::Update((tid, ut), _) => write!(f, "Update({tid:?}, {ut:?})"),
+            Self::Import(_, _) => write!(f, "Import()"),
+            Self::Subscribe(value, _) => write!(f, "Subscribe({value:?})"),
+            Self::Connection(value, _) => write!(f, "Connection({value:?})"),
+            Self::Remote(value) => write!(f, "Remote({value:?})"),
+            Self::Retry(value) => write!(f, "Retry({value:?})"),
+        }
+    }
+}
+
 /// A struct that contains all of the state that the management task maintains
 #[allow(unused)]
 struct ManagerState {
     cache: TournamentCache,
     syncs: ClientSyncManager,
-    network: ActorClient<NetworkState>,
+    network: SinkClient<Permanent, NetworkCommand>,
     forwarded: ClientForwardingManager,
     on_update: Box<dyn OnUpdate>,
 }
 
 #[async_trait]
 impl ActorState for ManagerState {
+    type Permanence = Permanent;
+    type ActorType = SinkActor;
+
     type Message = ManagementCommand;
+    type Output = ();
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
         match msg {
@@ -70,7 +90,7 @@ impl ActorState for ManagerState {
                 SubCreation::Connect(id) => {
                     log("Cache miss! Establishing connection...");
                     let tracker = self.network.track(id);
-                    scheduler.add_task(tracker.map(|ws| {
+                    scheduler.queue_task(tracker.map(|ws| {
                         log("Got response from network actor!");
                         ManagementCommand::Connection(ws, send)
                     }));
@@ -110,7 +130,7 @@ pub enum UpdateType {
 type Query = Box<dyn Send + FnOnce(Option<&TournamentManager>)>;
 
 impl TournsClient {
-    pub fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+    pub fn new<O: OnUpdate>(network: SinkClient<Permanent, NetworkCommand>, on_update: O) -> Self {
         let client = ActorBuilder::new(ManagerState::new(network, on_update)).launch();
         Self { client }
     }
@@ -161,7 +181,7 @@ enum SubCreation {
 }
 
 impl ManagerState {
-    fn new<O: OnUpdate>(network: ActorClient<NetworkState>, on_update: O) -> Self {
+    fn new<O: OnUpdate>(network: SinkClient<Permanent, NetworkCommand>, on_update: O) -> Self {
         Self {
             on_update: Box::new(on_update),
             cache: Default::default(),
@@ -239,7 +259,7 @@ impl ManagerState {
                     let (sink, stream) = ws.split();
                     let (broad, sub) = watch_channel(());
                     entry.get_mut().comm = Some((sink, broad));
-                    scheduler.add_stream(stream);
+                    scheduler.attach_stream(stream.fuse());
                     sub
                 }
             },
@@ -252,7 +272,7 @@ impl ManagerState {
                     comm: Some((sink, broad)),
                 };
                 let _ = entry.insert(tc);
-                scheduler.add_stream(stream);
+                scheduler.attach_stream(stream.fuse());
                 sub
             }
         }
