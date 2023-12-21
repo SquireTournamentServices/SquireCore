@@ -70,7 +70,7 @@ impl ActorState for NetworkState {
         match msg {
             NetworkCommand::Request(req, send) => {
                 let fut = self.client.execute(req.session(self.token.as_ref()));
-                scheduler.manage_future(async move { drop(send.send(NetworkResponse::new(fut.await))) });
+                scheduler.manage_future(async move { send.send(NetworkResponse::new(fut.await)) });
             }
             NetworkCommand::Login(cred, send) => {
                 let req = self.post_request(Login(cred), []);
@@ -121,7 +121,7 @@ impl ActorState for NetworkState {
                 Some(token) => {
                     let url = format!("/api/v1/tournaments/subscribe/{id}");
                     scheduler.manage_future(async move {
-                        drop(send.send(init_ws(Websocket::new(&url).await.ok(), token).await));
+                        send.send(init_ws(Websocket::new(&url).await.ok(), token).await)
                     });
                 }
                 None => drop(send.send(None)),

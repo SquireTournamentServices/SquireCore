@@ -74,6 +74,7 @@ impl UserInfo {
     }
 }
 
+#[derive(Debug)]
 pub struct SquireClient {
     user: SessionWatcher,
     client: NetworkClient,

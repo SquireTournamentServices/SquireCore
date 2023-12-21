@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
 use instant::{Duration, Instant};
 use squire_lib::tournament::TournamentId;
-use std::marker::PhantomData;
 use tokio::sync::{
     mpsc::{channel, Receiver, Sender},
     oneshot::channel as oneshot_channel,
@@ -39,9 +38,7 @@ use crate::{
  *
  */
 
-fn schedule_persist<P>(scheduler: &mut Scheduler<GatheringHall<P>>)
-where
-    P: ActorState<Message = PersistMessage> + Sync,
+fn schedule_persist(scheduler: &mut Scheduler<GatheringHall>)
 {
     scheduler.schedule(
         Instant::now() + Duration::from_secs(5),
@@ -64,18 +61,15 @@ pub enum GatheringHallMessage {
 /// users to different gatherings and persisting data to the database. All of this is handled
 /// through message passing and tokio tasks.
 #[derive(Debug)]
-pub struct GatheringHall<P: ActorState<Message = PersistMessage>> {
+pub struct GatheringHall {
     gatherings: HashMap<TournamentId, SinkClient<Transient, GatheringMessage>>,
     persists: Receiver<PersistReadyMessage>,
     persist_sender: Sender<PersistReadyMessage>,
     persister: SinkClient<Permanent, PersistMessage>,
-    marker: PhantomData<P>,
 }
 
 #[async_trait]
-impl<P> ActorState for GatheringHall<P>
-where
-    P: ActorState<Message = PersistMessage> + Sync,
+impl ActorState for GatheringHall
 {
     type Permanence = Permanent;
     type ActorType = SinkActor;
@@ -91,9 +85,7 @@ where
         match msg {
             GatheringHallMessage::NewGathering(id) => self.process_new_gathering(id).await,
             GatheringHallMessage::NewConnection(id, user, ws) => {
-                if !self.process_new_onlooker(id, user, ws).await {
-                    panic!("process_new_onlooker failed")
-                }
+                self.process_new_onlooker(id, user, ws).await
             }
             GatheringHallMessage::Persist => {
                 let mut to_persist = HashSet::new();
@@ -105,9 +97,7 @@ where
                     let sender = self.gatherings.get_mut(&id).unwrap();
                     let (send, recv) = oneshot_channel();
                     let msg = GatheringMessage::GetTournament(send);
-                    if !sender.send(msg) {
-                        panic!("GatheringMessage::GetTournament failed")
-                    }
+                    let _ = sender.send(msg);
                     let tourn = recv.await.unwrap();
                     let _ = persist_reqs.insert(id, tourn);
                 }
@@ -125,9 +115,7 @@ where
     }
 }
 
-impl<P> GatheringHall<P>
-where
-    P: ActorState<Message = PersistMessage>,
+impl GatheringHall
 {
     /// Creates a new `GatheringHall` from receiver halves of channels that communicate new
     /// gatherings and subscriptions
@@ -138,7 +126,6 @@ where
             persists,
             persist_sender,
             persister,
-            marker: PhantomData,
         }
     }
 
@@ -162,10 +149,10 @@ where
         id: TournamentId,
         user: SessionWatcher,
         ws: WebSocket,
-    ) -> bool {
+    ) {
         let msg = GatheringMessage::NewConnection(user, ws);
         let send = self.get_or_init_gathering(id).await;
-        send.send(msg)
+        let _ = send.send(msg);
     }
 
     async fn get_or_init_gathering(&mut self, id: TournamentId) -> SinkClient<Transient, GatheringMessage> {

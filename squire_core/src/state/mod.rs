@@ -101,7 +101,7 @@ impl AppStateBuilder<Uri, DbName> {
         let tourn_coll = Arc::from(self.get_tournament_collection_name());
         let tourn_db = TournDb::new(db_conn.clone(), tourn_coll);
         let tournaments = ActorBuilder::new(TournPersister::new(tourn_db.clone())).launch();
-        let gatherings = ActorBuilder::new(GatheringHall::<TournPersister>::new(tournaments.clone())).launch();
+        let gatherings = ActorBuilder::new(GatheringHall::new(tournaments.clone())).launch();
         AppState {
             sessions: SessionStoreHandle::new(db_conn.clone()),
             accounts: AccountStoreHandle::new(db_conn),
@@ -126,7 +126,7 @@ impl AppStateBuilder<Database, ()> {
         let tourn_coll: Arc<str> = Arc::from(self.get_tournament_collection_name());
         let tourn_db = TournDb::new(self.db_conn.clone(), tourn_coll);
         let tourns = ActorBuilder::new(TournPersister::new(tourn_db.clone())).launch();
-        let gatherings = ActorBuilder::new(GatheringHall::<TournPersister>::new(tourns.clone())).launch();
+        let gatherings = ActorBuilder::new(GatheringHall::new(tourns.clone())).launch();
         AppState {
             sessions: SessionStoreHandle::new(self.db_conn.clone()),
             accounts: AccountStoreHandle::new(self.db_conn),

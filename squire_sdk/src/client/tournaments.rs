@@ -7,6 +7,7 @@ use squire_lib::{
     operations::{OpData, OpResult, TournOp},
     tournament::TournamentId,
 };
+use std::fmt::Debug;
 use tokio::sync::watch::{channel as watch_channel, Receiver as Watcher, Sender as Broadcaster};
 use troupe::{prelude::*, sink::permanent::Tracker};
 use uuid::Uuid;
@@ -22,7 +23,7 @@ use crate::{
 };
 
 /// A container for the channels used to communicate with the tournament management task.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TournsClient {
     client: SinkClient<Permanent, ManagementCommand>,
 }
@@ -36,6 +37,21 @@ pub(crate) enum ManagementCommand {
     Connection(Option<Websocket>, OneshotSender<Option<Watcher<()>>>),
     Remote(WebsocketResult),
     Retry(MessageRetry),
+}
+
+impl Debug for ManagementCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            // Ignoring some annoying to deal with fields for now
+            Self::Query(value, _) => write!(f, "Query({value:?})"),
+            Self::Update((tid, ut), _) => write!(f, "Update({tid:?}, {ut:?})"),
+            Self::Import(_, _) => write!(f, "Import()"),
+            Self::Subscribe(value, _) => write!(f, "Subscribe({value:?})"),
+            Self::Connection(value, _) => write!(f, "Connection({value:?})"),
+            Self::Remote(value) => write!(f, "Remote({value:?})"),
+            Self::Retry(value) => write!(f, "Retry({value:?})"),
+        }
+    }
 }
 
 /// A struct that contains all of the state that the management task maintains
