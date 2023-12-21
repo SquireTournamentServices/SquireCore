@@ -67,11 +67,6 @@ impl Component for Login {
                 self.error_message = "Login attempt failed!!".to_owned();
                 let _ = element.show_modal();
             }
-            LoginMessage::LoginResult(Ok(_)) => {
-                let navigator = ctx.link().navigator().unwrap();
-                navigator.push(&Route::Create);
-            }
-            LoginMessage::LoginResult(_) => panic!("Login attempt failed!!"),
         }
         true
     }
