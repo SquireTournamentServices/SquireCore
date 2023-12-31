@@ -93,7 +93,7 @@ cargo shuttle run
 ```
 To run the frontend, run the following command while your working directory is `SquireCore/squire_web`:
 ```
-trunk serve --proxy-backend http://localhost:8000/api --proxy-rewrite /api/
+trunk serve
 ```
 Trunk will attempt to recompile and serve the frontend when you save your changes.
 If successful, the frontend will reload with the new frontend.

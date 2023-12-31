@@ -111,8 +111,7 @@ mod client {
     use serde::{de::DeserializeOwned, Serialize};
     use tokio::net::TcpStream;
     use tokio_tungstenite::{
-        tungstenite::{Error as TungsError, Message as TungsMessage},
-        MaybeTlsStream, WebSocketStream,
+        tungstenite::Message as TungsMessage, MaybeTlsStream, WebSocketStream,
     };
 
     use crate::{
@@ -194,6 +193,11 @@ mod client {
                 .get(key)
                 .and_then(|h| h.to_str().ok())
                 .map(ToOwned::to_owned)
+        }
+
+        /// Returns the URL of the server that sent the response.
+        pub fn url(&self) -> String {
+            self.0.url().to_string()
         }
 
         pub fn session_token(&self) -> Result<SessionToken, TokenParseError> {
@@ -321,11 +325,13 @@ mod client {
         }
     }
 
+    /*
     impl From<TungsError> for WebsocketError {
         fn from(_value: TungsError) -> Self {
             Self
         }
     }
+    */
 
     impl From<WebsocketMessage> for TungsMessage {
         fn from(value: WebsocketMessage) -> Self {

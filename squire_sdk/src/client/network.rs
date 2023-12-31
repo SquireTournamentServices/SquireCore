@@ -7,7 +7,7 @@ use squire_lib::{accounts::SquireAccount, tournament::TournamentId};
 use super::session::{SessionBroadcaster, SessionWatcher};
 use crate::{
     actor::*,
-    api::{Credentials, GuestSession, Login, PostRequest, SessionToken},
+    api::{Credentials, GetRequest, GuestSession, Login, PostRequest, SessionToken, Subscribe},
     compat::{
         log, Client, NetworkError, NetworkResponse, Request, Response, Sendable, SendableFuture,
         Websocket, WebsocketMessage,
@@ -21,6 +21,8 @@ pub struct NetworkState {
     session: SessionBroadcaster,
     token: Option<SessionToken>,
     client: Client,
+    /// The URL of the host server. Used to establish WS connections.
+    server_address: String,
 }
 
 /// Encapsulates all of the ways that a login attempt can fail.
@@ -55,14 +57,25 @@ impl ActorState for NetworkState {
     async fn start_up(&mut self, _scheduler: &mut Scheduler<Self>) {
         // TODO: The browser should store a cookie. We should ping the server to get the session
         // info. If that fails, we should ping the server for an guest session.
-        let token = self
-            .post_request(GuestSession, [])
-            .await
-            .ok()
-            .and_then(|resp| resp.get_header(SessionToken::HEADER_NAME.as_str()))
-            .and_then(|h| h.parse::<SessionToken>().ok());
-        self.token = token;
-        self.session.guest_auth();
+        let Ok(resp) = self.post_request(GuestSession, []).await else {
+            return;
+        };
+        if let Some(token) = resp
+            .get_header(SessionToken::HEADER_NAME.as_str())
+            .and_then(|h| h.parse::<SessionToken>().ok())
+        {
+            self.token = Some(token);
+            self.session.guest_auth();
+        }
+        // The url should be of the form `http://<server address>/api/<route>`.
+        // We only want the server address.
+        self.server_address = resp
+            .url()
+            .split_once("//")
+            .and_then(|url| url.1.split_once("/api"))
+            .unwrap()
+            .0
+            .to_string();
     }
 
     async fn process(&mut self, scheduler: &mut Scheduler<Self>, msg: Self::Message) {
@@ -118,9 +131,13 @@ impl ActorState for NetworkState {
             }
             NetworkCommand::OpenWebsocket(id, send) => match self.token.clone() {
                 Some(token) => {
-                    let url = format!("/api/v1/tournaments/subscribe/{id}");
+                    let url = format!(
+                        "ws://{}{}",
+                        self.server_address,
+                        Subscribe::ROUTE.replace([&id.to_string()]),
+                    );
                     scheduler.process(async move {
-                        drop(send.send(init_ws(Websocket::new(&url).await.ok(), token).await));
+                        let _ = send.send(init_ws(Websocket::new(&url).await.ok(), token).await);
                     });
                 }
                 None => drop(send.send(None)),
@@ -136,6 +153,7 @@ impl NetworkState {
             session: SessionBroadcaster::new(),
             client: Client::new(),
             token: None,
+            server_address: String::new(),
         }
     }
 
@@ -144,6 +162,7 @@ impl NetworkState {
             session: SessionBroadcaster::new_with_user(user),
             client: Client::new(),
             token: None,
+            server_address: String::new(),
         }
     }
 

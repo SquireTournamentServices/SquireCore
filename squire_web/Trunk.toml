@@ -1,0 +1,9 @@
+# Proxy the HTTP requests to the backend
+[[proxy]]
+backend = "http://localhost:8000/api"
+rewrite = "/api/"
+
+# Proxy the WebSocket connections to the backend
+[[proxy]]
+backend = "ws://localhost:8000/ws"
+ws = true

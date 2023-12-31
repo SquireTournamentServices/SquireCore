@@ -14,6 +14,7 @@ pub use url::Url;
 
 /* ---------- Base Routes ---------- */
 const API_BASE: Url<0> = Url::from("/api/v1");
+const WS_BASE: Url<0> = Url::from("/ws/v1");
 
 /* ---------- Tournament Routes ---------- */
 const TOURNAMENTS_ROUTE: Url<0> = extend!(API_BASE, "/tournaments");
@@ -38,13 +39,14 @@ impl GetRequest<1> for ListTournaments {
     type Response = Vec<TournamentSummary>;
 }
 
+const WS_TOURNAMENTS_ROUTE: Url<0> = extend!(WS_BASE, "/tournaments");
 const SUBSCRIBE_ENDPOINT: Url<1> = Url::new("/subscribe/:t_id", [":t_id"]);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Subscribe;
 
 impl GetRequest<1> for Subscribe {
-    const ROUTE: Url<1> = extend!(TOURNAMENTS_ROUTE, SUBSCRIBE_ENDPOINT);
+    const ROUTE: Url<1> = extend!(WS_TOURNAMENTS_ROUTE, SUBSCRIBE_ENDPOINT);
     type Response = ();
 }
 

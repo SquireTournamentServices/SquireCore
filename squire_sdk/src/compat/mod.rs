@@ -10,6 +10,7 @@ use std::{
     fmt::Debug,
     pin::Pin,
     task::{Context, Poll},
+    error::Error,
 };
 
 use futures::{Future, FutureExt, Stream};
@@ -61,9 +62,9 @@ pub enum WebsocketMessage {
     Bytes(Vec<u8>),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+//#[derive(Debug, Clone, PartialEq)]
 /// The common error type used by the websocket types
-pub struct WebsocketError;
+pub type WebsocketError = Box<dyn 'static + Send + Sync + Error>;
 
 #[cfg(feature = "client")]
 pub struct NetworkResponse(SendableWrapper<Result<Response, NetworkError>>);

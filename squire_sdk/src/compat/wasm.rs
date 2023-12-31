@@ -37,8 +37,8 @@ pub fn sleep_until(deadline: Instant) -> Sleep {
     )))
 }
 
-pub fn log(_msg: &str) {
-    // web_sys::console::log_1(&msg.into());
+pub fn log(msg: &str) {
+    web_sys::console::log_1(&msg.into());
 }
 
 #[cfg(feature = "client")]
@@ -56,7 +56,7 @@ mod client {
     use derive_more::From;
     use futures::{Sink, Stream, TryFutureExt};
     use gloo_net::websocket::{
-        futures::WebSocket as GlooSocket, Message as GlooMessage, WebSocketError as GlooError,
+        futures::WebSocket as GlooSocket, Message as GlooMessage,
     };
     use send_wrapper::SendWrapper;
     use serde::{de::DeserializeOwned, Serialize};
@@ -137,6 +137,11 @@ mod client {
     impl Response {
         pub fn get_header(&self, key: &str) -> Option<String> {
             self.0.headers().get(key)
+        }
+
+        /// Returns the URL of the server that sent the response.
+        pub fn url(&self) -> String {
+            self.0.url()
         }
 
         pub fn session_token(&self) -> Result<SessionToken, TokenParseError> {
@@ -271,11 +276,13 @@ mod client {
         }
     }
 
+    /*
     impl From<GlooError> for WebsocketError {
         fn from(_value: GlooError) -> Self {
             Self
         }
     }
+    */
 
     impl From<WebsocketMessage> for GlooMessage {
         fn from(value: WebsocketMessage) -> Self {
