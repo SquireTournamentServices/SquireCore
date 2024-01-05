@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{Route, CLIENT};
+use crate::{Route, CLIENT, utils::console_log};
 
 #[function_component(Header)]
 pub fn header() -> Html {
@@ -12,7 +12,7 @@ pub fn header() -> Html {
     };
     let account_option = CLIENT.get().unwrap().get_user();
     let account_nav = match account_option {
-        Some(_) => {
+        None => {
             html! {
                 <>
                 <li class="nav-item">
@@ -24,7 +24,8 @@ pub fn header() -> Html {
                 </>
             }
         }
-        None => {
+        Some(logged_in_account) => {
+            console_log(logged_in_account.display_name.as_str());
             html! {
                 <>
                 <li class="nav-item">
