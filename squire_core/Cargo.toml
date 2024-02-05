@@ -33,7 +33,7 @@ http = { version = "1.0" }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hyper = { version = "1.0" }
-shuttle-runtime = { version = "0.35", features = [] }
+shuttle-runtime = { version = "0.38", features = [] }
 shuttle-shared-db = { version = "0.35", features = ["mongodb"] }
 shuttle-axum = { version = "0.35.1", default-features = false, features = ["axum-0-7"] }
 tower-http = { version = "0.5", features = ["cors"] }
