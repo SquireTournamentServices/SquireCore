@@ -76,14 +76,15 @@ Secondly, we need to be able to run Docker without root:
 sudo usermod -a -G docker <your username>
 ```
 
-### Finally
+### Final Setup
 
 ```
 cargo install cargo-shuttle
 cargo install trunk // make sure to run these to installs separately
 rustup target add wasm32-unknown-unknown
-cargo shuttle run
 ```
+
+### Running
 
 For development, you will need to run the backend via Shuttle and the frontend via trunk.
 The trunk process will need to be configured to proxy calls to the backend.
